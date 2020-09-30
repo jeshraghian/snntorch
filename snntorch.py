@@ -3,12 +3,14 @@ import matplotlib.pyplot as plt
 import torchvision
 from torchvision import datasets, models, transforms, utils
 import torch
+from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
 from collections import namedtuple
 
-
 input_shape = [28, 28, 1]
 datasetConfig = namedtuple('config', ['image_size', 'batch_size', 'data_path'])
+
+
 # dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 def __gen_ST(N, T, rate, mode='regular'):
@@ -103,15 +105,32 @@ def plotLIF(U, S, Vplot='all', staggering=1, ax1=None, ax2=None, **kwargs):
     plt.show()
     return ax1, ax2
 
-def mnistDataLoader(path = '/data/mnist', batch_size=100):
-    '''
-    This function returns iterables over the MNIST dataset.
-    :param path: default to '/data/mnist'
-    :param batch_size: default to 100
-    :return: dl_train and dl_valid
-    '''
+
+def mnist_dataloader(path='/data/mnist', batch_size=1, split=10000, subset=1, index=0):
+    """
+    Provide three iterables over the mnist dataset for training, validation and testing.
+
+    :param path (string, optional): location to download raw dataset to (default: '/data/mnist').
+    :param batch_size (int, optional): how many samples per batch to load (default: ``1``).
+    :param split (int, optional): split training data between training and validation sets (default: ``10,000``).
+    :param subset (int, optional): divide down the total number of samples by `subset` (default: ``1``).
+    :param index (int, optional): index into one of len(dataset)/subset subsamples (default: ``0``).
+
+    :return: dl_train, dl_valid and dl_test
+    """
 
     config = datasetConfig(image_size=[28, 28], batch_size=batch_size, data_path=path)
+    ds_train, ds_valid, ds_test = mnist_dataset(config, path, split, subset, index)
+
+    dl_train = DataLoader(ds_train, batch_size=batch_size, drop_last=True, shuffle=True)
+    dl_valid = DataLoader(ds_valid, batch_size=batch_size, drop_last=True)
+    dl_test = DataLoader(ds_test, batch_size=batch_size, drop_last=True, shuffle=True)
+
+    return dl_train, dl_valid, dl_test
+
+
+def mnist_dataset(config, path='/data/mnist', split=10000, subset=1, index=0):
+    # Download and initialize training, validation and test sets
 
     t = transforms.Compose([
         transforms.Resize(config.image_size),
@@ -119,12 +138,32 @@ def mnistDataLoader(path = '/data/mnist', batch_size=100):
         transforms.ToTensor(),
         transforms.Normalize((0.0,), (1.0,))])
 
-    dl_train = DataLoader(torchvision.datasets.MNIST(root=path, download=True, train=True, transform=t),
-                                                     batch_size = batch_size, drop_last=True, shuffle=True)
-    dl_valid = DataLoader(torchvision.datasets.MNIST(root=path, download=True, train=False, transform=t),
-                                                     batch_size = batch_size, drop_last=True, shuffle=True)
-    return dl_train, dl_valid
+    dataset = torchvision.datasets.MNIST(root=path, download=True, train=True, transform=t)
+    ds_test = torchvision.datasets.MNIST(root=path, download=True, train=False, transform=t)
 
+    ds_train, ds_valid = mnist_split(dataset, split)
+    ds_train, ds_valid, ds_test = mnist_subset(ds_train, ds_valid, ds_test, subset, index)
+
+    return ds_train, ds_valid, ds_test
+
+
+def mnist_split(dataset, split=10000):
+    # Random split train/validation sets
+
+    ds_train, ds_valid = random_split(dataset, [(len(dataset) - split), split])
+    return ds_train, ds_valid
+
+
+def mnist_subset(ds_train, ds_valid, ds_test, subset=1, index=0):
+    # Take subsample of training and test sets
+
+    train_sampler = list(range(index, (index + 1) * (len(ds_train)) // subset))
+    test_sampler = list(range(index, (index + 1) * (len(ds_test)) // subset))
+
+    ds_train = torch.utils.data.Subset(ds_train, train_sampler)
+    ds_test = torch.utils.data.Subset(ds_test, test_sampler)
+
+    return ds_train, ds_valid, ds_test
 
 def y_one_hot(t, width):
     t_onehot = torch.zeros(*t.shape + (width,))
@@ -165,9 +204,11 @@ def target_convolve(tgt, alpha=8, alphas=5):
             tgt[:, i, j] = tmp
     return tgt / tgt.max()
 
+
 def sequester(tensor):
     dtype = tensor.dtype
     return torch.tensor(tensor.detach().cpu().numpy(), dtype=dtype)
+
 
 def pixel_permutation(d_size, r_pix=1.0, seed=0):
     import copy
