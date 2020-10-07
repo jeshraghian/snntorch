@@ -50,12 +50,6 @@ class Configuration:
         self.num_classes = len(set(ds_targets))
 
 
-def spikes_to_evlist(spikes):
-    t = np.tile(np.arange(spikes.shape[0]), [spikes.shape[1], 1])
-    n = np.tile(np.arange(spikes.shape[1]), [spikes.shape[0], 1]).T
-    return t[spikes.astype('bool').T], n[spikes.astype('bool').T]
-
-
 def plotLIF(U, S, Vplot='all', staggering=1, ax1=None, ax2=None, **kwargs):
     '''
     This function plots the output of the function LIF.
