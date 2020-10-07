@@ -4,44 +4,50 @@ import torchvision
 from torchvision import datasets, models, transforms, utils
 import torch
 from torch.utils.data import random_split
-from torch.utils.data.dataloader import DataLoader
-from collections import namedtuple
-
-input_shape = [28, 28, 1]
-datasetConfig = namedtuple('config', ['image_size', 'batch_size', 'data_path'])
-
+import sys
+import math
 
 # dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-def __gen_ST(N, T, rate, mode='regular'):
-    if mode == 'regular':
-        spikes = np.zeros([T, N])
-        spikes[::(1000 // rate)] = 1
-        return spikes
-    elif mode == 'poisson':
-        spikes = np.ones([T, N])
-        spikes[np.random.binomial(1, float(1000. - rate) / 1000, size=(T, N)).astype('bool')] = 0
-        return spikes
-    else:
-        raise Exception('mode must be regular or Poisson')
 
+class Configuration:
+    """" A class for holding data about the model and dataset."""
+    # A class for holding data about the model and dataset.
+    def __init__(self, input_size, channels=1, batch_size=100, split=0, subset=1, num_classes=False, T=500, data_path='/data'):
+        """"
+        :param input_size (list): input data dimensions [W x H] **extend this out to C x W x H **or** T x C x W x H.
+        :param channels (int): number of channels (default: ``1``).
+        :param batch_size (int, optional): batch size (default: ``100``).
+        :param split (int, optional): size of validation set (default: ``0``).
+        :param subset (int, optional): factor by which to divide size of train and test sets (default: ``1``).
+        :param num_classes (int, optional): number of output classes. Automatically calculated if not provided
+        (default: ``False``)
+        :param T (int, optional): number of time steps (default: ``500``).
+        :param data_path (string, optional): pathway to download dataset to (default: ``/data``).
+        """
+        self.input_size = input_size
+        self.channels = channels
+        self.batch_size = batch_size
+        self.split = split
+        self.subset = subset
+        self.num_classes = num_classes
+        self.T = T
+        self.data_path = data_path
 
-def spiketrains(N, T, rates, mode='poisson'):
-    '''
-    *N*: number of neurons
-    *T*: number of time steps
-    *rates*: vector or firing rates, one per neuron
-    *mode*: 'regular' or 'poisson'
-    '''
-    if not hasattr(rates, '__iter__'):
-        return __gen_ST(N, T, rates, mode)
-    rates = np.array(rates)
-    M = rates.shape[0]
-    spikes = np.zeros([T, N])
-    for i in range(M):
-        if int(rates[i]) > 0:
-            spikes[:, i] = __gen_ST(1, T, int(rates[i]), mode=mode).flatten()
-    return spikes
+    #def _calc_input_size(self, ds_train):
+    #     """Measure input dimension size and update config file."""
+    #    self.input_size = list(np.array(ds_train[0][0]).shape)
+
+    def _dataset_size(self, ds_valid, ds_test):
+        """Measure validation and test set sizes and update config file. Called automatically from mnist_dataset()."""
+        self.valid_size, self.test_size = ds_valid.__len__(), ds_test.__len__()
+
+    def _calc_num_classes(self, ds_test, target_dim=-1):
+        """Calculate number of output classes and update config file. Only invoked if num_classes is unspecified."""
+        ds_targets = []
+        for n in range(len(ds_test)):
+            ds_targets.append(ds_test[n][target_dim])
+        self.num_classes = len(set(ds_targets))
 
 
 def spikes_to_evlist(spikes):
@@ -106,89 +112,113 @@ def plotLIF(U, S, Vplot='all', staggering=1, ax1=None, ax2=None, **kwargs):
     return ax1, ax2
 
 
-def mnist_dataloader(path='/data/mnist', batch_size=1, split=10000, subset=1, index=0):
-    """
-    Provide three iterables over the mnist dataset for training, validation and testing.
+def mnist_dataset(data_config, download=True, index=0, transform=0):
+    """Download and initialize training, validation and test sets using torchvision.datasets.MNIST.
+    :param data_config: instance of the Configuration class containing information about the dataset.
+    :param download (bool, optional): If true, downloads the dataset from the internet. If dataset is already
+    downloaded, it is not downloaded again (default: ``True``).
+    :param index (int, optional): If data_config.subset>1, specifies which subset of the full dataset to use
+    (``default: 0``).
 
-    :param path (string, optional): location to download raw dataset to (default: '/data/mnist').
-    :param batch_size (int, optional): how many samples per batch to load (default: ``1``).
-    :param split (int, optional): split training data between training and validation sets (default: ``10,000``).
-    :param subset (int, optional): divide down the total number of samples by `subset` (default: ``1``).
-    :param index (int, optional): index into one of len(dataset)/subset subsamples (default: ``0``).
-
-    :return: dl_train, dl_valid and dl_test
-    """
-
-    config = datasetConfig(image_size=[28, 28], batch_size=batch_size, data_path=path)
-    ds_train, ds_valid, ds_test = mnist_dataset(config, path, split, subset, index)
-
-    dl_train = DataLoader(ds_train, batch_size=batch_size, drop_last=True, shuffle=True)
-    dl_valid = DataLoader(ds_valid, batch_size=batch_size, drop_last=True)
-    dl_test = DataLoader(ds_test, batch_size=batch_size, drop_last=True, shuffle=True)
-
-    return dl_train, dl_valid, dl_test
-
-
-def mnist_dataset(config, path='/data/mnist', split=10000, subset=1, index=0):
+    :return ds_train, ds_valid, ds_test."""
     # Download and initialize training, validation and test sets
 
-    t = transforms.Compose([
-        transforms.Resize(config.image_size),
-        transforms.Grayscale(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.0,), (1.0,))])
+    if transform == 0:
+        transform = transforms.Compose([
+            transforms.Resize(data_config.input_size),
+            transforms.Grayscale(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.0,), (1.0,))])
 
-    dataset = torchvision.datasets.MNIST(root=path, download=True, train=True, transform=t)
-    ds_test = torchvision.datasets.MNIST(root=path, download=True, train=False, transform=t)
+    dataset = torchvision.datasets.MNIST(root=data_config.data_path, download=download, train=True, transform=transform)
+    ds_test = torchvision.datasets.MNIST(root=data_config.data_path, download=download, train=False, transform=transform)
 
-    ds_train, ds_valid = mnist_split(dataset, split)
-    ds_train, ds_valid, ds_test = mnist_subset(ds_train, ds_valid, ds_test, subset, index)
+    ds_train, ds_valid = mnist_split(dataset, data_config)
+    ds_train, ds_valid, ds_test = mnist_subset(ds_train, ds_valid, ds_test, data_config, index)
+
+    # Update input_size, dataset sizes, and num_classes where not provided
+    _config_update(data_config, ds_train, ds_valid, ds_test)
 
     return ds_train, ds_valid, ds_test
 
 
-def mnist_split(dataset, split=10000):
+def _config_update(data_config, ds_train, ds_valid, ds_test):
+    # Update config file with input_size if not provided.
+    #if data_config.input_size is False:
+    #    data_config._calc_image_size(ds_train)
+
+    # Update config file with validation and test set sizes -- makes spike train conversion easier.
+    data_config._dataset_size(ds_valid, ds_test)
+
+    # Update config file with num_classes if num_classes has not been provided
+    if data_config.num_classes is False:
+        data_config._calc_num_classes(ds_test)
+
+
+def mnist_split(dataset, data_config):
     # Random split train/validation sets
 
-    ds_train, ds_valid = random_split(dataset, [(len(dataset) - split), split])
+    ds_train, ds_valid = random_split(dataset, [(len(dataset) - data_config.split), data_config.split])
     return ds_train, ds_valid
 
 
-def mnist_subset(ds_train, ds_valid, ds_test, subset=1, index=0):
+def mnist_subset(ds_train, ds_valid, ds_test, data_config, index=0):
     # Take subsample of training and test sets
 
-    train_sampler = list(range(index, (index + 1) * (len(ds_train)) // subset))
-    test_sampler = list(range(index, (index + 1) * (len(ds_test)) // subset))
+    train_sampler = list(range(index, (index + 1) * (len(ds_train)) // data_config.subset))
+    test_sampler = list(range(index, (index + 1) * (len(ds_test)) // data_config.subset))
 
     ds_train = torch.utils.data.Subset(ds_train, train_sampler)
     ds_test = torch.utils.data.Subset(ds_test, test_sampler)
 
     return ds_train, ds_valid, ds_test
 
-def y_one_hot(t, width):
-    t_onehot = torch.zeros(*t.shape + (width,))
-    return t_onehot.scatter_(1, t.unsqueeze(-1), 1)
+
+def time_series_data(dataset, data_config):
+
+    # initialize data and targets [N x W x H] ---- we can consider expanding for channel size later
+    # uint8 because when we broadcast takes up loads of memory. dtype = 'uint8'
+    data = np.zeros([len(dataset), data_config.channels, *data_config.input_size])
+    targets = np.zeros([len(dataset), 1])
+
+    # Combine dataset into one huge tensor so spike train can be passed into Bernoulli function all in one hit.
+    print("\nMerging dataset. This may take a while: ...")
+    for idx in range(len(dataset)):
+        data[idx] = dataset[idx][0]
+        targets[idx] = dataset[idx][1]
+        _update_progress(idx / len(dataset))
+    print("\nMerging complete.")
+
+    # repeat array T times in dim=0 for multiple timesteps. TO-DO: give option to load this on CUDA.
+    print("\nBroadcasting data along the time axis. This may take a while...")
+    data_time = np.repeat(data[np.newaxis, :, :], data_config.T, axis=0)
+    print("Broadcasting complete.")
+
+    return data_time, targets
 
 
-def image2spiketrain(x, y, gain=50, min_duration=None, max_duration=500):
-    y = to_one_hot(y, 10)
-    if min_duration is None:
-        min_duration = max_duration - 1
-    batch_size = x.shape[0]
-    T = np.random.randint(min_duration, max_duration, batch_size)
-    Nin = np.prod(input_shape)
-    allinputs = np.zeros([batch_size, max_duration, Nin])
-    for i in range(batch_size):
-        st = spiketrains(T=T[i], N=Nin, rates=gain * x[i].reshape(-1)).astype(np.float32)
-        allinputs[i] = np.pad(st, ((0, max_duration - T[i]), (0, 0)), 'constant')
-    allinputs = np.transpose(allinputs, (1, 0, 2))
-    allinputs = allinputs.reshape(allinputs.shape[0], allinputs.shape[1], 1, 28, 28)
+def time_series_targets(targets, data_config):
 
-    alltgt = np.zeros([max_duration, batch_size, 10], dtype=np.float32)
-    for i in range(batch_size):
-        alltgt[:, i, :] = y[i]
+    # targets needs to be (500x1). squeeze makes it (500). Unsqueeze makes it (500x1x1).
+    # one_hot targets.
+    targets = (torch.from_numpy(targets)).type(torch.int64)
+    one_hot = torch.zeros([len(targets), (data_config.num_classes)])
+    targets_one_hot = one_hot.scatter_(1, targets, 1)
 
-    return allinputs, alltgt
+    # extend targets_one_hot in the T direction
+    st_targets = np.repeat(targets_one_hot[np.newaxis, :, :], data_config.T, axis=0)
+
+    return st_targets
+
+
+def spiketrain(data_time):
+    # spike generation function. data_np_repeated forms the probabilities of the function.
+    # I've removed the 'regular' mode of periodic firing. Only option provided is Poisson.
+    # needs to be of type FloatTensor for training.
+    print("\nGenerating Poisson spike train. This may take a while...")
+    st_data = torch.bernoulli(torch.from_numpy(data_time)).type(torch.FloatTensor)
+    print("Spike train generation complete.")
+    return st_data
 
 
 def target_convolve(tgt, alpha=8, alphas=5):
@@ -229,158 +259,25 @@ def permute_dataset(dataset, r_pix, seed):
     return torch.FloatTensor(datap[:, perm].reshape(-1, *shape))
 
 
-def partition_dataset(dataset, Nparts=60, part=0):
-    N = len(dataset.data)
-
-    idx = np.arange(N, dtype='int')
-
-    step = (N // Nparts)
-    idx = idx[step * part:step * (part + 1)]
-
-    td = dataset.data[idx]
-    tl = dataset.targets[idx]
-    return td, tl
-
-
-def dynaload(dataset,
-             batch_size,
-             name,
-             DL,
-             perm=0.,
-             Nparts=1,
-             part=0,
-             seed=0,
-             taskid=0,
-             base_perm=.0,
-             base_seed=0,
-             train=True,
-             **loader_kwargs):
-    if base_perm > 0:
-        data = permute_dataset(dataset, base_perm, seed=base_seed)
-        dataset.data = data
-    if perm > 0:
-        data = permute_dataset(dataset, perm, seed=seed)
-        dataset.data = data
-
-    loader = DL(dataset=dataset,
-                batch_size=batch_size,
-                shuffle=dataset.train,
-                **loader_kwargs)
-
-    loader.taskid = taskid
-    loader.name = name + '_{}'.format(part)
-    loader.short_name = name
-    return loader
-
-
-def mnist_loader_dynamic(
-        config,
-        train,
-        pre_processed=True,
-        Nparts=1,
-        part=1):
-    """Builds and returns Dataloader for MNIST and SVHN dataset."""
-
-    transform = transforms.Compose([
-        transforms.Resize(config.image_size),
-        transforms.Grayscale(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.0,), (1.0,))])
-
-    dataset = datasets.MNIST(root=config.data_path, download=True, transform=transform, train=train)
-    if Nparts > 1:
-        data, targets = partition_dataset(dataset, Nparts, part)
-        dataset.data = data
-        dataset.targets = targets
-
-    dataset_ = dataset
-    DL = DataLoader
-    batch_size = config.batch_size
-    name = 'MNIST'
-
-    return dataset_, name, DL
-
-
-def usps_loader_dynamic(config, train, pre_processed=False, Nparts=1, part=1):
-    """Builds and returns Dataloader for MNIST and SVHN dataset."""
-    from usps_loader import USPS
-
-    transform = transforms.Compose([
-        #                    transforms.ToPILImage(),
-        transforms.Resize(config.image_size),
-        transforms.Grayscale(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.0,), (1.0,))])
-
-    dataset = USPS(root=config.data_path, download=True, transform=transform, train=train)
-    name = 'USPS'
-
-    if Nparts > 1:
-        partition_dataset(dataset, Nparts, part)
-
-    DL = DataLoader
-
-    return dataset, name, DL
-
-
-def get_usps_loader(config, train, perm=0., Nparts=1, part=0, seed=0, taskid=0, pre_processed=False, **loader_kwargs):
-    """Builds and returns Dataloader for MNIST and SVHN dataset."""
-    dataset, name, DL = usps_loader_dynamic(config, train, pre_processed)
-
-    return dynaload(dataset,
-                    config.batch_size,
-                    name,
-                    DL,
-                    perm=perm,
-                    Nparts=Nparts,
-                    part=part,
-                    seed=seed,
-                    taskid=taskid,
-                    base_perm=base_perm,
-                    base_seed=base_seed,
-                    train=train,
-                    **loader_kwargs)
-
-
-def svhn_loader_dynamic(config, train, pre_processed=False, Nparts=1, part=1):
-    """Builds and returns Dataloader for MNIST and SVHN dataset."""
-
-    transform = transforms.Compose([
-        transforms.Resize(config.image_size),
-        transforms.Grayscale(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.35,), (0.65,)),
-        transforms.Lambda(lambda x: x.view(np.prod(config.image_size))),
-        transforms.Lambda(lambda x: x * 2 - 1)])
-
-    name = 'SVHN'
-
-    dataset = datasets.SVHN(root=config.data_path, download=True, transform=transform,
-                            split='train' if train else 'test')
-    dataset.train = train
-
-    if Nparts > 1:
-        partition_dataset(dataset, Nparts, part)
-
-    DL = DataLoader
-
-    return dataset, name, DL
-
-
-def get_svhn_loader_dynamic(config, train, perm=0, taskid=0, seed=0, Nparts=1, part=0, pre_processed=False,
-                            **loader_kwargs):
-    dataset, name, DL = svhn_loader_dynamic(config, train)
-
-    return dynaload(dataset,
-                    config.batch_size,
-                    name,
-                    DL,
-                    perm=perm,
-                    Nparts=Nparts,
-                    part=part,
-                    seed=seed,
-                    taskid=taskid,
-                    base_perm=base_perm,
-                    base_seed=base_seed,
-                    train=train,
-                    **loader_kwargs)
+# update_progress() : Displays or updates a console progress bar
+## Accepts a float between 0 and 1. Any int will be converted to a float.
+## A value under 0 represents a 'halt'.
+## A value at 1 or bigger represents 100%
+def _update_progress(progress):
+    barLength = 15 # Modify this to change the length of the progress bar
+    status = ""
+    if isinstance(progress, int):
+        progress = float(progress)
+    if not isinstance(progress, float):
+        progress = 0
+        status = "error: progress var must be float\r\n"
+    if progress < 0:
+        progress = 0
+        status = "Halt...\r\n"
+    if progress >= 1:
+        progress = 1
+        status = "Done...\r\n"
+    block = int(round(barLength*progress))
+    text = "\rPercent: [{0}] {1}% {2}".format( "#"*block + "-"*(barLength-block), math.ceil(progress*100), status)
+    sys.stdout.write(text)
+    sys.stdout.flush()
