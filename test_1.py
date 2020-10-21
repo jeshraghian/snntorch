@@ -1,11 +1,13 @@
 import snntorch as snn
 import torch
 from torchvision import datasets, transforms
-from torch.utils.data import random_split
+from torch.utils.data import random_split, DataLoader
 import numpy as np
 from snntorch.spikevision import datamod, spikegen
+import matplotlib; matplotlib.use("TkAgg")
+from snntorch import spikeplot
 
-### visualization?
+### visualization
 import matplotlib.pyplot as plt
 
 
@@ -31,30 +33,21 @@ mnist_val = datamod.data_subset(mnist_val, config)
 mnist_test = datamod.data_subset(mnist_test, config)
 
 # create dataloaders
-train_loader = torch.utils.data.DataLoader(mnist_train, batch_size=config.batch_size, shuffle=True)
-val_loader = torch.utils.data.DataLoader(mnist_val, batch_size=config.batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(mnist_test, batch_size=config.batch_size, shuffle=True)
+train_loader = DataLoader(mnist_train, batch_size=config.batch_size, shuffle=True)
+val_loader = DataLoader(mnist_val, batch_size=config.batch_size, shuffle=True)
+test_loader = DataLoader(mnist_test, batch_size=config.batch_size, shuffle=True)
 
 # iterate through dataloader
 train_iterator = iter(train_loader)
 data_it, targets_it = next(train_iterator)
 
-#############spike_gen of targets and data. Let's write code to run this ## VISUALIZE SPIKE DATA.
-spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, config)
-print(f"Size of spike_Data is {spike_data.size()}")
-print((spike_data == 1).sum())
+# spike generator
+spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, config, gain=2)
 
-print(f"Type of spike_data is {type(spike_data)}")
-print(f"Type of spike_targets is {type(spike_targets)}")
+# show figure animation
+spike_data_visualizer = spike_data[:, 0, 0]
+data_sample = spikeplot.spike_animator(spike_data_visualizer, 28, 28, T=100)
+plt.show()
 
-# Let's try visualizing the data?
-#matrix=np.genfromtxt(path,delimiter=',') # Read the numpy matrix with images in the rows
-#c=matrix[0]
-#c=c.reshape(120, 165) # this is the size of my pictures
-c = spike_data[0][0].reshape(28,28)
-im=plt.imshow(c)
-#for row in matrix:
-#    row=row.reshape(28, 28) # this is the size of my pictures
-#    im.set_data(row)
-#    plt.pause(0.02)
-#plt.show()
+#print(spike_targets[0][:][0])
+print(f"The target is: {np.argmax(spike_targets[0][:][0], axis=0)}")
