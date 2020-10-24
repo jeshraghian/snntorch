@@ -38,7 +38,7 @@ def targets_to_spikes(data_config, targets):
             torch.Tensor
                 one hot encoding of targets with time in the first dimension.
            """
-    targets_1h = one_hot(data_config, targets)
+    targets_1h = to_one_hot(data_config, targets)
     # Extend one-hot targets in time dimension. Create a new axis in the first position.
     # E.g., turn 100x10 into 1000x100x10.
     #spike_targets = np.repeat(targets_1h[np.newaxis, :, :], data_config.T, axis=0)
@@ -46,7 +46,7 @@ def targets_to_spikes(data_config, targets):
     return spike_targets
 
 
-def one_hot(data_config, targets):
+def to_one_hot(data_config, targets):
     """One hot encoding of target labels.
 
        Parameters
@@ -75,7 +75,7 @@ def from_one_hot(one_hot_label):
 
     Parameters
        ----------
-       one_hot_label : vector, torch tensor
+       one_hot_label : torch tensor
            A single one-hot label vector
 
         Returns
@@ -83,4 +83,4 @@ def from_one_hot(one_hot_label):
         integer
             target.
        """
-    return int(np.where(one_hot_label == 1)[0])
+    return torch.where(one_hot_label == 1)[0][0]
