@@ -38,11 +38,10 @@ def targets_to_spikes(data_config, targets):
                 one hot encoding of targets with time in the first dimension.
            """
     targets_1h = one_hot(data_config, targets)
-
     # Extend one-hot targets in time dimension. Create a new axis in the first position.
     # E.g., turn 100x10 into 1000x100x10.
-    spike_targets = np.repeat(targets_1h[np.newaxis, :, :], data_config.T, axis=0)
-
+    #spike_targets = np.repeat(targets_1h[np.newaxis, :, :], data_config.T, axis=0)
+    spike_targets = targets_1h.repeat(data_config.T, 1, 1)
     return spike_targets
 
 
