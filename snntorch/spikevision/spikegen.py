@@ -83,4 +83,4 @@ def from_one_hot(one_hot_label):
         integer
             target.
        """
-    return torch.where(one_hot_label == 1)[0][0]
+    return int(torch.where(one_hot_label == 1)[0][0])
