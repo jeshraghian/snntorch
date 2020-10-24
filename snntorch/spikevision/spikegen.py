@@ -62,11 +62,9 @@ def one_hot(data_config, targets):
        """
     # Initialize zeros. E.g, for MNIST: (100,10).
     one_hot = torch.zeros([len(targets), data_config.num_classes], device=device)
-    print(f"one_hot is on cuda, true or false? {one_hot.is_cuda}")
-    print(f"targets is on cuda, true or false? {targets.is_cuda}")
 
     #unsqueeze converts dims of [100] to [100, 1]
-    one_hot.scatter_(1, targets.unsqueeze(-1), 1)
+    one_hot = one_hot.scatter(1, targets.unsqueeze(-1), 1)
 
     return one_hot
 
