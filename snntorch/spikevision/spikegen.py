@@ -11,8 +11,9 @@ def spike_conversion(data, targets, data_config, gain=1):
     # From my previous implementation. Let's do this on CUDA if avail?
 
     # repeat data input along time axis.
-    time_data = np.repeat(data[np.newaxis, :, :], data_config.T, axis=0)*gain
-
+    # CUDA test #5
+    #time_data = np.repeat(data[np.newaxis, :, :], data_config.T, axis=0)*gain
+    time_data = data.repeat(data_config.T, 1, 1, 1, 1)*gain
     # Clip all gain between 0 and 1.
     time_data = torch.clamp(time_data, min=0, max=1)
 
