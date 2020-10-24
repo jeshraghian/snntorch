@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
 
 def spike_conversion(data, targets, data_config, gain=1):
     # Perform one-hot encoding of targets and repeat it along the time axis
@@ -60,7 +62,7 @@ def one_hot(data_config, targets):
             one hot encoding of targets
        """
     # Initialize zeros. E.g, for MNIST: (100,10).
-    one_hot = torch.zeros([len(targets), data_config.num_classes])
+    one_hot = torch.zeros([len(targets), data_config.num_classes]).to(device)
 
     #unsqueeze converts dims of [100] to [100, 1]
     one_hot.scatter_(1, targets.unsqueeze(-1), 1)

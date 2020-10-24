@@ -50,5 +50,5 @@ data_sample = spikeplot.spike_animator(spike_data_visualizer, 28, 28, T=100)
 plt.show()
 print(f"The target is: {spikegen.from_one_hot(spike_targets[0][0])}")
 
-# To save as gif, uncheck the following file: ...note, if imagemagick is not installed, it uses PILLOW... update that.
+# To save as gif, uncheck the following line: ...note, if imagemagick is not installed, it uses PILLOW... update that.
 #data_sample.save("demo3.gif", writer='imagemagick')
