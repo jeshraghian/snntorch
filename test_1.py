@@ -42,12 +42,13 @@ train_iterator = iter(train_loader)
 data_it, targets_it = next(train_iterator)
 
 # spike generator
-spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, config, gain=2)
+spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, config, gain=1)
 
 # show figure animation
 spike_data_visualizer = spike_data[:, 0, 0]
 data_sample = spikeplot.spike_animator(spike_data_visualizer, 28, 28, T=100)
 plt.show()
+print(f"The target is: {spikegen.from_one_hot(spike_targets[0][0])}")
 
-#print(spike_targets[0][:][0])
-print(f"The target is: {np.argmax(spike_targets[0][:][0], axis=0)}")
+# To save as gif, uncheck the following file: ...note, if imagemagick is not installed, it uses PILLOW... update that.
+#data_sample.save("demo3.gif", writer='imagemagick')

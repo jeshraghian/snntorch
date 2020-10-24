@@ -1,9 +1,7 @@
 import torch
 import numpy as np
 
-# x is raw_input and y is raw_target from iterator
-# i should change image2spiketrain to "spike_generator" or "input2spike" or "spikegen" or "convert2spike"
-# consider implementing a 'gain' function.
+
 def spike_conversion(data, targets, data_config, gain=1):
     # Perform one-hot encoding of targets and repeat it along the time axis
     spike_targets = targets_to_spikes(data_config, targets)
@@ -68,3 +66,19 @@ def one_hot(data_config, targets):
     one_hot.scatter_(1, targets.unsqueeze(-1), 1)
 
     return one_hot
+
+
+def from_one_hot(one_hot_label):
+    """Convert one-hot encoding back into an integer
+
+    Parameters
+       ----------
+       one_hot_label : vector, torch tensor
+           A single one-hot label vector
+
+        Returns
+        -------
+        integer
+            target.
+       """
+    return int(np.where(one_hot_label == 1)[0])
