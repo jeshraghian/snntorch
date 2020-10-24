@@ -27,8 +27,8 @@ def spike_animator(data, x, y, T=100, interval=40, cmap='plasma'):
                     Contains animation to be displayed by using plt.show().
                """
 
-    data.cpu()
-    del data
+    data = data.cpu()
+
 
     fig, ax = plt.subplots()
 
