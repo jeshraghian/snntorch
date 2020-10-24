@@ -62,7 +62,7 @@ def one_hot(data_config, targets):
             one hot encoding of targets
        """
     # Initialize zeros. E.g, for MNIST: (100,10).
-    one_hot = torch.zeros([len(targets), data_config.num_classes]).to(device)
+    one_hot = torch.zeros([len(targets), data_config.num_classes], device=device)
 
     #unsqueeze converts dims of [100] to [100, 1]
     one_hot.scatter_(1, targets.unsqueeze(-1), 1)
