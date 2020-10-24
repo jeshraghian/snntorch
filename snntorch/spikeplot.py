@@ -28,6 +28,7 @@ def spike_animator(data, x, y, T=100, interval=40, cmap='plasma'):
                """
 
     data.cpu()
+    del data
 
     fig, ax = plt.subplots()
 
