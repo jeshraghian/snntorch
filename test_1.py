@@ -4,7 +4,7 @@ from torchvision import datasets, transforms
 from torch.utils.data import random_split, DataLoader
 import numpy as np
 from snntorch.spikevision import datamod, spikegen
-import matplotlib; matplotlib.use("TkAgg")
+# import matplotlib; matplotlib.use("TkAgg")
 from snntorch import spikeplot
 
 ### visualization
@@ -44,11 +44,19 @@ data_it, targets_it = next(train_iterator)
 # spike generator
 spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, config, gain=1)
 
-# show figure animation
+# Convert 1000x100x1x28x28 to 1000 x 784 for Visualization
 spike_data_visualizer = spike_data[:, 0, 0]
-data_sample = spikeplot.spike_animator(spike_data_visualizer, 28, 28, T=100)
-plt.show()
-print(f"The target is: {spikegen.from_one_hot(spike_targets[0][0])}")
+spike_data_visualizer = spike_data_visualizer.reshape((config.T, -1))
 
-# To save as gif, uncheck the following line: ...note, if imagemagick is not installed, it uses PILLOW... update that.
-#data_sample.save("demo3.gif", writer='imagemagick')
+# raster plot
+fig = plt.figure(facecolor="w", figsize=(10, 5))
+ax = fig.add_subplot(111)
+
+# ax.scatter(*torch.where(spike_data_visualizer.cpu()), s=1, c='black', marker="o", linewidths="0")
+
+spikeplot.raster(data=spike_data_visualizer, ax=ax, s=1, c="black")
+
+plt.title("Input Layer")
+plt.xlabel("Time step")
+plt.ylabel("Neuron Number")
+plt.show()

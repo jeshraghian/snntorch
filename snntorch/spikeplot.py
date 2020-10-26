@@ -1,6 +1,8 @@
+import torch
+import os
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import numpy as np
+from matplotlib.figure import Figure
 
 
 def spike_animator(data, x, y, T=100, interval=40, cmap='plasma'):
@@ -29,7 +31,6 @@ def spike_animator(data, x, y, T=100, interval=40, cmap='plasma'):
 
     data = data.cpu()
 
-
     fig, ax = plt.subplots()
 
     ax.set_xlim((0, (x-1)))
@@ -38,15 +39,15 @@ def spike_animator(data, x, y, T=100, interval=40, cmap='plasma'):
     plt.gca().invert_yaxis()
 
     # cmap: plasma has nice UoM colors. grayscale is safe. brg looks like a DVS.
-    im = ax.imshow(data[0,:,:], cmap=cmap)
+    im = ax.imshow(data[0, :, :], cmap=cmap)
 
     def init():
-        im.set_data(data[0,:,:])
+        im.set_data(data[0, :, :])
         return (im,)
 
     # animation function. This is called sequentially
     def animate(i):
-        data_slice = data[i,:,:]
+        data_slice = data[i, :, :]
         im.set_data(data_slice)
         return (im,)
 
@@ -57,3 +58,9 @@ def spike_animator(data, x, y, T=100, interval=40, cmap='plasma'):
     #HTML(anim.to_html5_video())
 
     return anim
+
+
+def raster(data, ax, **kwargs):
+    return ax.scatter(*torch.where(data.cpu()), **kwargs)
+
+# image averaging
