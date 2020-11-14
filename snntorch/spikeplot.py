@@ -61,6 +61,7 @@ def spike_animator(data, x, y, T=100, interval=40, cmap='plasma'):
 
 
 def raster(data, ax, **kwargs):
+    """Generate a raster plot using plt.scatter."""
+    if len(data.size()) == 1:
+        return ax.scatter(*torch.where(data.unsqueeze(1).cpu()), **kwargs)
     return ax.scatter(*torch.where(data.cpu()), **kwargs)
-
-# image averaging
