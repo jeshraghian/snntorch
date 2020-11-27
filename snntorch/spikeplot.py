@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.figure import Figure
 
-
+# use camera
 def spike_animator(data, x, y, T=100, interval=40, cmap='plasma'):
     """Makes an animation by looping through the first dimension of a sample of spiking data.
 

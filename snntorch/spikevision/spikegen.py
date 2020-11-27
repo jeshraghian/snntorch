@@ -127,30 +127,30 @@ def from_one_hot(one_hot_label):
     return int(one_hot_label)
 
 
-def spike_train(N_in, data_config, rate):
-
-    # if rate is a constant then just that number in the bernoulli dist
-    if not hasattr(rate, '__iter__'):
-        spike_in = torch.zeros([N_in])
-
-        # If rate is a scalar, fill all elements of spike_in with the rate
-        spike_in.fill_(rate)
-
-        # Time x N
-        spike_in = spike_in.repeat(data_config.T, 1)
-
-    # if rate defines one neurons behaviour: T x 1
-    elif rate[0] == data_config.T:
-        spike_in = rate.repeat(data_config.T, 1)
-
-    # Rate: T x N
-    else:
-        spike_in = rate
-
-    # Clip all gain between 0 and 1: these are treated as probabilities in the next line.
-    spike_in = torch.clamp(spike_in, min=0, max=1)
-
-    # pass that entire time_data matrix into bernoulli.
-    spike_in = torch.bernoulli(spike_in)
-
-    return spike_in
+# def spike_train(N_in, data_config, rate):
+#
+#     # if rate is a constant then just that number in the bernoulli dist
+#     if not hasattr(rate, '__iter__'):
+#         spike_in = torch.zeros([N_in])
+#
+#         # If rate is a scalar, fill all elements of spike_in with the rate
+#         spike_in.fill_(rate)
+#
+#         # Time x N
+#         spike_in = spike_in.repeat(data_config.T, 1)
+#
+#     # if rate defines one neurons behaviour: T x 1
+#     elif rate[0] == data_config.T:
+#         spike_in = rate.repeat(data_config.T, 1)
+#
+#     # Rate: T x N
+#     else:
+#         spike_in = rate
+#
+#     # Clip all gain between 0 and 1: these are treated as probabilities in the next line.
+#     spike_in = torch.clamp(spike_in, min=0, max=1)
+#
+#     # pass that entire time_data matrix into bernoulli.
+#     spike_in = torch.bernoulli(spike_in)
+#
+#     return spike_in
