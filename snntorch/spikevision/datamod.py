@@ -1,16 +1,15 @@
-import torch
 import numpy as np
 
 
-def data_subset(dataset, data_config, idx=0):
+def data_subset(dataset, subset, idx=0):
     """Partition the dataset by a factor of 1/subset without removing access to data and target attributes.
 
        Parameters
        ----------
        dataset : torchvision dataset
            Dataset.
-       data_config : snntorch configuration
-           Configuration class.
+       subset : int
+           Factor to reduce dataset by.
        idx : int, optional
            Which subset of the train and test sets to index into (default: ``0``).
 
@@ -19,11 +18,11 @@ def data_subset(dataset, data_config, idx=0):
         list of torch.utils.data
             Partitioned dataset.
        """
-    if data_config.subset > 1:
+    if subset > 1:
         N = len(dataset.data)
 
         idx_range = np.arange(N, dtype='int')
-        step = (N // data_config.subset)
+        step = (N // subset)
         idx_range = idx_range[step * idx:step * (idx + 1)]
 
         data = dataset.data[idx_range]
@@ -34,7 +33,8 @@ def data_subset(dataset, data_config, idx=0):
 
     return dataset
 
-def valid_split(ds_train, ds_val, data_config, seed=0):
+
+def valid_split(ds_train, ds_val, split, seed=0):
     """Randomly split a dataset into non-overlapping new datasets of given lengths.
     Optionally fix the generator for reproducible results. Operates similarly to random_split from
     torch.utils.data.dataset but retains data and target attributes.
@@ -45,8 +45,8 @@ def valid_split(ds_train, ds_val, data_config, seed=0):
                Training set.
            ds_val : torchvision dataset
                Validation set.
-           data_config : snntorch configuration
-               Configuration class.
+           split : Float
+               Proportion of samples assigned to the validation set from the training set.
            seed : int, optional
                Fix to generate reproducible results (default: ``0``).
 
@@ -56,7 +56,7 @@ def valid_split(ds_train, ds_val, data_config, seed=0):
                 Randomly split train and validation sets.
            """
     n = len(ds_train)
-    n_val = int(n * data_config.split)
+    n_val = int(n * split)
     n_train = n - n_val
 
     # Create an index list of length n_train, containing non-repeating values from 0 to n-1
