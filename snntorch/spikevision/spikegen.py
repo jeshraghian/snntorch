@@ -2,109 +2,137 @@ import torch
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
+# Explore the use of yield for this?
+# Or if it's best to iterate outside the function
 
-def spike_conversion(data, targets, data_config, gain=1, convert_targets=True):
-    """Convert images into Poisson spike trains and their targets into one-hot spike trains. Input pixels are treated as
-    the probability for a spike to occur.
+
+def spike_conversion(data, targets=False, num_outputs=None, num_steps=1, gain=1, offset=0, convert_targets=True,
+                     temporal_targets=False):
+    """Convert tensor into Poisson spike trains using the features as the mean of a binomial distribution.
+    Optionally convert targets into temporal one-hot spike trains.
 
                Parameters
                ----------
                data : torch tensor
-                   Input image data [batch size x channels x width x height].
-               targets : torch tensor
-                   Target tensor for a single minibatch.
-               data_config : snntorch configuration
-                   Configuration class.
+                   Input features e.g., [batch size x channels x width x height].
+               targets : torch tensor, optional
+                   Target tensor for a single minibatch (default: ``False``).
+               num_outputs : int, optional
+                   Number of outputs (default: ``False``).
+               num_steps : int, optional
+                   Number of time steps (default: ``1``).
                gain: int, optional
-                    Factor to multiply the input tensor of pixel values for the Bernoulli distribution generator
-                    (default: ``1``).
-               convert_targets: Bool, optional
-                    Convert targets to time-domain one-hot-representation if True (default: ``True``).
+                    Scale input features by the gain (default: ``1``).
+               offset : float, optional
+                    Shift input features by the offset (default: ``0``).
+               convert_targets : Bool, optional
+                    Convert targets to one-hot-representation if True (default: ``True``).
+               temporal_targets : Bool, optional
+                    Repeat targets along the time-axis if True (default: ``False``).
+
                 Returns
                 -------
                 torch.Tensor
-                    spike train corresponding to input pixels.
+                    spike train corresponding to input features.
                 torch.Tensor
-                    one hot encoding of targets with time in the first dimension.
+                    one-hot encoding of targets with time optionally in the first dimension.
                """
 
-    # Perform one-hot encoding of targets and repeat it along the time axis
     if convert_targets is True:
-        spike_targets = targets_to_spikes(data_config, targets)
+        # Perform one-hot encoding of targets and repeat it along the time axis
+        spike_targets = targets_to_spikes(targets, num_outputs, num_steps, temporal_targets)
 
     else:
         spike_targets = targets
 
-    # Time x num_batches x channels x width x height
-    # This is only set-up for MNIST/single channel data. To-fix.
-    time_data = data.repeat(data_config.T, 1, 1, 1, 1)*gain
+    # Generate a tuple: (num_steps, 1, 1..., 1) where the number of 1's = number of dimensions in the original data.
+    # Multiply by gain and add offset.
+    time_data = data.repeat(tuple([num_steps]+torch.ones(len(data.size()), dtype=int).tolist()))*gain+offset
 
-    # Clip all gain between 0 and 1: these are treated as probabilities in the next line.
-    time_data = torch.clamp(time_data, min=0, max=1)
-
-    # pass that entire time_data matrix into bernoulli.
-    spike_data = torch.bernoulli(time_data)
+    spike_data = spike_train(time_data)
 
     return spike_data, spike_targets
 
 
 # Use this function in spike_conversion
-def spike_train(N_in, data_config, rate):
+def spike_train(data):
+    """Convert tensor into Poisson spike trains using the features as the mean of a binomial distribution.
 
+               Parameters
+               ----------
+               data : torch tensor
+                    Input features e.g., [batch size x channels x width x height]."""
     # Time x number of neurons
-    time_data = torch.ones([data_config.T, N_in], device=device)*rate
+    # time_data = torch.ones([data_config.T, N_in], device=device)*rate
 
     # Clip all gain between 0 and 1: these are treated as probabilities in the next line.
-    time_data = torch.clamp(time_data, min=0, max=1)
+    clipped_data = torch.clamp(data, min=0, max=1)
 
     # pass that entire time_data matrix into bernoulli.
-    spike_data = torch.bernoulli(time_data)
+    spike_data = torch.bernoulli(clipped_data)
 
     return spike_data
 
 
-def targets_to_spikes(data_config, targets):
+def targets_to_spikes(targets, num_outputs=None, num_steps=1, temporal_targets=False):
     """Convert targets to one-hot encodings in the time-domain.
 
            Parameters
            ----------
-           data_config : snntorch configuration
-               Configuration class.
            targets : torch tensor
                Target tensor for a single minibatch.
+           num_outputs : int
+               Number of outputs (default: ``None``).
+           num_steps : int, optional
+               Number of time steps (default: ``1``).
+           temporal_targets : Bool, optional
+               Repeat targets along the time-axis if True (default: ``False``).
 
             Returns
             -------
             torch.Tensor
                 one hot encoding of targets with time in the first dimension.
            """
-    targets_1h = to_one_hot(data_config, targets)
 
-    # Extend one-hot targets in time dimension. Create a new axis in the first dimension.
-    # E.g., turn 100x10 into 1000x100x10.
-    spike_targets = targets_1h.repeat(data_config.T, 1, 1)
+    # Autocalc num_outputs if not provided
+    if num_outputs is None:
+        print("Warning: num_outputs will automatically be calculated using the number of unique values in "
+              "targets.\n"
+              "It is recommended to explicitly pass num_steps as an argument instead.")
+        num_outputs = len(targets.unique())
+        print(f"num_outputs has been calculated to be {num_outputs}.")
+
+    targets_1h = to_one_hot(targets, num_outputs)
+
+    if temporal_targets is not False:
+        # Extend one-hot targets in time dimension. Create a new axis in the first dimension.
+        spike_targets = targets_1h.repeat(tuple([num_steps] + torch.ones(len(targets_1h.size()), dtype=int).tolist()))
+
+    else:
+        spike_targets = targets_1h
+
     return spike_targets
 
 
-def to_one_hot(data_config, targets):
+def to_one_hot(targets, num_outputs):
     """One hot encoding of target labels.
 
        Parameters
        ----------
-       data_config : snntorch configuration
-           Configuration class.
        targets : torch tensor
            Target tensor for a single minibatch.
+       num_outputs : int
+           Number of outputs.
 
         Returns
         -------
         torch.Tensor
             one hot encoding of targets
        """
-    # Initialize zeros. E.g, for MNIST: (100,10).
-    one_hot = torch.zeros([len(targets), data_config.num_classes], device=device)
+    # Initialize zeros. E.g, for MNIST: (batch_size, 10).
+    one_hot = torch.zeros([len(targets), num_outputs], device=device)
 
-    # unsqueeze converts dims of [100] to [100, 1]
+    # Unsqueeze converts dims of [100] to [100, 1]
     one_hot = one_hot.scatter(1, targets.unsqueeze(-1), 1)
 
     return one_hot
