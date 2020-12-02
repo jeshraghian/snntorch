@@ -1,3 +1,4 @@
+# Note: need NumPy 1.17 or later for RNG functions
 import numpy as np
 
 

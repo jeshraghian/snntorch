@@ -54,7 +54,6 @@ def spike_conversion(data, targets=False, num_outputs=None, num_steps=1, gain=1,
     return spike_data, spike_targets
 
 
-# Use this function in spike_conversion
 def spike_train(data):
     """Convert tensor into Poisson spike trains using the features as the mean of a binomial distribution.
 
@@ -62,13 +61,11 @@ def spike_train(data):
                ----------
                data : torch tensor
                     Input features e.g., [batch size x channels x width x height]."""
-    # Time x number of neurons
-    # time_data = torch.ones([data_config.T, N_in], device=device)*rate
 
     # Clip all gain between 0 and 1: these are treated as probabilities in the next line.
     clipped_data = torch.clamp(data, min=0, max=1)
 
-    # pass that entire time_data matrix into bernoulli.
+    # pass time_data matrix into bernoulli.
     spike_data = torch.bernoulli(clipped_data)
 
     return spike_data
@@ -153,32 +150,3 @@ def from_one_hot(one_hot_label):
        """
     one_hot_label = torch.where(one_hot_label == 1)[0][0]
     return int(one_hot_label)
-
-
-# def spike_train(N_in, data_config, rate):
-#
-#     # if rate is a constant then just that number in the bernoulli dist
-#     if not hasattr(rate, '__iter__'):
-#         spike_in = torch.zeros([N_in])
-#
-#         # If rate is a scalar, fill all elements of spike_in with the rate
-#         spike_in.fill_(rate)
-#
-#         # Time x N
-#         spike_in = spike_in.repeat(data_config.T, 1)
-#
-#     # if rate defines one neurons behaviour: T x 1
-#     elif rate[0] == data_config.T:
-#         spike_in = rate.repeat(data_config.T, 1)
-#
-#     # Rate: T x N
-#     else:
-#         spike_in = rate
-#
-#     # Clip all gain between 0 and 1: these are treated as probabilities in the next line.
-#     spike_in = torch.clamp(spike_in, min=0, max=1)
-#
-#     # pass that entire time_data matrix into bernoulli.
-#     spike_in = torch.bernoulli(spike_in)
-#
-#     return spike_in
