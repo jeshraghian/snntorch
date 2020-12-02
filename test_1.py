@@ -8,12 +8,7 @@ from snntorch.spikevision import datamod, spikegen
 from snntorch import spikeplot
 import snntorch.neuron as neuron
 
-### visualization
-import matplotlib.pyplot as plt
-
-
-#config = snn.utils.Configuration([28,28], channels=1, batch_size=100, split=0.1, subset=100, num_classes=10, T=1000,
-#                           data_path='/data/mnist')
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 # configuration
 num_inputs = 28*28
@@ -27,7 +22,7 @@ time_step = 1e-3
 num_steps = 100
 
 transform = transforms.Compose([
-            transforms.Resize([28,28]),
+            transforms.Resize([28, 28]),
             transforms.Grayscale(),
             transforms.ToTensor(),
             transforms.Normalize((0,), (1,))])
@@ -54,61 +49,126 @@ train_iterator = iter(train_loader)
 data_it, targets_it = next(train_iterator)
 
 # spike generator
-spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_steps, gain=1)
+# spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
+#                                                       gain=1, offset=0, convert_targets=True, temporal_targets=False)
 
-# Convert 1000x100x1x28x28 to 1000 x 784 for Visualization
-spike_data_visualizer = spike_data[:, 0, 0]
-spike_data_visualizer = spike_data_visualizer.reshape((num_steps, -1))
+#############
+#### To-do: Open this in colab and working on building a network piece by piece
 
-####################################################
-####### Fix num_classes in to_one_hot
-####### Maybe separate that function, as you don't need a full time-varying to-one-hot label?
+########## Then add surrgradclass into package
+##########
 
-# Create a random spike train
-# N_in = 10
-# Sin = torch.FloatTensor(spikegen.spike_train(N_in=N_in, data_config=config, rate=0.5))
-#
-# # Set up a fully-connected LIF network
-# from collections import namedtuple
-# import torch.nn as nn
-#
-#
-# class Net(nn.Module):
-#     NeuronState = namedtuple('NeuronState', ['U', 'I', 'S'])
-#
-#     def __init__(self, neuron_type, in_features, out_features, bias=True, alpha=.9, beta=.85):
-#         super(Net, self).__init__()
-#         self.neuron_type = neuron_type
-#         self.fc_layer = nn.Linear(in_features, out_features)
-#         self.in_channels = in_features
-#         self.out_channels = out_features
-#         self.alpha = alpha
-#         self.beta = beta
-#         self.state = self.NeuronState(U=torch.zeros(1, out_features),
-#                                       I=torch.zeros(1, out_features),
-#                                       S=torch.zeros(1, out_features))
-#         self.fc_layer.weight.data.uniform_(-.3, .3)
-#         self.fc_layer.bias.data.uniform_(-.01, .01)
-#
-#     def forward(self, Sin_t):
-#         state = self.state
-#         U = self.alpha * state.U + state.I - state.S
-#         I = self.beta * state.I + self.fc_layer(Sin_t)
-#         # update the neuronal state
-#         S = (U > 0).float()
-#         self.state = Net.NeuronState(U=U, I=I, S=S)
-#         return self.state
-#
-# # create a population with 10 inputs and 10 outputs
-#
-#
-# pop1 = Net(in_features=10, out_features=10)
-#
-# Uprobe = np.empty([1000,N_in])
-# Iprobe = np.empty([1000,N_in])
-# Sprobe = np.empty([1000,N_in])
-# for n in range(1000):
-#     state = pop1.forward(Sin[n].unsqueeze(0))
-#     Uprobe[n] = state.U.data.numpy()
-#     Iprobe[n] = state.I.data.numpy()
-#     Sprobe[n] = state.S.data.numpy()
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class SurrGradSpike(torch.autograd.Function):
+    """
+    Here we implement our spiking nonlinearity which also implements
+    the surrogate gradient. By subclassing torch.autograd.Function,
+    we will be able to use all of PyTorch's autograd functionality.
+    Here we use the normalized negative part of a fast sigmoid
+    as this was done in Zenke & Ganguli (2018).
+    """
+
+    scale = 100.0  # controls steepness of surrogate gradient
+
+    @staticmethod
+    def forward(ctx, input):
+        """
+        In the forward pass we compute a step function of the input Tensor
+        and return it. ctx is a context object that we use to stash information which
+        we need to later backpropagate our error signals. To achieve this we use the
+        ctx.save_for_backward method.
+        By F. Zenke.
+        """
+        ctx.save_for_backward(input)
+        out = torch.zeros_like(input)
+        out[input > 0] = 1.0
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        """
+        In the backward pass we receive a Tensor we need to compute the
+        surrogate gradient of the loss with respect to the input.
+        Here we use the normalized negative part of a fast sigmoid
+        as this was done in Zenke & Ganguli (2018).
+        """
+        input, = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        grad = grad_input / (SurrGradSpike.scale * torch.abs(input) + 1.0) ** 2
+        return grad
+
+
+# here we overwrite our naive spike function by the "SurrGradSpike" nonlinearity which implements a surrogate gradient
+spike_fn = SurrGradSpike.apply
+
+dtype = torch.float
+
+tau_mem = 10e-3
+tau_syn = 5e-3
+
+alpha = float(np.exp(-time_step/tau_syn))
+beta = float(np.exp(-time_step/tau_mem))
+
+
+class Net(nn.Module):
+
+    def __init__(self):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(28*28, 10)
+        # self.fc2 = nn.Linear(100, 10)
+
+        self.syn = torch.zeros((batch_size, 10), device=device, dtype=dtype)
+        self.mem = torch.zeros((batch_size, 10), device=device, dtype=dtype)
+
+        self.mem_rec = [self.mem]
+        self.spk_rec = [self.mem]
+
+    # rewatch classes to see which needs 'self' attached to it
+    def forward(self, x):
+        for t in range(num_steps):
+            mthr = self.mem - 1.0
+            out = spike_fn(mthr)
+            rst = torch.zeros_like(self.mem) ###surely there's a better way to just get rst = mthr > 0
+            c = (mthr > 0)
+            rst[c] = torch.ones_like(self.mem)[c]
+
+            new_syn = alpha*self.syn + self.fc1(x[:, t])  # B x T x C x W x H --> want to iterate through T.
+            new_mem = beta*self.mem + self.syn - rst
+
+            self.mem = new_mem
+            self.syn = new_syn
+
+            self.mem_rec.append(self.mem)
+            self.spk_rec.append(out)
+
+            # x = F.relu(self.fc1(x))
+            # x = self.fc2(x)
+        return self.spk_rec, self.mem_rec
+
+
+# spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
+#                                                       gain=1, offset=0, convert_targets=True, temporal_targets=False)
+
+net = Net()
+
+###
+optimizer = torch.optim.Adam(net.parameters(), lr=2e-3, betas=(0.9, 0.999))
+
+log_softmax_fn = nn.LogSoftmax(dim=1)
+loss_fn = nn.NLLLoss()
+
+loss_hist = []
+# for e in range(100):
+#     data_it, targets_it = next(train_iterator)
+#     spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
+#                                                           gain=1, offset=0, convert_targets=True, temporal_targets=False)
+#     output, mem_rec = net(spike_data)
+#     log_p_y = log_softmax_fn()
+
+spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
+                                                      gain=1, offset=0, convert_targets=True, temporal_targets=False)
+output, mem_rec = net(spike_data)
+
