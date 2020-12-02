@@ -11,7 +11,7 @@ setuptools.setup(
     description="Deep learning with spiking neural networks",
     long_description=long_description, # loaded from README.md
     long_description_content_type="text/markdown",
-    url="git@github.com:jeshraghian/snntorch.git",
+    url="git@github.com/jeshraghian/snntorch.git",
         # "https://github.com/jeshraghian/snntorch",
     packages=setuptools.find_packages(),
     classifiers=[
