@@ -14,9 +14,9 @@ def spike_conversion(data, targets=False, num_outputs=None, num_steps=1, gain=1,
                Parameters
                ----------
                data : torch tensor
-                   Input features e.g., [batch size x channels x width x height].
+                   Input of shape (batch, input_size).
                targets : torch tensor, optional
-                   Target tensor for a single minibatch (default: ``False``).
+                   Target tensor for a single batch (default: ``False``).
                num_outputs : int, optional
                    Number of outputs (default: ``False``).
                num_steps : int, optional
@@ -45,7 +45,7 @@ def spike_conversion(data, targets=False, num_outputs=None, num_steps=1, gain=1,
     else:
         spike_targets = targets
 
-    # Generate a tuple: (num_steps, 1, 1..., 1) where the number of 1's = number of dimensions in the original data.
+    # Generate a tuple: (1, num_steps, 1..., 1) where the number of 1's = number of dimensions in the original data.
     # Multiply by gain and add offset.
     time_data = data.repeat(tuple([num_steps]+torch.ones(len(data.size()), dtype=int).tolist()))*gain+offset
 
@@ -102,7 +102,8 @@ def targets_to_spikes(targets, num_outputs=None, num_steps=1, temporal_targets=F
     targets_1h = to_one_hot(targets, num_outputs)
 
     if temporal_targets is not False:
-        # Extend one-hot targets in time dimension. Create a new axis in the first dimension.
+        # Extend one-hot targets in time dimension. Create a new axis in the second dimension.
+        # Allocate first dim to batch size, and subtract it off len(targets_1h.size())
         spike_targets = targets_1h.repeat(tuple([num_steps] + torch.ones(len(targets_1h.size()), dtype=int).tolist()))
 
     else:

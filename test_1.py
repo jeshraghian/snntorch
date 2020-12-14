@@ -1,174 +1,180 @@
 import snntorch as snn
-import torch
-from torchvision import datasets, transforms
-from torch.utils.data import random_split, DataLoader
-import numpy as np
-from snntorch.spikevision import datamod, spikegen
-# import matplotlib; matplotlib.use("TkAgg")
 from snntorch import spikeplot
-import snntorch.neuron as neuron
+from snntorch.spikevision import datamod, spikegen
+from snntorch.neuron import FastSimgoidSurrogate as FSS
+from snntorch.neuron import LIF
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+import numpy as np
+import itertools
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-# configuration
+# Network Architecture
 num_inputs = 28*28
-num_hidden = 100
+#num_hidden = 100
 num_outputs = 10
-num_classes = 10
+
+# Training Parameters
 batch_size=128
 data_path='/data/mnist'
+#val_split = 0.1
+#subset = 100
 
+# Temporal Dynamics
+num_steps = 25
 time_step = 1e-3
-num_steps = 100
+tau_mem = 10e-3
+tau_syn = 5e-3
+# explore the option of not using numpy here?
+# alpha = float(np.exp(-time_step/tau_syn))
+# beta = float(np.exp(-time_step/tau_mem))
+alpha = 0.15
+beta = 0.2
 
+dtype = torch.float
+
+# Define a transform
 transform = transforms.Compose([
-            transforms.Resize([28, 28]),
+            transforms.Resize((28, 28)),
             transforms.Grayscale(),
             transforms.ToTensor(),
             transforms.Normalize((0,), (1,))])
 
 mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
-mnist_val = datasets.MNIST(data_path, train=True, download=True, transform=transform)
 mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
 
-# Create train-valid split
-mnist_train, mnist_val = datamod.valid_split(mnist_train, mnist_val, split=0.1, seed=0)
+# Create DataLoader
+train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
+test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
 
-# Create subset of data
-mnist_train = datamod.data_subset(mnist_train, subset=100)
-mnist_val = datamod.data_subset(mnist_val, subset=100)
-mnist_test = datamod.data_subset(mnist_test, subset=100)
+# Define a surrogate gradient function
+# Problem: scale=10000 keyword is overridden by the default function.
+spike_fn = FSS.apply
+# snn.neuron.slope = 50
 
-# create dataloaders
-train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(mnist_val, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True)
-
-# iterate through dataloader
-train_iterator = iter(train_loader)
-data_it, targets_it = next(train_iterator)
-
-# spike generator
-# spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
-#                                                       gain=1, offset=0, convert_targets=True, temporal_targets=False)
-
-#############
-#### To-do: Open this in colab and working on building a network piece by piece
-
-########## Then add surrgradclass into package
-##########
-
-import torch.nn as nn
-import torch.nn.functional as F
-
-
-class SurrGradSpike(torch.autograd.Function):
-    """
-    Here we implement our spiking nonlinearity which also implements
-    the surrogate gradient. By subclassing torch.autograd.Function,
-    we will be able to use all of PyTorch's autograd functionality.
-    Here we use the normalized negative part of a fast sigmoid
-    as this was done in Zenke & Ganguli (2018).
-    """
-
-    scale = 100.0  # controls steepness of surrogate gradient
-
-    @staticmethod
-    def forward(ctx, input):
-        """
-        In the forward pass we compute a step function of the input Tensor
-        and return it. ctx is a context object that we use to stash information which
-        we need to later backpropagate our error signals. To achieve this we use the
-        ctx.save_for_backward method.
-        By F. Zenke.
-        """
-        ctx.save_for_backward(input)
-        out = torch.zeros_like(input)
-        out[input > 0] = 1.0
-        return out
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        """
-        In the backward pass we receive a Tensor we need to compute the
-        surrogate gradient of the loss with respect to the input.
-        Here we use the normalized negative part of a fast sigmoid
-        as this was done in Zenke & Ganguli (2018).
-        """
-        input, = ctx.saved_tensors
-        grad_input = grad_output.clone()
-        grad = grad_input / (SurrGradSpike.scale * torch.abs(input) + 1.0) ** 2
-        return grad
-
-
-# here we overwrite our naive spike function by the "SurrGradSpike" nonlinearity which implements a surrogate gradient
-spike_fn = SurrGradSpike.apply
-
-dtype = torch.float
-
-tau_mem = 10e-3
-tau_syn = 5e-3
-
-alpha = float(np.exp(-time_step/tau_syn))
-beta = float(np.exp(-time_step/tau_mem))
-
-
+# Define Network
 class Net(nn.Module):
-
     def __init__(self):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(28*28, 10)
-        # self.fc2 = nn.Linear(100, 10)
+        super().__init__()
 
-        self.syn = torch.zeros((batch_size, 10), device=device, dtype=dtype)
-        self.mem = torch.zeros((batch_size, 10), device=device, dtype=dtype)
+    # initialize layers
+        self.fc1 = nn.Linear(28*28, 1000)
+        self.lif1 = LIF(spike_fn=spike_fn, alpha=alpha, beta=beta)
+        self.fc2 = nn.Linear(1000, 10)
+        self.lif2 = LIF(spike_fn=spike_fn, alpha=alpha, beta=beta)
 
-        self.mem_rec = [self.mem]
-        self.spk_rec = [self.mem]
-
-    # rewatch classes to see which needs 'self' attached to it
     def forward(self, x):
-        for t in range(num_steps):
-            mthr = self.mem - 1.0
-            out = spike_fn(mthr)
-            rst = torch.zeros_like(self.mem) ###surely there's a better way to just get rst = mthr > 0
-            c = (mthr > 0)
-            rst[c] = torch.ones_like(self.mem)[c]
+        spk1, syn1, mem1 = self.lif1.init_hidden(batch_size, 1000)
+        spk2, syn2, mem2 = self.lif2.init_hidden(batch_size, 10)
 
-            new_syn = alpha*self.syn + self.fc1(x[:, t])  # B x T x C x W x H --> want to iterate through T.
-            new_mem = beta*self.mem + self.syn - rst
+        spk2_rec = []
+        mem2_rec = []
 
-            self.mem = new_mem
-            self.syn = new_syn
+        for step in range(num_steps):
+            cur1 = self.fc1(x[step])
+            spk1, syn1, mem1 = self.lif1(cur1, syn1, mem1)
+            cur2 = self.fc2(spk1)
+            # print(f"cur2 size: {cur2.size()}") # 128 x 18
+            # print(f"syn2 size: {syn2.size()}") # syn2 is 100x10???
+            spk2, syn2, mem2 = self.lif2(cur2, syn2, mem2)
 
-            self.mem_rec.append(self.mem)
-            self.spk_rec.append(out)
+            spk2_rec.append(spk2)
+            mem2_rec.append(mem2)
 
-            # x = F.relu(self.fc1(x))
-            # x = self.fc2(x)
-        return self.spk_rec, self.mem_rec
+        return torch.stack(spk2_rec, dim=0), torch.stack(mem2_rec, dim=0)
+
+net = Net().to(device)
+
+# Helper function for accuracy
 
 
-# spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
-#                                                       gain=1, offset=0, convert_targets=True, temporal_targets=False)
+def print_batch_accuracy(data, targets, train=False):
+    output, _ = net(data.view(num_steps, batch_size, -1))
+    _, am = output.sum(dim=0).max(1)
+    acc = np.mean((targets == am). detach().cpu().numpy())
 
-net = Net()
+    if train is True:
+        print(f"Train Set Accuracy: {acc}")
+    else:
+        print(f"Test Set Accuracy: {acc}")
 
-###
-optimizer = torch.optim.Adam(net.parameters(), lr=2e-3, betas=(0.9, 0.999))
-
-log_softmax_fn = nn.LogSoftmax(dim=1)
+# Optimizer
+optimizer = torch.optim.Adam(net.parameters(), lr=2e-4, betas=(0.9, 0.999))
+log_softmax_fn = nn.LogSoftmax(dim=-1)
 loss_fn = nn.NLLLoss()
 
 loss_hist = []
-# for e in range(100):
-#     data_it, targets_it = next(train_iterator)
-#     spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
-#                                                           gain=1, offset=0, convert_targets=True, temporal_targets=False)
-#     output, mem_rec = net(spike_data)
-#     log_p_y = log_softmax_fn()
+test_loss_hist = []
+counter = 0
 
-spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
-                                                      gain=1, offset=0, convert_targets=True, temporal_targets=False)
-output, mem_rec = net(spike_data)
+for epoch in range(5):
+    minibatch_counter = 0
+    data = iter(train_loader)
 
+    for data_it, targets_it in data:
+        data_it = data_it.to(device)
+        targets_it = targets_it.to(device)
+
+        spike_data, spike_targets = spikegen.spike_conversion(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
+                                                              gain=1, offset=0, convert_targets=False, temporal_targets=False)
+
+        output, mem_rec = net(spike_data.view(num_steps, batch_size, -1))
+
+        log_p_y = log_softmax_fn(mem_rec)
+
+        loss_val = torch.zeros((1), dtype=dtype, device=device)
+
+        # Sum loss over time steps to perform BPTT
+        for t in range(num_steps):
+            loss_val += loss_fn(log_p_y[t], spike_targets)
+
+        optimizer.zero_grad()
+        loss_val.backward(retain_graph=True)
+
+        nn.utils.clip_grad_norm_(net.parameters(), 1)
+
+        optimizer.step()
+
+        loss_hist.append(loss_val.item())
+
+        # test set
+        test_data = itertools.cycle(test_loader)
+        testdata_it, testtargets_it = next(test_data)
+        testdata_it = testdata_it.to(device)
+        testtargets_it = testtargets_it.to(device)
+
+        test_spike_data, test_spike_targets = spikegen.spike_conversion(testdata_it, testtargets_it, num_outputs=num_outputs,
+                                                                        num_steps=num_steps, gain=1, offset=0, convert_targets=False, temporal_targets=False)
+        test_output, test_mem_rec = net(test_spike_data.view(num_steps, batch_size, -1))
+
+        log_p_ytest = log_softmax_fn(test_mem_rec)
+        log_p_ytest = log_p_ytest.sum(dim=0)
+        loss_val_test = loss_fn(log_p_ytest, test_spike_targets)
+        test_loss_hist.append(loss_val_test.item())
+
+        if counter % 25 == 0:
+            print(f"Epoch {epoch}, Minibatch {minibatch_counter}")
+            print(f"Train Set Loss: {loss_hist[counter]}")
+            print(f"Test Set Loss: {test_loss_hist[counter]}")
+            print_batch_accuracy(spike_data, spike_targets, train=True)
+            print_batch_accuracy(test_spike_data, test_spike_targets, train=False)
+            print("\n")
+        minibatch_counter += 1
+        counter += 1
+
+loss_hist_true_grad = loss_hist
+test_loss_hist_true_grad = test_loss_hist
+
+# PLOT LOSS
+fig = plt.figure(facecolor="w", figsize=(10, 5))
+
+plt.plot(loss_hist)
+plt.plot(test_loss_hist)
+plt.legend(["Test Loss", "Train Loss"])
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
