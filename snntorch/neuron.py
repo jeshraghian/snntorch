@@ -25,10 +25,12 @@ class LIF(nn.Module):
         return spk, syn, mem
 
     @staticmethod
-    def init_hidden(batch_size, num_features):
-        syn = torch.zeros((batch_size, num_features), device=device, dtype=dtype)
-        mem = torch.zeros((batch_size, num_features), device=device, dtype=dtype)
-        spk = torch.zeros((batch_size, num_features), device=device, dtype=dtype)
+    def init_hidden(batch_size, *args):
+        """Used to initialize syn, mem and spk. *args are the input feature dimensions.
+        E.g., batch_size=128 and input feature of size=1x28x28 would call init_hidden(128, 1, 28, 28)."""
+        syn = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+        mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+        spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
 
         return spk, syn, mem
 
