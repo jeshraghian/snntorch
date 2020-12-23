@@ -1,5 +1,4 @@
 import torch
-
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
@@ -56,7 +55,6 @@ def rate(data, targets=False, num_outputs=None, num_steps=1, gain=1, offset=0, c
     return spike_data, spike_targets
 
 
-# redefine all arguments and documentation
 def latency(data, targets=False, num_outputs=None, convert_targets=False, temporal_targets=False, num_steps=1,
             threshold=0.01, epsilon=1e-7, tau=1, clip=False, normalize=False, linear=False):
     """Latency encoding of input data. Use input features to determine time-to-first spike. Assume a LIF neuron model
