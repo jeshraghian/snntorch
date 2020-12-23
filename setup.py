@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="snntorch",
-    version="0.0.1",
+    version="0.0.4",
     author="Jason K. Eshraghian",
     author_email="jasonesh@umich.edu",
     description="Deep learning with spiking neural networks",
