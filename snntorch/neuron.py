@@ -7,11 +7,8 @@ dtype = torch.float
 slope = 25
 
 
-# LIF: don't forget to add new variables to LIF as new neuron classes are added.
-
-
 class LIF(nn.Module):
-    """Leaky Integrate and Fire Neuron."""
+    """Parent class for leaky integrate and fire neuron models."""
     def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
         super(LIF, self).__init__()
 
@@ -62,7 +59,16 @@ class LIF(nn.Module):
 # Neuron Models
 
 class Stein(LIF):
-    def __init__(self, alpha, beta, threshold, spike_grad):
+    """
+    Stein's model of the leaky integrate and fire neuron.
+    The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.
+    Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
+
+    For further reading, see:
+    R. B. Stein (1965) A theoretical analysis of neuron variability. Biophys. J. 5, pp. 173-194.
+    R. B. Stein (1967) Some models of neuronal variability. Biophys. J. 7. pp. 37-68."""
+
+    def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
         super(Stein, self).__init__(alpha, beta, threshold, spike_grad)
 
     def forward(self, input, syn, mem):
@@ -78,9 +84,18 @@ class Stein(LIF):
         return spk, syn, mem
 
 
-# class SRM(LIF):
-#     def __init__(self, alpha, beta, gamma, threshold, spike_grad):
-#         super(SRM, self).__init__(alpha, beta, gamma, threshold, spike_grad) # add gamma and any other params to LIF
+# class SRM0(LIF):
+    """
+    Simplified Spike Response Model of the leaky integrate and fire neuron. 
+    The time course of the membrane potential response depends on a combination of exponentials.
+    In this case, the change in post-synaptic potential experiences a delay. 
+    The rate of the rise time is given by alpha and the decay time by beta. 
+    
+    For further reading, see:
+    R. Jovilet, J. Timothy, W. Gerstner (2003) The spike response model: A framework to predict neuronal spike trains. Artificial Neural Networks and Neural Information Processing, pp. 846-853.
+    """
+#     def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
+#         super(SRM, self).__init__(alpha, beta, threshold, spike_grad) # add gamma and any other params to LIF
 #
 #     def forward(self, input, syn, mem): # modify this
 #         mem_shift = mem - self.threshold
@@ -150,6 +165,6 @@ class SigmoidSurrogate(torch.autograd.Function):
         grad = grad_input * slope * torch.exp(-slope*input) / ((torch.exp(-slope*input)+1) ** 2)
         return grad
 
+# boltzmann func
 # piecewise linear func
 # tanh surrogate func
-# boltzmann func
