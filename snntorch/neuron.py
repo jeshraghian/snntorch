@@ -17,12 +17,12 @@ class LIF(nn.Module):
         self.threshold = threshold
 
         if spike_grad is None:
-            self.spike_grad = self.Heaviside.apply  # Heaviside will not be parsed unless it is above or within LIF class.
+            self.spike_grad = self.Heaviside.apply
         else:
             self.spike_grad = spike_grad
 
     @staticmethod
-    def init_hidden(batch_size, *args):
+    def init_stein(batch_size, *args):
         """Used to initialize syn, mem and spk.
         *args are the input feature dimensions.
         E.g., batch_size=128 and input feature of size=1x28x28 would require init_hidden(128, 1, 28, 28)."""
@@ -33,10 +33,22 @@ class LIF(nn.Module):
         return spk, syn, mem
 
     @staticmethod
+    def init_srm0(batch_size, *args):
+        """Used to initialize syn_pre, syn_post, mem and spk.
+        *args are the input feature dimensions.
+        E.g., batch_size=128 and input feature of size=1x28x28 would require init_hidden(128, 1, 28, 28)."""
+        syn_pre = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+        syn_post = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+        mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+        spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+
+        return spk, syn_pre, syn_post, mem
+
+    @staticmethod
     class Heaviside(torch.autograd.Function):
         """Default and non-approximate spiking function for neuron.
         Forward pass: Heaviside step function.
-        Backward pass: Dirac Delta clipped to 1 at x=0."""
+        Backward pass: Dirac Delta clipped to 1 at x=0 instead of inf."""
 
         @staticmethod
         def forward(ctx, input):
@@ -84,31 +96,31 @@ class Stein(LIF):
         return spk, syn, mem
 
 
-# class SRM0(LIF):
+class SRM0(LIF):
     """
-    Simplified Spike Response Model of the leaky integrate and fire neuron. 
+    Simplified Spike Response Model of the leaky integrate and fire neuron.
     The time course of the membrane potential response depends on a combination of exponentials.
-    In this case, the change in post-synaptic potential experiences a delay. 
-    The rate of the rise time is given by alpha and the decay time by beta. 
-    
+    In this case, the change in post-synaptic potential experiences a delay.
+    This can be interpreted as the input current taking on its own exponential shape as a result of an input spike train.
+
     For further reading, see:
     R. Jovilet, J. Timothy, W. Gerstner (2003) The spike response model: A framework to predict neuronal spike trains. Artificial Neural Networks and Neural Information Processing, pp. 846-853.
     """
-#     def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
-#         super(SRM, self).__init__(alpha, beta, threshold, spike_grad) # add gamma and any other params to LIF
-#
-#     def forward(self, input, syn, mem): # modify this
-#         mem_shift = mem - self.threshold
-#         spk = self.spike_grad(mem_shift).to(device)
-#         reset = torch.zeros_like(mem)
-#         spk_idx = (mem_shift > 0)
-#         reset[spk_idx] = torch.ones_like(mem)[spk_idx]
-#
-#         mem = (self.alpha / (self.alpha + self.beta))*(self.alpha * mem - self.beta * mem) + input - reset
-#         # mem = (self.beta * mem + syn - reset)
-#
-#         return spk, mem  # don't need syn
+    def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
+        super(SRM0, self).__init__(alpha, beta, threshold, spike_grad) # add gamma and any other params to LIF
 
+    def forward(self, input, syn_pre, syn_post, mem):
+        mem_shift = mem - self.threshold
+        spk = self.spike_grad(mem_shift).to(device)
+        reset = torch.zeros_like(mem)
+        spk_idx = (mem_shift > 0)
+        reset[spk_idx] = torch.ones_like(mem)[spk_idx]
+
+        syn_pre = self.alpha * syn_pre + input
+        syn_post = self.beta * syn_post - input
+        mem = syn_pre + syn_post
+
+        return spk, syn_pre, syn_post, mem
 
 
 # Spike-gradient functions
