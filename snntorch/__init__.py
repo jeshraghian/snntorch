@@ -49,7 +49,8 @@ class LIF(nn.Module):
     class Heaviside(torch.autograd.Function):
         """Default and non-approximate spiking function for neuron.
         Forward pass: Heaviside step function.
-        Backward pass: Dirac Delta clipped to 1 at x=0 instead of inf."""
+        Backward pass: Dirac Delta clipped to 1 at x>0 instead of inf at x=1.
+        This assumption holds true on the basis that a spike occurs as long as x>0 and the following time step incurs a reset."""
 
         @staticmethod
         def forward(ctx, input_):
@@ -62,10 +63,8 @@ class LIF(nn.Module):
         def backward(ctx, grad_output):
             input_, = ctx.saved_tensors
             grad_input = grad_output.clone()
-            if input_ == 0:
-                grad = grad_input * 1
-            else:
-                grad = 0
+            grad_input[input_ < 0] = 0.0
+            grad = grad_input
             return grad
 
 
