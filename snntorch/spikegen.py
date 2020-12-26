@@ -35,11 +35,11 @@ def rate(data, targets=False, num_outputs=None, num_steps=1, gain=1, offset=0, c
                     one-hot encoding of targets with time optionally in the first dimension.
                """
 
-    if convert_targets is True:
+    if convert_targets:
         # One-hot encoding of targets and repeat it along the first dimension, i.e., time first.
         spike_targets = targets_to_spikes(targets, num_outputs, num_steps, temporal_targets)
 
-    elif convert_targets is False and temporal_targets is True:
+    elif not convert_targets and temporal_targets:
         # Repeat tensor in the first dimension without converting targets to one-hot.
         spike_targets = targets.repeat(tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist()))
 
@@ -98,11 +98,11 @@ def latency(data, targets=False, num_outputs=None, convert_targets=False, tempor
                     one-hot encoding of targets with time optionally in the first dimension.
                """
 
-    if convert_targets is True:
+    if convert_targets:
         # One-hot encoding of targets and repeat it along the first dimension, i.e., time first.
         spike_targets = targets_to_spikes(targets, num_outputs, num_steps, temporal_targets)
 
-    elif convert_targets is False and temporal_targets is True:
+    elif not convert_targets and temporal_targets:
         # Repeat tensor in the first dimension without converting targets to one-hot.
         spike_targets = targets.repeat(tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist()))
 
@@ -181,7 +181,7 @@ def latency_conv(data, num_steps=False, threshold=0, epsilon=1e-7, tau=1, clip=F
             spike_data = spike_data.scatter(0, torch.round(spike_time).long().unsqueeze(0), 1)
             break
         except RuntimeError: # this block runs if indexes in spike_time exceed range in num_steps.
-            if print_flag is True:
+            if print_flag:
                 print("Warning: the spikes outside of the range of num_steps have been clipped.\n "
                       "Setting ``normalize`` to ``True`` or increasing ``num_steps`` can fix this.")
                 print_flag = False
@@ -193,7 +193,7 @@ def latency_conv(data, num_steps=False, threshold=0, epsilon=1e-7, tau=1, clip=F
         spike_data[-1] = 0
 
     # Use idx to remove spikes below the threshold
-    if clip is True:
+    if clip:
         spike_data = spike_data * ~idx  # idx is broadcast in T direction
 
     return spike_data
@@ -236,20 +236,20 @@ def latency_code(data, num_steps=False, threshold=0.01, epsilon=1e-7, tau=1, nor
     if tau <= 0:  # double check if this can just be threshold < 0 instead.
         raise Exception("``tau`` must be greater than 0.")
 
-    if normalize is True and num_steps is False:
+    if normalize and not num_steps:
         raise Exception("`num_steps` should not be empty if normalize is set to True.")
 
     idx = data < threshold
 
-    if linear is False:
+    if not linear:
         data = torch.clamp(data, threshold + epsilon)  # saturates all values below threshold.
         spike_time = tau * torch.log(data / (data - threshold))
-        if normalize is True:
+        if normalize:
             tmax = torch.Tensor([(threshold + epsilon) / epsilon])
             spike_time = spike_time * (num_steps-1) / (tau * torch.log(tmax))
 
-    elif linear is True:
-        if normalize is True:
+    elif linear:
+        if normalize:
             tau = num_steps-1
         spike_time = -tau * (data - 1)
         spike_time = torch.clamp_max(spike_time, (-tau * (threshold - 1)))
@@ -287,7 +287,7 @@ def targets_to_spikes(targets, num_outputs=None, num_steps=1, temporal_targets=F
 
     targets_1h = to_one_hot(targets, num_outputs)
 
-    if temporal_targets is not False:
+    if temporal_targets:
         # Extend one-hot targets in time dimension. Create a new axis in the second dimension.
         # Allocate first dim to batch size, and subtract it off len(targets_1h.size())
         spike_targets = targets_1h.repeat(tuple([num_steps] + torch.ones(len(targets_1h.size()), dtype=int).tolist()))
