@@ -1,6 +1,6 @@
 import torch
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
+dtype = torch.float
 
 def rate(data, targets=False, num_outputs=None, num_steps=1, gain=1, offset=0, convert_targets=False,
          temporal_targets=False):
@@ -172,7 +172,7 @@ def latency_conv(data, num_steps=False, threshold=0, epsilon=1e-7, tau=1, clip=F
     spike_time, idx = latency_code(data, num_steps=num_steps, threshold=threshold, epsilon=epsilon, tau=tau,
                                    normalize=normalize, linear=linear)
 
-    spike_data = torch.zeros((tuple([num_steps] + list(spike_time.size()))))
+    spike_data = torch.zeros((tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device)
     clamp_flag = 0
     print_flag = True
 
