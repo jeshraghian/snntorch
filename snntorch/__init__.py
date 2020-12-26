@@ -22,6 +22,15 @@ class LIF(nn.Module):
         else:
             self.spike_grad = spike_grad
 
+    def fire(self, mem):
+        mem_shift = mem - self.threshold
+        spk = self.spike_grad(mem_shift).to(device)
+        reset = torch.zeros_like(mem)
+        spk_idx = (mem_shift > 0)
+        reset[spk_idx] = torch.ones_like(mem)[spk_idx]
+        return spk, reset
+
+
     @staticmethod
     def init_stein(batch_size, *args):
         """Used to initialize syn, mem and spk.
@@ -68,6 +77,7 @@ class LIF(nn.Module):
             return grad
 
 
+
 # Neuron Models
 
 class Stein(LIF):
@@ -84,12 +94,7 @@ class Stein(LIF):
         super(Stein, self).__init__(alpha, beta, threshold, spike_grad)
 
     def forward(self, input_, syn, mem):
-        mem_shift = mem - self.threshold
-        spk = self.spike_grad(mem_shift).to(device)
-        reset = torch.zeros_like(mem)
-        spk_idx = (mem_shift > 0)
-        reset[spk_idx] = torch.ones_like(mem)[spk_idx]
-
+        spk, reset = self.fire(mem)
         syn = self.alpha * syn + input_
         mem = self.beta * mem + syn - reset
 
@@ -100,7 +105,7 @@ class SRM0(LIF):
     """
     Simplified Spike Response Model of the leaky integrate and fire neuron.
     The time course of the membrane potential response depends on a combination of exponentials.
-    In this case, the change in post-synaptic potential experiences a delay.
+    In this case, the change in membrane potential experiences a delay.
     This can be interpreted as the input current taking on its own exponential shape as a result of an input spike train.
     For excitatory spiking, ensure alpha > beta.
 
@@ -114,17 +119,12 @@ class SRM0(LIF):
             raise ValueError("alpha must be greater than beta.")
 
     def forward(self, input_, syn_pre, syn_post, mem):
-        mem_shift = mem - self.threshold
-        spk = self.spike_grad(mem_shift).to(device)
-        reset = torch.zeros_like(mem)
-        spk_idx = (mem_shift > 0)
-        reset[spk_idx] = torch.ones_like(mem)[spk_idx]
-
+        spk, reset = self.fire(mem)
         syn_pre = (self.alpha * syn_pre + input_) * (1 - reset)
         syn_post = (self.beta * syn_post - input_) * (1 - reset)
         mem = self.tau_srm * (syn_pre + syn_post)*(1-reset) + (mem*reset - reset)
 
-    # cool forward function that resulted in firing bursts - worth exploring
+    # cool forward function that resulted in burst firing - worth exploring
 
     # def forward(self, input_, syn_pre, syn_post, mem):
     #     mem_shift = mem - self.threshold
@@ -172,7 +172,7 @@ class FastSigmoidSurrogate(torch.autograd.Function):
 
 class SigmoidSurrogate(torch.autograd.Function):
     """
-    Surrogate gradient of the Heaviside step funfction.
+    Surrogate gradient of the Heaviside step function.
     Forward pass: Heaviside step function.
     Backward pass: Gradient of sigmoid function.
 
