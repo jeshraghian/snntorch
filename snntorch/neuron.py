@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -51,17 +52,17 @@ class LIF(nn.Module):
         Backward pass: Dirac Delta clipped to 1 at x=0 instead of inf."""
 
         @staticmethod
-        def forward(ctx, input):
-            ctx.save_for_backward(input)
-            out = torch.zeros_like(input)
-            out[input > 0] = 1.0
+        def forward(ctx, input_):
+            ctx.save_for_backward(input_)
+            out = torch.zeros_like(input_)
+            out[input_ > 0] = 1.0
             return out
 
         @staticmethod
         def backward(ctx, grad_output):
-            input, = ctx.saved_tensors
+            input_, = ctx.saved_tensors
             grad_input = grad_output.clone()
-            if input == 0:
+            if input_ == 0:
                 grad = grad_input * 1
             else:
                 grad = 0
@@ -83,14 +84,14 @@ class Stein(LIF):
     def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
         super(Stein, self).__init__(alpha, beta, threshold, spike_grad)
 
-    def forward(self, input, syn, mem):
+    def forward(self, input_, syn, mem):
         mem_shift = mem - self.threshold
         spk = self.spike_grad(mem_shift).to(device)
         reset = torch.zeros_like(mem)
         spk_idx = (mem_shift > 0)
         reset[spk_idx] = torch.ones_like(mem)[spk_idx]
 
-        syn = self.alpha * syn + input
+        syn = self.alpha * syn + input_
         mem = self.beta * mem + syn - reset
 
         return spk, syn, mem
@@ -102,23 +103,40 @@ class SRM0(LIF):
     The time course of the membrane potential response depends on a combination of exponentials.
     In this case, the change in post-synaptic potential experiences a delay.
     This can be interpreted as the input current taking on its own exponential shape as a result of an input spike train.
+    For excitatory spiking, ensure alpha > beta.
 
     For further reading, see:
     R. Jovilet, J. Timothy, W. Gerstner (2003) The spike response model: A framework to predict neuronal spike trains. Artificial Neural Networks and Neural Information Processing, pp. 846-853.
     """
     def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
-        super(SRM0, self).__init__(alpha, beta, threshold, spike_grad) # add gamma and any other params to LIF
+        super(SRM0, self).__init__(alpha, beta, threshold, spike_grad)
+        self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
+        if self.alpha <= self.beta:
+            raise ValueError("alpha must be greater than beta.")
 
-    def forward(self, input, syn_pre, syn_post, mem):
+    def forward(self, input_, syn_pre, syn_post, mem):
         mem_shift = mem - self.threshold
         spk = self.spike_grad(mem_shift).to(device)
         reset = torch.zeros_like(mem)
         spk_idx = (mem_shift > 0)
         reset[spk_idx] = torch.ones_like(mem)[spk_idx]
 
-        syn_pre = self.alpha * syn_pre + input
-        syn_post = self.beta * syn_post - input
-        mem = syn_pre + syn_post
+        syn_pre = (self.alpha * syn_pre + input_) * (1 - reset)
+        syn_post = (self.beta * syn_post - input_) * (1 - reset)
+        mem = self.tau_srm * (syn_pre + syn_post)*(1-reset) + (mem*reset - reset)
+
+    # cool forward function that resulted in firing bursts - worth exploring
+
+    # def forward(self, input_, syn_pre, syn_post, mem):
+    #     mem_shift = mem - self.threshold
+    #     spk = self.spike_grad(mem_shift).to(device)
+    #     reset = torch.zeros_like(mem)
+    #     spk_idx = (mem_shift > 0)
+    #     reset[spk_idx] = torch.ones_like(mem)[spk_idx]
+    #
+    #     syn_pre = self.alpha * syn_pre + input_
+    #     syn_post = self.beta * syn_post - input_
+    #     mem = self.tau_srm * (syn_pre + syn_post) - reset
 
         return spk, syn_pre, syn_post, mem
 
@@ -139,17 +157,17 @@ class FastSimgoidSurrogate(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, input):
-        ctx.save_for_backward(input)
-        out = torch.zeros_like(input)
-        out[input > 0] = 1.0
+    def forward(ctx, input_):
+        ctx.save_for_backward(input_)
+        out = torch.zeros_like(input_)
+        out[input_ > 0] = 1.0
         return out
 
     @staticmethod
     def backward(ctx, grad_output):
-        input, = ctx.saved_tensors
+        input_, = ctx.saved_tensors
         grad_input = grad_output.clone()
-        grad = grad_input / (slope * torch.abs(input) + 1.0) ** 2
+        grad = grad_input / (slope * torch.abs(input_) + 1.0) ** 2
         return grad
 
 
@@ -164,17 +182,17 @@ class SigmoidSurrogate(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, input):
-        ctx.save_for_backward(input)
-        out = torch.zeros_like(input)
-        out[input > 0] = 1.0
+    def forward(ctx, input_):
+        ctx.save_for_backward(input_)
+        out = torch.zeros_like(input_)
+        out[input_ > 0] = 1.0
         return out
 
     @staticmethod
     def backward(ctx, grad_output):
-        input, = ctx.saved_tensors
+        input_, = ctx.saved_tensors
         grad_input = grad_output.clone()
-        grad = grad_input * slope * torch.exp(-slope*input) / ((torch.exp(-slope*input)+1) ** 2)
+        grad = grad_input * slope * torch.exp(-slope*input_) / ((torch.exp(-slope*input_)+1) ** 2)
         return grad
 
 # boltzmann func
