@@ -1,4 +1,4 @@
-from snntorch import spikegen
+from snntorch import spikegen, neuron
 import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
@@ -48,17 +48,12 @@ test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_l
 data = iter(train_loader)
 data_it, targets_it = next(data)
 
-spike_train, spike_targets = spikegen.latency(data_it, targets_it, num_steps=50, tau=10, threshold=0.1, clip=True,
-                                              normalize=False, linear=False)
+spike_train, spike_targets = spikegen.rate(data_it, targets_it, num_steps=50, num_outputs=10)
 
-fig = plt.figure(facecolor="w", figsize=(10, 5))
-ax = fig.add_subplot(111)
+# test heaviside auto
+lif = neuron.Stein(alpha=0.5, beta=0.5)
+spk, syn, mem = neuron.LIF.init_hidden(1)
 
-ax.scatter(*torch.where(spike_train[:, 0].view(50, -1).cpu()), s=25, c="black")
-
-# print(torch.where(spike_train[:, 0].view(25, -1)))
-
-plt.title("Input Layer")
-plt.xlabel("Time step")
-plt.ylabel("Neuron Number")
-plt.show()
+# generate input
+spk_in = torch.zeros(num_steps, device=device, dtype=dtype)
+spk_in[5:7] = 0.51
