@@ -35,7 +35,7 @@ class Net(nn.Module):
     def forward(self, x):
         # self.lif1.detach_hidden() # It would be good to combine these two into one single line tho
         # self.lif2.detach_hidden()
-        snn.Stein.detach_hidden()
+        # snn.Stein.detach_hidden()
 
         cur1 = self.fc1(x)
         self.lif1.spk1, self.lif1.syn1, self.lif1.mem1 = self.lif1(cur1, self.lif1.syn, self.lif1.mem)

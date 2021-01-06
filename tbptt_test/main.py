@@ -14,16 +14,29 @@ def train(net, device, train_loader, optimizer, criterion, epoch):
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
 
+        # K = 5  # should define this outside - TBPTT
+        t = 0
+        loss_sum = 0
         snn.Stein.zeros_hidden()  # reset hidden state to 0's
+        snn.Stein.detach_hidden()
         for step in range(num_steps):
             spk2, mem2 = net(data.view(batch_size, -1))
-
-            # loss p/time step --- can try truncated approach too
             log_p_y = log_softmax_fn(mem2)
             loss = criterion(log_p_y, target)
+            loss_sum += loss
+            t += 1
+            if t == K:
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                snn.Stein.detach_hidden()
+                t = 0
+        if num_steps % K:
             optimizer.zero_grad()
-            loss.backward()  # hidden states are automatically detached within net
+            loss.backward()
             optimizer.step()
+            snn.Stein.detach_hidden()
+
 
         if batch_idx % 10 == 0:
             print(f"Train Epoch: {epoch} [{batch_idx*len(data)}/{len(train_loader.dataset)}], "
@@ -83,6 +96,7 @@ if __name__ == "__main__":
     num_steps = 25
     epochs = 5
     betas = (0.9, 0.999)
+    K = 10  # number of time steps to accumulate over
     dtype = torch.float
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     transform = transforms.Compose([
