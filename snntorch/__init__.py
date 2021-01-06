@@ -91,9 +91,8 @@ class LIF(nn.Module):
             grad = grad_input
             return grad
 
-
-
 # Neuron Models
+
 
 class Stein(LIF):
     """
