@@ -11,8 +11,10 @@ slope = 25
 
 class LIF(nn.Module):
     """Parent class for leaky integrate and fire neuron models."""
+    instances = []
     def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
         super(LIF, self).__init__()
+        LIF.instances.append(self)
 
         self.alpha = alpha
         self.beta = beta
@@ -24,6 +26,8 @@ class LIF(nn.Module):
             self.spike_grad = spike_grad
 
     def fire(self, mem):
+        """Generates spike if mem > threshold.
+        Returns spk and reset."""
         mem_shift = mem - self.threshold
         spk = self.spike_grad(mem_shift).to(device)
         reset = torch.zeros_like(mem)
@@ -31,6 +35,9 @@ class LIF(nn.Module):
         reset[spk_idx] = torch.ones_like(mem)[spk_idx]
         return spk, reset
 
+    @classmethod
+    def clear_instances(cls):
+      cls.instances = []
 
     @staticmethod
     def init_stein(batch_size, *args):
@@ -99,12 +106,11 @@ class Stein(LIF):
     Stein's model of the leaky integrate and fire neuron.
     The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.
     Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
+    For mem[T] > threshold, spk[T+1] = 0 to account for axonal delay.
 
     For further reading, see:
     R. B. Stein (1965) A theoretical analysis of neuron variability. Biophys. J. 5, pp. 173-194.
     R. B. Stein (1967) Some models of neuronal variability. Biophys. J. 7. pp. 37-68."""
-
-    instances = []
 
     def __init__(self, alpha, beta, threshold=1.0, num_inputs=False, spike_grad=None, batch_size=False, hidden_init=False):
         super(Stein, self).__init__(alpha, beta, threshold, spike_grad)
@@ -123,9 +129,6 @@ class Stein(LIF):
                 self.spk, self.syn, self.mem = self.init_stein(self.batch_size, *(self.num_inputs)) # need to automatically call batch_size
             else:
                 self.spk, self.syn, self.mem = self.init_stein(self.batch_size, self.num_inputs)
-
-    def __del__(self):
-        return
 
     def forward(self, input_, syn, mem):
         if not self.hidden_init:
@@ -147,6 +150,7 @@ class Stein(LIF):
     def detach_hidden(cls):
         """Used to detach hidden states from the current graph.
         Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
+
         for layer in range(len(cls.instances)):
             cls.instances[layer].spk.detach_()
             cls.instances[layer].syn.detach_()
@@ -156,6 +160,7 @@ class Stein(LIF):
     def zeros_hidden(cls):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables."""
+
         for layer in range(len(cls.instances)):
             cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
             cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
@@ -169,16 +174,14 @@ class SRM0(LIF):
     In this case, the change in membrane potential experiences a delay.
     This can be interpreted as the input current taking on its own exponential shape as a result of an input spike train.
     For excitatory spiking, ensure alpha > beta.
+    For mem[T] > threshold, spk[T+1] = 0 to account for axonal delay.
 
     For further reading, see:
     R. Jovilet, J. Timothy, W. Gerstner (2003) The spike response model: A framework to predict neuronal spike trains. Artificial Neural Networks and Neural Information Processing, pp. 846-853.
     """
 
-    instances = []
-
     def __init__(self, alpha, beta, threshold=1.0, num_inputs=False, spike_grad=None, batch_size=False, hidden_init=False):
         super(SRM0, self).__init__(alpha, beta, threshold, spike_grad)
-        self.__class__.instances.append(self)
 
         self.num_inputs = num_inputs
         self.batch_size = batch_size
@@ -251,60 +254,3 @@ class SRM0(LIF):
             cls.instances[layer].syn_post = torch.zeros_like(cls.instances[layer].syn_post)
             cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
 
-# Spike-gradient functions
-
-
-class FastSigmoidSurrogate(torch.autograd.Function):
-    """
-    Surrogate gradient of the Heaviside step function.
-    Forward pass: Heaviside step function.
-    Backward pass: Gradient of fast sigmoid function.
-
-    f(x) = x / (1 + abs(x))
-    f'(x) = 1 / ([1+slope*abs(x)]^2)
-
-    Adapted from Zenke & Ganguli (2018).
-    """
-
-    @staticmethod
-    def forward(ctx, input_):
-        ctx.save_for_backward(input_)
-        out = torch.zeros_like(input_)
-        out[input_ > 0] = 1.0
-        return out
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        input_, = ctx.saved_tensors
-        grad_input = grad_output.clone()
-        grad = grad_input / (slope * torch.abs(input_) + 1.0) ** 2
-        return grad
-
-
-class SigmoidSurrogate(torch.autograd.Function):
-    """
-    Surrogate gradient of the Heaviside step function.
-    Forward pass: Heaviside step function.
-    Backward pass: Gradient of sigmoid function.
-
-    f(x) = 1 / (1 + exp(-slope * x)
-    f'(x) = slope*exp(-slope*x) / ((exp(-A*x)+1)^2)
-    """
-
-    @staticmethod
-    def forward(ctx, input_):
-        ctx.save_for_backward(input_)
-        out = torch.zeros_like(input_)
-        out[input_ > 0] = 1.0
-        return out
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        input_, = ctx.saved_tensors
-        grad_input = grad_output.clone()
-        grad = grad_input * slope * torch.exp(-slope*input_) / ((torch.exp(-slope*input_)+1) ** 2)
-        return grad
-
-# boltzmann func
-# piecewise linear func
-# tanh surrogate func
