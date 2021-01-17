@@ -4,10 +4,48 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 from celluloid import Camera
-from IPython.display import HTML
 
-# import matplotlib.animation as animation
-from matplotlib.figure import Figure
+
+def animator(data, fig, ax, num_steps=False, interval=25, cmap='plasma'):
+    """Generate an animation by looping through the first dimension of a sample of spiking data.
+
+                   Parameters
+                   ----------
+                   data : torch tensor
+                        Sample of spiking data across numerous time steps.
+                   fig : matplotlib.figure.Figure
+                        Top level container for all plot elements.
+                   ax : matplotlib.axes._subplots.AxesSubplot
+                        Contains additional figure elements and sets the coordinate system.
+                        E.g., fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
+                   num_steps : int, optional
+                        Number of time steps to plot. If not specified, the number of entries in the first dimension
+                        of ``data`` will automatically be used (default: ``False``).
+                   interval : int, optional
+                        Delay between frames in milliseconds (default: ``40``).
+                   cmap : string, optional
+                        color map (default: ``plasma``).
+
+                    Returns
+                    -------
+                    FuncAnimation
+                        Contains animation to be displayed by using plt.show().
+                   """
+
+    if not num_steps:
+        num_steps = data.size()[0]
+
+    data = data.cpu()
+    camera = Camera(fig)
+    plt.axis('off')
+
+    # iterate over time and take a snapshot with celluloid
+    for step in range(num_steps):
+        im = ax.imshow(data[step], cmap=cmap)
+        camera.snap()
+    anim = camera.animate(interval=interval)
+
+    return anim
 
 # this function is redundant at the moment
 # def spike_animator(data, x, y, T=100, interval=40, cmap='plasma'):
