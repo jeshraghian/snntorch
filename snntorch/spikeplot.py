@@ -6,7 +6,7 @@ import math
 from celluloid import Camera
 
 
-def animator(data, fig, ax, num_steps=False, interval=25, cmap='plasma'):
+def animator(data, fig, ax, num_steps=False, interval=40, cmap='plasma'):
     """Generate an animation by looping through the first dimension of a sample of spiking data.
 
                    Parameters
