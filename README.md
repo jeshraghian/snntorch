@@ -13,8 +13,8 @@ snnTorch contains the following components:
 | ---- | --- |
 | [**snntorch**](https://snntorch.org/docs/stable/snntorch.html) | a spiking neuron library like torch.nn, deeply integrated with autograd |
 | [**snntorch.backprop**](https://snntorch.org/docs/stable/backprop.html) | variations of backpropagation commonly used with SNNs for convenience |
-| [**snntorch.spikegen**](https://snntorch.org/docs/stable/spikegen.html) | a library for spike generation and data conversion using matplotlib and celluloid|
-| [**snntorch.spikeplot**](https://snntorch.org/docs/stable/spikeplot.html) | visualization tools for spike-based data |
+| [**snntorch.spikegen**](https://snntorch.org/docs/stable/spikegen.html) | a library for spike generation and data conversion |
+| [**snntorch.spikeplot**](https://snntorch.org/docs/stable/spikeplot.html) | visualization tools for spike-based data using matplotlib and celluloid |
 | [**snntorch.surrogate**](https://snntorch.org/docs/stable/surrogate.html) | optional surrogate gradient functions |
 | [**snntorch.utils**](https://snntorch.org/docs/stable/utils.html) | dataset utility functions for convenience |
 
