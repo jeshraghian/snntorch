@@ -1,4 +1,4 @@
-![snnTorch Logo](https://github.com/jeshraghian/snntorch/blob/master/docs/source/_static/img/snntorch-logo.png)
+![snnTorch Logo](https://github.com/jeshraghian/snntorch/blob/master/docs/source/_static/img/snntorch_logo.png)
 
 --------------------------------------------------------------------------------
 
