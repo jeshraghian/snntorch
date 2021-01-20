@@ -4,7 +4,9 @@ import torch
 
 def BPTT(net, data, target, num_steps, batch_size, optimizer, criterion):
     #  Net requires hidden instance variables rather than global instance variables for TBPTT
-    return TBPTT(net, data, target, num_steps, batch_size, optimizer, criterion, K=num_steps)
+    return TBPTT(
+        net, data, target, num_steps, batch_size, optimizer, criterion, K=num_steps
+    )
 
 
 def TBPTT(net, data, target, num_steps, batch_size, optimizer, criterion, K=1):
