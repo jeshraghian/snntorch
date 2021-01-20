@@ -275,7 +275,8 @@ class SRM0(LIF):
     @classmethod
     def detach_hidden(cls):
         """Used to detach hidden states from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
+        Intended for use in truncated backpropagation through
+        time where hidden state variables are instance variables."""
         for layer in range(len(cls.instances)):
             cls.instances[layer].spk.detach_()
             cls.instances[layer].syn_pre.detach_()
