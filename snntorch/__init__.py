@@ -34,6 +34,22 @@ class LIF(nn.Module):
         reset[spk_idx] = torch.ones_like(mem)[spk_idx]
         return spk, reset
 
+    def fire_single(self, batch_size, mem):
+        """Generates spike if mem > threshold.
+        Returns spk and reset."""
+        mem_shift = mem - self.threshold
+        index = torch.argmax(mem_shift, dim=1)
+        spk_tmp = self.spike_grad(mem_shift)
+
+        mask_spk1 = torch.zeros_like(spk_tmp)
+        mask_spk1[torch.arange(batch_size), index] = 1
+        spk = spk_tmp * mask_spk1.to(device)
+
+        reset = torch.zeros_like(mem)
+        spk_idx = (mem_shift > 0)
+        reset[spk_idx] = torch.ones_like(mem)[spk_idx]
+        return spk, reset
+
     @classmethod
     def clear_instances(cls):
       cls.instances = []
@@ -131,6 +147,70 @@ class Stein(LIF):
     def forward(self, input_, syn, mem):
         if not self.hidden_init:
             spk, reset = self.fire(mem)
+            syn = self.alpha * syn + input_
+            mem = self.beta * mem + syn - reset
+
+            return spk, syn, mem
+
+        # intended for truncated-BPTT where instance variables are hidden states
+        if self.hidden_init:
+            self.spk, self.reset = self.fire(self.mem)
+            self.syn = self.alpha * self.syn + input_
+            self.mem = self.beta * self.mem + self.syn - self.reset
+
+            return self.spk, self.syn, self.mem
+
+    @classmethod
+    def detach_hidden(cls):
+        """Used to detach hidden states from the current graph.
+        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
+
+        for layer in range(len(cls.instances)):
+            cls.instances[layer].spk.detach_()
+            cls.instances[layer].syn.detach_()
+            cls.instances[layer].mem.detach_()
+
+    @classmethod
+    def zeros_hidden(cls):
+        """Used to clear hidden state variables to zero.
+        Intended for use where hidden state variables are instance variables."""
+
+        for layer in range(len(cls.instances)):
+            cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
+            cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
+            cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
+
+class Stein_single(LIF):
+    """
+    Stein's model of the leaky integrate and fire neuron.
+    The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.
+    Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
+    For mem[T] > threshold, spk[T+1] = 0 to account for axonal delay.
+
+    For further reading, see:
+    R. B. Stein (1965) A theoretical analysis of neuron variability. Biophys. J. 5, pp. 173-194.
+    R. B. Stein (1967) Some models of neuronal variability. Biophys. J. 7. pp. 37-68."""
+
+    def __init__(self, alpha, beta, threshold=1.0, num_inputs=False, spike_grad=None, batch_size=False, hidden_init=False):
+        super(Stein, self).__init__(alpha, beta, threshold, spike_grad)
+
+        self.num_inputs = num_inputs
+        self.batch_size = batch_size
+        self.hidden_init = hidden_init
+
+        if self.hidden_init:
+            if not self.num_inputs:
+                raise ValueError("num_inputs must be specified to initialize hidden states as instance variables.")
+            elif not self.batch_size:
+                raise ValueError("batch_size must be specified to initialize hidden states as instance variables.")
+            elif hasattr(self.num_inputs, '__iter__'):
+                self.spk, self.syn, self.mem = self.init_stein(self.batch_size, *(self.num_inputs)) # need to automatically call batch_size
+            else:
+                self.spk, self.syn, self.mem = self.init_stein(self.batch_size, self.num_inputs)
+
+    def forward(self, input_, syn, mem):
+        if not self.hidden_init:
+            spk, reset = self.fire_single(self.batch_size, mem)
             syn = self.alpha * syn + input_
             mem = self.beta * mem + syn - reset
 
