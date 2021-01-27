@@ -192,7 +192,7 @@ class Stein_single(LIF):
     R. B. Stein (1967) Some models of neuronal variability. Biophys. J. 7. pp. 37-68."""
 
     def __init__(self, alpha, beta, threshold=1.0, num_inputs=False, spike_grad=None, batch_size=False, hidden_init=False):
-        super(Stein, self).__init__(alpha, beta, threshold, spike_grad)
+        super(Stein_single, self).__init__(alpha, beta, threshold, spike_grad)
 
         self.num_inputs = num_inputs
         self.batch_size = batch_size
