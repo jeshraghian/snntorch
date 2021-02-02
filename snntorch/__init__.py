@@ -32,7 +32,7 @@ class LIF(nn.Module):
         mem_shift = mem - self.threshold
         spk = self.spike_grad(mem_shift).to(device)
         reset = torch.zeros_like(mem)
-        spk_idx = mem_shift > 0
+        spk_idx = mem_shift >= 0
         reset[spk_idx] = torch.ones_like(mem)[spk_idx]
         return spk, reset
 
@@ -88,7 +88,7 @@ class LIF(nn.Module):
         def forward(ctx, input_):
             ctx.save_for_backward(input_)
             out = torch.zeros_like(input_)
-            out[input_ > 0] = 1.0
+            out[input_ >= 0] = 1.0
             return out
 
         @staticmethod

@@ -10,40 +10,48 @@ import matplotlib.pyplot as plt
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 # Network Architecture
-num_inputs = 28*28
+num_inputs = 28 * 28
 num_hidden = 1000
 num_outputs = 10
 
 # Training Parameters
-batch_size=128
-data_path='/data/mnist'
+batch_size = 128
+data_path = "/data/mnist"
 
 # Temporal Dynamics
 num_steps = 25
 time_step = 1e-3
 tau_mem = 3e-3
 tau_syn = 2.2e-3
-alpha = float(np.exp(-time_step/tau_syn))
-beta = float(np.exp(-time_step/tau_mem))
+alpha = float(np.exp(-time_step / tau_syn))
+beta = float(np.exp(-time_step / tau_mem))
 
 dtype = torch.float
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 # Define a transform
-transform = transforms.Compose([
-            transforms.Resize((28, 28)),
-            transforms.Grayscale(),
-            transforms.ToTensor(),
-            transforms.Normalize((0,), (1,))])
+transform = transforms.Compose(
+    [
+        transforms.Resize((28, 28)),
+        transforms.Grayscale(),
+        transforms.ToTensor(),
+        transforms.Normalize((0,), (1,)),
+    ]
+)
 
 mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
 mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
 
 # Create DataLoader
-train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
-test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
+train_loader = DataLoader(
+    mnist_train, batch_size=batch_size, shuffle=True, drop_last=True
+)
+test_loader = DataLoader(
+    mnist_test, batch_size=batch_size, shuffle=True, drop_last=True
+)
 
 # ============== Define Network ===================
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -51,10 +59,22 @@ class Net(nn.Module):
 
         # initialize layers ---> now we've got num_inputs and hidden_init included.
         self.fc1 = nn.Linear(num_inputs, num_hidden)
-        self.lif1 = snn.Stein(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, hidden_init=True)
+        self.lif1 = snn.Stein(
+            alpha=alpha,
+            beta=beta,
+            num_inputs=num_hidden,
+            batch_size=batch_size,
+            hidden_init=True,
+        )
         # self.lif1 = Stein(alpha=alpha, beta=beta, num_inputs=(5,10,69), hidden_init=True) # this was just to show how to initialize convolutional layers
         self.fc2 = nn.Linear(num_hidden, num_outputs)
-        self.lif2 = snn.Stein(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, hidden_init=True)
+        self.lif2 = snn.Stein(
+            alpha=alpha,
+            beta=beta,
+            num_inputs=num_outputs,
+            batch_size=batch_size,
+            hidden_init=True,
+        )
 
     def forward(self, x):
         # self.lif1.detach_hidden() # It would be good to combine these two into one single line tho
@@ -62,9 +82,13 @@ class Net(nn.Module):
         snn.Stein.detach_hidden()
 
         cur1 = self.fc1(x)
-        self.lif1.spk1, self.lif1.syn1, self.lif1.mem1 = self.lif1(cur1, self.lif1.syn, self.lif1.mem)
+        self.lif1.spk1, self.lif1.syn1, self.lif1.mem1 = self.lif1(
+            cur1, self.lif1.syn, self.lif1.mem
+        )
         cur2 = self.fc2(self.lif1.spk)
-        self.lif2.spk, self.lif2.syn, self.lif2.mem = self.lif2(cur2, self.lif2.syn, self.lif2.mem)
+        self.lif2.spk, self.lif2.syn, self.lif2.mem = self.lif2(
+            cur2, self.lif2.syn, self.lif2.mem
+        )
 
         return self.lif2.spk, self.lif2.mem
 
@@ -89,6 +113,7 @@ def print_batch_accuracy(data, targets, train=False):
         print(f"Train Set Accuracy: {acc}")
     else:
         print(f"Test Set Accuracy: {acc}")
+
 
 def train_printer():
     print(f"Epoch {epoch}, Minibatch {minibatch_counter}")
