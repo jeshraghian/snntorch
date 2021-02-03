@@ -1,9 +1,19 @@
 import torch
+
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 dtype = torch.float
 
-def rate(data, targets=False, num_outputs=None, num_steps=1, gain=1, offset=0, convert_targets=False,
-         temporal_targets=False):
+
+def rate(
+    data,
+    targets=False,
+    num_outputs=None,
+    num_steps=1,
+    gain=1,
+    offset=0,
+    convert_targets=False,
+    temporal_targets=False,
+):
     """Spike rate encoding of input data. Convert tensor into Poisson spike trains using the features as the mean of a
     binomial distribution.
     Optionally convert targets into temporal one-hot spike trains. Tensor dimensions use time first.
@@ -33,30 +43,52 @@ def rate(data, targets=False, num_outputs=None, num_steps=1, gain=1, offset=0, c
                     rate encoding spike train of input features.
                 torch.Tensor
                     one-hot encoding of targets with time optionally in the first dimension.
-               """
-
-    if convert_targets:
-        # One-hot encoding of targets and repeat it along the first dimension, i.e., time first.
-        spike_targets = targets_to_spikes(targets, num_outputs, num_steps, temporal_targets)
-
-    elif not convert_targets and temporal_targets:
-        # Repeat tensor in the first dimension without converting targets to one-hot.
-        spike_targets = targets.repeat(tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist()))
-
-    else:
-        spike_targets = targets
+    """
 
     # Generate a tuple: (1, num_steps, 1..., 1) where the number of 1's = number of dimensions in the original data.
     # Multiply by gain and add offset.
-    time_data = data.repeat(tuple([num_steps]+torch.ones(len(data.size()), dtype=int).tolist()))*gain+offset
+    time_data = (
+        data.repeat(
+            tuple([num_steps] + torch.ones(len(data.size()), dtype=int).tolist())
+        )
+        * gain
+        + offset
+    )
 
     spike_data = rate_conv(time_data)
 
-    return spike_data, spike_targets
+    if convert_targets:
+        # One-hot encoding of targets and repeat it along the first dimension, i.e., time first.
+        spike_targets = targets_to_spikes(
+            targets, num_outputs, num_steps, temporal_targets
+        )
+        return spike_data, spike_targets
+
+    elif not convert_targets and temporal_targets:
+        # Repeat tensor in the first dimension without converting targets to one-hot.
+        spike_targets = targets.repeat(
+            tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist())
+        )
+        return spike_data, spike_targets
+
+    else:
+        return spike_data
 
 
-def latency(data, targets=False, num_outputs=None, convert_targets=False, temporal_targets=False, num_steps=1,
-            threshold=0.01, epsilon=1e-7, tau=1, clip=False, normalize=False, linear=False):
+def latency(
+    data,
+    targets=False,
+    num_outputs=None,
+    convert_targets=False,
+    temporal_targets=False,
+    num_steps=1,
+    threshold=0.01,
+    epsilon=1e-7,
+    tau=1,
+    clip=False,
+    normalize=False,
+    linear=False,
+):
     """Latency encoding of input data. Use input features to determine time-to-first spike. Assume a LIF neuron model
     that charges up with time constant tau.
     Optionally convert targets into temporal one-hot spike trains. Tensor dimensions use time first.
@@ -96,38 +128,50 @@ def latency(data, targets=False, num_outputs=None, convert_targets=False, tempor
                     latency encoding spike train of input features.
                 torch.Tensor
                     one-hot encoding of targets with time optionally in the first dimension.
-               """
+    """
+
+    spike_data = latency_conv(
+        data,
+        num_steps=num_steps,
+        threshold=threshold,
+        epsilon=epsilon,
+        tau=tau,
+        clip=clip,
+        normalize=normalize,
+        linear=linear,
+    )
 
     if convert_targets:
         # One-hot encoding of targets and repeat it along the first dimension, i.e., time first.
-        spike_targets = targets_to_spikes(targets, num_outputs, num_steps, temporal_targets)
+        spike_targets = targets_to_spikes(
+            targets, num_outputs, num_steps, temporal_targets
+        )
+        return spike_data, spike_targets
 
     elif not convert_targets and temporal_targets:
         # Repeat tensor in the first dimension without converting targets to one-hot.
-        spike_targets = targets.repeat(tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist()))
+        spike_targets = targets.repeat(
+            tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist())
+        )
+        return spike_data, spike_targets
 
     else:
-        spike_targets = targets
-
-    spike_data = latency_conv(data, num_steps=num_steps, threshold=threshold, epsilon=epsilon, tau=tau, clip=clip,
-                              normalize=normalize, linear=linear)
-
-    return spike_data, spike_targets
+        return spike_data
 
 
 def rate_conv(data):
     """Convert tensor into Poisson spike trains using the features as the mean of a binomial distribution.
 
-               Parameters
-               ----------
-               data : torch tensor
-                    Input features e.g., [num_steps x batch size x channels x width x height].
+    Parameters
+    ----------
+    data : torch tensor
+         Input features e.g., [num_steps x batch size x channels x width x height].
 
-                Returns
-                -------
-                torch.Tensor
-                    spike train corresponding to input features.
-               """
+     Returns
+     -------
+     torch.Tensor
+         spike train corresponding to input features.
+    """
 
     # Clip all features between 0 and 1 so they can be used as probabilities.
     clipped_data = torch.clamp(data, min=0, max=1)
@@ -138,8 +182,16 @@ def rate_conv(data):
     return spike_data
 
 
-def latency_conv(data, num_steps=False, threshold=0, epsilon=1e-7, tau=1, clip=False, normalize=False,
-                 linear=False):
+def latency_conv(
+    data,
+    num_steps=False,
+    threshold=0,
+    epsilon=1e-7,
+    tau=1,
+    clip=False,
+    normalize=False,
+    linear=False,
+):
     """Latency encoding of input data. Convert input features to spikes that fire according to the latency code.
     Assumes a LIF neuron model that charges up with time constant tau by default.
 
@@ -167,26 +219,39 @@ def latency_conv(data, num_steps=False, threshold=0, epsilon=1e-7, tau=1, clip=F
                -------
                 torch.Tensor
                     latency encoding spike train of input features.
-               """
+    """
 
-    spike_time, idx = latency_code(data, num_steps=num_steps, threshold=threshold, epsilon=epsilon, tau=tau,
-                                   normalize=normalize, linear=linear)
+    spike_time, idx = latency_code(
+        data,
+        num_steps=num_steps,
+        threshold=threshold,
+        epsilon=epsilon,
+        tau=tau,
+        normalize=normalize,
+        linear=linear,
+    )
 
-    spike_data = torch.zeros((tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device)
+    spike_data = torch.zeros(
+        (tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device
+    )
     clamp_flag = 0
     print_flag = True
 
     while True:
         try:
-            spike_data = spike_data.scatter(0, torch.round(spike_time).long().unsqueeze(0), 1)
+            spike_data = spike_data.scatter(
+                0, torch.round(spike_time).long().unsqueeze(0), 1
+            )
             break
-        except RuntimeError: # this block runs if indexes in spike_time exceed range in num_steps.
+        except RuntimeError:  # this block runs if indexes in spike_time exceed range in num_steps.
             if print_flag:
-                print("Warning: the spikes outside of the range of num_steps have been clipped.\n "
-                      "Setting ``normalize`` to ``True`` or increasing ``num_steps`` can fix this.")
+                print(
+                    "Warning: the spikes outside of the range of num_steps have been clipped.\n "
+                    "Setting ``normalize`` to ``True`` or increasing ``num_steps`` can fix this."
+                )
                 print_flag = False
             # spike_data = torch.clamp_max(spike_data, num_steps - 1)
-            spike_time = torch.clamp_max(spike_time, num_steps-1)
+            spike_time = torch.clamp_max(spike_time, num_steps - 1)
             clamp_flag = 1
 
     if clamp_flag == 1:
@@ -199,7 +264,15 @@ def latency_conv(data, num_steps=False, threshold=0, epsilon=1e-7, tau=1, clip=F
     return spike_data
 
 
-def latency_code(data, num_steps=False, threshold=0.01, epsilon=1e-7, tau=1, normalize=False, linear=False):
+def latency_code(
+    data,
+    num_steps=False,
+    threshold=0.01,
+    epsilon=1e-7,
+    tau=1,
+    normalize=False,
+    linear=False,
+):
     """Latency encoding of input data. Convert input features to spike times. Assumes a LIF neuron model
     that charges up with time constant tau by default.
 
@@ -228,9 +301,11 @@ def latency_code(data, num_steps=False, threshold=0.01, epsilon=1e-7, tau=1, nor
                 torch.Tensor
                     Tensor of Boolean values which correspond to the latency encoding elements that are under the
                     threshold. Used in latency_conv to clip saturated spikes.
-               """
+    """
 
-    if threshold <= 0 or threshold >= 1:  # double check if this can just be threshold < 0 instead.
+    if (
+        threshold <= 0 or threshold >= 1
+    ):  # double check if this can just be threshold < 0 instead.
         raise Exception("Threshold must be between 0 and 1.")
 
     if tau <= 0:  # double check if this can just be threshold < 0 instead.
@@ -242,15 +317,17 @@ def latency_code(data, num_steps=False, threshold=0.01, epsilon=1e-7, tau=1, nor
     idx = data < threshold
 
     if not linear:
-        data = torch.clamp(data, threshold + epsilon)  # saturates all values below threshold.
+        data = torch.clamp(
+            data, threshold + epsilon
+        )  # saturates all values below threshold.
         spike_time = tau * torch.log(data / (data - threshold))
         if normalize:
             tmax = torch.Tensor([(threshold + epsilon) / epsilon])
-            spike_time = spike_time * (num_steps-1) / (tau * torch.log(tmax))
+            spike_time = spike_time * (num_steps - 1) / (tau * torch.log(tmax))
 
     elif linear:
         if normalize:
-            tau = num_steps-1
+            tau = num_steps - 1
         spike_time = -tau * (data - 1)
         spike_time = torch.clamp_max(spike_time, (-tau * (threshold - 1)))
 
@@ -260,28 +337,30 @@ def latency_code(data, num_steps=False, threshold=0.01, epsilon=1e-7, tau=1, nor
 def targets_to_spikes(targets, num_outputs=None, num_steps=1, temporal_targets=False):
     """Convert targets to one-hot encodings in the time-domain.
 
-           Parameters
-           ----------
-           targets : torch tensor
-               Target tensor for a single minibatch.
-           num_outputs : int
-               Number of outputs (default: ``None``).
-           num_steps : int, optional
-               Number of time steps (default: ``1``).
-           temporal_targets : Bool, optional
-               Repeat targets along the time-axis if True (default: ``False``).
+    Parameters
+    ----------
+    targets : torch tensor
+        Target tensor for a single minibatch.
+    num_outputs : int
+        Number of outputs (default: ``None``).
+    num_steps : int, optional
+        Number of time steps (default: ``1``).
+    temporal_targets : Bool, optional
+        Repeat targets along the time-axis if True (default: ``False``).
 
-           Returns
-           -------
-           torch.Tensor
-               one hot encoding of targets with time in the first dimension.
-           """
+    Returns
+    -------
+    torch.Tensor
+        one hot encoding of targets with time in the first dimension.
+    """
 
     # Autocalc num_outputs if not provided
     if num_outputs is None:
-        print("Warning: num_outputs will automatically be calculated using the number of unique values in "
-              "targets.\n"
-              "It is recommended to explicitly pass num_steps as an argument instead.")
+        print(
+            "Warning: num_outputs will automatically be calculated using the number of unique values in "
+            "targets.\n"
+            "It is recommended to explicitly pass num_steps as an argument instead."
+        )
         num_outputs = len(targets.unique())
         print(f"num_outputs has been calculated to be {num_outputs}.")
 
@@ -290,7 +369,9 @@ def targets_to_spikes(targets, num_outputs=None, num_steps=1, temporal_targets=F
     if temporal_targets:
         # Extend one-hot targets in time dimension. Create a new axis in the second dimension.
         # Allocate first dim to batch size, and subtract it off len(targets_1h.size())
-        spike_targets = targets_1h.repeat(tuple([num_steps] + torch.ones(len(targets_1h.size()), dtype=int).tolist()))
+        spike_targets = targets_1h.repeat(
+            tuple([num_steps] + torch.ones(len(targets_1h.size()), dtype=int).tolist())
+        )
 
     else:
         spike_targets = targets_1h
@@ -301,18 +382,18 @@ def targets_to_spikes(targets, num_outputs=None, num_steps=1, temporal_targets=F
 def to_one_hot(targets, num_outputs):
     """One hot encoding of target labels.
 
-       Parameters
-       ----------
-       targets : torch tensor
-           Target tensor for a single minibatch.
-       num_outputs : int
-           Number of outputs.
+    Parameters
+    ----------
+    targets : torch tensor
+        Target tensor for a single minibatch.
+    num_outputs : int
+        Number of outputs.
 
-        Returns
-        -------
-        torch.Tensor
-            one hot encoding of targets
-       """
+     Returns
+     -------
+     torch.Tensor
+         one hot encoding of targets
+    """
     # Initialize zeros. E.g, for MNIST: (batch_size, 10).
     one_hot = torch.zeros([len(targets), num_outputs], device=device)
 
@@ -334,6 +415,6 @@ def from_one_hot(one_hot_label):
         -------
         integer
             target.
-       """
+    """
     one_hot_label = torch.where(one_hot_label == 1)[0][0]
     return int(one_hot_label)

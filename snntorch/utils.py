@@ -5,26 +5,26 @@ import numpy as np
 def data_subset(dataset, subset, idx=0):
     """Partition the dataset by a factor of 1/subset without removing access to data and target attributes.
 
-       Parameters
-       ----------
-       dataset : torchvision dataset
-           Dataset.
-       subset : int
-           Factor to reduce dataset by.
-       idx : int, optional
-           Which subset of the train and test sets to index into (default: ``0``).
+    Parameters
+    ----------
+    dataset : torchvision dataset
+        Dataset.
+    subset : int
+        Factor to reduce dataset by.
+    idx : int, optional
+        Which subset of the train and test sets to index into (default: ``0``).
 
-        Returns
-        -------
-        list of torch.utils.data
-            Partitioned dataset.
-       """
+     Returns
+     -------
+     list of torch.utils.data
+         Partitioned dataset.
+    """
     if subset > 1:
         N = len(dataset.data)
 
-        idx_range = np.arange(N, dtype='int')
-        step = (N // subset)
-        idx_range = idx_range[step * idx:step * (idx + 1)]
+        idx_range = np.arange(N, dtype="int")
+        step = N // subset
+        idx_range = idx_range[step * idx : step * (idx + 1)]
 
         data = dataset.data[idx_range]
         targets = dataset.targets[idx_range]
@@ -55,7 +55,7 @@ def valid_split(ds_train, ds_val, split, seed=0):
             -------
             list of torch.utils.data
                 Randomly split train and validation sets.
-           """
+    """
     n = len(ds_train)
     n_val = int(n * split)
     n_train = n - n_val

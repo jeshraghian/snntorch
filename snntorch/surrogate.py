@@ -26,7 +26,7 @@ class FastSigmoid(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        input_, = ctx.saved_tensors
+        (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
         grad = grad_input / (slope * torch.abs(input_) + 1.0) ** 2
         return grad
@@ -51,9 +51,14 @@ class Sigmoid(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        input_, = ctx.saved_tensors
+        (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
-        grad = grad_input * slope * torch.exp(-slope*input_) / ((torch.exp(-slope*input_)+1) ** 2)
+        grad = (
+            grad_input
+            * slope
+            * torch.exp(-slope * input_)
+            / ((torch.exp(-slope * input_) + 1) ** 2)
+        )
         return grad
 
 
@@ -80,10 +85,11 @@ class SpikeRateEscape(torch.autograd.Function):
         return out
 
     def backward(self, ctx, grad_output):
-        input_, = ctx.saved_tensors
+        (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
-        grad = grad_input * slope * torch.exp(-self.beta*torch.abs(input_ - 1))
+        grad = grad_input * slope * torch.exp(-self.beta * torch.abs(input_ - 1))
         return grad
+
 
 # piecewise linear func
 # tanh surrogate func
