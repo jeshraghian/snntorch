@@ -45,21 +45,6 @@ def rate(
                     one-hot encoding of targets with time optionally in the first dimension.
     """
 
-    if convert_targets:
-        # One-hot encoding of targets and repeat it along the first dimension, i.e., time first.
-        spike_targets = targets_to_spikes(
-            targets, num_outputs, num_steps, temporal_targets
-        )
-
-    elif not convert_targets and temporal_targets:
-        # Repeat tensor in the first dimension without converting targets to one-hot.
-        spike_targets = targets.repeat(
-            tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist())
-        )
-
-    else:
-        spike_targets = targets
-
     # Generate a tuple: (1, num_steps, 1..., 1) where the number of 1's = number of dimensions in the original data.
     # Multiply by gain and add offset.
     time_data = (
@@ -72,7 +57,22 @@ def rate(
 
     spike_data = rate_conv(time_data)
 
-    return spike_data, spike_targets
+    if convert_targets:
+        # One-hot encoding of targets and repeat it along the first dimension, i.e., time first.
+        spike_targets = targets_to_spikes(
+            targets, num_outputs, num_steps, temporal_targets
+        )
+        return spike_data, spike_targets
+
+    elif not convert_targets and temporal_targets:
+        # Repeat tensor in the first dimension without converting targets to one-hot.
+        spike_targets = targets.repeat(
+            tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist())
+        )
+        return spike_data, spike_targets
+
+    else:
+        return spike_data
 
 
 def latency(
@@ -130,21 +130,6 @@ def latency(
                     one-hot encoding of targets with time optionally in the first dimension.
     """
 
-    if convert_targets:
-        # One-hot encoding of targets and repeat it along the first dimension, i.e., time first.
-        spike_targets = targets_to_spikes(
-            targets, num_outputs, num_steps, temporal_targets
-        )
-
-    elif not convert_targets and temporal_targets:
-        # Repeat tensor in the first dimension without converting targets to one-hot.
-        spike_targets = targets.repeat(
-            tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist())
-        )
-
-    else:
-        spike_targets = targets
-
     spike_data = latency_conv(
         data,
         num_steps=num_steps,
@@ -156,7 +141,22 @@ def latency(
         linear=linear,
     )
 
-    return spike_data, spike_targets
+    if convert_targets:
+        # One-hot encoding of targets and repeat it along the first dimension, i.e., time first.
+        spike_targets = targets_to_spikes(
+            targets, num_outputs, num_steps, temporal_targets
+        )
+        return spike_data, spike_targets
+
+    elif not convert_targets and temporal_targets:
+        # Repeat tensor in the first dimension without converting targets to one-hot.
+        spike_targets = targets.repeat(
+            tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist())
+        )
+        return spike_data, spike_targets
+
+    else:
+        return spike_data
 
 
 def rate_conv(data):

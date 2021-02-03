@@ -170,9 +170,10 @@ class Stein(LIF):
         Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
-            cls.instances[layer].spk.detach_()
-            cls.instances[layer].syn.detach_()
-            cls.instances[layer].mem.detach_()
+            if isinstance(cls.instances[layer], Stein):
+                cls.instances[layer].spk.detach_()
+                cls.instances[layer].syn.detach_()
+                cls.instances[layer].mem.detach_()
 
     @classmethod
     def zeros_hidden(cls):
@@ -180,9 +181,10 @@ class Stein(LIF):
         Intended for use where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
-            cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
-            cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
-            cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
+            if isinstance(cls.instances[layer], Stein):
+                cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
+                cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
+                cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
 
 
 class SRM0(LIF):
@@ -232,9 +234,15 @@ class SRM0(LIF):
                     batch_size, num_inputs
                 )
 
-        self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
         if self.alpha <= self.beta:
             raise ValueError("alpha must be greater than beta.")
+
+        if self.beta == 1:
+            raise ValueError(
+                "beta cannot be '1' otherwise ZeroDivisionError occurs: tau_srm = log(alpha)/log(beta) - log(alpha) + 1"
+            )
+
+        self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
 
     def forward(self, input_, syn_pre, syn_post, mem):
         # if hidden states are passed externally
@@ -278,21 +286,23 @@ class SRM0(LIF):
         Intended for use in truncated backpropagation through
         time where hidden state variables are instance variables."""
         for layer in range(len(cls.instances)):
-            cls.instances[layer].spk.detach_()
-            cls.instances[layer].syn_pre.detach_()
-            cls.instances[layer].syn_post.detach_()
-            cls.instances[layer].mem.detach_()
+            if isinstance(cls.instances[layer], SRM0):
+                cls.instances[layer].spk.detach_()
+                cls.instances[layer].syn_pre.detach_()
+                cls.instances[layer].syn_post.detach_()
+                cls.instances[layer].mem.detach_()
 
     @classmethod
     def zeros_hidden(cls):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables."""
         for layer in range(len(cls.instances)):
-            cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
-            cls.instances[layer].syn_pre = torch.zeros_like(
-                cls.instances[layer].syn_pre
-            )
-            cls.instances[layer].syn_post = torch.zeros_like(
-                cls.instances[layer].syn_post
-            )
-            cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
+            if isinstance(cls.instances[layer], SRM0):
+                cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
+                cls.instances[layer].syn_pre = torch.zeros_like(
+                    cls.instances[layer].syn_pre
+                )
+                cls.instances[layer].syn_post = torch.zeros_like(
+                    cls.instances[layer].syn_post
+                )
+                cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
