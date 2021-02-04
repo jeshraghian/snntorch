@@ -15,7 +15,7 @@ requirements = [
     "torch>=1.2.0",
     "pandas",
     "matplotlib",
-    "math",
+    # "math",
     "celluloid",
     "numpy>=1.17",
 ]
