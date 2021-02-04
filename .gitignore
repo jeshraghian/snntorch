@@ -103,3 +103,7 @@ ENV/
 
 # IDE settings
 .vscode/
+
+# Additional Files
+tbptt_test/
+test_1.py
