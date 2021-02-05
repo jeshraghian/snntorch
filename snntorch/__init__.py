@@ -31,13 +31,11 @@ class LIF(nn.Module):
         Returns spk and reset."""
         mem_shift = mem - self.threshold
         spk = self.spike_grad(mem_shift).to(device)
-        reset = torch.zeros_like(mem)
-        spk_idx = mem_shift >= 0
-        reset[spk_idx] = torch.ones_like(mem)[spk_idx]
+        reset = spk.clone().detach()
         return spk, reset
 
-    def fire_single(self, batch_size, mem):
-        """Generates spike if mem > threshold.
+    def fire_inhibition(self, batch_size, mem):
+        """Generates spike if mem > threshold. The neuron with the largest membrane will inhibit all others for a given time step.
         Returns spk and reset."""
         mem_shift = mem - self.threshold
         index = torch.argmax(mem_shift, dim=1)
@@ -47,9 +45,7 @@ class LIF(nn.Module):
         mask_spk1[torch.arange(batch_size), index] = 1
         spk = spk_tmp * mask_spk1.to(device)
 
-        reset = torch.zeros_like(mem)
-        spk_idx = (mem_shift > 0)
-        reset[spk_idx] = torch.ones_like(mem)[spk_idx]
+        reset = spk.clone().detach()
         return spk, reset
 
     @classmethod
@@ -202,6 +198,7 @@ class Stein(LIF):
                 cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
                 cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
 
+
 class Stein_single(LIF):
     """
     Stein's model of the leaky integrate and fire neuron.
@@ -213,7 +210,16 @@ class Stein_single(LIF):
     R. B. Stein (1965) A theoretical analysis of neuron variability. Biophys. J. 5, pp. 173-194.
     R. B. Stein (1967) Some models of neuronal variability. Biophys. J. 7. pp. 37-68."""
 
-    def __init__(self, alpha, beta, threshold=1.0, num_inputs=False, spike_grad=None, batch_size=False, hidden_init=False):
+    def __init__(
+        self,
+        alpha,
+        beta,
+        threshold=1.0,
+        num_inputs=False,
+        spike_grad=None,
+        batch_size=False,
+        hidden_init=False,
+    ):
         super(Stein_single, self).__init__(alpha, beta, threshold, spike_grad)
 
         self.num_inputs = num_inputs
@@ -222,13 +228,21 @@ class Stein_single(LIF):
 
         if self.hidden_init:
             if not self.num_inputs:
-                raise ValueError("num_inputs must be specified to initialize hidden states as instance variables.")
+                raise ValueError(
+                    "num_inputs must be specified to initialize hidden states as instance variables."
+                )
             elif not self.batch_size:
-                raise ValueError("batch_size must be specified to initialize hidden states as instance variables.")
-            elif hasattr(self.num_inputs, '__iter__'):
-                self.spk, self.syn, self.mem = self.init_stein(self.batch_size, *(self.num_inputs)) # need to automatically call batch_size
+                raise ValueError(
+                    "batch_size must be specified to initialize hidden states as instance variables."
+                )
+            elif hasattr(self.num_inputs, "__iter__"):
+                self.spk, self.syn, self.mem = self.init_stein(
+                    self.batch_size, *(self.num_inputs)
+                )  # need to automatically call batch_size
             else:
-                self.spk, self.syn, self.mem = self.init_stein(self.batch_size, self.num_inputs)
+                self.spk, self.syn, self.mem = self.init_stein(
+                    self.batch_size, self.num_inputs
+                )
 
     def forward(self, input_, syn, mem):
         if not self.hidden_init:
