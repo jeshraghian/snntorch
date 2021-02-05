@@ -1,6 +1,7 @@
-UNDER CONSTRUCTION.
+### UNDER CONSTRUCTION.
 
-![snnTorch Logo](https://github.com/jeshraghian/snntorch/docs/_static/img/snntorch_logo.png)
+<!-- ![snnTorch Logo](https://github.com/jeshraghian/snntorch/docs/_static/img/snntorch_logo.png) -->
+![snnTorch Logo](https://github.com/jeshraghian/snntorch/tree/clean-up/docs/_static/img/snntorch_logo.png)
 
 --------------------------------------------------------------------------------
 
