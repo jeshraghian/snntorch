@@ -14,35 +14,59 @@ def rate(
     convert_targets=False,
     temporal_targets=False,
 ):
+
     """Spike rate encoding of input data. Convert tensor into Poisson spike trains using the features as the mean of a
     binomial distribution.
     Optionally convert targets into temporal one-hot spike trains. Tensor dimensions use time first.
 
-               Parameters
-               ----------
-               data : torch tensor
-                   Input of shape (batch, input_size).
-               targets : torch tensor, optional
-                   Target tensor for a single batch (default: ``False``).
-               num_outputs : int, optional
-                   Number of outputs (default: ``False``).
-               num_steps : int, optional
-                   Number of time steps (default: ``1``).
-               gain: int, optional
-                    Scale input features by the gain (default: ``1``).
-               offset : float, optional
-                    Shift input features by the offset (default: ``0``).
-               convert_targets : Bool, optional
-                    Convert targets to one-hot-representation if True (default: ``False``).
-               temporal_targets : Bool, optional
-                    Repeat targets along the time-axis if True (default: ``False``).
+    Example::
 
-                Returns
-                -------
-                torch.Tensor
-                    rate encoding spike train of input features.
-                torch.Tensor
-                    one-hot encoding of targets with time optionally in the first dimension.
+        # 100% chance of spike generation
+        a = torch.Tensor([1, 1, 1, 1])
+        spikegen.rate(a)
+        >>> tensor([1., 1., 1., 1.])
+
+        # 0% chance of spike generation
+        b = torch.Tensor([0, 0, 0, 0])
+        spikegen.rate(b)
+        >>> tensor([0., 0., 0., 0.])
+
+        # 50% chance of spike generation per time step
+        c = torch.Tensor([0.5, 0.5, 0.5, 0.5])
+        spikegen.rate(c)
+        >>> tensor([0., 1., 0., 1.])
+
+
+    :param data: Data tensor for a single batch of shape [batch x input_size]
+    :type data: torch.Tensor
+
+    :param targets: Target tensor for a single batch, defaults to ``False``
+    :type targets: torch.Tensor, optional
+
+    :param num_outputs: Number of outputs, defaults to ``None``
+    :type num_outputs: int, optional
+
+    :param num_steps: Number of time steps, defaults to ``1``
+    :type num_steps: int, optional
+
+    :param gain: Scale input features by the gain, defaults to ``1``
+    :type gain: float, optional
+
+    :param offset: Shift input features by the offset, defaults to ``0``
+    :type offset: torch.optim
+
+    :param convert_targets: Convert targets to one-hot-representation if True, defaults to ``False``
+    :type convert_targets: Bool, optional
+
+    :param temporal_targets: Repeat targets along the time-axis if True, defaults to ``False``
+    :type temporal_targets: Bool, optional
+
+    :return: rate encoding spike train of input features of shape [num_steps x batch x input_size]
+    :rtype: torch.Tensor
+
+    :return: optionally return one-hot encoding of targets with time in the first dimension of shape [time x batch x num_outputs]
+    :rtype: torch.Tensor
+
     """
 
     # Generate a tuple: (1, num_steps, 1..., 1) where the number of 1's = number of dimensions in the original data.
@@ -79,8 +103,6 @@ def latency(
     data,
     targets=False,
     num_outputs=None,
-    convert_targets=False,
-    temporal_targets=False,
     num_steps=1,
     threshold=0.01,
     epsilon=1e-7,
@@ -88,46 +110,64 @@ def latency(
     clip=False,
     normalize=False,
     linear=False,
+    convert_targets=False,
+    temporal_targets=False,
 ):
     """Latency encoding of input data. Use input features to determine time-to-first spike. Assume a LIF neuron model
     that charges up with time constant tau.
     Optionally convert targets into temporal one-hot spike trains. Tensor dimensions use time first.
 
-               Parameters
-               ----------
-               data : torch tensor
-                   Input of shape (batch, input_size).
-               targets : torch tensor, optional
-                   Target tensor for a single batch (default: ``False``).
-               num_outputs : int, optional
-                   Number of outputs (default: ``False``).
-               num_steps : int, optional
-                   Number of time steps (default: ``1``).
-               convert_targets : Bool, optional
-                    Convert targets to one-hot-representation if True (default: ``False``).
-               temporal_targets : Bool, optional
-                    Repeat targets along the time-axis if True (default: ``False``).
-               num_steps : int, optional
-                    Number of time steps. Only needed if normalizing latency code (default: ``False``).
-               threshold : float, optional
-                    Value below which features will fire at time tmax (default: ``0.01``).
-               epsilon : float, optional
-                    A tiny positive value to avoid dividing by zero in firing time calculations (default: ``1e-7``).
-               tau : float, optional
-                    RC Time constant for LIF model used to calculate firing time (default: ``1``).
-               clip : Bool, optional
-                    Option to remove spikes from features that fall below the threshold (default: ``False``).
-               normalize : Bool, optional
-                    Option to normalize the latency code such that the final spike(s) occur within num_steps (default: ``False``).
-               linear : Bool, optional
-                    Apply a linear latency code rather than the default logarithmic code (default: ``False``).
+     Example::
 
-                Returns
-                -------
-                torch.Tensor
-                    latency encoding spike train of input features.
-                torch.Tensor
-                    one-hot encoding of targets with time optionally in the first dimension.
+        a = torch.Tensor([0.02, 0.5, 1])
+        spikegen.latency(a, num_steps=5, normalize=True, linear=True)
+        >>> tensor([[0., 0., 1.],
+                    [0., 0., 0.],
+                    [0., 1., 0.],
+                    [0., 0., 0.],
+                    [1., 0., 0.]])
+
+    :param data: Data tensor for a single batch of shape [batch x input_size]
+    :type data: torch.Tensor
+
+    :param targets: Target tensor for a single batch, defaults to ``False``
+    :type targets: torch.Tensor, optional
+
+    :param num_outputs: Number of outputs, defaults to ``None``
+    :type num_outputs: int, optional
+
+    :param num_steps: Number of time steps. Only needed if ``normalize=True``, defaults to ``1``
+    :type num_steps: int, optional
+
+    :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
+    :type threshold: float, optional
+
+    :param epsilon:  A tiny positive value to avoid dividing by zero in firing time calculations, defaults to ``1e-7``
+    :type epsilon: float, optional
+
+    :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
+    :type tau: float, optional
+
+    :param clip:  Option to remove spikes from features that fall below the threshold, defaults to ``False``
+    :type clip: Bool, optional
+
+    :param normalize:  Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
+    :type normalize: Bool, optional
+
+    :param linear:  Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
+    :type linear: Bool, optional
+
+    :param convert_targets: Convert targets to one-hot-representation if True, defaults to ``False``
+    :type convert_targets: Bool, optional
+
+    :param temporal_targets: Repeat targets along the time-axis if True, defaults to ``False``
+    :type temporal_targets: Bool, optional
+
+    :return: latency encoding spike train of input features
+    :rtype: torch.Tensor
+
+    :return: optionally return one-hot encoding of targets with time in the first dimension of shape [time x batch x num_outputs]
+    :rtype: torch.Tensor
     """
 
     spike_data = latency_conv(
@@ -162,15 +202,28 @@ def latency(
 def rate_conv(data):
     """Convert tensor into Poisson spike trains using the features as the mean of a binomial distribution.
 
-    Parameters
-    ----------
-    data : torch tensor
-         Input features e.g., [num_steps x batch size x channels x width x height].
+        Example::
 
-     Returns
-     -------
-     torch.Tensor
-         spike train corresponding to input features.
+        # 100% chance of spike generation
+        a = torch.Tensor([1, 1, 1, 1])
+        spikegen.rate(a)
+        >>> tensor([1., 1., 1., 1.])
+
+        # 0% chance of spike generation
+        b = torch.Tensor([0, 0, 0, 0])
+        spikegen.rate(b)
+        >>> tensor([0., 0., 0., 0.])
+
+        # 50% chance of spike generation per time step
+        c = torch.Tensor([0.5, 0.5, 0.5, 0.5])
+        spikegen.rate(c)
+        >>> tensor([0., 1., 0., 1.])
+
+    :param data: Data tensor for a single batch of shape [batch x input_size]
+    :type data: torch.Tensor
+
+    :return: rate encoding spike train of input features of shape [num_steps x batch x input_size]
+    :rtype: torch.Tensor
     """
 
     # Clip all features between 0 and 1 so they can be used as probabilities.
@@ -185,7 +238,7 @@ def rate_conv(data):
 def latency_conv(
     data,
     num_steps=False,
-    threshold=0,
+    threshold=0.01,
     epsilon=1e-7,
     tau=1,
     clip=False,
@@ -195,30 +248,42 @@ def latency_conv(
     """Latency encoding of input data. Convert input features to spikes that fire according to the latency code.
     Assumes a LIF neuron model that charges up with time constant tau by default.
 
-               Parameters
-               ----------
-               data : torch tensor
-                    Input features e.g., [num_steps x batch size x channels x width x height].
-               num_steps : int, optional
-                    Number of time steps. Only needed if normalizing latency code (default: ``False``).
-               threshold : float, optional
-                    Value below which features will fire at time tmax (default: ``0``).
-               epsilon : float, optional
-                    A tiny positive value to avoid dividing by zero in firing time calculations (default: ``1e-7``).
-               tau : float, optional
-                    RC Time constant for LIF model used to calculate firing time (default: ``1e-7``).
-               clip : Bool, optional
-                    Option to remove spikes from features that fall below the threshold (default: ``False``).
-               normalize : Bool, optional
-                    Option to normalize the latency code such that the final spike(s) occur within num_steps (default: ``False``).
-               linear : Bool, optional
-                    Apply a linear latency code rather than the default logarithmic code (default: ``False``).
+    Example::
 
+        a = torch.Tensor([0.02, 0.5, 1])
+        spikegen.latency_conv(a, num_steps=5, normalize=True, linear=True)
+        >>> tensor([[0., 0., 1.],
+                    [0., 0., 0.],
+                    [0., 1., 0.],
+                    [0., 0., 0.],
+                    [1., 0., 0.]])
 
-               Returns
-               -------
-                torch.Tensor
-                    latency encoding spike train of input features.
+    :param data: Data tensor for a single batch of shape [batch x input_size]
+    :type data: torch.Tensor
+
+    :param num_steps: Number of time steps. Only needed if ``normalize=True``, defaults to ``False``
+    :type num_steps: int, optional
+
+    :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
+    :type threshold: float, optional
+
+    :param epsilon:  A tiny positive value to avoid dividing by zero in firing time calculations, defaults to ``1e-7``
+    :type epsilon: float, optional
+
+    :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
+    :type tau: float, optional
+
+    :param clip:  Option to remove spikes from features that fall below the threshold, defaults to ``False``
+    :type clip: Bool, optional
+
+    :param normalize:  Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
+    :type normalize: Bool, optional
+
+    :param linear:  Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
+    :type linear: Bool, optional
+
+    :return: latency encoding spike train of input features
+    :rtype: torch.Tensor
     """
 
     spike_time, idx = latency_code(
@@ -276,31 +341,38 @@ def latency_code(
     """Latency encoding of input data. Convert input features to spike times. Assumes a LIF neuron model
     that charges up with time constant tau by default.
 
-               Parameters
-               ----------
-               data : torch tensor
-                    Input features e.g., [num_steps x batch size x channels x width x height].
-               num_steps : int , optional
-                    Number of time steps. Only needed if normalizing latency code (default: ``False``).
-               threshold : float, optional
-                    Value below which features will fire at some saturating time (default: ``0.01``).
-               epsilon : float, optional
-                    A tiny positive value to avoid dividing by zero in firing time calculations (default: ``1e-7``).
-               tau : float, optional
-                    RC Time constant for LIF model used to calculate firing time (default: ``1``).
-               normalize : Bool, optional
-                    Option to normalize the latency code such that the latest spike occurs within num_steps (default: ``False``).
-               linear : Bool, optional
-                    Apply a linear latency code rather than the default logarithmic code (default: ``False``).
+    Example::
 
-               Returns
-                -------
-                torch.Tensor
-                    Latency encoding spike times of input features.
+        a = torch.Tensor([0.02, 0.5, 1])
+        spikegen.latency_code(a, num_steps=5, normalize=True, linear=True)
+        >>> (tensor([3.9200, 2.0000, -0.0000]), tensor([False, False, False]))
 
-                torch.Tensor
-                    Tensor of Boolean values which correspond to the latency encoding elements that are under the
-                    threshold. Used in latency_conv to clip saturated spikes.
+    :param data: Data tensor for a single batch of shape [batch x input_size]
+    :type data: torch.Tensor
+
+    :param num_steps: Number of time steps. Only needed if ``normalize=True``, defaults to ``False``
+    :type num_steps: int, optional
+
+    :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
+    :type threshold: float, optional
+
+    :param epsilon:  A tiny positive value to avoid dividing by zero in firing time calculations, defaults to ``1e-7``
+    :type epsilon: float, optional
+
+    :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
+    :type tau: float, optional
+
+    :param normalize:  Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
+    :type normalize: Bool, optional
+
+    :param linear:  Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
+    :type linear: Bool, optional
+
+    :return: latency encoding spike times of input features
+    :rtype: torch.Tensor
+
+    :return: Tensor of Boolean values which correspond to the latency encoding elements that are under the threshold. Used in ``latency_conv`` to clip saturated spikes.
+    :rtype: torch.Tensor
     """
 
     if (
@@ -337,21 +409,32 @@ def latency_code(
 def targets_to_spikes(targets, num_outputs=None, num_steps=1, temporal_targets=False):
     """Convert targets to one-hot encodings in the time-domain.
 
-    Parameters
-    ----------
-    targets : torch tensor
-        Target tensor for a single minibatch.
-    num_outputs : int
-        Number of outputs (default: ``None``).
-    num_steps : int, optional
-        Number of time steps (default: ``1``).
-    temporal_targets : Bool, optional
-        Repeat targets along the time-axis if True (default: ``False``).
+    Example::
 
-    Returns
-    -------
-    torch.Tensor
-        one hot encoding of targets with time in the first dimension.
+        targets = torch.tensor([0, 1, 2, 3])
+        spikegen.targets_to_spikes(targets, num_outputs=4)
+        >>> tensor([[1., 0., 0., 0.],
+                    [0., 1., 0., 0.],
+                    [0., 0., 1., 0.],
+                    [0., 0., 0., 1.]])
+
+    :param targets: Target tensor for a single batch
+    :type targets: torch.Tensor
+
+    :param num_outputs: Number of outputs, defaults to ``None``
+    :type num_outputs: int, optional
+
+    :param num_steps: Number of time steps, defaults to ``1``
+    :type num_steps: int, optional
+
+    :param temporal_targets: Repeat targets along the time-axis if True, defaults to ``False``
+    :type temporal_targets: Bool, optional
+
+    :return: latency encoding spike train of input features
+    :rtype: torch.Tensor
+
+    :return: one-hot encoding of targets with time in the first dimension of shape [time x batch x num_outputs]
+    :rtype: torch.Tensor
     """
 
     # Autocalc num_outputs if not provided
@@ -382,17 +465,23 @@ def targets_to_spikes(targets, num_outputs=None, num_steps=1, temporal_targets=F
 def to_one_hot(targets, num_outputs):
     """One hot encoding of target labels.
 
-    Parameters
-    ----------
-    targets : torch tensor
-        Target tensor for a single minibatch.
-    num_outputs : int
-        Number of outputs.
+    Example::
 
-     Returns
-     -------
-     torch.Tensor
-         one hot encoding of targets
+        targets = torch.tensor([0, 1, 2, 3])
+        spikegen.targets_to_spikes(targets, num_outputs=4)
+        >>> tensor([[1., 0., 0., 0.],
+                    [0., 1., 0., 0.],
+                    [0., 0., 1., 0.],
+                    [0., 0., 0., 1.]])
+
+    :param targets: Target tensor for a single batch
+    :type targets: torch.Tensor
+
+    :param num_outputs: Number of outputs
+    :type num_outputs: int
+
+    :return: one-hot encoding of targets of shape [batch x num_outputs]
+    :rtype: torch.Tensor
     """
     # Initialize zeros. E.g, for MNIST: (batch_size, 10).
     one_hot = torch.zeros([len(targets), num_outputs], device=device)
@@ -406,15 +495,24 @@ def to_one_hot(targets, num_outputs):
 def from_one_hot(one_hot_label):
     """Convert one-hot encoding back into an integer
 
-    Parameters
-       ----------
-       one_hot_label : torch tensor
-           A single one-hot label vector
+    Example::
 
-        Returns
-        -------
-        integer
-            target.
+        one_hot_label = torch.tensor([[1., 0., 0., 0.],
+                                      [0., 1., 0., 0.],
+                                      [0., 0., 1., 0.],
+                                      [0., 0., 0., 1.]])
+        spikegen.from_one_hot(one_hot_label)
+        >>> tensor([0, 1, 2, 3])
+
+    :param targets: one-hot label vector
+    :type targets: torch.Tensor
+
+    :return: targets
+    :rtype: torch.Tensor
     """
-    one_hot_label = torch.where(one_hot_label == 1)[0][0]
-    return int(one_hot_label)
+
+    # one_hot_label = torch.where(one_hot_label == 1)[0][0]
+    # return int(one_hot_label)
+
+    one_hot_label = torch.where(one_hot_label == 1)[0]
+    return one_hot_label

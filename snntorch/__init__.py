@@ -12,6 +12,8 @@ class LIF(nn.Module):
     """Parent class for leaky integrate and fire neuron models."""
 
     instances = []
+    """Each `LIF` neuron will populate the instances list with a new entry.
+    The list is used to initialize and clear neuron states when `init_hidden` is set to `True`."""
 
     def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
         super(LIF, self).__init__()
