@@ -38,7 +38,7 @@ class LIF(nn.Module):
         return spk, reset
 
     def fire_inhibition(self, batch_size, mem):
-        """Generates spike if mem > threshold. The neuron with the largest membrane will inhibit all others for a given time step.
+        """Generates spike if mem > threshold, only for the largest membrane. All others neurons will be inhibited for that time step.
         Returns spk and reset."""
         mem_shift = mem - self.threshold
         index = torch.argmax(mem_shift, dim=1)

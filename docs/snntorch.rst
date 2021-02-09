@@ -4,9 +4,126 @@ snnTorch package
    Submodules - Unindent and delete this if submodules are introduced
    ----------
 
-snntorch Neuron Models
+snnTorch Neurons
 ---------------------
-:mod:`snntorch` contains a variety of spiking neuron classes which can simply be treated as activation units in PyTorch.
+:mod:`snntorch` is designed to be intuitively used with PyTorch, as though each spiking neuron were simply another activation in a sequence of layers. 
+
+A variety of spiking neuron classes are available which can simply be treated as activation units with PyTorch. 
+Each layer of spiking neurons are therefore agnostic to fully-connected layers, convolutional layers, residual connections, etc. 
+
+The neuron models are represented by recursive functions which removes the need to store membrane potential traces in order to calculate the gradient. 
+This eliminates the need to store traces of hidden states for all neurons to calculate the gradient. 
+The lean requirements of :mod:`snntorch` enable small and large networks to be viably trained on CPU, where needed. 
+Being deeply integrated with ``torch.autograd``, :mod:`snntorch` is able to take advantage of GPU acceleration in the same way as PyTorch.
+
+By default, PyTorch's autodifferentiation tools are unable to calculate the analytical derivative of the spiking neuron graph. 
+The discrete nature of spikes makes it difficult for ``torch.autograd`` to calculate a gradient that facilitates learning.
+:mod:`snntorch` overrides the default gradient by using :mod:`snntorch.LIF.Heaviside`.
+
+At present, the neurons available in :mod:`snntorch` include:
+
+* **Stein** - Stein's Neuron Model (Leaky Integrate-and-Fire)
+* **SRM0** - Spike Response Model :math:`0^{\rm th}` order (Leaky Integrate-and-Fire)
+
+
+
+How to use snnTorch's neuron models
+^^^^^^^^^^^^^^^^^^^^^^^^
+Spiking neural networks can be constructed using a combination of the ``snntorch`` and ``torch.nn`` packages.
+
+Example::
+
+      import torch
+      import torch.nn as nn
+      import snntorch as snn
+
+      alpha = 0.9
+      beta = 0.85
+
+      num_steps = 100
+
+
+      # Define Network
+      class Net(nn.Module):
+         def __init__(self):
+            super().__init__()
+
+         # initialize layers
+            self.fc1 = nn.Linear(num_inputs, num_hidden)
+            self.lif1 = snn.Stein(alpha=alpha, beta=beta)
+            self.fc2 = nn.Linear(num_hidden, num_outputs)
+            self.lif2 = snn.Stein(alpha=alpha, beta=beta)
+
+         def forward(self, x):
+            spk1, syn1, mem1 = self.lif1.init_stein(batch_size, num_hidden)
+            spk2, syn2, mem2 = self.lif2.init_stein(batch_size, num_outputs)
+
+            spk2_rec = []  # Record the output trace of spikes
+            mem2_rec = []  # Record the output trace of membrane potential
+
+            for step in range(num_steps):
+                  cur1 = self.fc1(x)
+                  spk1, syn1, mem1 = self.lif1(cur1, syn1, mem1)
+                  cur2 = self.fc2(spk1)
+                  spk2, syn2, mem2 = self.lif2(cur2, syn2, mem2)
+
+                  spk2_rec.append(spk2)
+                  mem2_rec.append(mem2)
+
+            return torch.stack(spk2_rec, dim=0), torch.stack(mem2_rec, dim=0)
+
+      net = Net().to(device)
+
+      output, mem_rec = net(data.view(batch_size, -1))
+
+In the above example, all hidden states, ``spk``, ``syn``, and ``mem`` are  initialized for each layer. 
+
+In many cases, it might be necessary to perform backward passes before all steps 
+It is possible to automatically instantiate neuron hidden states by invoking ``hidden_init=True``. 
+
+Example::
+
+      import torch
+      import torch.nn as nn
+      import snntorch as snn
+
+      alpha = 0.9
+      beta = 0.85
+
+      num_steps = 100
+
+
+      # Initialize Network
+      class Net(nn.Module):
+         def __init__(self):
+            super().__init__()
+
+         # initialize layers
+            snn.LIF.clear_instances() # boilerplate
+            self.fc1 = nn.Linear(num_inputs, num_hidden)
+            self.lif1 = snn.Stein(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, hidden_init=True)
+            self.fc2 = nn.Linear(num_hidden, num_outputs)
+            self.lif2 = snn.Stein(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, hidden_init=True)
+
+
+         def forward(self, x):
+            cur1 = self.fc1(x)
+            self.lif1.spk1, self.lif1.syn1, self.lif1.mem1 = self.lif1(cur1, self.lif1.syn, self.lif1.mem)
+            cur2 = self.fc2(self.lif1.spk)
+            self.lif2.spk, self.lif2.syn, self.lif2.mem = self.lif2(cur2, self.lif2.syn, self.lif2.mem)
+
+            return self.lif2.spk, self.lif2.mem
+
+      net = Net().to(device)
+
+      for steps in range(num_steps):
+         syn1, mem1, spk1, syn2, mem2, spk2 = net(data_it.view(batch_size, -1), syn1, mem1, spk1, syn2, mem2)
+
+
+* Add example of hidden_init=True
+* Whenever a neuron is instantiated, it is added as an item to the class variable ``LIF.instances``.
+* Each neuron has the option to inhibit other neurons within the same layer from firing. This can be invoked by setting ``inhibition=True`` when instantiating the neuron layer. The batch size must also be passed as an argument.
+
 
 .. automodule:: snntorch
    :members:
