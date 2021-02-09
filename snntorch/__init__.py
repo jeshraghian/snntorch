@@ -12,8 +12,8 @@ class LIF(nn.Module):
     """Parent class for leaky integrate and fire neuron models."""
 
     instances = []
-    """Each `LIF` neuron will populate the instances list with a new entry.
-    The list is used to initialize and clear neuron states when `init_hidden` is set to `True`."""
+    """Each :mod:`snntorch.LIF` neuron (e.g., :mod:`snntorch.LIF.Stein`) will populate the ``snntorch.LIF.instances`` list with a new entry.
+    The list is used to initialize and clear neuron states when the argument `init_hidden=True`."""
 
     def __init__(self, alpha, beta, threshold=1.0, spike_grad=None, inhibition=False):
         super(LIF, self).__init__()
@@ -53,13 +53,14 @@ class LIF(nn.Module):
 
     @classmethod
     def clear_instances(cls):
+        """Removes all items from ``snntorch.LIF.instances`` when called."""
         cls.instances = []
 
     @staticmethod
     def init_stein(batch_size, *args):
         """Used to initialize syn, mem and spk.
         *args are the input feature dimensions.
-        E.g., batch_size=128 and input feature of size=1x28x28 would require init_hidden(128, 1, 28, 28)."""
+        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_stein(128, 1, 28, 28)``."""
         syn = torch.zeros((batch_size, *args), device=device, dtype=dtype)
         mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
         spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
@@ -70,7 +71,7 @@ class LIF(nn.Module):
     def init_srm0(batch_size, *args):
         """Used to initialize syn_pre, syn_post, mem and spk.
         *args are the input feature dimensions.
-        E.g., batch_size=128 and input feature of size=1x28x28 would require init_hidden(128, 1, 28, 28)."""
+        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_srm0(128, 1, 28, 28).``"""
         syn_pre = torch.zeros((batch_size, *args), device=device, dtype=dtype)
         syn_post = torch.zeros((batch_size, *args), device=device, dtype=dtype)
         mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
@@ -273,16 +274,59 @@ class Stein(LIF):
 
 class SRM0(LIF):
     """
-    Simplified Spike Response Model of the leaky integrate and fire neuron.
+    Simplified Spike Response Model (:math:`0^{\\rm th}`` order) of the leaky integrate and fire neuron.
     The time course of the membrane potential response depends on a combination of exponentials.
-    In this case, the change in membrane potential experiences a delay.
-    This can be interpreted as the input current taking on its own exponential shape as a result of an input spike train.
-    For excitatory spiking, ensure alpha > beta.
-    For mem[T] > threshold, spk[T+1] = 0 to account for axonal delay.
+    In general, this causes the change in membrane potential to experience a delay with respect to an input spike.
+    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+
+    .. warning:: For a positive input current to induce a positive membrane response, ensure :math:`α > β`.
+
+    .. math::
+
+            I_{\\rm syn-pre}[t+1] = (αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1])(1-R) \\\\
+            I_{\\rm syn-post}[t+1] = (βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1])(1-R) \\\\
+            U[t+1] = τ_{\\rm SRM}(I_{\\rm syn-pre}[t+1] + I_{\\rm syn-post}[t+1])(1-R)
+
+    * :math:`I_{\\rm syn-pre}` - Pre-synaptic current
+    * :math:`I_{\\rm syn-post}` - Post-synaptic current
+    * :math:`I_{\\rm in}` - Input current
+    * :math:`U` - Membrane potential
+    * :math:`R` - Reset mechanism
+    * :math:`α` - Pre-synaptic current decay rate
+    * :math:`β` - Post-synaptic current decay rate
+    * :math:`τ_{\\rm SRM} = \\frac{log(α)}{log(β)} - log(α) + 1`
+
+    Example::
+
+        import torch
+        import torch.nn as nn
+        import snntorch as snn
+
+        alpha = 0.9
+        beta = 0.8
+
+        # Define Network
+        class Net(nn.Module):
+            def __init__(self):
+                super().__init__()
+
+                # initialize layers
+                self.fc1 = nn.Linear(num_inputs, num_hidden)
+                self.lif1 = snn.SRM0(alpha=alpha, beta=beta)
+                self.fc2 = nn.Linear(num_hidden, num_outputs)
+                self.lif2 = snn.SRM0(alpha=alpha, beta=beta)
+
+            def forward(self, x, presyn1, postsyn1, mem1, spk1, presyn2, postsyn2, mem2):
+                cur1 = self.fc1(x)
+                spk1, presyn1, postsyn1, mem1 = self.lif1(cur1, presyn1, postsyn1, mem1)
+                cur2 = self.fc2(spk1)
+                spk2, presyn2, postsyn2, mem2 = self.lif2(cur2, presyn2, postsyn2, mem2)
+                return presyn1, postsyn1, mem1, spk1, presyn2, postsyn2, mem2, spk2
+
 
     For further reading, see:
-    R. Jovilet, J. Timothy, W. Gerstner (2003) The spike response model: A framework to predict neuronal spike trains. Artificial Neural Networks and Neural Information Processing, pp. 846-853.
-    """
+
+    *R. Jovilet, J. Timothy, W. Gerstner (2003) The spike response model: A framework to predict neuronal spike trains. Artificial Neural Networks and Neural Information Processing, pp. 846-853.*"""
 
     def __init__(
         self,

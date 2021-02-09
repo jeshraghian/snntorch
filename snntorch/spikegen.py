@@ -204,20 +204,20 @@ def rate_conv(data):
 
         Example::
 
-        # 100% chance of spike generation
-        a = torch.Tensor([1, 1, 1, 1])
-        spikegen.rate(a)
-        >>> tensor([1., 1., 1., 1.])
+            # 100% chance of spike generation
+            a = torch.Tensor([1, 1, 1, 1])
+            spikegen.rate(a)
+            >>> tensor([1., 1., 1., 1.])
 
-        # 0% chance of spike generation
-        b = torch.Tensor([0, 0, 0, 0])
-        spikegen.rate(b)
-        >>> tensor([0., 0., 0., 0.])
+            # 0% chance of spike generation
+            b = torch.Tensor([0, 0, 0, 0])
+            spikegen.rate(b)
+            >>> tensor([0., 0., 0., 0.])
 
-        # 50% chance of spike generation per time step
-        c = torch.Tensor([0.5, 0.5, 0.5, 0.5])
-        spikegen.rate(c)
-        >>> tensor([0., 1., 0., 1.])
+            # 50% chance of spike generation per time step
+            c = torch.Tensor([0.5, 0.5, 0.5, 0.5])
+            spikegen.rate(c)
+            >>> tensor([0., 1., 0., 1.])
 
     :param data: Data tensor for a single batch of shape [batch x input_size]
     :type data: torch.Tensor

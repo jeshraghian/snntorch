@@ -48,7 +48,7 @@ Example::
          def __init__(self):
             super().__init__()
 
-         # initialize layers
+            # initialize layers
             self.fc1 = nn.Linear(num_inputs, num_hidden)
             self.lif1 = snn.Stein(alpha=alpha, beta=beta)
             self.fc2 = nn.Linear(num_hidden, num_outputs)
@@ -76,12 +76,15 @@ Example::
 
       output, mem_rec = net(data.view(batch_size, -1))
 
-In the above example, all hidden states, ``spk``, ``syn``, and ``mem`` are  initialized for each layer. 
+In the above example, all hidden states, ``spk``, ``syn``, and ``mem`` must be manually initialized for each layer.
+This can be overcome by automatically instantiating neuron hidden states by invoking ``hidden_init=True``. 
 
-In many cases, it might be necessary to perform backward passes before all steps 
-It is possible to automatically instantiate neuron hidden states by invoking ``hidden_init=True``. 
+In some cases (e.g., in real-time recurrent learning), it might be necessary to perform backward passes before all time steps have completed processing.
+This requires moving the time step for-loop out of the network and into the training-loop. 
 
-Example::
+.. warning:: invoking ``hidden_init=True`` requires ``num_inputs`` and ``batch_size`` to also be passed as arguments to the neurons.
+
+An example of this is shown below::
 
       import torch
       import torch.nn as nn
@@ -93,12 +96,12 @@ Example::
       num_steps = 100
 
 
-      # Initialize Network
+      #  Initialize Network
       class Net(nn.Module):
          def __init__(self):
             super().__init__()
 
-         # initialize layers
+            # initialize layers
             snn.LIF.clear_instances() # boilerplate
             self.fc1 = nn.Linear(num_inputs, num_hidden)
             self.lif1 = snn.Stein(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, hidden_init=True)
@@ -106,6 +109,8 @@ Example::
             self.lif2 = snn.Stein(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, hidden_init=True)
 
 
+         #  Remove time step loop
+         #  spk, syn and mem are now instance variables
          def forward(self, x):
             cur1 = self.fc1(x)
             self.lif1.spk1, self.lif1.syn1, self.lif1.mem1 = self.lif1(cur1, self.lif1.syn, self.lif1.mem)
@@ -116,13 +121,20 @@ Example::
 
       net = Net().to(device)
 
-      for steps in range(num_steps):
-         syn1, mem1, spk1, syn2, mem2, spk2 = net(data_it.view(batch_size, -1), syn1, mem1, spk1, syn2, mem2)
+      for step in range(num_steps):
+         spk_out, mem_out = net(data.view(batch_size, -1))
 
 
-* Add example of hidden_init=True
-* Whenever a neuron is instantiated, it is added as an item to the class variable ``LIF.instances``.
-* Each neuron has the option to inhibit other neurons within the same layer from firing. This can be invoked by setting ``inhibition=True`` when instantiating the neuron layer. The batch size must also be passed as an argument.
+Setting the hidden states to instance variables is necessary for calling the backpropagation methods available in :mod:`snntorch.backprop`.
+
+Whenever a neuron is instantiated, it is added as a list item to the class variable :mod:`LIF.instances`. 
+This helps the functions in `snntorch.backprop` keep track of what neurons are being used in the network, and when they must be detached from the computation graph. 
+
+Each neuron has the option to inhibit other neurons within the same layer from firing. 
+This can be invoked by setting ``inhibition=True`` when instantiating the neuron layer.
+
+.. warning:: invoking ``inhibition=True`` requires ``batch_size`` to also be passed as an argument to the neuron.
+
 
 
 .. automodule:: snntorch
