@@ -15,13 +15,14 @@ class LIF(nn.Module):
     """Each `LIF` neuron will populate the instances list with a new entry.
     The list is used to initialize and clear neuron states when `init_hidden` is set to `True`."""
 
-    def __init__(self, alpha, beta, threshold=1.0, spike_grad=None):
+    def __init__(self, alpha, beta, threshold=1.0, spike_grad=None, inhibition=False):
         super(LIF, self).__init__()
         LIF.instances.append(self)
 
         self.alpha = alpha
         self.beta = beta
         self.threshold = threshold
+        self.inhibition = inhibition
 
         if spike_grad is None:
             self.spike_grad = self.Heaviside.apply
@@ -93,10 +94,25 @@ class LIF(nn.Module):
 
     @staticmethod
     class Heaviside(torch.autograd.Function):
-        """Default and non-approximate spiking function for neuron.
-        Forward pass: Heaviside step function.
-        Backward pass: Dirac Delta clipped to 1 at x>0 instead of inf at x=1.
-        This assumption holds true on the basis that a spike occurs as long as x>0 and the following time step incurs a reset."""
+        """Default spiking function for neuron.
+
+        **Forward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+        **Backward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            \\frac{∂S}{∂U}=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+        Although the backward pass is clearly not the analytical solution of the forward pass, this assumption holds true on the basis that a reset necessarily occurs after a spike is generated when :math:`U ≥ 0`."""
 
         @staticmethod
         def forward(ctx, input_):
@@ -122,11 +138,53 @@ class Stein(LIF):
     Stein's model of the leaky integrate and fire neuron.
     The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.
     Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
-    For mem[T] > threshold, spk[T+1] = 0 to account for axonal delay.
+    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+
+    .. math::
+
+            I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + I_{\\rm in}[t+1] \\\\
+            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - R
+
+    * :math:`I_{\\rm syn}` - Synaptic current
+    * :math:`I_{\\rm in}` - Input current
+    * :math:`U` - Membrane potential
+    * :math:`R` - Reset mechanism
+    * :math:`α` - Synaptic current decay rate
+    * :math:`β` - Membrane potential decay rate
+
+    Example::
+
+        import torch
+        import torch.nn as nn
+        import snntorch as snn
+
+        alpha = 0.9
+        beta = 0.5
+
+        # Define Network
+        class Net(nn.Module):
+            def __init__(self):
+                super().__init__()
+
+                # initialize layers
+                self.fc1 = nn.Linear(num_inputs, num_hidden)
+                self.lif1 = snn.Stein(alpha=alpha, beta=beta)
+                self.fc2 = nn.Linear(num_hidden, num_outputs)
+                self.lif2 = snn.Stein(alpha=alpha, beta=beta)
+
+            def forward(self, x, syn1, mem1, spk1, syn2, mem2):
+                cur1 = self.fc1(x)
+                spk1, syn1, mem1 = self.lif1(cur1, syn1, mem1)
+                cur2 = self.fc2(spk1)
+                spk2, syn2, mem2 = self.lif2(cur2, syn2, mem2)
+                return syn1, mem1, spk1, syn2, mem2, spk2
+
 
     For further reading, see:
-    R. B. Stein (1965) A theoretical analysis of neuron variability. Biophys. J. 5, pp. 173-194.
-    R. B. Stein (1967) Some models of neuronal variability. Biophys. J. 7. pp. 37-68."""
+
+    *R. B. Stein (1965) A theoretical analysis of neuron variability. Biophys. J. 5, pp. 173-194.*
+
+    *R. B. Stein (1967) Some models of neuronal variability. Biophys. J. 7. pp. 37-68.*"""
 
     def __init__(
         self,
@@ -137,8 +195,9 @@ class Stein(LIF):
         spike_grad=None,
         batch_size=False,
         hidden_init=False,
+        inhibition=False,
     ):
-        super(Stein, self).__init__(alpha, beta, threshold, spike_grad)
+        super(Stein, self).__init__(alpha, beta, threshold, spike_grad, inhibition)
 
         self.num_inputs = num_inputs
         self.batch_size = batch_size
@@ -161,10 +220,18 @@ class Stein(LIF):
                 self.spk, self.syn, self.mem = self.init_stein(
                     self.batch_size, self.num_inputs
                 )
+        if self.inhibition:
+            if not self.batch_size:
+                raise ValueError(
+                    "batch_size must be specified to enable firing inhibition."
+                )
 
     def forward(self, input_, syn, mem):
         if not self.hidden_init:
-            spk, reset = self.fire(mem)
+            if self.inhibition:
+                spk, reset = self.fire_inhibition(self.batch_size, mem)
+            else:
+                spk, reset = self.fire(mem)
             syn = self.alpha * syn + input_
             mem = self.beta * mem + syn - reset
 
@@ -172,7 +239,10 @@ class Stein(LIF):
 
         # intended for truncated-BPTT where instance variables are hidden states
         if self.hidden_init:
-            self.spk, self.reset = self.fire(self.mem)
+            if self.inhibition:
+                self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
+            else:
+                self.spk, self.reset = self.fire(self.mem)
             self.syn = self.alpha * self.syn + input_
             self.mem = self.beta * self.mem + self.syn - self.reset
 
@@ -180,7 +250,7 @@ class Stein(LIF):
 
     @classmethod
     def detach_hidden(cls):
-        """Used to detach hidden states from the current graph.
+        """Returns the hidden states, detached from the current graph.
         Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
@@ -199,88 +269,6 @@ class Stein(LIF):
                 cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
                 cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
                 cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
-
-
-class Stein_single(LIF):
-    """
-    Stein's model of the leaky integrate and fire neuron.
-    The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.
-    Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
-    For mem[T] > threshold, spk[T+1] = 0 to account for axonal delay.
-
-    For further reading, see:
-    R. B. Stein (1965) A theoretical analysis of neuron variability. Biophys. J. 5, pp. 173-194.
-    R. B. Stein (1967) Some models of neuronal variability. Biophys. J. 7. pp. 37-68."""
-
-    def __init__(
-        self,
-        alpha,
-        beta,
-        threshold=1.0,
-        num_inputs=False,
-        spike_grad=None,
-        batch_size=False,
-        hidden_init=False,
-    ):
-        super(Stein_single, self).__init__(alpha, beta, threshold, spike_grad)
-
-        self.num_inputs = num_inputs
-        self.batch_size = batch_size
-        self.hidden_init = hidden_init
-
-        if self.hidden_init:
-            if not self.num_inputs:
-                raise ValueError(
-                    "num_inputs must be specified to initialize hidden states as instance variables."
-                )
-            elif not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to initialize hidden states as instance variables."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.syn, self.mem = self.init_stein(
-                    self.batch_size, *(self.num_inputs)
-                )  # need to automatically call batch_size
-            else:
-                self.spk, self.syn, self.mem = self.init_stein(
-                    self.batch_size, self.num_inputs
-                )
-
-    def forward(self, input_, syn, mem):
-        if not self.hidden_init:
-            spk, reset = self.fire_single(self.batch_size, mem)
-            syn = self.alpha * syn + input_
-            mem = self.beta * mem + syn - reset
-
-            return spk, syn, mem
-
-        # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
-            self.spk, self.reset = self.fire(self.mem)
-            self.syn = self.alpha * self.syn + input_
-            self.mem = self.beta * self.mem + self.syn - self.reset
-
-            return self.spk, self.syn, self.mem
-
-    @classmethod
-    def detach_hidden(cls):
-        """Used to detach hidden states from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
-
-        for layer in range(len(cls.instances)):
-            cls.instances[layer].spk.detach_()
-            cls.instances[layer].syn.detach_()
-            cls.instances[layer].mem.detach_()
-
-    @classmethod
-    def zeros_hidden(cls):
-        """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are instance variables."""
-
-        for layer in range(len(cls.instances)):
-            cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
-            cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
-            cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
 
 
 class SRM0(LIF):
@@ -305,8 +293,9 @@ class SRM0(LIF):
         spike_grad=None,
         batch_size=False,
         hidden_init=False,
+        inhibition=False,
     ):
-        super(SRM0, self).__init__(alpha, beta, threshold, spike_grad)
+        super(SRM0, self).__init__(alpha, beta, threshold, spike_grad, inhibition)
 
         self.num_inputs = num_inputs
         self.batch_size = batch_size
@@ -329,6 +318,11 @@ class SRM0(LIF):
                 self.spk, self.syn_pre, self.syn_post, self.mem = self.init_srm0(
                     batch_size, num_inputs
                 )
+        if self.inhibition:
+            if not self.batch_size:
+                raise ValueError(
+                    "batch_size must be specified to enable firing inhibition."
+                )
 
         if self.alpha <= self.beta:
             raise ValueError("alpha must be greater than beta.")
@@ -343,7 +337,10 @@ class SRM0(LIF):
     def forward(self, input_, syn_pre, syn_post, mem):
         # if hidden states are passed externally
         if not self.hidden_init:
-            spk, reset = self.fire(mem)
+            if self.inhibition:
+                spk, reset = self.fire_inhibition(self.batch_size, mem)
+            else:
+                spk, reset = self.fire(mem)
             syn_pre = (self.alpha * syn_pre + input_) * (1 - reset)
             syn_post = (self.beta * syn_post - input_) * (1 - reset)
             mem = self.tau_srm * (syn_pre + syn_post) * (1 - reset) + (
@@ -353,7 +350,10 @@ class SRM0(LIF):
 
         # if hidden states and outputs are instance variables
         if self.hidden_init:
-            self.spk, self.reset = self.fire(self.mem)
+            if self.inhibition:
+                self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
+            else:
+                self.spk, self.reset = self.fire(self.mem)
             self.syn_pre = (self.alpha * self.syn_pre + input_) * (1 - self.reset)
             self.syn_post = (self.beta * self.syn_post - input_) * (1 - self.reset)
             self.mem = self.tau_srm * (self.syn_pre + self.syn_post) * (

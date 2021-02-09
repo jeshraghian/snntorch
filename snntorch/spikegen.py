@@ -312,7 +312,7 @@ def latency_conv(
             if print_flag:
                 print(
                     "Warning: the spikes outside of the range of num_steps have been clipped.\n "
-                    "Setting ``normalize`` to ``True`` or increasing ``num_steps`` can fix this."
+                    "Setting ``normalize = True`` or increasing ``num_steps`` can fix this."
                 )
                 print_flag = False
             # spike_data = torch.clamp_max(spike_data, num_steps - 1)

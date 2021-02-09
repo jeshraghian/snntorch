@@ -4,6 +4,16 @@ snnTorch package
    Submodules - Unindent and delete this if submodules are introduced
    ----------
 
+snntorch Neuron Models
+---------------------
+:mod:`snntorch` contains a variety of spiking neuron classes which can simply be treated as activation units in PyTorch.
+
+.. automodule:: snntorch
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
 snntorch.backprop
 ------------------------
 :mod:`snntorch.backprop` is a package implementing various time-variant backpropagation algorithms. Each method will perform the forward-pass, backward-pass, and parameter update across all time steps in a single line of code. 
@@ -27,7 +37,7 @@ Example::
       
       # Time-invariant input data
       for input, targets in dataset:
-         loss = BPTT(net, input, target, num_steps, batch_size, optimizer, criterion, date_time=False)
+         loss = BPTT(net, input, target, num_steps, batch_size, optimizer, criterion, data_time=False)
 
 .. automodule:: snntorch.backprop
    :members:
@@ -63,14 +73,6 @@ snntorch.utils
 ---------------------
 
 .. automodule:: snntorch.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-snntorch contents
----------------------
-
-.. automodule:: snntorch
    :members:
    :undoc-members:
    :show-inheritance:

@@ -86,7 +86,7 @@ def BPTT(
 ):
     """Backpropagation through time. LIF layers require parameter ``hidden_init = True``.
     A forward pass is applied for each time step while the loss accumulates. The backward pass and parameter update is only applied at the end of each time step sequence.
-    BPTT is equivalent to TBPTT for the case where num_steps = K.
+    BPTT is equivalent to TBPTT for the case where ``num_steps = K``.
 
     :param net: Network model
     :type net: nn.Module
@@ -135,7 +135,7 @@ def RTRL(
 ):
     """Real-time Recurrent Learning. LIF layers require parameter ``hidden_init = True``.
     A forward pass, backward pass and parameter update are applied at each time step.
-    RTRL is equivalent to TBPTT for the case where K = 1.
+    RTRL is equivalent to TBPTT for the case where ``K = 1``.
 
     :param net: Network model
     :type net: nn.Module
