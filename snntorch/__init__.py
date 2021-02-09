@@ -12,7 +12,7 @@ class LIF(nn.Module):
     """Parent class for leaky integrate and fire neuron models."""
 
     instances = []
-    """Each :mod:`snntorch.LIF` neuron (e.g., :mod:`snntorch.LIF.Stein`) will populate the ``snntorch.LIF.instances`` list with a new entry.
+    """Each :mod:`snntorch.LIF` neuron (e.g., :mod:`snntorch.Stein`) will populate the :mod:`snntorch.LIF.instances` list with a new entry.
     The list is used to initialize and clear neuron states when the argument `init_hidden=True`."""
 
     def __init__(self, alpha, beta, threshold=1.0, spike_grad=None, inhibition=False):
@@ -53,7 +53,7 @@ class LIF(nn.Module):
 
     @classmethod
     def clear_instances(cls):
-        """Removes all items from ``snntorch.LIF.instances`` when called."""
+        """Removes all items from :mod:`snntorch.LIF.instances` when called."""
         cls.instances = []
 
     @staticmethod
@@ -113,7 +113,7 @@ class LIF(nn.Module):
             0 & \\text{if U < U$_{\\rm thr}$}
             \\end{cases}
 
-        Although the backward pass is clearly not the analytical solution of the forward pass, this assumption holds true on the basis that a reset necessarily occurs after a spike is generated when :math:`U ≥ 0`."""
+        Although the backward pass is clearly not the analytical solution of the forward pass, this assumption holds true on the basis that a reset necessarily occurs after a spike is generated when :math:`U ≥ U_{\\rm thr}`."""
 
         @staticmethod
         def forward(ctx, input_):
