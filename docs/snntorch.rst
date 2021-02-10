@@ -18,7 +18,7 @@ Being deeply integrated with ``torch.autograd``, :mod:`snntorch` is able to take
 
 By default, PyTorch's autodifferentiation tools are unable to calculate the analytical derivative of the spiking neuron graph. 
 The discrete nature of spikes makes it difficult for ``torch.autograd`` to calculate a gradient that facilitates learning.
-:mod:`snntorch` overrides the default gradient by using :mod:`snntorch.LIF.Heaviside`.
+:mod:`snntorch` overrides the default gradient by using :mod:`snntorch.LIF.Heaviside`. Alternative options exist in :mod:`snntorch.surrogate`.
 
 At present, the neurons available in :mod:`snntorch` include:
 
@@ -184,6 +184,8 @@ snntorch.spikegen
 
 snntorch.spikeplot
 -------------------------
+:mod:`snntorch.spikeplot` is deeply integrated with `matplotlib.pyplot` and `celluloid`.
+It serves to reduce the amount of boilerplate code required  to generate a variety of animations and plots.
 
 .. automodule:: snntorch.spikeplot
    :members:
@@ -192,6 +194,17 @@ snntorch.spikeplot
 
 snntorch.surrogate
 -------------------------
+By default, PyTorch's autodifferentiation tools are unable to calculate the analytical derivative of the spiking neuron graph. 
+The discrete nature of spikes makes it difficult for ``torch.autograd`` to calculate a gradient that facilitates learning.
+:mod:`snntorch` overrides the default gradient by using :mod:`snntorch.LIF.Heaviside`.
+
+Alternative gradients are also available in the :mod:`snntorch.surrogate` module. 
+These represent either approximations of the backward pass or probabilistic models of firing as a function of the membrane potential.
+
+For further reading, see:
+
+    *E. O. Neftci, H. Mostafa, F. Zenke (2019) Surrogate Gradient Learning in Spiking Neural Networks: Bringing the Power of Gradient-Based Optimization to Spiking Neural Networks. IEEE Signal Processing Magazine, pp. 51-63.*"""
+
 
 .. automodule:: snntorch.surrogate
    :members:
