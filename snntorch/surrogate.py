@@ -3,19 +3,32 @@ import torch
 # Spike-gradient functions
 
 slope = 25
+"""``snntorch.surrogate.slope`` parameterizes the transition rate of the surrogate gradients."""
 
 
 class FastSigmoid(torch.autograd.Function):
     """
     Surrogate gradient of the Heaviside step function.
-    Forward pass: Heaviside step function.
-    Backward pass: Gradient of fast sigmoid function.
+    **Forward pass:** Heaviside step function shifted.
 
-    f(x) = x / (1 + abs(x))
-    f'(x) = 1 / ([1+slope*abs(x)]^2)
+        .. math::
 
-    Adapted from Zenke & Ganguli (2018).
-    """
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Gradient of fast sigmoid function.
+
+        .. math::
+
+                S&≈\\frac{U}{1 + k|U|} \\\\
+                \\frac{∂S}{∂U}&=\\frac{1}{(1+k|U|)^2}
+
+    :math:`k` can be modified by altering ``snntorch.surrogate.slope``.
+
+    Adapted from:
+
+    *F. Zenke, S. Ganguli (2018) SuperSpike: Supervised Learning in Multilayer Spiking Neural Networks. Neural Computation, pp. 1514-1541.*"""
 
     @staticmethod
     def forward(ctx, input_):
@@ -35,12 +48,26 @@ class FastSigmoid(torch.autograd.Function):
 class Sigmoid(torch.autograd.Function):
     """
     Surrogate gradient of the Heaviside step function.
-    Forward pass: Heaviside step function.
-    Backward pass: Gradient of sigmoid function.
+    **Forward pass:** Heaviside step function shifted.
 
-    f(x) = 1 / (1 + exp(-slope * x)
-    f'(x) = slope*exp(-slope*x) / ((exp(-A*x)+1)^2)
-    """
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Gradient of sigmoid function.
+
+        .. math::
+
+                S&≈\\frac{1}{1 + {\\rm exp}(-kU)} \\\\
+                \\frac{∂S}{∂U}&=\\frac{k {\\rm exp}(-kU)}{[{\\rm exp}(-kU)+1]^2}
+
+    :math:`k` can be modified by altering ``snntorch.surrogate.slope``.
+
+    Adapted from:
+
+    *F. Zenke, S. Ganguli (2018) SuperSpike: Supervised Learning in Multilayer Spiking Neural Networks. Neural Computation, pp. 1514-1541.*"""
 
     @staticmethod
     def forward(ctx, input_):
@@ -65,14 +92,26 @@ class Sigmoid(torch.autograd.Function):
 class SpikeRateEscape(torch.autograd.Function):
     """
     Surrogate gradient of the Heaviside step function.
-    Forward pass: Boltzmann Distribution.
-    Backward pass: Gradient of Boltzmann Distribution.
+    **Forward pass:** Heaviside step function shifted.
 
-    f'(x) = slope * exp(-beta*abs(x - 1))
+        .. math::
 
-    Wulfram Gerstner and Werner M. Kistler, "Spiking neuron models: Single neurons, populations, plasticity."
-    Cambridge University Press, 2002.
-    """
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Gradient of Boltzmann Distribution.
+
+        .. math::
+
+                \\frac{∂S}{∂U}=k{\\rm exp}(-β|U-1|)
+
+    :math:`β` is parameterized when defining ``snntorch.surrogate.SpikeRateEscape``.
+    :math:`k` can be modified by altering ``snntorch.surrogate.slope``.
+
+    Adapted from:
+
+    * Wulfram Gerstner and Werner M. Kistler, Spiking neuron models: Single neurons, populations, plasticity. Cambridge University Press, 2002.*"""
 
     def __init__(self, beta=1):
         self.beta = beta

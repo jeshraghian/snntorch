@@ -177,6 +177,16 @@ snntorch.spikegen
 ------------------------
 :mod:`snntorch.spikegen` is a package that provides a variety of common spike generation and conversion methods, including spike-rate and latency coding.
 
+How to use spikegen
+^^^^^^^^^^^^^^^^^^^^^^^^
+In general, tensors containing non-spiking data can simply be passed into one of the functions in :mod:`snntorch.spikegen` to convert them into discrete spikes.
+There are a variety of methods to achieve this conversion. At present, `snntorch` supports:
+
+* rate coding
+* latency coding
+
+There are also options for converting targets into time-varying spikes.
+
 .. automodule:: snntorch.spikegen
    :members:
    :undoc-members:
@@ -194,6 +204,7 @@ It serves to reduce the amount of boilerplate code required  to generate a varie
 
 snntorch.surrogate
 -------------------------
+
 By default, PyTorch's autodifferentiation tools are unable to calculate the analytical derivative of the spiking neuron graph. 
 The discrete nature of spikes makes it difficult for ``torch.autograd`` to calculate a gradient that facilitates learning.
 :mod:`snntorch` overrides the default gradient by using :mod:`snntorch.LIF.Heaviside`.
@@ -203,7 +214,48 @@ These represent either approximations of the backward pass or probabilistic mode
 
 For further reading, see:
 
-    *E. O. Neftci, H. Mostafa, F. Zenke (2019) Surrogate Gradient Learning in Spiking Neural Networks: Bringing the Power of Gradient-Based Optimization to Spiking Neural Networks. IEEE Signal Processing Magazine, pp. 51-63.*"""
+    *E. O. Neftci, H. Mostafa, F. Zenke (2019) Surrogate Gradient Learning in Spiking Neural Networks: Bringing the Power of Gradient-Based Optimization to Spiking Neural Networks. IEEE Signal Processing Magazine, pp. 51-63.*
+
+How to use surrogate
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The surrogate gradient must be passed as the ``spike_grad`` argument to the neuron model. 
+If ``spike_grad`` was left unspecified, it would be set to :mod:`snntorch.LIF.Heaviside` by default. 
+In the following example, we apply the fast sigmoid surrogate to :mod:`snntorch.Stein`.
+
+Example::
+
+   import snntorch as snn
+   from snntorch import surrogate
+   import torch
+   import torch.nn as nn
+
+   alpha = 0.9
+   beta = 0.85
+
+   # Initialize surrogate gradient
+   spike_grad = surrogate.FastSigmoid.apply
+   snn.surrogate.slope = 10
+
+   # Define Network
+   class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    # Initialize layers, overriding the ``spike_grad`` argument
+        self.fc1 = nn.Linear(num_inputs, num_hidden)
+        self.lif1 = snn.Stein(alpha=alpha, beta=beta, spike_grad=spike_grad)
+        self.fc2 = nn.Linear(num_hidden, num_outputs)
+        self.lif2 = snn.Stein(alpha=alpha, beta=beta, spike_grad=spike_grad)
+
+    def forward(self, x, syn1, mem1, spk1, syn2, mem2):
+        cur1 = self.fc1(x)
+        spk1, syn1, mem1 = self.lif1(cur1, syn1, mem1)
+        cur2 = self.fc2(spk1)
+        spk2, syn2, mem2 = self.lif2(cur2, syn2, mem2)
+        return syn1, mem1, spk1, syn2, mem2, spk2
+
+net = Net().to(device)
 
 
 .. automodule:: snntorch.surrogate
@@ -213,6 +265,8 @@ For further reading, see:
 
 snntorch.utils
 ---------------------
+
+:mod:`snntorch.utils` contains a handful of utility functions for handling datasets.
 
 .. automodule:: snntorch.utils
    :members:
