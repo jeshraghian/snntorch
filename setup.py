@@ -73,6 +73,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/jeshraghian/snntorch",
-    version="0.1.0",
+    version=verstr,
     zip_safe=False,
 )
