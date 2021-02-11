@@ -12,7 +12,7 @@ def animator(data, fig, ax, num_steps=False, interval=40, cmap="plasma"):
 
     Example::
 
-        impot snntorch.spikeplot as splt
+        import snntorch.spikeplot as splt
         import matplotlib.pyplot as plt
 
         #  spike_data contains 128 samples, each of 100 time steps in duration
