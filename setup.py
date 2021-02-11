@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from _version import __version__
 
 """The setup script."""
 
@@ -27,7 +26,7 @@ test_requirements = [
     "pytest>=3",
 ]
 
-version = __version__
+version = "0.1.0"
 
 setup(
     author="Jason K. Eshraghian",
@@ -66,6 +65,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/jeshraghian/snntorch",
-    version=__version__,
+    version="0.1.0",
     zip_safe=False,
 )
