@@ -67,15 +67,14 @@ html_theme = "sphinx_rtd_theme"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "_static/img/snntorch_logo.png"
+html_logo = "_static/img/snntorch_logo_alpha.png"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_style = "css/my_theme.css"
-html_static_path = ["_static"]
-html_css_files = ["my_theme.css"]
 
+html_static_path = ["_static"]
+# html_style = "css/default.css"
 
 # -- Options for HTMLHelp output ---------------------------------------
 
