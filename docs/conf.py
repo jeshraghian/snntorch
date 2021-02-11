@@ -19,7 +19,7 @@ import snntorch
 #               "sphinx.ext.mathjax",
 #               "sphinx.ext.viewcode"]
 
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx_typo3_theme"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
 
 templates_path = ["_templates"]
 
