@@ -11,7 +11,6 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
-    "Click>=7.0",
     "torch>=1.2.0",
     "pandas",
     "matplotlib",
@@ -48,11 +47,11 @@ setup(
         "Operating System :: OS Independent",
     ],
     description="Deep learning with spiking neural networks.",
-    entry_points={
-        "console_scripts": [
-            "snntorch=snntorch.cli:main",
-        ],
-    },
+    # entry_points={
+    #     "console_scripts": [
+    #         "snntorch=snntorch.cli:main",
+    #     ],
+    # },
     install_requires=requirements,
     license="GNU General Public License v3",
     long_description=readme + "\n\n" + history,

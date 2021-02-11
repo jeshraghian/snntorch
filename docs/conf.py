@@ -39,11 +39,11 @@ author = "Jason K. Eshraghian"
 # the built documents.
 #
 # The short X.Y version.
-# version = snntorch.__version__
-version = "0.1.0"
+version = snntorch.__version__
+# version = "0.1.0"
 # The full version, including alpha/beta/rc tags.
-# release = snntorch.__version__
-release = "0.1.0"
+release = snntorch.__version__
+# release = "0.1.0"
 
 language = None
 
