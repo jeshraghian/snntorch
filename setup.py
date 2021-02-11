@@ -3,6 +3,7 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
+from _version import __version__
 
 with open("README.rst") as readme_file:
     readme = readme_file.read()
@@ -26,7 +27,7 @@ test_requirements = [
     "pytest>=3",
 ]
 
-version = "0.1.0"
+version = __version__
 
 setup(
     author="Jason K. Eshraghian",
@@ -65,6 +66,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/jeshraghian/snntorch",
-    version="0.1.0",
+    version=__version__,
     zip_safe=False,
 )
