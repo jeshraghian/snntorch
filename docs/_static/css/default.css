@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap');
+
 div.version {
     color: black !important;
 }
@@ -21,6 +23,27 @@ a:hover[class='reference internal'] {
     z-index: 1;
 }
  */
+ 
+h3 {
+     font-family: 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+     font-weight: 400;
+     text-transform: uppercase;
+     letter-spacing: 1pt;
+ }
+
+h2 {
+    font-family: 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+}
+
+h1 {
+    font-family: 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+}
 
     /* this does top left. setting background color completely gets rid of version number. trying to fix that.*/
 .wy-side-nav-search { color: black;
