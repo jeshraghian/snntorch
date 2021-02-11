@@ -2,119 +2,42 @@ import snntorch as snn
 import torch
 
 
-def BPTT(
-    net, data, target, num_steps, batch_size, optimizer, criterion, data_time=True
-):
-    """Backpropagation through time. LIF layers require parameter ``hidden_init = True``
-    rather than hidden global variables. BPTT is equivalent to TBPTT for the case where
-    num_steps = K.
-
-                Parameters
-                ----------
-                net : nn.Module
-                    Network model.
-                data :  torch, tensor
-                    Data tensor for a single batch.
-                target : torch tensor
-                    Target tensor for a single batch.
-                num_steps : int
-                    Number of time steps.
-                batch_size : int
-                    Number of samples in a single batch.
-                optimizer : torch.optim
-                    Optimizer used, e.g., torch.optim.adam.Adam.
-                criterion : torch.nn.modules.loss
-                    Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
-                data_time : Bool
-                    True if input data is time-varying [T x B x dims] (default : ``True``).
-
-                Returns
-                -------
-                torch.Tensor
-                    average loss for a single minibatch.
-    """
-    #  Net requires hidden instance variables rather than global instance variables for TBPTT
-    return TBPTT(
-        net,
-        data,
-        target,
-        num_steps,
-        batch_size,
-        optimizer,
-        criterion,
-        data_time,
-        K=num_steps,
-    )
-
-
-def RTRL(
-    net, data, target, num_steps, batch_size, optimizer, criterion, data_time=True
-):
-    """Real-time Recurrent Learning. LIF layers require parameter ``hidden_init = True``
-    rather than hidden global variables. RTRL is equivalent to TBPTT for the case where
-    K = 1.
-
-               Parameters
-               ----------
-                net : nn.Module
-                    Network model.
-                data :  torch, tensor
-                    Data tensor for a single batch.
-                target : torch tensor
-                    Target tensor for a single batch.
-                num_steps : int
-                    Number of time steps.
-                batch_size : int
-                    Number of samples in a single batch.
-                optimizer : torch.optim
-                    Optimizer used, e.g., torch.optim.adam.Adam.
-                criterion : torch.nn.modules.loss
-                    Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
-                data_time : Bool
-                    True if input data is time-varying [T x B x dims] (default : ``True``).
-
-                Returns
-                -------
-                torch.Tensor
-                    average loss for a single minibatch.
-    """
-    #  Net requires hidden instance variables rather than global instance variables for TBPTT
-    return TBPTT(
-        net, data, target, num_steps, batch_size, optimizer, criterion, data_time, K=1
-    )
-
-
 def TBPTT(
     net, data, target, num_steps, batch_size, optimizer, criterion, data_time=True, K=1
 ):
-    """Truncated backpropagation through time. LIF layers require parameter ``hidden_init = True``
-    rather than hidden global variables.
+    """Truncated backpropagation through time. LIF layers require parameter ``hidden_init = True``.
+    Forward and backward passes are performed at every time step. Weight updates are performed every ``K`` time steps.
 
-               Parameters
-               ----------
-                net : nn.Module
-                    Network model.
-                data :  torch, tensor
-                    Data tensor for a single batch.
-                target : torch Tensor
-                    Target tensor for a single batch.
-                num_steps : int
-                    Number of time steps.
-                batch_size : int
-                    Number of samples in a single batch.
-                optimizer : torch.optim
-                    Optimizer used, e.g., torch.optim.adam.Adam.
-                criterion : torch.nn.modules.loss
-                    Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
-                data_time : Bool
-                    True if input data is time-varying [T x B x dims] (default : ``True``).
-                K : int, optional
-                    Number of time steps to process per weight update (default: ``num_steps``).
+    :param net: Network model
+    :type net: nn.Module
 
-                Returns
-                -------
-                torch.Tensor
-                    average loss for a single minibatch.
+    :param data: Data tensor for a single batch
+    :type data: torch.Tensor
+
+    :param target: Target tensor for a single batch
+    :type target: torch.Tensor
+
+    :param num_steps: Number of time steps
+    :type num_steps: int
+
+    :param batch_size: Number of samples in a single batch
+    :type batch_size: int
+
+    :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
+    :type optimizer: torch.optim
+
+    :param criterion: Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
+    :type criterion: torch.nn.modules.loss
+
+    :param data_time: True if input data is time-varying [T x B x dims], defaults to ``True``
+    :type data_time: Bool, optional
+
+    :param K: Number of time steps to process per weight update, defaults to ``1``
+    :type K: int, optional
+
+    :return: average loss for a single minibatch
+    :rtype: torch.Tensor
+
     """
 
     if K > num_steps:
@@ -156,6 +79,96 @@ def TBPTT(
             snn.SRM0.detach_hidden()
 
     return loss_avg
+
+
+def BPTT(
+    net, data, target, num_steps, batch_size, optimizer, criterion, data_time=True
+):
+    """Backpropagation through time. LIF layers require parameter ``hidden_init = True``.
+    A forward pass is applied for each time step while the loss accumulates. The backward pass and parameter update is only applied at the end of each time step sequence.
+    BPTT is equivalent to TBPTT for the case where ``num_steps = K``.
+
+    :param net: Network model
+    :type net: nn.Module
+
+    :param data: Data tensor for a single batch
+    :type data: torch.Tensor
+
+    :param target: Target tensor for a single batch
+    :type target: torch.Tensor
+
+    :param num_steps: Number of time steps
+    :type num_steps: int
+
+    :param batch_size: Number of samples in a single batch
+    :type batch_size: int
+
+    :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
+    :type optimizer: torch.optim
+
+    :param criterion: Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
+    :type criterion: torch.nn.modules.loss
+
+    :param data_time: True if input data is time-varying [T x B x dims], defaults to ``True``
+    :type data_time: Bool, optional
+
+    :return: average loss for a single minibatch
+    :rtype: torch.Tensor
+
+    """
+    #  Net requires hidden instance variables rather than global instance variables for TBPTT
+    return TBPTT(
+        net,
+        data,
+        target,
+        num_steps,
+        batch_size,
+        optimizer,
+        criterion,
+        data_time,
+        K=num_steps,
+    )
+
+
+def RTRL(
+    net, data, target, num_steps, batch_size, optimizer, criterion, data_time=True
+):
+    """Real-time Recurrent Learning. LIF layers require parameter ``hidden_init = True``.
+    A forward pass, backward pass and parameter update are applied at each time step.
+    RTRL is equivalent to TBPTT for the case where ``K = 1``.
+
+    :param net: Network model
+    :type net: nn.Module
+
+    :param data: Data tensor for a single batch
+    :type data: torch.Tensor
+
+    :param target: Target tensor for a single batch
+    :type target: torch.Tensor
+
+    :param num_steps: Number of time steps
+    :type num_steps: int
+
+    :param batch_size: Number of samples in a single batch
+    :type batch_size: int
+
+    :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
+    :type optimizer: torch.optim
+
+    :param criterion: Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
+    :type criterion: torch.nn.modules.loss
+
+    :param data_time: True if input data is time-varying [T x B x dims], defaults to ``True``
+    :type data_time: Bool, optional
+
+    :return: average loss for a single minibatch
+    :rtype: torch.Tensor
+
+    """
+    #  Net requires hidden instance variables rather than global instance variables for TBPTT
+    return TBPTT(
+        net, data, target, num_steps, batch_size, optimizer, criterion, data_time, K=1
+    )
 
 
 def _layer_init(net):

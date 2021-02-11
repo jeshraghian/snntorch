@@ -6,12 +6,20 @@ sys.path.insert(0, os.path.abspath(".."))
 
 import snntorch
 
+
 # -- General configuration ---------------------------------------------
 
 # needs_sphinx = '1.0'
 
 
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
+# extensions = ["sphinx.ext.autodoc",
+#               "sphinx.ext.viewcode",
+#               "sphinx.ext.intersphinx",
+#               "sphinx.ext.autodoc",
+#               "sphinx.ext.mathjax",
+#               "sphinx.ext.viewcode"]
+
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx_typo3_theme"]
 
 templates_path = ["_templates"]
 
@@ -50,12 +58,23 @@ todo_include_todos = False
 
 # -- Options for HTML output -------------------------------------------
 
-html_theme = "alabaster"
+# html_theme = "alabaster"
+html_theme = "sphinx_rtd_theme"
+# html_theme = "sphinx_typo3_theme"
+
 
 # html_theme_options = {}
 
-html_static_path = ["_static"]
+# The name of an image file (relative to this directory) to place at the top
+# of the sidebar.
+html_logo = "_static/img/snntorch_alpha.png"
 
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+
+html_static_path = ["_static"]
+# html_style = "css/default.css"
 
 # -- Options for HTMLHelp output ---------------------------------------
 

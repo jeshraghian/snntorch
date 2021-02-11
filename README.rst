@@ -1,6 +1,6 @@
-========
-snntorch
-========
+================
+Introduction
+================
 
 
 .. image:: https://img.shields.io/pypi/v/snntorch.svg
@@ -13,25 +13,113 @@ snntorch
         :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
+.. image:: https://github.com/jeshraghian/snntorch/blob/clean-up/docs/_static/img/snntorch_alpha.png?raw=true
+        :align: center
+        :width: 600
 
 
+snnTorch is a Python package for performing gradient-based learning with spiking neural networks.
+Rather than reinventing the wheel, it sits on top of PyTorch and takes advantage of its GPU accelerated tensor 
+computation. Pre-designed spiking neuron models are seamlessly integrated within the PyTorch framework and can be treated as recurrent activation units. 
 
-Deep learning with spiking neural networks.
+snnTorch Structure
+^^^^^^^^^^^^^^^^^^^^^^^^
+snnTorch contains the following components: 
+
+.. list-table::
+   :widths: 20 60
+   :header-rows: 1
+
+   * - Component
+     - Description
+   * - `snntorch <https://snntorch.readthedocs.io/en/latest/snntorch.html>`_
+     - a spiking neuron library like torch.nn, deeply integrated with autograd
+   * - `snntorch.backprop <https://snntorch.readthedocs.io/en/latest/snntorch.backprop.html>`_
+     - variations of backpropagation commonly used with SNNs
+   * - `snntorch.spikegen <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`_
+     - a library for spike generation and data conversion
+   * - `snntorch.spikeplot <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`_
+     - visualization tools for spike-based data using matplotlib and celluloid
+   * - `snntorch.surrogate <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html>`_
+     - optional surrogate gradient functions
+   * - `snntorch.utils <https://snntorch.readthedocs.io/en/latest/snntorch.utils.html>`_
+     - dataset utility functions
+
+snnTorch is designed to be intuitively used with PyTorch, as though each spiking neuron were simply another activation in a sequence of layers. 
+It is therefore agnostic to fully-connected layers, convolutional layers, residual connections, etc. 
+
+At present, the neuron models are represented by recursive functions which removes the need to store membrane potential traces for all neurons in a system in order to calculate the gradient. 
+The lean requirements of snnTorch enable small and large networks to be viably trained on CPU, where needed. 
+Despite that, snnTorch avoids bottlenecking the acceleration libraries used by PyTorch. 
+Provided that the network models and tensors are loaded onto CUDA, snnTorch takes advantage of GPU acceleration in the same way as PyTorch. 
+
+Citation 
+^^^^^^^^^^^^^^^^^^^^^^^^
+Under preparation.
+
+Requirements 
+^^^^^^^^^^^^^^^^^^^^^^^^
+The following packages need to be installed to use snnTorch:
+
+* torch >= 1.2.0
+* numpy >= 1.17
+* pandas
+* matplotlib
+* math
+* celluloid
+
+Installation
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run the following to install:
+
+```
+python
+pip install snntorch
+```
+
+To install snnTorch from source instead:
+
+```
+git clone https://github.com/jeshraghian/snnTorch
+cd snnTorch
+python setup.py install
+```
+
+API & Examples 
+^^^^^^^^^^^^^^^^^^^^^^^^
+A complete API is available `here`_. Examples, tutorials and Colab notebooks are provided.
+
+.. _here: https://snntorch.readthedocs.io/
+
+Getting Started
+^^^^^^^^^^^^^^^^^^^^^^^^
+Here are a few ways you can get started with snnTorch:
+
+* `The API Reference`_ 
+
+* `Examples`_
+
+* `Tutorials`_
+
+.. _The API Reference: https://snntorch.readthedocs.io/
+.. _Examples: https://snntorch.readthedocs.io/examples.html
+.. _Tutorials: https://snntorch.readthedocs.io/tutorials.html
 
 
-* Free software: GNU General Public License v3
-* Documentation: https://snntorch.readthedocs.io.
+Contributing
+^^^^^^^^^^^^^^^^^^^^^^^^
+If you're ready to contribute to snnTorch, instructions to do so can be `found here`_.
 
+.. _found here: https://snntorch.readthedocs.io/contributing.html
 
-Features
---------
+Acknowledgments
+^^^^^^^^^^^^^^^^^^^^^^^^
+snnTorch was developed by Jason K. Eshraghian in the Lu Group (University of Michigan), with additional contributions from Xinxin Wang and Vincent Sun.
+Several features in snnTorch were inspired by the work of Friedemann Zenke, Emre Neftci, Doo Seok Jeong, Sumit Bam Shrestha and Garrick Orchard.
 
-* TODO
+This work was supported by...
 
-Credits
--------
-
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
-
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+License & Copyright
+^^^^^^^^^^^^^^^^^^^^^^^^
+snnTorch is licensed under the GNU General Public License v3.0: https://www.gnu.org/licenses/gpl-3.0.en.html.

@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap');
+
+div.version {
+    color: black !important;
+}
+
+a[class='icon icon-home'] {
+    color: black !important;
+}
+
+a[class='reference internal'] {
+    color: #6B6B6B !important
+}
+
+a:hover[class='reference internal'] {
+    background-color: #d6d6d6 !important;
+  }
+
+/* div.version { color: black;
+    font-size: x-large;
+    text-emphasis-color: black;
+    font: black;
+    z-index: 1;
+}
+ */
+ 
+h3 {
+     font-family: 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+     font-weight: 400;
+     text-transform: uppercase;
+     letter-spacing: 1pt;
+ }
+
+h2 {
+    font-family: 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+}
+
+h1 {
+    font-family: 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+}
+
+    /* this does top left. setting background color completely gets rid of version number. trying to fix that.*/
+.wy-side-nav-search { color: black;
+background: white;}
+
+
+/* left contents bar*/
+.wy-nav-side {background: #f3f4f7;
+color: black !important;}
+
+/* .reference internal {color: black} */
+
+.caption-text {color: black}
+
+li.toctree-l1 {color: black !important}
+
+
+
+
+
+
+/* .body {
+    background-color:  #f3f4f7;
+} */
+
+.wy-body-for-nav {
+    background-color:  #f3f4f7;
+}
+
+.wy-grid-for-nav {
+    background-color: #f3f4f7
+}
+
+
+/* body{
+    font-family:"Verdana", Helvetica, sans-serif;
+} */
