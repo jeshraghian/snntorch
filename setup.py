@@ -36,6 +36,8 @@ if mo:
 else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 
+version = verstr
+
 setup(
     author="Jason K. Eshraghian",
     author_email="jasonesh@umich.edu",
