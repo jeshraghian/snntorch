@@ -1,6 +1,6 @@
 snntorch.spikegen
 ------------------------
-:mod:`snntorch.spikegen` is a package that provides a variety of common spike generation and conversion methods, including spike-rate and latency coding.
+:mod:`snntorch.spikegen` is a module that provides a variety of common spike generation and conversion methods, including spike-rate and latency coding.
 
 How to use spikegen
 ^^^^^^^^^^^^^^^^^^^^^^^^

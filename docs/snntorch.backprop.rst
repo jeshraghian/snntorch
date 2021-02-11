@@ -1,6 +1,6 @@
 snntorch.backprop
 ------------------------
-:mod:`snntorch.backprop` is a package implementing various time-variant backpropagation algorithms. Each method will perform the forward-pass, backward-pass, and parameter update across all time steps in a single line of code. 
+:mod:`snntorch.backprop` is a module implementing various time-variant backpropagation algorithms. Each method will perform the forward-pass, backward-pass, and parameter update across all time steps in a single line of code. 
 
 
 How to use backprop

@@ -50,7 +50,6 @@ It is therefore agnostic to fully-connected layers, convolutional layers, residu
 
 At present, the neuron models are represented by recursive functions which removes the need to store membrane potential traces for all neurons in a system in order to calculate the gradient. 
 The lean requirements of snnTorch enable small and large networks to be viably trained on CPU, where needed. 
-Despite that, snnTorch avoids bottlenecking the acceleration libraries used by PyTorch. 
 Provided that the network models and tensors are loaded onto CUDA, snnTorch takes advantage of GPU acceleration in the same way as PyTorch. 
 
 Citation 
