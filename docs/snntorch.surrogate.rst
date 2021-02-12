@@ -51,7 +51,7 @@ Example::
         spk2, syn2, mem2 = self.lif2(cur2, syn2, mem2)
         return syn1, mem1, spk1, syn2, mem2, spk2
 
-net = Net().to(device)
+    net = Net().to(device)
 
 
 .. automodule:: snntorch.surrogate
