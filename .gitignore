@@ -107,3 +107,4 @@ ENV/
 # Additional Files
 tbptt_test/
 test_1.py
+temp/
