@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(".."))
 import snntorch
 
 # fmt: off
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 # fmt: on
 
 
