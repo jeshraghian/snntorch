@@ -8,11 +8,11 @@ def rate(
     data,
     targets=False,
     num_outputs=None,
-    num_steps=1,
+    num_steps=False,
     gain=1,
     offset=0,
-    convert_targets=False,
-    temporal_targets=False,
+    one_hot=False,
+    time_varying_targets=False,
 ):
 
     """Spike rate encoding of input data. Convert tensor into Poisson spike trains using the features as the mean of a
@@ -55,11 +55,11 @@ def rate(
     :param offset: Shift input features by the offset, defaults to ``0``
     :type offset: torch.optim
 
-    :param convert_targets: Convert targets to one-hot-representation if True, defaults to ``False``
-    :type convert_targets: Bool, optional
+    :param one_hot: Convert targets to one-hot-representation if True, defaults to ``False``
+    :type one_hot: Bool, optional
 
-    :param temporal_targets: Repeat targets along the time-axis if True, defaults to ``False``
-    :type temporal_targets: Bool, optional
+    :param time_varying_targets: Repeat targets along the time-axis if True, defaults to ``False``
+    :type time_varying_targets: Bool, optional
 
     :return: rate encoding spike train of input features of shape [num_steps x batch x input_size]
     :rtype: torch.Tensor
@@ -83,7 +83,7 @@ def rate(
 
     if targets:
         return spike_data, target_handling(
-            targets, num_outputs, num_steps, temporal_targets
+            targets, num_outputs, num_steps, one_hot, time_varying_targets
         )
 
     else:
@@ -94,15 +94,15 @@ def latency(
     data,
     targets=False,
     num_outputs=None,
-    num_steps=1,
+    num_steps=False,
     threshold=0.01,
     epsilon=1e-7,
     tau=1,
     clip=False,
     normalize=False,
     linear=False,
-    convert_targets=False,
-    temporal_targets=False,
+    one_hot=False,
+    time_varying_targets=False,
 ):
     """Latency encoding of input data. Use input features to determine time-to-first spike. Assume a LIF neuron model
     that charges up with time constant tau.
@@ -148,11 +148,11 @@ def latency(
     :param linear:  Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
     :type linear: Bool, optional
 
-    :param convert_targets: Convert targets to one-hot-representation if True, defaults to ``False``
-    :type convert_targets: Bool, optional
+    :param one_hot: Convert targets to one-hot-representation if True, defaults to ``False``
+    :type one_hot: Bool, optional
 
-    :param temporal_targets: Repeat targets along the time-axis if True, defaults to ``False``
-    :type temporal_targets: Bool, optional
+    :param time_varying_targets: Repeat targets along the time-axis if True, defaults to ``False``
+    :type time_varying_targets: Bool, optional
 
     :return: latency encoding spike train of input features
     :rtype: torch.Tensor
@@ -174,7 +174,7 @@ def latency(
 
     if targets:
         return spike_data, target_handling(
-            targets, num_outputs, num_steps, temporal_targets
+            targets, num_outputs, num_steps, one_hot, time_varying_targets
         )
 
     else:
@@ -189,7 +189,7 @@ def delta(
     off_spike=False,
     num_outputs=None,
     num_steps=False,
-    temporal_targets=False,
+    time_varying_targets=False,
 ):
     """Generate spike only when the difference between two subsequent time steps meets a threshold.
     Optionally include off_spikes for negative changes.
@@ -229,18 +229,18 @@ def delta(
     :param num_outputs: Number of outputs, defaults to ``None``
     :type num_outputs: int, optional
 
-    :param num_steps: Number of time steps. Only needed if ``targets`` and ``temporal_targets`` are ``True``, defaults to ``False``
+    :param num_steps: Number of time steps. Only needed if ``targets`` and ``time_varying_targets`` are ``True``, defaults to ``False``
     :type num_steps: bool, optional
 
-    :param temporal_targets: Repeat targets along the time-axis if ``True``, defaults to ``False``
-    :type temporal_targets: bool, optional
+    :param time_varying_targets: Repeat targets along the time-axis if ``True``, defaults to ``False``
+    :type time_varying_targets: bool, optional
     """
 
     spike_data = delta_conv(data, threshold, padding, off_spike)
 
     if targets:
         return spike_data, target_handling(
-            targets, num_outputs, num_steps, temporal_targets
+            targets, num_outputs, num_steps, time_varying_targets
         )
 
     else:
@@ -480,8 +480,8 @@ def target_handling(
     targets,
     num_outputs=None,
     num_steps=False,
-    convert_targets=False,
-    temporal_targets=False,
+    one_hot=False,
+    time_varying_targets=False,
 ):
     """Options to convert targets into temporal targets and/or one-hot-encodings.
 
@@ -494,20 +494,20 @@ def target_handling(
     :param num_steps: Number of time steps, defaults to ``False``
     :type num_steps: int, optional
 
-    :param convert_targets: Convert targets to one-hot-representation if True, defaults to ``False``
-    :type convert_targets: Bool, optional
+    :param one_hot: Convert targets to one-hot-representation if True, defaults to ``False``
+    :type one_hot: Bool, optional
 
-    :param temporal_targets: Repeat targets along the time-axis if True, defaults to ``False``
-    :type temporal_targets: Bool, optional
+    :param time_varying_targets: Repeat targets along the time-axis if True, defaults to ``False``
+    :type time_varying_targets: Bool, optional
 
     :return: targets with optional one-hot-encoding or temporal conversion with time in the first dimension of shape [num_steps x batch x num_outputs]
     :rtype: torch.Tensor
     """
-    if convert_targets:
-        # One-hot encoding of targets. If temporal_targets is True, repeat it along the first dimension, i.e., time first
-        return targets_to_spikes(targets, num_outputs, num_steps, temporal_targets)
+    if one_hot:
+        # One-hot encoding of targets. If time_varying_targets is True, repeat it along the first dimension, i.e., time first
+        return targets_to_spikes(targets, num_outputs, num_steps, time_varying_targets)
 
-    elif not convert_targets and temporal_targets:
+    elif not one_hot and time_varying_targets:
         # Repeat target tensor in first dimension without converting targets to one-hot
         return targets.repeat(
             tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist())
@@ -518,7 +518,7 @@ def target_handling(
 
 
 def targets_to_spikes(
-    targets, num_outputs=None, num_steps=False, temporal_targets=False
+    targets, num_outputs=None, num_steps=False, time_varying_targets=False
 ):
     """Convert targets to one-hot encodings in the time-domain.
 
@@ -540,8 +540,8 @@ def targets_to_spikes(
     :param num_steps: Number of time steps, defaults to ``1``
     :type num_steps: int, optional
 
-    :param temporal_targets: Repeat targets along the time-axis if True, defaults to ``False``
-    :type temporal_targets: Bool, optional
+    :param time_varying_targets: Repeat targets along the time-axis if True, defaults to ``False``
+    :type time_varying_targets: Bool, optional
 
     :return: latency encoding spike train of input features
     :rtype: torch.Tensor
@@ -562,9 +562,11 @@ def targets_to_spikes(
 
     targets_1h = to_one_hot(targets, num_outputs)
 
-    if temporal_targets:
+    if time_varying_targets:
         if not num_steps:
-            raise Exception("num_steps must be specified if temporal_targets is True.")
+            raise Exception(
+                "num_steps must be specified if time_varying_targets is True."
+            )
         # Extend one-hot targets in time dimension. Create a new axis in the second dimension.
         # Allocate first dim to batch size, and subtract it off len(targets_1h.size())
         spike_targets = targets_1h.repeat(
