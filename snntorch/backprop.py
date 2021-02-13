@@ -3,7 +3,17 @@ import torch
 
 
 def TBPTT(
-    net, data, target, num_steps, batch_size, optimizer, criterion, data_time=True, K=1
+    net,
+    data,
+    target,
+    num_steps,
+    batch_size,
+    optimizer,
+    criterion,
+    time_varying_data=True,
+    return_spk=False,
+    return_mem=False,
+    K=1,
 ):
     """Truncated backpropagation through time. LIF layers require parameter ``hidden_init = True``.
     Forward and backward passes are performed at every time step. Weight updates are performed every ``K`` time steps.
@@ -29,13 +39,25 @@ def TBPTT(
     :param criterion: Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
     :type criterion: torch.nn.modules.loss
 
-    :param data_time: True if input data is time-varying [T x B x dims], defaults to ``True``
-    :type data_time: Bool, optional
+    :param time_varying_data: True if input data is time-varying [T x B x dims], defaults to ``True``
+    :type time_varying_data: Bool, optional
+
+    :param return_spk: Option to return output spikes, defaults to ``False``
+    :type return_spk: Bool, optional
+
+    :param return_mem: Option to return output membrane potential traces, defaults to ``False``
+    :type return_mem: Bool, optional
 
     :param K: Number of time steps to process per weight update, defaults to ``1``
     :type K: int, optional
 
     :return: average loss for a single minibatch
+    :rtype: torch.Tensor
+
+    :return: optionally return output spikes over time
+    :rtype: torch.Tensor
+
+    :return: optionally return output membrane potential trace over time
     :rtype: torch.Tensor
 
     """
@@ -49,11 +71,24 @@ def TBPTT(
     loss_trunc = 0  # reset every K time steps
     loss_avg = 0
 
+    if return_spk:
+        spk_rec = []
+
+    if return_mem:
+        mem_rec = []
+
     for step in range(num_steps):
-        if data_time:
+        if time_varying_data:
             spk_out, mem_out = net(data[step].view(batch_size, -1))
         else:
             spk_out, mem_out = net(data.view(batch_size, -1))
+
+        if return_spk:
+            spk_rec.append(spk_out)
+
+        if return_mem:
+            mem_rec.append(mem_out)
+
         loss = criterion(mem_out, target)
         loss_trunc += loss
         loss_avg += loss
@@ -78,11 +113,30 @@ def TBPTT(
         if is_srm0:
             snn.SRM0.detach_hidden()
 
-    return loss_avg
+    if return_spk:
+        if return_mem:
+            return loss_avg, torch.stack(spk_rec, dim=0), torch.stack(mem_rec, dim=0)
+        else:
+            return loss_avg, torch.stack(spk_rec, dim=0)
+
+    if return_mem:
+        return loss_avg, torch.stack(mem_rec, dim=0)
+
+    else:
+        return loss_avg
 
 
 def BPTT(
-    net, data, target, num_steps, batch_size, optimizer, criterion, data_time=True
+    net,
+    data,
+    target,
+    num_steps,
+    batch_size,
+    optimizer,
+    criterion,
+    time_varying_data=True,
+    return_spk=False,
+    return_mem=False,
 ):
     """Backpropagation through time. LIF layers require parameter ``hidden_init = True``.
     A forward pass is applied for each time step while the loss accumulates. The backward pass and parameter update is only applied at the end of each time step sequence.
@@ -109,12 +163,23 @@ def BPTT(
     :param criterion: Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
     :type criterion: torch.nn.modules.loss
 
-    :param data_time: True if input data is time-varying [T x B x dims], defaults to ``True``
-    :type data_time: Bool, optional
+    :param time_varying_data: True if input data is time-varying [T x B x dims], defaults to ``True``
+    :type time_varying_data: Bool, optional
+
+    :param return_spk: Option to return output spikes, defaults to ``False``
+    :type return_spk: Bool, optional
+
+    :param return_mem: Option to return output membrane potential traces, defaults to ``False``
+    :type return_mem: Bool, optional
 
     :return: average loss for a single minibatch
     :rtype: torch.Tensor
 
+    :return: optionally return output spikes over time
+    :rtype: torch.Tensor
+
+    :return: optionally return output membrane potential trace over time
+    :rtype: torch.Tensor
     """
     #  Net requires hidden instance variables rather than global instance variables for TBPTT
     return TBPTT(
@@ -125,13 +190,24 @@ def BPTT(
         batch_size,
         optimizer,
         criterion,
-        data_time,
+        time_varying_data,
+        return_spk,
+        return_mem,
         K=num_steps,
     )
 
 
 def RTRL(
-    net, data, target, num_steps, batch_size, optimizer, criterion, data_time=True
+    net,
+    data,
+    target,
+    num_steps,
+    batch_size,
+    optimizer,
+    criterion,
+    time_varying_data=True,
+    return_spk=False,
+    return_mem=False,
 ):
     """Real-time Recurrent Learning. LIF layers require parameter ``hidden_init = True``.
     A forward pass, backward pass and parameter update are applied at each time step.
@@ -158,16 +234,38 @@ def RTRL(
     :param criterion: Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
     :type criterion: torch.nn.modules.loss
 
-    :param data_time: True if input data is time-varying [T x B x dims], defaults to ``True``
-    :type data_time: Bool, optional
+    :param time_varying_data: True if input data is time-varying [T x B x dims], defaults to ``True``
+    :type time_varying_data: Bool, optional
+
+    :param return_spk: Option to return output spikes, defaults to ``False``
+    :type return_spk: Bool, optional
+
+    :param return_mem: Option to return output membrane potential traces, defaults to ``False``
+    :type return_mem: Bool, optional
 
     :return: average loss for a single minibatch
+    :rtype: torch.Tensor
+
+    :return: optionally return output spikes over time
+    :rtype: torch.Tensor
+
+    :return: optionally return output membrane potential trace over time
     :rtype: torch.Tensor
 
     """
     #  Net requires hidden instance variables rather than global instance variables for TBPTT
     return TBPTT(
-        net, data, target, num_steps, batch_size, optimizer, criterion, data_time, K=1
+        net,
+        data,
+        target,
+        num_steps,
+        batch_size,
+        optimizer,
+        criterion,
+        time_varying_data,
+        return_spk,
+        return_mem,
+        K=1,
     )
 
 
