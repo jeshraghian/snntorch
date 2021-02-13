@@ -23,9 +23,7 @@ setup_requirements = [
     "pytest-runner",
 ]
 
-test_requirements = [
-    "pytest>=3",
-]
+test_requirements = ["pytest>=3", "torch>=1.2.0"]
 
 version = __version__
 
