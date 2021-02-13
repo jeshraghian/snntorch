@@ -1,4 +1,3 @@
-from snntorch._version import __version__
 import torch
 import torch.nn as nn
 import numpy as np

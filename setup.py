@@ -3,13 +3,14 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
-from snntorch._version import __version__
 
 with open("README.rst") as readme_file:
     readme = readme_file.read()
 
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
+
+__version__ = "0.1.2"
 
 requirements = [
     "torch>=1.2.0",
@@ -23,9 +24,7 @@ setup_requirements = [
     "pytest-runner",
 ]
 
-test_requirements = [
-    "pytest>=3",
-]
+test_requirements = ["pytest>=3"]
 
 version = __version__
 
