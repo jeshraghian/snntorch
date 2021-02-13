@@ -3,7 +3,7 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
-from _version import __version__
+from snntorch._version import __version__
 
 with open("README.rst") as readme_file:
     readme = readme_file.read()
