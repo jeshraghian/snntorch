@@ -10,7 +10,9 @@ with open("README.rst") as readme_file:
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
-__version__ = "0.1.2"
+# fmt: off
+__version__ = '0.1.2'
+# fmt: on
 
 requirements = [
     "torch>=1.2.0",
