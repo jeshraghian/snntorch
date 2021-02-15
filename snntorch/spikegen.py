@@ -8,7 +8,7 @@ def rate(
     data,
     targets=False,
     num_outputs=None,
-    num_steps=False,
+    num_steps=1,
     gain=1,
     offset=0,
     one_hot=False,
@@ -94,7 +94,7 @@ def latency(
     data,
     targets=False,
     num_outputs=None,
-    num_steps=False,
+    num_steps=1,
     threshold=0.01,
     epsilon=1e-7,
     tau=1,
@@ -372,7 +372,7 @@ def latency_conv(
     clamp_flag = 0
     print_flag = True
 
-    while True:
+    while True:  # can remove while loop + break.
         try:
             spike_data = spike_data.scatter(
                 0, torch.round(spike_time).long().unsqueeze(0), 1
@@ -456,6 +456,9 @@ def latency_code(
     if normalize and not num_steps:
         raise Exception("`num_steps` should not be empty if normalize is set to True.")
 
+    if not num_steps:
+        num_steps = 1
+
     idx = data < threshold
 
     if not linear:
@@ -468,10 +471,23 @@ def latency_code(
             spike_time = spike_time * (num_steps - 1) / (tau * torch.log(tmax))
 
     elif linear:
+        if torch.max(data) > 1 and not normalize:
+            raise Exception(
+                "For ``linear=True``, data > 1 results in negative spike times.\n"
+                "Either set ``normalize=True``, or ensure all values in data <= 1."
+            )
         if normalize:
             tau = num_steps - 1
         spike_time = -tau * (data - 1)
         spike_time = torch.clamp_max(spike_time, (-tau * (threshold - 1)))
+
+        #  if data has values > 1, negative spike_time values will exist. Normalize btwn 0 & 1, then renormalize 1 --> num_steps.
+        if torch.min(spike_time) < 0 and normalize:
+            spike_time = (
+                (spike_time - torch.min(spike_time))
+                * (1 / (torch.max(spike_time) - torch.min(spike_time)))
+                * (num_steps - 1)
+            )
 
     return spike_time, idx
 
@@ -601,10 +617,10 @@ def to_one_hot(targets, num_outputs):
     :rtype: torch.Tensor
     """
     # Initialize zeros. E.g, for MNIST: (batch_size, 10).
-    one_hot = torch.zeros([len(targets), num_outputs], device=device)
+    one_hot = torch.zeros([len(targets), num_outputs], device=device, dtype=dtype)
 
     # Unsqueeze converts dims of [100] to [100, 1]
-    one_hot = one_hot.scatter(1, targets.unsqueeze(-1), 1)
+    one_hot = one_hot.scatter(1, targets.type(torch.int64).unsqueeze(-1), 1)
 
     return one_hot
 
