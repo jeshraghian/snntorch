@@ -81,7 +81,7 @@ def rate(
 
     spike_data = rate_conv(time_data)
 
-    if targets:
+    if targets is not False:
         return spike_data, target_handling(
             targets, num_outputs, num_steps, one_hot, time_varying_targets
         )
@@ -172,7 +172,7 @@ def latency(
         linear=linear,
     )
 
-    if targets:
+    if targets is not False:
         return spike_data, target_handling(
             targets, num_outputs, num_steps, one_hot, time_varying_targets
         )
@@ -238,7 +238,7 @@ def delta(
 
     spike_data = delta_conv(data, threshold, padding, off_spike)
 
-    if targets:
+    if targets is not False:
         return spike_data, target_handling(
             targets, num_outputs, num_steps, time_varying_targets
         )
