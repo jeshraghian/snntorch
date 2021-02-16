@@ -9,12 +9,18 @@ a[class='icon icon-home'] {
 }
 
 a[class='reference internal'] {
-    color: #6B6B6B !important
+    color: #6B6B6B !important;
 }
 
 a:hover[class='reference internal'] {
     background-color: #d6d6d6 !important;
   }
+
+ul ul {
+    margin-top: -1px !important;
+    margin-bottom: -1px !important
+}
+
 
 /* div.version { color: black;
     font-size: x-large;
