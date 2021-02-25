@@ -33,8 +33,7 @@ class FastSigmoid(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input_):
         ctx.save_for_backward(input_)
-        out = torch.zeros_like(input_)
-        out[input_ > 0] = 1.0
+        out = (input_ > 0).float()
         return out
 
     @staticmethod
@@ -72,8 +71,7 @@ class Sigmoid(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input_):
         ctx.save_for_backward(input_)
-        out = torch.zeros_like(input_)
-        out[input_ > 0] = 1.0
+        out = (input_ > 0).float()
         return out
 
     @staticmethod
@@ -119,8 +117,7 @@ class SpikeRateEscape(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input_):
         ctx.save_for_backward(input_)
-        out = torch.zeros_like(input_)
-        out[input_ > 0] = 1.0
+        out = (input_ > 0).float()
         return out
 
     def backward(self, ctx, grad_output):
