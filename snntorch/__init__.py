@@ -118,8 +118,7 @@ class LIF(nn.Module):
         @staticmethod
         def forward(ctx, input_):
             ctx.save_for_backward(input_)
-            out = torch.zeros_like(input_)
-            out[input_ >= 0] = 1.0
+            out = (input_ > 0).float()
             return out
 
         @staticmethod
