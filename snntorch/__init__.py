@@ -233,7 +233,7 @@ class Stein(LIF):
             else:
                 spk, reset = self.fire(mem)
             syn = self.alpha * syn + input_
-            mem = self.beta * mem + syn - reset
+            mem = self.beta * mem + syn - reset * self.threshold
 
             return spk, syn, mem
 
@@ -244,7 +244,7 @@ class Stein(LIF):
             else:
                 self.spk, self.reset = self.fire(self.mem)
             self.syn = self.alpha * self.syn + input_
-            self.mem = self.beta * self.mem + self.syn - self.reset
+            self.mem = self.beta * self.mem + self.syn - self.reset * self.threshold
 
             return self.spk, self.syn, self.mem
 
@@ -384,11 +384,15 @@ class SRM0(LIF):
                 spk, reset = self.fire_inhibition(self.batch_size, mem)
             else:
                 spk, reset = self.fire(mem)
-            syn_pre = (self.alpha * syn_pre + input_) * (1 - reset)
-            syn_post = (self.beta * syn_post - input_) * (1 - reset)
-            mem = self.tau_srm * (syn_pre + syn_post) * (1 - reset) + (
-                mem * reset - reset
+            syn_pre = (self.alpha * syn_pre + input_) * (
+                self.threshold - reset * self.threshold
             )
+            syn_post = (self.beta * syn_post - input_) * (
+                self.threshold - reset * self.threshold
+            )
+            mem = self.tau_srm * (syn_pre + syn_post) * (
+                self.threshold - reset * self.threshold
+            ) + (mem * reset * self.threshold - reset * self.threshold)
             return spk, syn_pre, syn_post, mem
 
         # if hidden states and outputs are instance variables
@@ -397,11 +401,15 @@ class SRM0(LIF):
                 self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
             else:
                 self.spk, self.reset = self.fire(self.mem)
-            self.syn_pre = (self.alpha * self.syn_pre + input_) * (1 - self.reset)
-            self.syn_post = (self.beta * self.syn_post - input_) * (1 - self.reset)
+            self.syn_pre = (self.alpha * self.syn_pre + input_) * (
+                self.threshold - self.reset * self.threshold
+            )
+            self.syn_post = (self.beta * self.syn_post - input_) * (
+                self.threshold - self.reset * self.threshold
+            )
             self.mem = self.tau_srm * (self.syn_pre + self.syn_post) * (
-                1 - self.reset
-            ) + (self.mem * self.reset - self.reset)
+                self.threshold - self.reset * self.threshold
+            ) + (self.mem * self.reset * self.threshold - self.reset * self.threshold)
             return self.spk, self.syn_pre, self.syn_post, self.mem
 
     # cool forward function that resulted in burst firing - worth exploring
