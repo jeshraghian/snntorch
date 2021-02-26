@@ -38,7 +38,7 @@ class LIF(nn.Module):
         else:
             self.spike_grad = spike_grad
 
-        if reset_mechanism != "subtract" or "zero":
+        if reset_mechanism != "subtract" and reset_mechanism != "zero":
             raise ValueError(
                 "reset_mechanism must be set to either 'subtract' or 'zero'."
             )
