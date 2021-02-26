@@ -5,7 +5,7 @@ name: Python package
 
 on:
   push:
-    branches: [ master, git-actions ]
+    branches: [ master, git-actions ]  # remove git-actions once functioning
   pull_request:
     branches: [ master, git-actions ]
 
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -29,6 +29,9 @@ jobs:
         pip install tox tox-gh-actions
     - name: Test with tox
       run: tox
+    - name: Test with pytest
+      run: |
+        pytest
 
     #   run: |
     #     python -m pip install --upgrade pip
