@@ -458,7 +458,7 @@ class SRM0(LIF):
                     self.beta * syn_post - input_
                 )
                 # The residual of (mem - threshold) decays separately
-                self.mem_residual = reset * (mem * self.threshold) + (
+                self.mem_residual = reset * (mem - self.threshold) + (
                     self.mem_residual / self.tau_srm
                 )
                 mem = self.tau_srm * (syn_pre + syn_post) + self.mem_residual
@@ -497,7 +497,7 @@ class SRM0(LIF):
                     self.beta * self.syn_post - input_
                 )
                 # The residual of (mem - threshold) decays separately
-                self.mem_residual = self.reset * (self.mem * self.threshold) + (
+                self.mem_residual = self.reset * (self.mem - self.threshold) + (
                     self.mem_residual / self.tau_srm
                 )
                 self.mem = (
