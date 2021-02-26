@@ -15,7 +15,15 @@ class LIF(nn.Module):
     """Each :mod:`snntorch.LIF` neuron (e.g., :mod:`snntorch.Stein`) will populate the :mod:`snntorch.LIF.instances` list with a new entry.
     The list is used to initialize and clear neuron states when the argument `init_hidden=True`."""
 
-    def __init__(self, alpha, beta, threshold=1.0, spike_grad=None, inhibition=False):
+    def __init__(
+        self,
+        alpha,
+        beta,
+        threshold=1.0,
+        spike_grad=None,
+        inhibition=False,
+        reset_mechanism="subtract",
+    ):
         super(LIF, self).__init__()
         LIF.instances.append(self)
 
@@ -23,11 +31,17 @@ class LIF(nn.Module):
         self.beta = beta
         self.threshold = threshold
         self.inhibition = inhibition
+        self.reset_mechanism = reset_mechanism
 
         if spike_grad is None:
             self.spike_grad = self.Heaviside.apply
         else:
             self.spike_grad = spike_grad
+
+        if reset_mechanism != "subtract" or "zero":
+            raise ValueError(
+                "reset_mechanism must be set to either 'subtract' or 'zero'."
+            )
 
     def fire(self, mem):
         """Generates spike if mem > threshold.
@@ -35,6 +49,7 @@ class LIF(nn.Module):
         mem_shift = mem - self.threshold
         spk = self.spike_grad(mem_shift).to(device)
         reset = spk.clone().detach()
+
         return spk, reset
 
     def fire_inhibition(self, batch_size, mem):
@@ -47,8 +62,8 @@ class LIF(nn.Module):
         mask_spk1 = torch.zeros_like(spk_tmp)
         mask_spk1[torch.arange(batch_size), index] = 1
         spk = spk_tmp * mask_spk1.to(device)
-
         reset = spk.clone().detach()
+
         return spk, reset
 
     @classmethod
@@ -140,15 +155,23 @@ class Stein(LIF):
     Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
+     If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have `threshold` subtracted from it whenever the neuron emits a spike:
     .. math::
 
             I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + I_{\\rm in}[t+1] \\\\
-            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - R
+            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - RU_{\\rm thr}
+
+    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
+    .. math::
+
+            I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + I_{\\rm in}[t+1] \\\\
+            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - R(βU[t] + I_{\\rm syn}[t+1])
 
     * :math:`I_{\\rm syn}` - Synaptic current
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
-    * :math:`R` - Reset mechanism
+    * :math:`U_{\\rm thr}` - Membrane threshold
+    * :math:`R` - Reset mechanism: if active, :math:`R = U_{\\rm thr}`, otherwise :math:`R = 0`
     * :math:`α` - Synaptic current decay rate
     * :math:`β` - Membrane potential decay rate
 
@@ -196,8 +219,11 @@ class Stein(LIF):
         batch_size=False,
         hidden_init=False,
         inhibition=False,
+        reset_mechanism="subtract",
     ):
-        super(Stein, self).__init__(alpha, beta, threshold, spike_grad, inhibition)
+        super(Stein, self).__init__(
+            alpha, beta, threshold, spike_grad, inhibition, reset_mechanism
+        )
 
         self.num_inputs = num_inputs
         self.batch_size = batch_size
@@ -233,7 +259,12 @@ class Stein(LIF):
             else:
                 spk, reset = self.fire(mem)
             syn = self.alpha * syn + input_
-            mem = self.beta * mem + syn - reset * self.threshold
+
+            if self.reset_mechanism == "subtract":
+                mem = self.beta * mem + syn - reset * self.threshold
+
+            elif self.reset_mechanism == "zero":
+                mem = self.beta * mem + syn - reset * (self.beta * mem + syn)
 
             return spk, syn, mem
 
@@ -244,7 +275,16 @@ class Stein(LIF):
             else:
                 self.spk, self.reset = self.fire(self.mem)
             self.syn = self.alpha * self.syn + input_
-            self.mem = self.beta * self.mem + self.syn - self.reset * self.threshold
+
+            if self.reset_mechanism == "subtract":
+                self.mem = self.beta * self.mem + self.syn - self.reset * self.threshold
+
+            elif self.reset_mechanism == "zero":
+                self.mem = (
+                    self.beta * self.mem
+                    + self.syn
+                    - self.reset * (self.beta * self.mem + self.syn)
+                )
 
             return self.spk, self.syn, self.mem
 
@@ -280,17 +320,28 @@ class SRM0(LIF):
 
     .. warning:: For a positive input current to induce a positive membrane response, ensure :math:`α > β`.
 
+    If `reset_mechanism = "subtract"`, then :math:`I_{\\rm syn-pre}, I_{\\rm syn-post}` will both have `threshold` subtracted from them whenever the neuron emits a spike:
     .. math::
 
-            I_{\\rm syn-pre}[t+1] = (αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1])(1-R) \\\\
-            I_{\\rm syn-post}[t+1] = (βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1])(1-R) \\\\
-            U[t+1] = τ_{\\rm SRM}(I_{\\rm syn-pre}[t+1] + I_{\\rm syn-post}[t+1])(1-R)
+            I_{\\rm syn-pre}[t+1] = (αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) \\\\
+            I_{\\rm syn-post}[t+1] = (βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) \\\\
+            U_{\\rm residual}[t+1] = R(U[t]U_{\\rm thr}) + U[t]/τ_{\\rm SRM} \\\\
+            U[t+1] = τ_{\\rm SRM}(I_{\\rm syn-pre}[t+1] + I_{\\rm syn-post}[t+1]) + U_{\\rm residual}[t+1]
+
+    If `reset_mechanism = "zero"`, then :math:`I_{\\rm syn-pre}, I_{\\rm syn-post}` will both be set to `0` whenever the neuron emits a spike:
+    .. math::
+
+            I_{\\rm syn-pre}[t+1] = (αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) \\\\
+            I_{\\rm syn-post}[t+1] = (βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) \\\\
+            U[t+1] = τ_{\\rm SRM}(I_{\\rm syn-pre}[t+1] + I_{\\rm syn-post}[t+1])
 
     * :math:`I_{\\rm syn-pre}` - Pre-synaptic current
     * :math:`I_{\\rm syn-post}` - Post-synaptic current
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
-    * :math:`R` - Reset mechanism
+    * :math:`U_{\\rm thr}` - Membrane threshold
+    * :math:`U_{\\rm residual}` - Residual membrane potential after reset by subtraction
+    * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise :math:`R = 0`
     * :math:`α` - Pre-synaptic current decay rate
     * :math:`β` - Post-synaptic current decay rate
     * :math:`τ_{\\rm SRM} = \\frac{log(α)}{log(β)} - log(α) + 1`
@@ -337,8 +388,11 @@ class SRM0(LIF):
         batch_size=False,
         hidden_init=False,
         inhibition=False,
+        reset_mechanism="subtract",
     ):
-        super(SRM0, self).__init__(alpha, beta, threshold, spike_grad, inhibition)
+        super(SRM0, self).__init__(
+            alpha, beta, threshold, spike_grad, inhibition, reset_mechanism
+        )
 
         self.num_inputs = num_inputs
         self.batch_size = batch_size
@@ -375,41 +429,92 @@ class SRM0(LIF):
                 "beta cannot be '1' otherwise ZeroDivisionError occurs: tau_srm = log(alpha)/log(beta) - log(alpha) + 1"
             )
 
+        if reset_mechanism == "subtract":
+            self.mem_residual = False
+
         self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
 
     def forward(self, input_, syn_pre, syn_post, mem):
+
         # if hidden states are passed externally
         if not self.hidden_init:
+
             if self.inhibition:
                 spk, reset = self.fire_inhibition(self.batch_size, mem)
+
             else:
                 spk, reset = self.fire(mem)
-            syn_pre = (self.alpha * syn_pre + input_) * (
-                self.threshold - reset * self.threshold
-            )
-            syn_post = (self.beta * syn_post - input_) * (
-                self.threshold - reset * self.threshold
-            )
-            mem = self.tau_srm * (syn_pre + syn_post) * (
-                self.threshold - reset * self.threshold
-            ) + (mem * reset * self.threshold - reset * self.threshold)
+
+            # if neuron fires, subtract threhsold from neuron
+            if self.reset_mechanism == "subtract":
+
+                if self.mem_residual is False:
+                    self.mem_residual = torch.zeros_like(mem)
+
+                syn_pre = (self.alpha * syn_pre + input_) - reset * (
+                    self.alpha * syn_pre + input_
+                )
+                syn_post = (self.beta * syn_post - input_) - reset * (
+                    self.beta * syn_post - input_
+                )
+                # The residual of (mem - threshold) decays separately
+                self.mem_residual = reset * (mem * self.threshold) + (
+                    self.mem_residual / self.tau_srm
+                )
+                mem = self.tau_srm * (syn_pre + syn_post) + self.mem_residual
+
+            # if neuron fires, reset membrane to zero
+            elif self.reset_mechanism == "zero":
+                syn_pre = (self.alpha * syn_pre + input_) - reset * (
+                    self.alpha * syn_pre + input_
+                )
+                syn_post = (self.beta * syn_post - input_) - reset * (
+                    self.beta * syn_post - input_
+                )
+                mem = self.tau_srm * (syn_pre + syn_post)
+
             return spk, syn_pre, syn_post, mem
 
         # if hidden states and outputs are instance variables
         if self.hidden_init:
+
             if self.inhibition:
                 self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
+
             else:
                 self.spk, self.reset = self.fire(self.mem)
-            self.syn_pre = (self.alpha * self.syn_pre + input_) * (
-                self.threshold - self.reset * self.threshold
-            )
-            self.syn_post = (self.beta * self.syn_post - input_) * (
-                self.threshold - self.reset * self.threshold
-            )
-            self.mem = self.tau_srm * (self.syn_pre + self.syn_post) * (
-                self.threshold - self.reset * self.threshold
-            ) + (self.mem * self.reset * self.threshold - self.reset * self.threshold)
+
+            # if neuron fires, subtract threhsold from neuron
+            if self.reset_mechanism == "subtract":
+
+                if self.mem_residual is False:
+                    self.mem_residual = torch.zeros_like(mem)
+
+                self.syn_pre = (self.alpha * self.syn_pre + input_) - self.reset * (
+                    self.alpha * self.syn_pre + input_
+                )
+                syn_post = (self.beta * self.syn_post - input_) - self.reset * (
+                    self.beta * self.syn_post - input_
+                )
+                # The residual of (mem - threshold) decays separately
+                self.mem_residual = self.reset * (self.mem * self.threshold) + (
+                    self.mem_residual / self.tau_srm
+                )
+                self.mem = (
+                    self.tau_srm * (self.syn_pre + self.syn_post) + self.mem_residual
+                )
+
+            # if neuron fires, reset membrane to zero
+            elif self.reset_mechanism == "zero":
+
+                syn_pre = (self.alpha * syn_pre + input_) - self.reset * (
+                    self.alpha * syn_pre + input_
+                )
+                syn_post = (self.beta * syn_post - input_) - self.reset * (
+                    self.beta * syn_post - input_
+                )
+                self.mem = self.tau_srm * (syn_pre + syn_post)
+
             return self.spk, self.syn_pre, self.syn_post, self.mem
 
     # cool forward function that resulted in burst firing - worth exploring
