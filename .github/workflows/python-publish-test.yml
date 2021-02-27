@@ -3,22 +3,46 @@
 
 name: Upload Python Package to Test PyPi
 
+# on:
+#   push:
+#     branches: [ git-actions ]  # remove git-actions once functioning
+#   pull_request:
+#     branches: [ git-actions ]
+#   workflow_run: 
+#     workflows: ["Python package"]
+#     branches: [git-actions ]
+#     types:
+#     - completed
 on:
   push:
-    branches: [ git-actions ]  # remove git-actions once functioning
-  pull_request:
-    branches: [ git-actions ]
-  workflow_run: 
-    workflows: ["Python package"]
-    branches: [git-actions ]
-    types:
-    - completed
+    tags:
+    - '*'
+
 
 jobs:
-  deploy:
+  build:
 
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
 
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox tox-gh-actions
+    - name: Test with tox
+      run: tox
+
+
+  deploy:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
