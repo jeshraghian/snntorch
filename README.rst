@@ -6,11 +6,8 @@ Introduction
 .. image:: https://img.shields.io/pypi/v/snntorch.svg
         :target: https://pypi.python.org/pypi/snntorch
 
-.. .. image:: https://img.shields.io/travis/jeshraghian/snntorch.svg
-..         :target: https://travis-ci.com/jeshraghian/snntorch
-
 .. image:: https://github.com/jeshraghian/snntorch/actions/workflows/build.yml/badge.svg
-
+        :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
 
 .. image:: https://readthedocs.org/projects/snntorch/badge/?version=latest
         :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
