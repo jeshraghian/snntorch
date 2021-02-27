@@ -11,7 +11,7 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 # fmt: off
-__version__ = '0.1.12'
+__version__ = '0.1.13'
 # fmt: on
 
 requirements = [
