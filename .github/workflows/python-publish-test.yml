@@ -8,6 +8,11 @@ on:
     branches: [ git-actions ]  # remove git-actions once functioning
   pull_request:
     branches: [ git-actions ]
+  workflow_run: 
+    workflows: ["Python package"]
+    branches: [git-actions ]
+    types:
+    - completed
 
 jobs:
   deploy:
