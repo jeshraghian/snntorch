@@ -6,7 +6,7 @@ name: Upload Python Package to Test PyPi
 on:
   workflow_run: 
     workflows: ["Python package tag"]
-    branches: [main, git-actions]
+    # branches: [main, git-actions] 
     types:
       - completed
 
