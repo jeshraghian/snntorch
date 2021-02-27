@@ -9,7 +9,7 @@ Introduction
 .. .. image:: https://img.shields.io/travis/jeshraghian/snntorch.svg
 ..         :target: https://travis-ci.com/jeshraghian/snntorch
 
-.. image:: https://github.com/jeshraghian/snntorch/actions/workflows/<WORKFLOW_FILE>/badge.svg
+https://github.com/jeshraghian/snntorch/actions/workflows/build.yml/badge.svg
 
 
 .. image:: https://readthedocs.org/projects/snntorch/badge/?version=latest
