@@ -16,7 +16,7 @@ name: Upload Python Package to Test PyPi
 on:
   push:
     tags:
-    - '*'
+      - '*'
 
 
 jobs:
