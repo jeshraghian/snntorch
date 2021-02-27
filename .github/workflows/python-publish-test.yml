@@ -10,6 +10,11 @@ name: Upload Python Package to Test PyPi
 #     # branches: [main] 
 #     types:
 #       - completed
+on:
+  push:
+    branches: [ test-pypi ]
+  pull_request:
+    branches: [ test-pypi ]
 
 
 jobs:
