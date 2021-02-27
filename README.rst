@@ -6,8 +6,11 @@ Introduction
 .. image:: https://img.shields.io/pypi/v/snntorch.svg
         :target: https://pypi.python.org/pypi/snntorch
 
-.. image:: https://img.shields.io/travis/jeshraghian/snntorch.svg
-        :target: https://travis-ci.com/jeshraghian/snntorch
+.. .. image:: https://img.shields.io/travis/jeshraghian/snntorch.svg
+..         :target: https://travis-ci.com/jeshraghian/snntorch
+
+.. image:: https://github.com/jeshraghian/snntorch/actions/workflows/<WORKFLOW_FILE>/badge.svg
+
 
 .. image:: https://readthedocs.org/projects/snntorch/badge/?version=latest
         :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
@@ -72,18 +75,21 @@ Installation
 
 Run the following to install:
 
-```
+``
 python
+
 pip install snntorch
-```
+``
 
 To install snnTorch from source instead:
 
-```
+``
 git clone https://github.com/jeshraghian/snnTorch
+
 cd snnTorch
+
 python setup.py install
-```
+``
 
 API & Examples 
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -114,10 +120,13 @@ If you're ready to contribute to snnTorch, instructions to do so can be `found h
 
 Acknowledgments
 ^^^^^^^^^^^^^^^^^^^^^^^^
-snnTorch was developed by Jason K. Eshraghian in the Lu Group (University of Michigan), with additional contributions from Xinxin Wang and Vincent Sun.
+snnTorch was initially developed by `Jason K. Eshraghian`_ in the Lu Group (University of Michigan).
+
+Additional contributions were made by Xinxin Wang, Vincent Sun, and Emre Neftci.
+
 Several features in snnTorch were inspired by the work of Friedemann Zenke, Emre Neftci, Doo Seok Jeong, Sumit Bam Shrestha and Garrick Orchard.
 
-This work was supported by...
+.. _Jason K. Eshraghian: https://jasoneshraghian.com
 
 License & Copyright
 ^^^^^^^^^^^^^^^^^^^^^^^^
