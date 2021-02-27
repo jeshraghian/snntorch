@@ -70,23 +70,16 @@ The following packages need to be installed to use snnTorch:
 Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run the following to install:
+Run the following to install::
 
-``
-python
+  $ python
+  $ pip install snntorch
 
-pip install snntorch
-``
+To install snnTorch from source instead::
 
-To install snnTorch from source instead:
-
-``
-git clone https://github.com/jeshraghian/snnTorch
-
-cd snnTorch
-
-python setup.py install
-``
+  $ git clone https://github.com/jeshraghian/snnTorch
+  $ cd snnTorch
+  $ python setup.py install
 
 API & Examples 
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -117,13 +110,15 @@ If you're ready to contribute to snnTorch, instructions to do so can be `found h
 
 Acknowledgments
 ^^^^^^^^^^^^^^^^^^^^^^^^
-snnTorch was initially developed by `Jason K. Eshraghian`_ in the Lu Group (University of Michigan).
+snnTorch was initially developed by `Jason K. Eshraghian`_ in the `Lu Group (University of Michigan)`_.
 
 Additional contributions were made by Xinxin Wang, Vincent Sun, and Emre Neftci.
 
 Several features in snnTorch were inspired by the work of Friedemann Zenke, Emre Neftci, Doo Seok Jeong, Sumit Bam Shrestha and Garrick Orchard.
 
 .. _Jason K. Eshraghian: https://jasoneshraghian.com
+.. _Lu Group (University of Michigan): https://lugroup.engin.umich.edu/
+
 
 License & Copyright
 ^^^^^^^^^^^^^^^^^^^^^^^^

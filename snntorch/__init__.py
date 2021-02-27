@@ -155,13 +155,15 @@ class Stein(LIF):
     Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
-     If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have `threshold` subtracted from it whenever the neuron emits a spike:
+    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have `threshold` subtracted from it whenever the neuron emits a spike:
+
     .. math::
 
             I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + I_{\\rm in}[t+1] \\\\
             U[t+1] = βU[t] + I_{\\rm syn}[t+1] - RU_{\\rm thr}
 
     If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
+
     .. math::
 
             I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + I_{\\rm in}[t+1] \\\\
@@ -171,7 +173,7 @@ class Stein(LIF):
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
-    * :math:`R` - Reset mechanism: if active, :math:`R = U_{\\rm thr}`, otherwise :math:`R = 0`
+    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise :math:`R = 0`
     * :math:`α` - Synaptic current decay rate
     * :math:`β` - Membrane potential decay rate
 
@@ -321,14 +323,16 @@ class SRM0(LIF):
     .. warning:: For a positive input current to induce a positive membrane response, ensure :math:`α > β`.
 
     If `reset_mechanism = "subtract"`, then :math:`I_{\\rm syn-pre}, I_{\\rm syn-post}` will both have `threshold` subtracted from them whenever the neuron emits a spike:
+
     .. math::
 
             I_{\\rm syn-pre}[t+1] = (αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) \\\\
             I_{\\rm syn-post}[t+1] = (βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) \\\\
-            U_{\\rm residual}[t+1] = R(U[t]U_{\\rm thr}) + U[t]/τ_{\\rm SRM} \\\\
+            U_{\\rm residual}[t+1] = R(U[t]-U_{\\rm thr}) + U_{\\rm residual}[t]/τ_{\\rm SRM} \\\\
             U[t+1] = τ_{\\rm SRM}(I_{\\rm syn-pre}[t+1] + I_{\\rm syn-post}[t+1]) + U_{\\rm residual}[t+1]
 
     If `reset_mechanism = "zero"`, then :math:`I_{\\rm syn-pre}, I_{\\rm syn-post}` will both be set to `0` whenever the neuron emits a spike:
+
     .. math::
 
             I_{\\rm syn-pre}[t+1] = (αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) \\\\

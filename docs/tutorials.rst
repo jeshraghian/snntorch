@@ -2,7 +2,7 @@
 Tutorials
 ================
 
-The tutorial consists of a series of Google Colab notebooks. Static non-editable versions are also available. 
+The tutorial consists of a series of Google Colab notebooks. Static non-editable versions will soon be made available.
 
 
 .. list-table::
