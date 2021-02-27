@@ -4,7 +4,7 @@
 name: Upload Python Package
 
 on:
-  release:
+  release: # need this to be tags only on master. Also, only want it to run if python-package is successful.
     types: [created]
 
 jobs:
