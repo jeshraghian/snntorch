@@ -23,6 +23,7 @@ The discrete nature of spikes makes it difficult for ``torch.autograd`` to calcu
 At present, the neurons available in :mod:`snntorch` include:
 
 * **Stein** - Stein's Neuron Model (Leaky Integrate-and-Fire)
+* **Lapicque** - Lapicque's RC Neuron Model (Leaky Integrate-and-Fire)
 * **SRM0** - Spike Response Model :math:`0^{\rm th}` order (Leaky Integrate-and-Fire)
 
 
