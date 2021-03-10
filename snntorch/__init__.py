@@ -17,7 +17,6 @@ class LIF(nn.Module):
 
     def __init__(
         self,
-        alpha,
         beta,
         threshold=1.0,
         spike_grad=None,
@@ -27,7 +26,6 @@ class LIF(nn.Module):
         super(LIF, self).__init__()
         LIF.instances.append(self)
 
-        self.alpha = alpha
         self.beta = beta
         self.threshold = threshold
         self.inhibition = inhibition
@@ -234,9 +232,10 @@ class Stein(LIF):
         reset_mechanism="subtract",
     ):
         super(Stein, self).__init__(
-            alpha, beta, threshold, spike_grad, inhibition, reset_mechanism
+            beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 
+        self.alpha = alpha
         self.num_inputs = num_inputs
         self.batch_size = batch_size
         self.hidden_init = hidden_init
@@ -394,7 +393,7 @@ class Lapicque(LIF):
         inhibition=False,
         reset_mechanism="subtract",
     ):
-        super(Stein, self).__init__(
+        super(Lapicque, self).__init__(
             beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 
@@ -562,9 +561,10 @@ class SRM0(LIF):
         reset_mechanism="subtract",
     ):
         super(SRM0, self).__init__(
-            alpha, beta, threshold, spike_grad, inhibition, reset_mechanism
+            beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 
+        self.alpha = alpha
         self.num_inputs = num_inputs
         self.batch_size = batch_size
         self.hidden_init = hidden_init
