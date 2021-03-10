@@ -424,7 +424,7 @@ class Lapicque(LIF):
                     "batch_size must be specified to enable firing inhibition."
                 )
 
-    def forward(self, input_, syn, mem):
+    def forward(self, input_, mem):
         if not self.hidden_init:
             if self.inhibition:
                 spk, reset = self.fire_inhibition(self.batch_size, mem)
