@@ -333,19 +333,30 @@ class Lapicque(LIF):
 
     .. math::
 
-            U[t+1] = βU[t] + I_{\\rm in}[t+1] - RU_{\\rm thr}
+            U[t+1] = βU[t] + (1-β)I_{\\rm in}[t+1] - RU_{\\rm thr}
 
     If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
 
     .. math::
 
-            U[t+1] = βU[t] + I_{\\rm in}[t+1] - R(βU[t] + I_{\\rm in}[t+1])
+            U[t+1] = βU[t] + (1-β)I_{\\rm in}[t+1] - R(βU[t] + (1-β)I_{\\rm in}[t+1])
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise :math:`R = 0`
     * :math:`β` - Membrane potential decay rate
+
+    Where:
+
+    .. math::
+
+            β = e^{-1/RC}
+
+    * :math:`R` - Parallel resistance of passive membrane
+    * :math:`C` - Parallel capacitance of passive membrane
+
+    Either β or RC can be defined. The (1-β) term in front of input current ensures membrane potential converges to I_{\\rm in}R.
 
     Example::
 
@@ -380,11 +391,14 @@ class Lapicque(LIF):
 
     *N. Brunel and M. C. Van Rossum (2007) Lapicque's 1907 paper: From frogs to integrate-and-fire. Biol. Cybern. 97, pp. 337-339. (English)*
 
-    Note: Although Lapicque did not formally introduce this as an integrate-and-fire neuron model, we pay homage to him driving the RC circuit directly with a battery due to his lack of a current source stimulus that could mimic the dynamics of synaptic current."""
+    Note: Although Lapicque did not formally introduce this as an integrate-and-fire neuron model, we pay homage to his discovery of an RC circuit mimicking the dynamics of synaptic current."""
 
     def __init__(
         self,
-        beta,
+        beta=False,
+        R=False,
+        C=False,
+        time_step=1,
         threshold=1.0,
         num_inputs=False,
         spike_grad=None,
@@ -397,9 +411,29 @@ class Lapicque(LIF):
             beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 
+        self.beta = beta
+        self.R = R
+        self.C = C
+        self.time_step = time_step
         self.num_inputs = num_inputs
         self.batch_size = batch_size
         self.hidden_init = hidden_init
+
+        if not self.beta and not (self.R and self.C):
+            raise ValueError(
+                "Either beta or RC must be specified as an input argument."
+            )
+
+        elif self.beta and (self.R or self.C):
+            raise ValueError(
+                "Only either beta or RC must be specified as an input argument, not both."
+            )
+
+        elif bool(self.R) ^ bool(self.C):
+            raise ValueError("R and C must both be specified.")
+
+        elif (self.R and self.C) and not self.beta:
+            self.beta = torch.exp(torch.ones(1) * (-self.time_step / (self.R * self.C)))
 
         if self.hidden_init:
             if not self.num_inputs:
@@ -432,10 +466,16 @@ class Lapicque(LIF):
                 spk, reset = self.fire(mem)
 
             if self.reset_mechanism == "subtract":
-                mem = self.beta * mem + input_ - reset * self.threshold
+                mem = (
+                    self.beta * mem + (1 - self.beta) * input_ - reset * self.threshold
+                )
 
             elif self.reset_mechanism == "zero":
-                mem = self.beta * mem + input_ - reset * (self.beta * mem + input_)
+                mem = (
+                    self.beta * mem
+                    + (1 - self.beta) * input_
+                    - reset * (self.beta * mem + (1 - self.beta) * input_)
+                )
 
             return spk, mem
 
@@ -447,13 +487,17 @@ class Lapicque(LIF):
                 self.spk, self.reset = self.fire(self.mem)
 
             if self.reset_mechanism == "subtract":
-                self.mem = self.beta * self.mem + input_ - self.reset * self.threshold
+                self.mem = (
+                    self.beta * self.mem
+                    + (1 - self.beta) * input_
+                    - self.reset * self.threshold
+                )
 
             elif self.reset_mechanism == "zero":
                 self.mem = (
                     self.beta * self.mem
-                    + input_
-                    - self.reset * (self.beta * self.mem + input_)
+                    + (1 - self.beta) * input_
+                    - self.reset * (self.beta * self.mem + (1 - self.beta) * input_)
                 )
 
             return self.spk, self.mem
