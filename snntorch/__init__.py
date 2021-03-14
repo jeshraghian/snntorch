@@ -333,17 +333,18 @@ class Lapicque(LIF):
 
     .. math::
 
-            U[t+1] = βU[t] + (1-β)I_{\\rm in}[t+1] - RU_{\\rm thr}
+            U[t+1] = I_{\\rm in}[t+1]R (\frac{T}{RC}) + (1- \frac{T}{RC})U[t] - RU_{\\rm thr}
 
     If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
 
     .. math::
 
-            U[t+1] = βU[t] + (1-β)I_{\\rm in}[t+1] - R(βU[t] + (1-β)I_{\\rm in}[t+1])
+            U[t+1] = I_{\\rm in}[t+1]R (\frac{T}{RC}) + (1- \frac{T}{RC})U[t] - R(I_{\\rm in}[t+1]R (\frac{T}{RC}) + (1- \frac{T}{RC})U[t])
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
+    * :math:`T`- duration of each time step
     * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise :math:`R = 0`
     * :math:`β` - Membrane potential decay rate
 
@@ -356,7 +357,9 @@ class Lapicque(LIF):
     * :math:`R` - Parallel resistance of passive membrane
     * :math:`C` - Parallel capacitance of passive membrane
 
-    Either β or RC can be defined. The (1-β) term in front of input current ensures membrane potential converges to I_{\\rm in}R.
+    * If only β is defined, then R will default to 1, and C will be inferred.
+    * If RC is defined, β will be automatically calculated.
+    * If (β and R) or (β and C) are defined, the missing variable will be automatically calculated.
 
     Example::
 
@@ -365,6 +368,9 @@ class Lapicque(LIF):
         import snntorch as snn
 
         beta = 0.5
+
+        R = 1
+        C = 1.44
 
         # Define Network
         class Net(nn.Module):
@@ -375,7 +381,7 @@ class Lapicque(LIF):
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
                 self.lif1 = snn.Lapicque(beta=beta)
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.Lapicque(beta=beta)
+                self.lif2 = snn.Lapicque(R=R, C=C)  # lif1 and lif2 are approximately equivalent
 
             def forward(self, x, mem1, spk1, mem2):
                 cur1 = self.fc1(x)
@@ -391,7 +397,7 @@ class Lapicque(LIF):
 
     *N. Brunel and M. C. Van Rossum (2007) Lapicque's 1907 paper: From frogs to integrate-and-fire. Biol. Cybern. 97, pp. 337-339. (English)*
 
-    Note: Although Lapicque did not formally introduce this as an integrate-and-fire neuron model, we pay homage to his discovery of an RC circuit mimicking the dynamics of synaptic current."""
+    Although Lapicque did not formally introduce this as an integrate-and-fire neuron model, we pay homage to his discovery of an RC circuit mimicking the dynamics of synaptic current."""
 
     def __init__(
         self,
@@ -421,19 +427,22 @@ class Lapicque(LIF):
 
         if not self.beta and not (self.R and self.C):
             raise ValueError(
-                "Either beta or RC must be specified as an input argument."
+                "Either beta or 2 of beta, R and C must be specified as an input argument."
             )
 
-        elif self.beta and (self.R or self.C):
+        elif not self.beta and (bool(self.R) ^ bool(self.C)):
             raise ValueError(
-                "Only either beta or RC must be specified as an input argument, not both."
+                "Either beta or 2 of beta, R and C must be specified as an input argument."
             )
-
-        elif bool(self.R) ^ bool(self.C):
-            raise ValueError("R and C must both be specified.")
 
         elif (self.R and self.C) and not self.beta:
             self.beta = torch.exp(torch.ones(1) * (-self.time_step / (self.R * self.C)))
+
+        elif self.beta and self.R and not self.C:
+            self.C = self.time_step / (self.R * torch.log(torch.tensor(1 / self.beta)))
+
+        elif self.beta and self.C and not self.R:
+            self.R = self.time_step / (self.C * torch.log(torch.tensor(1 / self.beta)))
 
         if self.hidden_init:
             if not self.num_inputs:
@@ -467,14 +476,22 @@ class Lapicque(LIF):
 
             if self.reset_mechanism == "subtract":
                 mem = (
-                    self.beta * mem + (1 - self.beta) * input_ - reset * self.threshold
+                    input_ * self.R * (1 / (self.R * self.C)) * self.time_step
+                    + (1 - (self.time_step / (self.R * self.C))) * mem
+                    - reset * self.threshold
                 )
 
             elif self.reset_mechanism == "zero":
                 mem = (
-                    self.beta * mem
-                    + (1 - self.beta) * input_
-                    - reset * (self.beta * mem + (1 - self.beta) * input_)
+                    input_ * self.R * (1 / (self.R * self.C)) * self.time_step
+                    + (1 - (self.time_step / (self.R * self.C))) * mem
+                    - reset
+                    * (
+                        (
+                            input_ * self.R * (1 / (self.R * self.C)) * self.time_step
+                            + (1 - (self.time_step / (self.R * self.C))) * mem
+                        )
+                    )
                 )
 
             return spk, mem
@@ -488,16 +505,22 @@ class Lapicque(LIF):
 
             if self.reset_mechanism == "subtract":
                 self.mem = (
-                    self.beta * self.mem
-                    + (1 - self.beta) * input_
+                    input_ * self.R * (1 / (self.R * self.C)) * self.time_step
+                    + (1 - (self.time_step / (self.R * self.C))) * self.mem
                     - self.reset * self.threshold
                 )
 
             elif self.reset_mechanism == "zero":
                 self.mem = (
-                    self.beta * self.mem
-                    + (1 - self.beta) * input_
-                    - self.reset * (self.beta * self.mem + (1 - self.beta) * input_)
+                    input_ * self.R * (1 / (self.R * self.C)) * self.time_step
+                    + (1 - (self.time_step / (self.R * self.C))) * self.mem
+                    - self.reset
+                    * (
+                        (
+                            input_ * self.R * (1 / (self.R * self.C)) * self.time_step
+                            + (1 - (self.time_step / (self.R * self.C))) * self.mem
+                        )
+                    )
                 )
 
             return self.spk, self.mem
