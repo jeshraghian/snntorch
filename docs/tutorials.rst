@@ -18,10 +18,11 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_1_spikegen.ipynb
 
-   * - Tutorial 2
-     - **Under construction:** Neuronal Dynamics with snntorch
+   * - `Tutorial 2 <https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_2_neuronal_dynamics.ipynb>`_
+     - Neuronal Dynamics with snnTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_2_neuronal_dynamics.ipynb
 
    * - Tutorial 3
      - **Under construction:** Deep Learning on static and spiking MNIST
