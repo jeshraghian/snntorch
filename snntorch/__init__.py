@@ -333,13 +333,13 @@ class Lapicque(LIF):
 
     .. math::
 
-            U[t+1] = I_{\\rm in}[t+1]R (\frac{T}{RC}) + (1- \frac{T}{RC})U[t] - RU_{\\rm thr}
+            U[t+1] = I_{\\rm in}[t+1]R (\\frac{T}{RC}) + (1- \\frac{T}{RC})U[t] - RU_{\\rm thr}
 
     If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
 
     .. math::
 
-            U[t+1] = I_{\\rm in}[t+1]R (\frac{T}{RC}) + (1- \frac{T}{RC})U[t] - R(I_{\\rm in}[t+1]R (\frac{T}{RC}) + (1- \frac{T}{RC})U[t])
+            U[t+1] = I_{\\rm in}[t+1]R (\\frac{T}{RC}) + (1- \\frac{T}{RC})U[t] - R(I_{\\rm in}[t+1]R (\\frac{T}{RC}) + (1- \\frac{T}{RC})U[t])
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
@@ -437,6 +437,10 @@ class Lapicque(LIF):
 
         elif (self.R and self.C) and not self.beta:
             self.beta = torch.exp(torch.ones(1) * (-self.time_step / (self.R * self.C)))
+
+        elif self.beta and not (self.R and self.C):
+            self.R = 1
+            self.C = self.time_step / (self.R * torch.log(torch.tensor(1 / self.beta)))
 
         elif self.beta and self.R and not self.C:
             self.C = self.time_step / (self.R * torch.log(torch.tensor(1 / self.beta)))
