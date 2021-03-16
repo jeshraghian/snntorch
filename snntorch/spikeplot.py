@@ -1,6 +1,7 @@
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import numpy as np
 import math
 from celluloid import Camera
@@ -240,6 +241,55 @@ def spike_count(
                 ax, facecolor="lightgrey", first=False, alpha=0.7
             )
         # plt.savefig('hist2.png', dpi=300, bbox_inches='tight')
+
+
+def traces(input_, spk=None, dim=(3, 3), spk_height=5):
+    """Plot an array of neuron traces (e.g., membrane potential or synaptic current).
+    Optionally apply spikes to ride on the traces.
+    `traces` was originally written by Friedemann Zenke.
+
+    Example::
+
+        import snntorch.spikeplot as splt
+
+        #  mem_rec contains the traces of 9 neuron membrane potentials across 100 time steps in duration
+        print(mem_rec.size())
+        >>> torch.Size([100, 9])
+
+        #  Plot
+        traces(mem_rec, dim=(3,3))
+
+
+    :param data: Data tensor for neuron traces across time steps of shape [num_steps x num_neurons]
+    :type data: torch.Tensor
+
+    :param spk: Data tensor for neuron traces across time steps of shape [num_steps x num_neurons], defaults to ``None``
+    :type spk: torch.Tensor, optional
+
+    :param dim: Dimensions of figure, defaults to ``(3, 3)``
+    :type dim: tuple, optional
+
+    :param spk_height: height of spike to plot, defaults to ``5``
+    :type spk_height: float, optional
+
+    """
+
+    gs = GridSpec(*dim)
+    if spk is not None:
+        data = (input_ + spk_height * spk).detach().cpu().numpy()
+
+    else:
+        data = input_.detach().cpu().numpy()
+
+    for i in range(np.prod(dim)):
+        if i == 0:
+            a0 = ax = plt.subplot(gs[i])
+
+        else:
+            ax = plt.subplot(gs[i], sharey=a0)
+
+        ax.plot(data[:, i])
+        ax.axis("off")
 
 
 def _plt_style(data, labels, ax, idx, time_step=False):

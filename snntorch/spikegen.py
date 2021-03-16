@@ -69,7 +69,7 @@ def rate(
 
     """
 
-    # Generate a tuple: (1, num_steps, 1..., 1) where the number of 1's = number of dimensions in the original data.
+    # Generate a tuple: (num_steps, 1..., 1) where the number of 1's = number of dimensions in the original data.
     # Multiply by gain and add offset.
     time_data = (
         data.repeat(
