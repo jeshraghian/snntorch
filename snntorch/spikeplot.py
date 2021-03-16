@@ -243,7 +243,7 @@ def spike_count(
         # plt.savefig('hist2.png', dpi=300, bbox_inches='tight')
 
 
-def traces(input_, spk=None, dim=(3, 3), spk_height=5):
+def traces(data, spk=None, dim=(3, 3), spk_height=5):
     """Plot an array of neuron traces (e.g., membrane potential or synaptic current).
     Optionally apply spikes to ride on the traces.
     `traces` was originally written by Friedemann Zenke.
@@ -275,11 +275,12 @@ def traces(input_, spk=None, dim=(3, 3), spk_height=5):
     """
 
     gs = GridSpec(*dim)
+
     if spk is not None:
-        data = (input_ + spk_height * spk).detach().cpu().numpy()
+        data = (data + spk_height * spk).detach().cpu().numpy()
 
     else:
-        data = input_.detach().cpu().numpy()
+        data = data.detach().cpu().numpy()
 
     for i in range(np.prod(dim)):
         if i == 0:
