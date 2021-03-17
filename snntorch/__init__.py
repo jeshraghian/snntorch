@@ -333,13 +333,13 @@ class Lapicque(LIF):
 
     .. math::
 
-            U[t+1] = I_{\\rm in}[t+1]R (\\frac{T}{RC}) + (1- \\frac{T}{RC})U[t] - RU_{\\rm thr}
+            U[t+1] = I_{\\rm in}[t+1] (\\frac{T}{C}) + (1- \\frac{T}{\\tau})U[t] - RU_{\\rm thr}
 
     If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
 
     .. math::
 
-            U[t+1] = I_{\\rm in}[t+1]R (\\frac{T}{RC}) + (1- \\frac{T}{RC})U[t] - R(I_{\\rm in}[t+1]R (\\frac{T}{RC}) + (1- \\frac{T}{RC})U[t])
+            U[t+1] = I_{\\rm in}[t+1] (\\frac{T}{\\tau}) + (1- \\frac{T}{\\tau})U[t] - R(I_{\\rm in}[t+1] (\\frac{T}{C}) + (1- \\frac{T}{\\tau})U[t])
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
@@ -348,13 +348,14 @@ class Lapicque(LIF):
     * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise :math:`R = 0`
     * :math:`β` - Membrane potential decay rate
 
-    Where:
+    Alternatively, the membrane potential decay rate β can be specified instead:
 
     .. math::
 
             β = e^{-1/RC}
 
-    * :math:`R` - Parallel resistance of passive membrane
+    * :math:`β` - Membrane potential decay rate
+    * :math:`R` - Parallel resistance of passive membrane (note: distinct from the reset $R$)
     * :math:`C` - Parallel capacitance of passive membrane
 
     * If only β is defined, then R will default to 1, and C will be inferred.
