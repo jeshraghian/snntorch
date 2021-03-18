@@ -101,7 +101,7 @@ Now say some arbitrary time-varying current :math:`I_{\rm in}(t)` is injected in
 
 $$I_{\\rm in}(t) = I_{R} + I_{C}$$
 
-From Ohm's Law, the membrane potential measured between the inside and outside of the neuron $U_{\\rm mem}$ is proportional to the current through the resistor:
+From Ohm's Law, the membrane potential measured between the inside and outside of the neuron :math:`U_{\rm mem}` is proportional to the current through the resistor:
 
 $$I_{R}(t) = \\frac{U_{\\rm mem}(t)}{R}$$
 
