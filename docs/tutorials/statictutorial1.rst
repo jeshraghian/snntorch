@@ -168,7 +168,7 @@ The module :code:`snntorch.spikegen` contains a series of functions that simplif
 2.1 Rate coding of MNIST
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Each input feature is used as the probability an event occurs, sampled from a binomial distribution. Formally, :math:`X~B(n=1, p=x^{i})` where the
+Each input feature is used as the probability an event occurs, sampled from a binomial distribution. Formally, :math:`X`\~ :math:`B(n=1, p=x^{i})` where the
 **expected value** :math:`𝔼[x]=x^{i}` is simply the probability that a spike is generated at any given time step.
 
 For an MNIST image, this probability corresponds to the pixel value. A white pixel corresponds to a 100% probability of spiking, and a black pixel will never generate a spike.
@@ -250,12 +250,8 @@ To plot one sample of data, we have to index into the batch (B) dimension of :co
 .. raw:: html
 
   <center>
-    <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/splt.animator.mp4?raw=true"></video>
+    <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/splt.animator.mp4?raw=true"></video>
   </center>
-
-.. .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/splt.animator.mp4?raw=true
-..         :align: center
-..         :width: 600
 
 ::
 
@@ -281,9 +277,13 @@ As a matter of interest, let's do that again but with 25% of the gain to promote
   anim = splt.animator(spike_data_sample2, fig, ax)
   HTML(anim.to_html5_video())
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/splt.animator-25.mp4?raw=true
-        :align: center
-        :width: 600
+.. raw:: html
+
+  <center>
+    <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/splt.animator-25.mp4?raw=true"></video>
+  </center>
+
+
 
 :: 
 
@@ -307,9 +307,9 @@ Now let's average the spikes out over time and reconstruct the input images.
 
   plt.show()
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/gain.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/gain.png?raw=true
         :align: center
-        :width: 600
+        :width: 300
 
 The case where :code:`gain=0.25` is lighter than where :code:`gain=1`, as spiking probability has been reduced by a factor of x4.
 
@@ -334,16 +334,16 @@ Alternatively, we can generate a raster plot of an input sample. This requires r
   plt.show()
 
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/raster.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/raster.png?raw=true
         :align: center
         :width: 600
 
 We can also index into one single neuron. Below, we are indexing into the 210th neuron.
 Depending on your input data, you may need to index into a few different neurons between 0 & 784 before finding one that spikes.
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/raster1.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/raster1.png?raw=true
         :align: center
-        :width: 600
+        :width: 400
 
 The idea of rate coding is actually quite controversial. Multiple spikes are needed to achieve any sort of task, and each spike consumes power. It is unlikely to be the only mechanism within the brain, which is both resource-constrained and highly efficient.
 
@@ -404,7 +404,7 @@ We'll start with a raster this time.
   # optional save
   # fig.savefig('destination_path.png', format='png', dpi=300)
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/raster2.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/raster2.png?raw=true
         :align: center
         :width: 600
 
@@ -418,7 +418,7 @@ The logarithmic code coupled with the lack of diverse input values (i.e., the la
 The bright pixels induce firing at the start of the run, and the dark pixels at the end.
 We can increase :code:`tau` to slow down our spike times, or we can linearize the data by setting the optional argument :code:`linear=True`.
 
-..
+::
 
   spike_data = spikegen.latency(data_it, num_steps=100, tau=5, threshold=0.01, linear=True)
 
@@ -430,7 +430,7 @@ We can increase :code:`tau` to slow down our spike times, or we can linearize th
   plt.ylabel("Neuron Number")
   plt.show()
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/raster3.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/raster3.png?raw=true
         :align: center
         :width: 600
 
@@ -443,7 +443,7 @@ The spread of firing times is much more evenly distributed now. This is achieved
 But notice all firing occurs within the first ~5 time steps, whereas the simulation range is 100 time steps.
 This indicates that we have a lot of redundant time steps doing nothing. This can be solved by either increasing :code:`tau` to slow down the time constant, or setting the optional argument :code:`normalize=True` to span the full range of :code:`num_steps`.
 
-..
+::
 
   spike_data = spikegen.latency(data_it, num_steps=100, tau=5, threshold=0.01,
                                 normalize=True, linear=True)
@@ -457,7 +457,7 @@ This indicates that we have a lot of redundant time steps doing nothing. This ca
   plt.ylabel("Neuron Number")
   plt.show()
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/raster4.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/raster4.png?raw=true
         :align: center
         :width: 600
 
@@ -467,7 +467,7 @@ In the scenario shown above, a majority of the spikes occur at the final time st
 
 We can remove these redundant features by setting :code:`clip=True`.
 
-..
+::
 
   spike_data = spikegen.latency(data_it, num_steps=100, tau=5, threshold=0.01, 
                                 clip=True, normalize=True, linear=True)
@@ -482,7 +482,7 @@ We can remove these redundant features by setting :code:`clip=True`.
   plt.show()
 
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/raster5.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/raster5.png?raw=true
         :align: center
         :width: 600
 
@@ -493,30 +493,33 @@ That looks much better!
 """""""""""""""""""
 We will run the exact same code block as before to create an animation.
 
-..
+::
 
   >>> spike_data_sample = spike_data[:, 0, 0]
   >>> print(spike_data_sample.size())
   torch.Size([100, 28, 28])
 
-  >>> fig, ax = plt.subplots()
-  >>> anim = splt.animator(spike_data_sample, fig, ax)
-  >>> HTML(anim.to_html5_video())
+::
 
+  fig, ax = plt.subplots()
+  anim = splt.animator(spike_data_sample, fig, ax)
+  HTML(anim.to_html5_video())
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/splt.animator2.mp4?raw=true
-         :align: center
-         :width: 600
+.. raw:: html
+
+  <center>
+    <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/splt.animator2.mp4?raw=true"></video>
+  </center>
 
 This animation is obviously much tougher to make out in video form, but a keen eye will be able to catch a glimpse of the initial frame where most of the spikes occur.
 We can index into the corresponding target value to check what value it is.
 
-..
+::
 
   # Save output: .gif, .mp4 etc.
   # anim.save("mnist_latency.gif")
 
-..
+::
 
   >>> print(spike_targets[0])
   tensor(4, device='cuda:0')
@@ -540,7 +543,7 @@ Delta modulation is based on event-driven spiking. The :code:`snntorch.delta` fu
 
 To illustrate, let's first come up with a contrived example where we create our own input tensor.
 
-..
+::
 
     # Create a tensor with some fake time-series data
     data = torch.Tensor([0, 1, 0, 2, 8, -20, 20, -5, 0, 1, 0])
@@ -553,13 +556,13 @@ To illustrate, let's first come up with a contrived example where we create our 
     plt.ylabel("Voltage (mV)")
     plt.show()
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/fake_data.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/fake_data.png?raw=true
       :align: center
-      :width: 600
+      :width: 300
 
 Let's pass the above tensor into the :code:`spikegen.delta` function, with an arbitrarily selected :code:`threshold=4`:
 
-..
+::
 
     # Convert data
     spike_data = spikegen.delta(data, threshold=4)
@@ -577,15 +580,16 @@ Let's pass the above tensor into the :code:`spikegen.delta` function, with an ar
     plt.xlim(0, len(data))
     plt.show()
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/delta.png?raw=true
+    
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/delta.png?raw=true
         :align: center
-        :width: 600
+        :width: 400
 
 There are three time steps where the difference between :math:`data[T]` and :math:`data[T+1]` is greater than or equal to :math:`V_{thr}=4`. This means there are three on-spikes. 
 
 The large dip to :math:`-20` has not been captured in our spikes. It might be the case that our data cares about negative swings as well, in which case we can enable the optional argument :code:`off_spike=True`.
 
-..
+::
 
   # Convert data
   spike_data = spikegen.delta(data, threshold=4, off_spike=True)
@@ -603,20 +607,20 @@ The large dip to :math:`-20` has not been captured in our spikes. It might be th
   plt.xlim(0, len(data))
   plt.show()
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/delta2.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/delta2.png?raw=true
         :align: center
-        :width: 600
+        :width: 400
 
 We've generated additional spikes, but this isn't actually the full picture! 
 
 If we print out the tensor, we will discover that we have actually generated "off-spikes". These spikes take on a value of :math:`-1`.
 
-..
+::
 
   >>> print(spike_data)
   tensor([ 0.,  0.,  0.,  0.,  1., -1.,  1., -1.,  1.,  0.,  0.])
 
-  Although we have only shown `spikegen.delta` on a fake sample of data, the true intention is to pass in time-series data and only generate an output when there has been a sufficiently large event. 
+  Although we have only shown :code:`spikegen.delta` on a fake sample of data, the true intention is to pass in time-series data and only generate an output when there has been a sufficiently large event. 
 
   That wraps up the three main spike conversion functions! There are still additional features to each of the three conversion techniques that have not been detailed in this tutorial. We recommend `referring to the documentation for a deeper dive <https://snntorch.readthedocs.io/en/latest/_modules/snntorch/spikegen.html>`_.
 
@@ -629,7 +633,8 @@ Say we just want a randomly generated spike train from scratch.
 
 All we have to do is initialize a randomly generated :code:`torch.Tensor` to pass in.
 
-..
+::
+
   # Create a random spike train
   spike_prob = torch.rand((num_steps, 28, 28), device=device, dtype=dtype) * 0.5  
   spike_rand = spikegen.rate_conv(spike_prob)
@@ -637,7 +642,7 @@ All we have to do is initialize a randomly generated :code:`torch.Tensor` to pas
 3.1 Animation
 ^^^^^^^^^^^^^^^
   
-..
+::
 
   fig, ax = plt.subplots()
   anim = splt.animator(spike_rand, fig, ax)
@@ -645,9 +650,12 @@ All we have to do is initialize a randomly generated :code:`torch.Tensor` to pas
   HTML(anim.to_html5_video())
 
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/rand_spikes.mp4?raw=true
-        :align: center
-        :width: 600
+.. raw:: html
+
+  <center>
+    <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/rand_spikes.mp4?raw=true"></video>
+  </center>
+
 
 ..
 
@@ -669,7 +677,7 @@ All we have to do is initialize a randomly generated :code:`torch.Tensor` to pas
   plt.ylabel("Neuron Number")
   plt.show()
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/static_/rand_raster.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/rand_raster.png?raw=true
       :align: center
       :width: 600
 
