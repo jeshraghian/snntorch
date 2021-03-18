@@ -18,7 +18,7 @@ snnTorch Documentation
    snntorch.surrogate
    snntorch.utils
    examples
-   tutorials
+   tutorials/index
    contributing
    history
 

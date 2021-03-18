@@ -1,6 +1,8 @@
-================
-Tutorials
-================
+=================================
+Tutorial 2 - Neuronal Dynamics
+=================================
+
+TO-DO: convert colab notebook to static non-editable rst file.
 
 The tutorial consists of a series of Google Colab notebooks. Static non-editable versions will soon be made available.
 

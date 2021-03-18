@@ -30,6 +30,14 @@ ul ul {
 }
  */
  
+ 
+h4 {
+    font-family: 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+}
+
 h3 {
      font-family: 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
      font-weight: 400;
