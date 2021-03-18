@@ -4,6 +4,10 @@ Tutorial 2 - Neuronal Dynamics
 
 Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.jasoneshraghian.com>`_)
 
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_2_neuronal_dynamics.ipynb
+
 .. note::
   This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
     * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_2_neuronal_dynamics.ipynb>`_

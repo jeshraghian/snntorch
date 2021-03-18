@@ -1,4 +1,4 @@
-The tutorial consists of a series of Google Colab notebooks. Static non-editable versions will soon be made available.
+The tutorial consists of a series of Google Colab notebooks. Static non-editable versions are also available. 
 
 
 .. list-table::
@@ -8,13 +8,13 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
    * - Tutorial
      - Title
      - Colab Link
-   * - `Tutorial 1 <https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_1_spikegen.ipynb>`_
+   * - `Tutorial 1 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_1.html>`_
      - Spike Generation and Visualization with spikegen and spikeplot
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_1_spikegen.ipynb
 
-   * - `Tutorial 2 <https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_2_neuronal_dynamics.ipynb>`_
+   * - `Tutorial 2 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_2.html>`_
      - Neuronal Dynamics with snnTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab

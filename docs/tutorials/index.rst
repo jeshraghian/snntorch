@@ -10,4 +10,4 @@ Tutorials
     :titlesonly:
     :glob:
 
-    statictutorial*
+    tutorial_*
