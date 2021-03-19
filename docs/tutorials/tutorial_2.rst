@@ -86,7 +86,7 @@ Where does this stimulus come from? It could be from
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_2_intuition.png?raw=true
         :align: center
-        :width: 800
+        :width: 600
 
 Given that these spikes are very short bursts of electrical activity, it is quite unlikely for all input spikes to arrive at the neuron body in precise unison. This indicates the presence of temporal dynamics that 'sustain' the input spikes, kind of like a delay.
 
@@ -332,7 +332,7 @@ As before, 200 time steps will be simulated. But this time, the new values of :c
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/step.png?raw=true
         :align: center
-        :width: 350
+        :width: 400
 
 The membrane potential exponentially rises and then stabilizes at :math:`U_{\rm mem}=I_{\rm in}R`:
 
@@ -397,7 +397,7 @@ Now what if the step input was clipped at :math:`t=30ms`?
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/pulse.png?raw=true
         :align: center
-        :width: 350
+        :width: 400
 
 
 It appears to rise just as it did for the step input, but now it decays with a time constant of :math:`\tau` as in our first simulation. 
@@ -449,7 +449,7 @@ Let's deliver approximately the same amount of charge :math:`Q = I \times t` to 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/pulse_2.png?raw=true
         :align: center
-        :width: 350
+        :width: 400
 
 Let's do that again, but with an even faster input pulse and higher amplitude:
 
@@ -494,7 +494,7 @@ Let's do that again, but with an even faster input pulse and higher amplitude:
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/pulse_3.png?raw=true
         :align: center
-        :width: 350
+        :width: 400
 
 Let's compare all three experiments on the same plot:
 
@@ -529,7 +529,7 @@ Let's compare all three experiments on the same plot:
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/pulse_4.png?raw=true
         :align: center
-        :width: 350
+        :width: 400
 
 
 As the input current pulse amplitude increases, the rise time of the membrane potential speeds up. In the limit of the input current pulse width becoming infinitesimally small, :math:`T_W \rightarrow 0s`, the membrane potential rise time will jump straight up:
@@ -575,10 +575,10 @@ As the input current pulse amplitude increases, the rise time of the membrane po
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/spike.png?raw=true
         :align: center
-        :width: 350
+        :width: 400
 
 
-The current pulse width is now so short, it effectively looks like a spike. That is to say, charge is delivered in an infinitely short period of time, :math:`I_{\rm in}(t) = Q/t_0$` where :math:`t_0 \rightarrow 0`. More formally:
+The current pulse width is now so short, it effectively looks like a spike. That is to say, charge is delivered in an infinitely short period of time, :math:`I_{\rm in}(t) = Q/t_0` where :math:`t_0 \rightarrow 0`. More formally:
 
 $$I_{\\rm in}(t) = Q \\delta (t-t_0),$$
 
@@ -600,7 +600,7 @@ If the membrane potential exceeds this threshold, then a voltage spike will be g
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_4_spiking.png?raw=true
         :align: center
-        :width: 450
+        :width: 400
 
 
 By default, :code:`threshold=1` for all neuron models in snnTorch. So applying a step current input that is insufficient will result in the neuron to function only in the subthreshold regime. This time, we will create a list called :code:`spk_rec` to record any output spikes if they occur. The current step will be set to :math:`I_{\rm in} = 0.15 A`. 
@@ -664,7 +664,7 @@ For :code:`lif2.beta` :math:`=0.98`, the membrane potential is 98% of the value 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/step_slow.png?raw=true
         :align: center
-        :width: 350
+        :width: 400
 
 
 The membrane potential fails to reach the threshold of 1.0. Instead, it reaches the steady-state value of :math:`I_{\rm in}R = 0.15A \times 5Ω = 0.75V`:
@@ -742,7 +742,7 @@ To plot our results, let's import :code:`snntorch.spikeplot`. From Tutorial 1, w
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/step_spike.png?raw=true
         :align: center
-        :width: 400
+        :width: 425
 
 
 The membrane potential exponentially rises and then hits the threshold, at which point it resets. We can roughly see this occurs between :math:`155s < t_{\rm spk} < 165s`:
@@ -808,7 +808,7 @@ If :math:`I_{\rm in}` is increased, then the membrane potential approaches :math
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/step_spike_2.png?raw=true
         :align: center
-        :width: 400
+        :width: 425
 
 A similar increase in firing frequency can also be induced by decreasing the threshold. This requires initializing a new neuron model, but the rest of the code block is the exact same as above:
 
@@ -858,7 +858,7 @@ A similar increase in firing frequency can also be induced by decreasing the thr
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/step_spike_3.png?raw=true
         :align: center
-        :width: 400
+        :width: 425
 
 That's what happens for a constant current injection. But in both deep neural networks and in the biological brain, most neurons will be connected to other neurons. Therefore, they are more likely to receive spikes rather than a constant current injections. 
 
@@ -950,7 +950,7 @@ The following code block shows how many spikes have been generated.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/random_firing.png?raw=true
         :align: center
-        :width: 400
+        :width: 425
 
 2.3.6 Lapicque: Reset Mechanisms
 """""""""""""""""""""""""""""""""
@@ -964,7 +964,7 @@ There are two ways to implement the reset mechanism:
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_5_reset.png?raw=true
         :align: center
-        :width: 450
+        :width: 400
 
 Let's instantiate another neuron model to demonstrate how to alternate between reset mechanisms. 
 
@@ -1034,7 +1034,7 @@ By default, snnTorch neuron models use :code:`reset_mechanism = "subtract"`. Thi
   plt.show()
 
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/reset.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/reset.png?raw=true
         :align: center
         :width: 450
 
@@ -1161,7 +1161,7 @@ Apply a periodic spiking input to see how current and membrane evolve with time:
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/stein.png?raw=true
         :align: center
-        :width: 400
+        :width: 425
 
 Formally, the total synaptic current is the sum of all the contributions of all input spikes. The synaptic current is integrated by the membrane potential and generates its own output spikes:
 
@@ -1290,7 +1290,7 @@ At this stage, the spikes have don't have any real meaning. The inputs and weigh
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/fcn_raster.png?raw=true
         :align: center
-        :width: 400
+        :width: 425
 
 
 We can also use :code:`spikeplot.spike_count` to generate a spike counter of the output layer:
@@ -1311,7 +1311,7 @@ We can also use :code:`spikeplot.spike_count` to generate a spike counter of the
 .. raw:: html
 
   <center>
-    <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/spk_count.mp4?raw=true"></video>
+    <video controls width="500" src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/spk_count.mp4?raw=true"></video>
   </center>
 
 We can also visualize the membrane potential traces with :code:`spikeplot.traces`. We'll plot 9 out of 10 output neurons. Compare it to the animation and raster plot above to see if you can match the traces to the neuron. 
@@ -1434,7 +1434,7 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/srm0.png?raw=true
         :align: center
-        :width: 300
+        :width: 425
 
 As with the Lapicque and Stein models, the SRM0 model also has options to modify the threshold and reset mechanism.
 
