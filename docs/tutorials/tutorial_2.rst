@@ -75,7 +75,7 @@ Before learning how to use them, let's understand how to construct a simple LIF 
 
 A neuron might be connected to 1,000 - 10,000 other neurons. If one neuron spikes, all of these downhill neurons will feel it. But what determines whether a neuron spikes in the first place? The past century of experiments demonstrate that if a neuron experiences *sufficient* stimulus at its input, then we might expect it to become excited and fire its own spike. 
 
-Where does this stimulus come from? It could be from
+Where does this stimulus come from? It could be from:
 
 * the sensory periphery, 
   
@@ -93,7 +93,7 @@ Given that these spikes are very short bursts of electrical activity, it is quit
 2.2 The Passive Membrane
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Like all cells, a neuron is surrounded by a thin membrane. This membrane is a lipid bilayer that insulates the conductive saline solution within the neuron from the extracellular medium. Electrically, the two conductors separated by an insulator is a capacitor. 
+Like all cells, a neuron is surrounded by a thin membrane. This membrane is a lipid bilayer that insulates the conductive saline solution within the neuron from the extracellular medium. Electrically, the two conductors separated by an insulator act as a capacitor. 
 
 Another function of this membrane is to control what goes in and out of this cell (e.g., ions such as :math:`Na^+`). The membrane is usually impermeable to ions which blocks them from entering and exiting the neuron body. But there are specific channels in the membrane that are triggered to open by injecting current into the neuron. This charge movement is electrically modelled by a resistor.
 
@@ -192,7 +192,7 @@ Instantiating Lapicque's neuron only requires the following line of code:
   # leaky integrate and fire neuron
   lif1 = snn.Lapicque(beta=beta)
 
-The same thing can also be accomplished by specifying the parallel RC values:
+The same thing can also be accomplished by specifying the RC values:
 
 ::
 
@@ -267,7 +267,7 @@ Let's take a look at how the membrane potential and synaptic current evolved.
         :align: center
         :width: 300
 
-This matches the dynamics that were previously derived. We've proven to ourselves that the membrane potential will decay over time in the absence of any input stimuli. 
+This matches the dynamics that were previously derived. We've shown ourselves that the membrane potential will decay over time in the absence of any input stimuli. 
 
 
 2.3.2 Lapicque: Step Input
@@ -334,7 +334,7 @@ As before, 200 time steps will be simulated. But this time, the new values of :c
         :align: center
         :width: 400
 
-The membrane potential exponentially rises and then stabilizes at :math:`U_{\rm mem}=I_{\rm in}R`:
+The membrane potential exponentially rises and then stabilizes at :math:`U_{\rm mem}(t \rightarrow \infty)=I_{\rm in}R`:
 
 ::
   
@@ -532,7 +532,7 @@ Let's compare all three experiments on the same plot:
         :width: 400
 
 
-As the input current pulse amplitude increases, the rise time of the membrane potential speeds up. In the limit of the input current pulse width becoming infinitesimally small, :math:`T_W \rightarrow 0s`, the membrane potential rise time will jump straight up:
+As the input current pulse amplitude increases, the rise time of the membrane potential speeds up. In the limit of the input current pulse width becoming infinitesimally small, :math:`T_W \rightarrow 0s`, the membrane potential will jump straight up in virtually zero rise time:
 
 ::
 
@@ -628,7 +628,7 @@ By default, :code:`threshold=1` for all neuron models in snnTorch. So applying a
 
 Note how this new value of :math:`\beta` is much larger than :code:`lif1.beta` :math:`\approx 0.82`. 
 
-For :code:`lif2.beta` :math:`=0.98`, the membrane potential is 98% of the value of that of the previous time step, and therefore a much slower decay rate.
+For :code:`lif2.beta` :math:`=0.98`, the membrane potential is 98% of the value of that of the previous time step, and experiences a much slower decay rate.
 
 ::
 
@@ -756,7 +756,7 @@ The membrane potential exponentially rises and then hits the threshold, at which
 
 The absence of a spike is represented by :math:`S_{\rm out}=0`, and the occurrence of a spike is :math:`S_{\rm out}=1`. Here, the spike occurs at :math:`S_{\rm out}(t=162)=1`.
 
-If you are wondering why each of these entries is stored as a tensor, it is because soon we will simulate large scale neural networks. Each entry will contain the spike responses of many neurons.
+If you are wondering why each of these entries is stored as a tensor, it is because soon we will simulate large scale neural networks. Each entry will contain the spike responses of many neurons, and tensors can be loaded into GPU memory to speed up the training process.
 
 If :math:`I_{\rm in}` is increased, then the membrane potential approaches :math:`U_{\rm thr}` faster:
 
@@ -860,14 +860,14 @@ A similar increase in firing frequency can also be induced by decreasing the thr
         :align: center
         :width: 425
 
-That's what happens for a constant current injection. But in both deep neural networks and in the biological brain, most neurons will be connected to other neurons. Therefore, they are more likely to receive spikes rather than a constant current injections. 
+That's what happens for a constant current injection. But in both deep neural networks and in the biological brain, most neurons will be connected to other neurons. They are more likely to receive spikes, rather than injections of constant current. 
 
 
 
 2.3.5 Lapicque: Spike Inputs
 """"""""""""""""""""""""""""
 
-Let's use some of the skills we learnt in `Tutorial 1 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_1.html>`_ and use the :code:`snntorch.spikegen` module to create some randomly generated input spikes.
+Let's harness some of the skills we learnt in `Tutorial 1 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_1.html>`_ and use the :code:`snntorch.spikegen` module to create some randomly generated input spikes.
 
 ::
 
@@ -955,7 +955,7 @@ The following code block shows how many spikes have been generated.
 2.3.6 Lapicque: Reset Mechanisms
 """""""""""""""""""""""""""""""""
 
-The final detail of the Lapicque neuron we want to explore is the sharp drop of membrane potential every time the neuron emits an output spike. This sharp drops promotes a reduction of spike generation, which supplements part of the theory on how brains are so power efficient. Biologically, this is known as the 'refractory period' where the the neuron's firing ability is momentarily suppressed. Here, we use a reset mechanism to crudely model the refractory period.
+The final detail of the Lapicque neuron we want to explore is the sharp drop of membrane potential every time the neuron emits an output spike. This sharp drops promotes a reduction of spike generation, which supplements part of the theory on how brains are so power efficient. Biologically, this is known as the 'refractory period' where the the neuron's firing ability is momentarily suppressed. Here, we use a reset mechanism to model the refractory period.
 
 There are two ways to implement the reset mechanism:
 
@@ -1062,7 +1062,7 @@ Shown below are two types of excitatory receptors.
         :align: center
         :width: 600
 
-The simplest model of synaptic current is an increasing current on a fast time-scale, followed by a relatively slow exponential decay. This is very similar to the membrane potential dynamics of Lapicque's model.
+The simplest model of synaptic current assumes an increasing current on a very fast time-scale (or instantaneous), followed by a relatively slow exponential decay. This is very similar to the membrane potential dynamics of Lapicque's model.
 
 Stein's neuron model combines the synaptic current dynamics with the passive membrane. It must be instantiated with two input arguments:
 
@@ -1084,7 +1084,7 @@ Using this neuron is the exact same as Lapcique's neuron, but now with the addit
 
 **Inputs**
 
-* :code:`spk_in`: each element of :math:`I_{\rm in}` is sequentially passed as an input
+* :code:`spk_in`: each input voltage spike :math:`S_{\rm in}[t]` is sequentially passed in
   
 * :code:`syn`: synaptic current :math:`I_{\rm syn}[t]` at the present time :math:`t`
   
@@ -1163,15 +1163,34 @@ Apply a periodic spiking input to see how current and membrane evolve with time:
         :align: center
         :width: 425
 
-Formally, the total synaptic current is the sum of all the contributions of all input spikes. The synaptic current is integrated by the membrane potential and generates its own output spikes:
+If you're not interested in the mathematical detail, then feel free to skip this brief section. We represent the voltage spikes at the input with:
 
-$$I_{\\rm syn} = -g_{\\rm syn}(t)(U-E_{\\rm syn}),$$
+$$S_{\\rm in} = \\sum_k \\delta(t-t_k),$$
 
-where :math:`g_{\rm syn}` is the synaptic conductance, :math:`U` is the instantaneous voltage applied to the input of the neuron (i.e., the input spikes), and :math:`E_{\rm syn}` is the reversal potential of the synapse and is set to 0 for simplicity.
+where each spike triggers a weighted jump in synaptic current at time :math:`t_k`, and is followed by an exponential decay:
 
-$$g_{\\rm syn}(t) = \\sum_k \\bar{g}_{syn} e^{-(t-t_k)/\\tau}\\Theta(t-t_k),$$
+$$I_{\\rm syn}(t) = \\sum_k W_{i,j} S_{in}(t) e^{-(t-t_k)/\\tau}\Theta(t-t_k)$$
 
-where :math:`\bar{g}` is a constant amplitude, :math:`t_k` is the timing of the incident spike, :math:`\Theta(t)` is the Heaviside step function. Each spike contributes a shifted exponential decay to the total conductance :math:`g_{\rm syn}(t)` which are all summed together.
+
+* :math:`W_{i, j}` is the weight between the the :math:`i^{\rm th}` pre-synaptic neuron and the :math:`j^{\rm th}` post-synaptic neuron
+  
+* :math:`t_k` is the timing of each incident spike
+
+* :math:`\Theta(t)` is the Heaviside step function, which clips the exponential term such that the contribution from each presynaptic spike commences at :math:`t_k`
+
+* :math:`\tau_{syn}` is the time constant of the synaptic current, independent of the membrane potential time constant
+
+
+The time constant :math:`\tau_{syn}` can be equivalently represented by a decay rate :math:`\alpha` that specifies the ratio of synaptic current between subsequent time steps:
+
+$$\\alpha = \\frac{e^{-\\frac{1}{\\tau_{syn}}}}{e^{-\\frac{0}{\\tau_{syn}}}} = \\frac{e^{-\\frac{2}{\\tau_{syn}}}}{e^{-\\frac{1}{\\tau_{syn}}}} = \\frac{e^{-\\frac{3}{\\tau_{syn}}}}{e^{-\\frac{2}{\\tau_{syn}}}}=~~...$$
+$$\\implies \\alpha = e^{-\\frac{1}{\\tau_{syn}}}$$
+
+When an input spike arrives at the neuron, the synaptic current will jump up :math:`W_{i,j}S_{\rm in}(t=t_k)`, where :math:`S_{\rm in}(t=t_k)=1`. 
+
+That is to say: :math:`\Delta I_{\rm syn}(t=t_k) = W_{i, j}`
+
+In summary, each spike contributes a shifted exponential decay to the synaptic current :math:`I_{\rm syn}`, which are all summed together. This current is then integrated by the passive membrane equation derived in the previous section, thus generating output spikes.
 
 If the math doesn't make sense, don't worry about it. A graphical intuition is usually sufficient to understand the essence of the Stein neuron model. 
 
@@ -1243,7 +1262,7 @@ Create an input spike train to pass into the network. There are 200 time steps t
 Now it's finally time to run a full simulation. 
 An intuitive way to think about how PyTorch and snnTorch work together is that PyTorch routes the neurons together, and snnTorch instantiates the spiking neuron models. In terms of coding up a network, these spiking neurons can be treated like time-varying activation functions.
 
-Recall that the output of a spiking neuron is :math:`S_{\rm out}=1` when a spike is triggered. This spike is multiplied by the weight initialized by :code:`nn.Linear` :math:`S_{\rm out}^{i}\times W^{i, j}`, just as the output activation of a standard artificial neuron would be in a non-spiking neural network. The weighted spike is then passed as the input to the next layer of neurons for a given time step. If there is no spike, then nothing is passed to the post-synaptic neuron.
+Recall that the output of a spiking neuron is :math:`S_{\rm out}=1` when a spike is triggered. This spike is then passed to the next layer. It is multiplied by the weight initialized by :code:`nn.Linear` :math:`S_{\rm out; i}\times W_{i, j}`, just as the output activation of a standard artificial neuron would be in a non-spiking neural network. The weighted spike is then passed as the input to the next layer of neurons for a given time step. If there is no spike, then nothing is passed to the post-synaptic neuron.
 
 The only difference from our simulations thus far is that we sequentially pass the output through additional layers of neurons. 
 
@@ -1264,7 +1283,7 @@ The only difference from our simulations thus far is that we sequentially pass t
   spk1_rec = torch.stack(spk1_rec, dim=0)
   spk2_rec = torch.stack(spk2_rec, dim=0)
 
-At this stage, the spikes have don't have any real meaning. The inputs and weights are all randomly initialized, and no training has taken place. But let's take a look at the raster plots just to check that the spikes are propagating to the output layer.
+At this stage, the spikes don't have any real meaning. The inputs and weights are all randomly initialized, and no training has taken place. But let's take a look at the raster plots just to check that the spikes are propagating to the output layer.
 
 ::
 
@@ -1346,9 +1365,9 @@ The SRM family of models, on the other hand, is interpreted in terms of a filter
 
 Formally, this process is represented by:
 
-$$U_{\\rm mem}(t) = \\sum_i w_i(\\epsilon * s_i)(t)$$
+$$U_{\\rm mem}(t) = \\sum_i W_{i, j}(\\epsilon * S_{\\rm in; i, j})(t)$$
 
-where the incoming spikes :math:`s_i` are convolved with a spike response kernel :math:`\epsilon( \cdot )`. The spike response is scaled by a synaptic weight, :math:`w_i`. In the figures above, the left kernel is an exponentially decaying function and would be the equivalent of Lapicque's neuron model. On the right, the kernel is an alpha function.
+where the incoming spikes :math:`S_{\rm in; i, j}` are convolved with a spike response kernel :math:`\epsilon( \cdot )`. The spike response is scaled by a synaptic weight, :math:`W_{i, j}`. In the figures above, the left kernel is an exponentially decaying function and would be the equivalent of Lapicque's neuron model. On the right, the kernel is an alpha function.
 
 In snnTorch, the SRM0 model is not directly implemented as a filter. Instead, it is recast into a recursive form such that only the previous time step of values are required to calculate the next set of values. This significantly reduces the memory overhead during learning.
 
@@ -1372,7 +1391,7 @@ Using this neuron is the same as the previous neurons, but the sum of two expone
 
 **Inputs**
 
-* :code:`spk_in`: each element of :math:`I_{\rm in}` is sequentially passed as an input
+* :code:`spk_in`: each input voltage spike $S_{\rm in}[t]$ is sequentially passed in
 * :code:`pre_syn`: pre-synaptic current :math:`I_{\rm pre-syn}[t]` at the present time :math:`t`
 * :code:`post_syn`: post-synaptic current :math:`I_{\rm post-syn}[t]` at the present time :math:`t`
 * :code:`mem`: membrane potential :math:`U_{\rm mem}[t]` at the present time :math:`t`
