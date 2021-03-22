@@ -624,9 +624,9 @@ If we print out the tensor, we will discover that we have actually generated "of
   >>> print(spike_data)
   tensor([ 0.,  0.,  0.,  0.,  1., -1.,  1., -1.,  1.,  0.,  0.])
 
-  Although we have only shown :code:`spikegen.delta` on a fake sample of data, the true intention is to pass in time-series data and only generate an output when there has been a sufficiently large event. 
+Although we have only shown :code:`spikegen.delta` on a fake sample of data, the true intention is to pass in time-series data and only generate an output when there has been a sufficiently large event. 
 
-  That wraps up the three main spike conversion functions! There are still additional features to each of the three conversion techniques that have not been detailed in this tutorial. We recommend `referring to the documentation for a deeper dive <https://snntorch.readthedocs.io/en/latest/_modules/snntorch/spikegen.html>`_.
+That wraps up the three main spike conversion functions! There are still additional features to each of the three conversion techniques that have not been detailed in this tutorial. We recommend `referring to the documentation for a deeper dive <https://snntorch.readthedocs.io/en/latest/_modules/snntorch/spikegen.html>`_.
 
 3. Spike Generation
 ---------------------------------
@@ -670,7 +670,7 @@ All we have to do is initialize a randomly generated :code:`torch.Tensor` to pas
 3.2 Raster
 ^^^^^^^^^^^^^
 
-..
+::
 
   fig = plt.figure(facecolor="w", figsize=(10, 5))
   ax = fig.add_subplot(111)
