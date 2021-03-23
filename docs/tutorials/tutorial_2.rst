@@ -237,7 +237,7 @@ These values are only for the initial time step :math:`t=0`. We'd like to watch 
   # Initialize somewhere to store recordings of membrane potential
   mem_rec = [mem]
 
-  Now it's time to run a simulation! 200 time steps will be simulated, updating :code:`mem` at each step and recording its value in :code:`mem_rec`:
+Now it's time to run a simulation! 200 time steps will be simulated, updating :code:`mem` at each step and recording its value in :code:`mem_rec`:
 
 ::
 
@@ -1092,11 +1092,11 @@ Using this neuron is the exact same as Lapcique's neuron, but now with the addit
 
 **Outputs**
 
-* `spk_out`: output spike :math:`S_{\rm out}[t+1]` at the next time step ('1' if there is a spike; '0' if there is no spike)
+* :code:`spk_out`: output spike :math:`S_{\rm out}[t+1]` at the next time step ('1' if there is a spike; '0' if there is no spike)
   
-* `syn`: synaptic current :math:`I_{\rm syn}[t+1]` at the next time step
+* :code:`syn`: synaptic current :math:`I_{\rm syn}[t+1]` at the next time step
   
-* `mem`: membrane potential :math:`U_{\rm mem}[t+1]` at the next time step
+* :code:`mem`: membrane potential :math:`U_{\rm mem}[t+1]` at the next time step
   
 
 These all need to be of type `torch.Tensor`.
@@ -1169,7 +1169,7 @@ $$S_{\\rm in} = \\sum_k \\delta(t-t_k),$$
 
 where each spike triggers a weighted jump in synaptic current at time :math:`t_k`, and is followed by an exponential decay:
 
-$$I_{\\rm syn}(t) = \\sum_k W_{i,j} S_{in}(t) e^{-(t-t_k)/\\tau}\Theta(t-t_k)$$
+$$I_{\\rm syn}(t) = \\sum_k W_{i,j} S_{in}(t) e^{-(t-t_k)/\\tau}\\Theta(t-t_k)$$
 
 
 * :math:`W_{i, j}` is the weight between the the :math:`i^{\rm th}` pre-synaptic neuron and the :math:`j^{\rm th}` post-synaptic neuron
