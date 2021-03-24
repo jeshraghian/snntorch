@@ -1,6 +1,6 @@
-======================
-Tutorial 1 - Spikegen
-======================
+==================================================================
+Tutorial 1 - Spike Encoding and Visualization
+==================================================================
 
 Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.jasoneshraghian.com>`_)
 
@@ -13,7 +13,7 @@ Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.j
     * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_1_spikegen.ipynb>`_
     * `Local Notebook (download via GitHub) <https://github.com/jeshraghian/snntorch/tree/master/examples>`_
 
-Spike Generation and Visualization with `spikegen` and `spikeplot` 
+Spike Encoding and Visualization
 -------------------------------------------------------------------
 
 Introduction

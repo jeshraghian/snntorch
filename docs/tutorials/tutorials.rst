@@ -9,7 +9,7 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
      - Title
      - Colab Link
    * - `Tutorial 1 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_1.html>`_
-     - Spike Generation and Visualization with spikegen and spikeplot
+     - Spike Encoding and Visualization
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_1_spikegen.ipynb
