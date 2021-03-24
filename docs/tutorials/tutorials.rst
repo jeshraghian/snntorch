@@ -20,14 +20,32 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_2_neuronal_dynamics.ipynb
 
-   * - Tutorial 3
-     - **Under construction:** Deep Learning on static and spiking MNIST
+   * - `Tutorial 3 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_3.html>`_
+     - Deep Learning with snnTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_3_FCN.ipynb
 
 
    * - Tutorial 4
      - **Under construction:** Convolutional SNNs 
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+
+  
+   * - Tutorial 5
+     - **Under construction:** Surrogate Gradients
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+   
+
+   * - Tutorial 6
+     - **Under construction:** Real-Time Recurrent Learning 
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+
+   * - Tutorial 7
+     - **Under construction:** End-to-End Neural Data Processing on an SNN 
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
 
