@@ -1391,7 +1391,7 @@ Using this neuron is the same as the previous neurons, but the sum of two expone
 
 **Inputs**
 
-* :code:`spk_in`: each input voltage spike $S_{\rm in}[t]$ is sequentially passed in
+* :code:`spk_in`: each input voltage spike :math:`S_{\rm in}[t]` is sequentially passed in
 * :code:`pre_syn`: pre-synaptic current :math:`I_{\rm pre-syn}[t]` at the present time :math:`t`
 * :code:`post_syn`: post-synaptic current :math:`I_{\rm post-syn}[t]` at the present time :math:`t`
 * :code:`mem`: membrane potential :math:`U_{\rm mem}[t]` at the present time :math:`t`

@@ -140,16 +140,14 @@ class LIF(nn.Module):
 
         @staticmethod
         def forward(ctx, input_):
-            ctx.save_for_backward(input_)
             out = (input_ > 0).float()
+            ctx.save_for_backward(out)
             return out
 
         @staticmethod
         def backward(ctx, grad_output):
-            (input_,) = ctx.saved_tensors
-            grad_input = grad_output.clone()
-            grad_input[input_ < 0] = 0.0
-            grad = grad_input
+            (out,) = ctx.saved_tensors
+            grad = grad_output * out
             return grad
 
 
