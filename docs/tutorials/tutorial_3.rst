@@ -101,7 +101,7 @@ $$S_{\\rm out}[t] = \\Theta(U_{\\rm mem}[t] - U_{\\rm thr})$$
         
 **Reset**
 
-The reset term is activated only when the neuron triggers a spike. That is to say, if :math:`S_{\rm out}[t]=1`:
+The reset term is activated only when the neuron triggers a spike. That is to say, if :math:`S_{\rm out}[t+1]=1`:
 
   * For :code:`reset_mechanism="subtract"`: :math:`R[t+1]=U_{\rm thr}` 
   * For :code:`reset_mechanism="zero"`: :math:`R[t+1]=U[t+1]`
@@ -252,7 +252,7 @@ The code in the :code:`forward()` function will only be called once the input ar
 * :code:`fc2` applies a linear transformation to :code:`spk1`: :math:`W_{j, k}^{[2]}S_{j}^{[1]}[t] \rightarrow Y_{k}^{[2]}[t]`, i.e., :code:`cur2`
 * :code:`lif2` is another spiking neuron layer, and generates output spikes :math:`S_{k}^{[2]}[t]` which are returned in the variable :code:`spk2`
 
-Here, :math:`i` denotes one of 784 input neurons, :math:`j` indexes one of the 1,000 neurons in the hidden layer, and :math:`:k` points to one of 10 output neurons.
+Here, :math:`i` denotes one of 784 input neurons, :math:`j` indexes one of the 1,000 neurons in the hidden layer, and :math:`k` points to one of 10 output neurons.
 
 The layers in :code:`def __init__(self)` are automatically created upon instantiating :code:`Net()`, as is done below:
 
