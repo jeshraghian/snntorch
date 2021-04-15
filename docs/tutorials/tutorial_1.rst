@@ -144,15 +144,16 @@ DataLoaders in PyTorch are a handy interface for passing data into a network. Th
 Spiking Neural Networks (SNNs) are made to exploit time-varying data. And yet, MNIST is not a time-varying dataset. 
 This means that we have one of two options for passing input data into an SNN:
 
-1. Directly feed the same static input features :math:`x_i^{m}` at each time step, where :math:`x^{i}` takes on an analog value :math:`x^{i} ∈ [0, 1]`.
-   This is like converting MNIST into a static, unchanging video.
+
+1. For a single training sample :math:`x^{(i)}`, directly feed the same static input features at each time step, where each element of :math:`x^{(i)}` takes on an analog value :math:`x^{(i)}_n ∈ [0, 1]. n` spans the number of inputs. 
+ This is like converting MNIST into a static, unchanging video.
 
    .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/1_2_1_static.png?raw=true
             :align: center
             :width: 800
 
 
-2. Convert the input into a spike train of sequence length :code:`num_steps`, where :math:`x^{i}` takes on a discrete value :math:`x^{i} ∈ {0, 1}`.
+2. Convert the input into a spike train of sequence length :code:`num_steps`, where :math:`x^{(i)}` takes on a discrete value :math:`x^{(i)} ∈ {0, 1}`.
 In this case, MNIST would become a time-varying sequence of spikes that are related to the original image.
 
     .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/1_2_2_spikeinput.png?raw=true
@@ -172,8 +173,8 @@ The module :code:`snntorch.spikegen` contains a series of functions that simplif
 2.1 Rate coding of MNIST
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Each input feature is used as the probability an event occurs, sampled from a binomial distribution. Formally, :math:`X`\~ :math:`B(n=1, p=x^{i})` where the
-**expected value** :math:`𝔼[x]=x^{i}` is simply the probability that a spike is generated at any given time step.
+Each input feature is used as the probability an event occurs, sampled from a binomial distribution. Formally, **X** is a matrix of random variables and **X**\~ :math:`B(n=1, p=x^{(i)})` where the
+**expected value** :math:`𝔼[`**X**:math:`]=x^{(i)}` is simply the probability that a spike is generated at any given time step.
 
 For an MNIST image, this probability corresponds to the pixel value. A white pixel corresponds to a 100% probability of spiking, and a black pixel will never generate a spike.
 
@@ -661,7 +662,7 @@ All we have to do is initialize a randomly generated :code:`torch.Tensor` to pas
   </center>
 
 
-..
+::
 
   # Save output: .gif, .mp4 etc.
   # anim.save("random_spikes.gif")

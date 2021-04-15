@@ -617,7 +617,7 @@ If this was your first time training an SNN, then congratulations!
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/_static/loss.png?raw=true
         :align: center
-        :width: 400
+        :width: 500
 
 Taking a look at the training / test loss, the process is somewhat noisy. This could be a result of a variety of things: minibatch gradient descent is the obvious one, but the use of improper targets likely also contributes. By encouraging the correct class to fire at every time step, the loss function conflicts with the reset mechanism that tries to prevent this.
 
