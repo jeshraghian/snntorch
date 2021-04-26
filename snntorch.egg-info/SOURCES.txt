@@ -1,0 +1,13 @@
+README.md
+setup.py
+snntorch/__init__.py
+snntorch/backprop.py
+snntorch/spikegen.py
+snntorch/spikeplot.py
+snntorch/surrogate.py
+snntorch/utils.py
+snntorch.egg-info/PKG-INFO
+snntorch.egg-info/SOURCES.txt
+snntorch.egg-info/dependency_links.txt
+snntorch.egg-info/requires.txt
+snntorch.egg-info/top_level.txt
