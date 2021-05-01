@@ -8,7 +8,7 @@ def rate(
     data,
     targets=False,
     num_outputs=None,
-    num_steps=1,
+    num_steps=False,
     gain=1,
     offset=0,
     one_hot=False,
@@ -16,7 +16,8 @@ def rate(
 ):
 
     """Spike rate encoding of input data. Convert tensor into Poisson spike trains using the features as the mean of a
-    binomial distribution.
+    binomial distribution. If `num_steps` is specified, then the data will be first repeated in the first dimension
+    before being converted into a rate code.
     Optionally convert targets into temporal one-hot spike trains. Tensor dimensions use time first.
 
     Example::
@@ -36,6 +37,15 @@ def rate(
         spikegen.rate(c)
         >>> tensor([0., 1., 0., 1.])
 
+        # Specifying num_steps
+        d = spikegen.rate(torch.Tensor([0.5, 0.5, 0.5, 0.5]), num_steps = 2)
+        print(d.size())
+        >>> torch.Size([2, 4])
+
+        print(c.size())
+        >>> torch.Size([4])
+
+
 
     :param data: Data tensor for a single batch of shape [batch x input_size]
     :type data: torch.Tensor
@@ -46,7 +56,7 @@ def rate(
     :param num_outputs: Number of outputs, defaults to ``None``
     :type num_outputs: int, optional
 
-    :param num_steps: Number of time steps, defaults to ``1``
+    :param num_steps: Number of time steps. Specify if input data does not have time dimension, defaults to ``False``
     :type num_steps: int, optional
 
     :param gain: Scale input features by the gain, defaults to ``1``
@@ -69,17 +79,24 @@ def rate(
 
     """
 
-    # Generate a tuple: (num_steps, 1..., 1) where the number of 1's = number of dimensions in the original data.
-    # Multiply by gain and add offset.
-    time_data = (
-        data.repeat(
-            tuple([num_steps] + torch.ones(len(data.size()), dtype=int).tolist())
-        )
-        * gain
-        + offset
-    )
+    # intended for time-varying input data
+    if not num_steps:
+        spike_data = rate_conv(data)
 
-    spike_data = rate_conv(time_data)
+    # intended for time-static input data
+    else:
+
+        # Generate a tuple: (num_steps, 1..., 1) where the number of 1's = number of dimensions in the original data.
+        # Multiply by gain and add offset.
+        time_data = (
+            data.repeat(
+                tuple([num_steps] + torch.ones(len(data.size()), dtype=int).tolist())
+            )
+            * gain
+            + offset
+        )
+
+        spike_data = rate_conv(time_data)
 
     if targets is not False:
         return spike_data, target_handling(
@@ -316,6 +333,7 @@ def latency_conv(
     linear=False,
 ):
     """Latency encoding of input data. Convert input features to spikes that fire according to the latency code.
+    Input features are assumed to not be time-varying, so Time is added to the first dimension: e.g., [T x B x W x H].
     Assumes a LIF neuron model that charges up with time constant tau by default.
 
     Example::
@@ -331,7 +349,7 @@ def latency_conv(
     :param data: Data tensor for a single batch of shape [batch x input_size]
     :type data: torch.Tensor
 
-    :param num_steps: Number of time steps. Only needed if ``normalize=True``, defaults to ``False``
+    :param num_steps: Number of time steps. Explicitly needed if ``normalize=True``, defaults to ``False`` (then changed to ``1`` if ``normalize=False``)
     :type num_steps: int, optional
 
     :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
@@ -365,6 +383,9 @@ def latency_conv(
         normalize=normalize,
         linear=linear,
     )
+
+    if not num_steps:
+        num_steps = 1
 
     spike_data = torch.zeros(
         (tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device
@@ -420,7 +441,7 @@ def latency_code(
     :param data: Data tensor for a single batch of shape [batch x input_size]
     :type data: torch.Tensor
 
-    :param num_steps: Number of time steps. Only needed if ``normalize=True``, defaults to ``False``
+    :param num_steps: Number of time steps. Explicitly needed if ``normalize=True``, defaults to ``False`` (then changed to ``1`` if ``normalize=False``)
     :type num_steps: int, optional
 
     :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
