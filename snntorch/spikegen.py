@@ -115,6 +115,7 @@ def latency(
     threshold=0.01,
     epsilon=1e-7,
     tau=1,
+    first_spike_time=0,
     clip=False,
     normalize=False,
     linear=False,
@@ -156,6 +157,9 @@ def latency(
     :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
     :type tau: float, optional
 
+    :param first_spike_time: Time to first spike, defaults to ``0``.
+    :type first_spike_time: int, optional
+
     :param clip:  Option to remove spikes from features that fall below the threshold, defaults to ``False``
     :type clip: Bool, optional
 
@@ -184,6 +188,7 @@ def latency(
         threshold=threshold,
         epsilon=epsilon,
         tau=tau,
+        first_spike_time=first_spike_time,
         clip=clip,
         normalize=normalize,
         linear=linear,
@@ -328,6 +333,7 @@ def latency_conv(
     threshold=0.01,
     epsilon=1e-7,
     tau=1,
+    first_spike_time=0,
     clip=False,
     normalize=False,
     linear=False,
@@ -361,6 +367,9 @@ def latency_conv(
     :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
     :type tau: float, optional
 
+    :param first_spike_time: Time to first spike, defaults to ``0``.
+    :type first_spike_time: int, optional
+
     :param clip:  Option to remove spikes from features that fall below the threshold, defaults to ``False``
     :type clip: Bool, optional
 
@@ -380,6 +389,7 @@ def latency_conv(
         threshold=threshold,
         epsilon=epsilon,
         tau=tau,
+        first_spike_time=first_spike_time,
         normalize=normalize,
         linear=linear,
     )
@@ -426,6 +436,7 @@ def latency_code(
     threshold=0.01,
     epsilon=1e-7,
     tau=1,
+    first_spike_time=0,
     normalize=False,
     linear=False,
 ):
@@ -452,6 +463,9 @@ def latency_code(
 
     :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
     :type tau: float, optional
+
+    :param first_spike_time: Time to first spike, defaults to ``0``.
+    :type first_spike_time: int, optional
 
     :param normalize:  Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
     :type normalize: Bool, optional
@@ -480,6 +494,9 @@ def latency_code(
     if not num_steps:
         num_steps = 1
 
+    if first_spike_time >= (num_steps - 1):
+        raise Exception("`first_spike_time` must be less than `num_steps`-1.")
+
     idx = data < threshold
 
     if not linear:
@@ -498,9 +515,11 @@ def latency_code(
                 "Either set ``normalize=True``, or ensure all values in data <= 1."
             )
         if normalize:
-            tau = num_steps - 1
-        spike_time = -tau * (data - 1)
-        spike_time = torch.clamp_max(spike_time, (-tau * (threshold - 1)))
+            tau = num_steps - 1 - first_spike_time
+        spike_time = (
+            torch.clamp_max((-tau * (data - 1)), -tau * (threshold - 1))
+            + first_spike_time
+        )
 
         #  if data has values > 1, negative spike_time values will exist. Normalize btwn 0 & 1, then renormalize 1 --> num_steps.
         if torch.min(spike_time) < 0 and normalize:
