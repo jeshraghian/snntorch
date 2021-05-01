@@ -497,6 +497,11 @@ def latency_code(
     if first_spike_time >= (num_steps - 1):
         raise Exception("`first_spike_time` must be less than `num_steps`-1.")
 
+    if first_spike_time and torch.max(data) > 1 and torch.min(data) < 0:
+        raise Exception(
+            "`first_spike_time` can only be applied to data between `0` and `1`."
+        )
+
     idx = data < threshold
 
     if not linear:
