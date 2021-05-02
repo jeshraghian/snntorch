@@ -476,7 +476,7 @@ def latency_code(
     :return: latency encoding spike times of input features
     :rtype: torch.Tensor
 
-    :return: Tensor of Boolean values which correspond to the latency encoding elements that are under the threshold. Used in ``latency_conv`` to clip saturated spikes.
+    :return: Tensor of Boolean values which correspond to the latency encoding elements that fall below the threshold. Used in ``latency_conv`` to clip saturated spikes.
     :rtype: torch.Tensor
     """
 
@@ -494,13 +494,18 @@ def latency_code(
     if not num_steps:
         num_steps = 1
 
-    if first_spike_time >= (num_steps - 1):
-        raise Exception("`first_spike_time` must be less than `num_steps`-1.")
+    if first_spike_time > (num_steps - 1):
+        raise Exception(
+            f"first_spike_time ({first_spike_time}) must be equal to or less than num_steps-1 ({num_steps-1})."
+        )
 
     if first_spike_time and torch.max(data) > 1 and torch.min(data) < 0:
         raise Exception(
             "`first_spike_time` can only be applied to data between `0` and `1`."
         )
+
+    if first_spike_time < 0:
+        raise Exception("``first_spike_time`` cannot be negative.")
 
     idx = data < threshold
 
@@ -509,9 +514,18 @@ def latency_code(
             data, threshold + epsilon
         )  # saturates all values below threshold.
         spike_time = tau * torch.log(data / (data - threshold))
+        if (
+            first_spike_time > 0
+        ):  # linearly shift spike times s.t. first spike occurs at first_spike_time.
+            spike_time = spike_time - first_spike_time * (
+                torch.min(spike_time) / first_spike_time - 1
+            )
         if normalize:
-            tmax = torch.Tensor([(threshold + epsilon) / epsilon])
-            spike_time = spike_time * (num_steps - 1) / (tau * torch.log(tmax))
+            # tmax = torch.Tensor([(threshold + epsilon) / epsilon])
+            # spike_time = spike_time * (num_steps - 1) / (tau * torch.log(tmax))
+            spike_time = (spike_time - first_spike_time) * (
+                num_steps - first_spike_time - 1
+            ) / torch.max(spike_time - first_spike_time) + first_spike_time
 
     elif linear:
         if torch.max(data) > 1 and not normalize:

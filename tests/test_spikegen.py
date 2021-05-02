@@ -30,6 +30,15 @@ def test_latency(test_input, expected):
 
 
 @pytest.mark.parametrize(
+    "test_input, expected", [(input_(0), (5.0, True)), (input_(1), (5.0, False))]
+)
+def test_latency_code(test_input, expected):
+    assert (
+        spikegen.latency_code(test_input, first_spike_time=5, num_steps=10) == expected
+    )
+
+
+@pytest.mark.parametrize(
     "test_input, expected",
     [(multi_input(1, 2, 2.91, 3, 3.9), multi_input(1, 1, 1, 0, 1))],
 )
