@@ -83,7 +83,7 @@ def rate(
 
     """
 
-    if first_spike_time > (num_steps - 1):
+    if first_spike_time > (num_steps - 1) and num_steps:
         raise Exception(
             f"first_spike_time ({first_spike_time}) must be equal to or less than num_steps-1 ({num_steps-1})."
         )
@@ -95,6 +95,7 @@ def rate(
     if not num_steps:
         spike_data = rate_conv(data)
 
+        # zeros are added directly to the start of 0th (time) dimension
         if first_spike_time > 0:
             spike_data = torch.cat(
                 (
@@ -122,6 +123,7 @@ def rate(
 
         spike_data = rate_conv(time_data)
 
+        # zeros are multiplied by the start of the 0th (time) dimension
         if first_spike_time > 0:
             spike_data[0:first_spike_time] = 0
 
