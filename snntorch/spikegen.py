@@ -11,6 +11,7 @@ def rate(
     num_steps=False,
     gain=1,
     offset=0,
+    first_spike_time=0,
     one_hot=False,
     time_varying_targets=False,
 ):
@@ -65,6 +66,9 @@ def rate(
     :param offset: Shift input features by the offset, defaults to ``0``
     :type offset: torch.optim
 
+    :param first_spike_time: Time to first spike, defaults to ``0``.
+    :type first_spike_time: int, optional
+
     :param one_hot: Convert targets to one-hot-representation if True, defaults to ``False``
     :type one_hot: Bool, optional
 
@@ -79,9 +83,29 @@ def rate(
 
     """
 
+    if first_spike_time > (num_steps - 1):
+        raise Exception(
+            f"first_spike_time ({first_spike_time}) must be equal to or less than num_steps-1 ({num_steps-1})."
+        )
+
+    if first_spike_time < 0:
+        raise Exception("``first_spike_time`` cannot be negative.")
+
     # intended for time-varying input data
     if not num_steps:
         spike_data = rate_conv(data)
+
+        if first_spike_time > 0:
+            spike_data = torch.cat(
+                (
+                    torch.zeros(
+                        tuple([first_spike_time] + list(spike_data[0].size())),
+                        device=device,
+                        dtype=dtype,
+                    ),
+                    spike_data,
+                )
+            )
 
     # intended for time-static input data
     else:
@@ -97,6 +121,9 @@ def rate(
         )
 
         spike_data = rate_conv(time_data)
+
+        if first_spike_time > 0:
+            spike_data[0:first_spike_time] = 0
 
     if targets is not False:
         return spike_data, target_handling(
