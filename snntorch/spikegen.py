@@ -580,6 +580,379 @@ def latency_code(
     return spike_time, idx
 
 
+def targets_conv(
+    targets,
+    num_classes,
+    code="rate",
+    num_steps=False,
+    first_spike_time=0,
+    correct_rate=1,
+    incorrect_rate=0,
+    on_target=1,
+    off_target=0,
+    firing_pattern="regular",
+    interpolate=False,
+    smoothing=0,
+):
+    """Spike encoding of targets. Input tensor must be one-dimensional with target indexes.
+    If the output tensor is time-varying, the returned tensor will have time in the first dimension.
+    If it is not time-varying, then the returned tensor will omit the time dimension and use batch first.
+    If ``code='latency'``, ``first_spike_time!=0``, ``correct_rate!=1``, or ``incorrect_rate!=0``, the output tensor will be time-varying.
+
+    If ``on_target=1``, ``off_target=0``, and ``interpolate=False``, then the target may sensibly be applied as a target for the output spike.
+    IF any of the above 3 conditions do not hold, then the target would be better suited for the output membrane potential.
+
+    :param targets: Target tensor for a single batch. The target should be a class index in the range [0, C-1] where C=number of classes.
+    :type targets: torch.Tensor
+
+    :param num_classes:  Number of outputs.
+    :type num_classes: int
+
+    :param code:  Encoding scheme. Options of ``'rate'`` or ``'latency'``, defaults to ``'rate'``
+    :type code: string, optional
+
+    :param num_steps: Number of time steps, defaults to ``False``
+    :type num_steps: int, optional
+
+    :param first_spike_time: Time step for first spike to occur, defaults to ``0``
+    :type first_spike_time: int, optional
+
+    :param correct_rate: Firing frequency of correct class as a ratio, e.g., ``1`` enables firing at every step; ``0.5`` enables firing at 50% of steps, ``0`` means no firing, defaults to ``1``
+    :type correct_rate: float, optional
+
+    :param incorrect_rate: Firing frequency of incorrect class(es), e.g., ``1`` enables firing at every step; ``0.5`` enables firing at 50% of steps, ``0`` means no firing, defaults to ``0``
+    :type incorrect_rate: float, optional
+
+    :param on_target: Target at spike times, defaults to ``1``
+    :type on_target: float, optional
+
+    :param off_target: Target during refractory period, defaults to ``0``
+    :type off_target: float, optional
+
+    :param firing_pattern: Firing pattern of correct and incorrect classes. ``'regular'`` enables periodic firing, ``'uniform'`` samples spike times from a uniform distributions (duplicates are removed), ``'poisson'`` samples from a binomial distribution at each step where each probability is the firing frequency, defaults to ``'regular'``
+    :type firing_pattern: string, optional
+
+    :param interpolate: Applies linear interpolation such that there is a gradually increasing target up to each spike, defaults to ``False``
+    :type interpolate: Bool, optional
+
+    :param smoothing: Determines how gradually linear interpolation is applied for a latency coded spike in terms of number of steps, defaults to ``0``
+    :type smoothing: int, optional
+
+    :return: spike coded target of output neurons. If targets are time-varying, the output tensor will use time-first dimensions. Otherwise, time is omitted from the tensor.
+    :rtype: torch.Tensor
+
+    """
+
+    # raise exceptions if num_steps is not supplied, and rates have been specified, or if latency is specified.
+
+    if code == "rate":
+        return targets_rate(
+            targets=targets,
+            num_classes=num_classes,
+            num_steps=num_steps,
+            first_spike_time=first_spike_time,
+            correct_rate=correct_rate,
+            incorrect_rate=incorrect_rate,
+            on_target=on_target,
+            off_target=off_target,
+            firing_pattern=firing_pattern,
+            interpolate=interpolate,
+        )
+
+    # uncomment this soon
+    # if code is "latency":
+    #     if not num_steps:
+    #         raise Exception("``num_steps`` must be passed if latency coding is used.")
+    #     return targets_latency(target=targets, num_classes=num_classes, num_steps=num_steps, first_spike_time = 0, on_target=on_target, off_target=off_target, interpolate=interpolate, smoothing=smoothing)
+    # q: how do we use interp for latency?
+    # if code is "latency":
+    #     return targets_latency(targets=targets, num_classes=num_classes, num_steps=num_steps, on_target=on_target, off_target=off_target, interpolate=interpolate, smoothing=smoothing)
+    # targets = to_one_hot(targets, num_classes, on_target, off_target).repeat(tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist()))
+
+
+def targets_rate(
+    targets,
+    num_classes,
+    num_steps=False,
+    first_spike_time=0,
+    correct_rate=1,
+    incorrect_rate=0,
+    on_target=1,
+    off_target=0,
+    firing_pattern="regular",
+    interpolate=False,
+):
+
+    """Spike rate encoding of targets. Input tensor must be one-dimensional with target indexes.
+    If the output tensor is time-varying, the returned tensor will have time in the first dimension.
+    If it is not time-varying, then the returned tensor will omit the time dimension and use batch first.
+    If ``first_spike_time!=0``, ``correct_rate!=1``, or ``incorrect_rate!=0``, the output tensor will be time-varying.
+
+    If ``on_target=1``, ``off_target=0``, and ``interpolate=False``, then the target may sensibly be applied as a target for the output spike.
+    IF any of the above 3 conditions do not hold, then the target would be better suited for the output membrane potential.
+
+    :param targets: Target tensor for a single batch. The target should be a class index in the range [0, C-1] where C=number of classes.
+    :type targets: torch.Tensor
+
+    :param num_classes: Number of outputs.
+    :type num_classes: int
+
+    :param num_steps: Number of time steps, defaults to ``False``
+    :type num_steps: int, optional
+
+    :param first_spike_time: Time step for first spike to occur, defaults to ``0``
+    :type first_spike_time: int, optional
+
+    :param correct_rate: Firing frequency of correct class as a ratio, e.g., ``1`` enables firing at every step; ``0.5`` enables firing at 50% of steps, ``0`` means no firing, defaults to ``1``
+    :type correct_rate: float, optional
+
+    :param incorrect_rate: Firing frequency of incorrect class(es), e.g., ``1`` enables firing at every step; ``0.5`` enables firing at 50% of steps, ``0`` means no firing, defaults to ``0``
+    :type incorrect_rate: float, optional
+
+    :param on_target: Target at spike times, defaults to ``1``
+    :type on_target: float, optional
+
+    :param off_target: Target during refractory period, defaults to ``0``
+    :type off_target: float, optional
+
+    :param firing_pattern: Firing pattern of correct and incorrect classes. ``'regular'`` enables periodic firing, ``'uniform'`` samples spike times from a uniform distributions (duplicates are removed), ``'poisson'`` samples from a binomial distribution at each step where each probability is the firing frequency, defaults to ``'regular'``
+    :type firing_pattern: string, optional
+
+    :param interpolate: Applies linear interpolation such that there is a gradually increasing target up to each spike, defaults to ``False``
+    :type interpolate: Bool, optional
+
+    :return: rate coded target of output neurons. If targets are time-varying, the output tensor will use time-first dimensions. Otherwise, time is omitted from the tensor.
+    :rtype: torch.Tensor
+    """
+
+    if 0 > correct_rate > 1 or 0 > incorrect_rate > 1:
+        raise Exception(
+            f"``correct_rate``{correct_rate} and ``incorrect_rate``{incorrect_rate} must be between 0 and 1."
+        )
+
+    if not num_steps and (correct_rate != 1 or incorrect_rate != 0):
+        raise Exception(
+            "``num_steps`` must be passed if correct_rate is not 1 or incorrect_rate is not 0."
+        )
+
+    if incorrect_rate > correct_rate:
+        raise Exception("``correct_rate`` must be greater than ``incorrect_rate``.")
+
+    if firing_pattern is not ("regular" or "uniform" or "poisson"):
+        raise Exception(
+            "``firing_pattern`` must be either 'regular', 'uniform' or 'poisson'."
+        )
+
+    # return a non time-varying tensor
+    if correct_rate == 1 and incorrect_rate == 0:
+        if first_spike_time == 0:
+            return torch.clamp(to_one_hot(targets, num_classes) * on_target, off_target)
+
+        # return time-varying tensor: off up to first_spike_time, then correct classes are on after
+        if first_spike_time > 0:
+            spike_targets = torch.clamp(
+                to_one_hot(targets, num_classes) * on_target, off_target
+            )
+            spike_targets = spike_targets.repeat(
+                tuple(
+                    [num_steps]
+                    + torch.ones(len(spike_targets.size()), dtype=int).tolist()
+                )
+            )
+            spike_targets[0:first_spike_time] = off_target
+            return spike_targets
+
+            # executes if on/off firing rates are not 100% / 0%
+    else:
+        one_hot_targets = to_one_hot(targets, num_classes)
+        one_hot_inverse = to_one_hot_inverse(one_hot_targets)
+
+        # project one-hot-encodings along the time-axis (0th dim)
+        one_hot_targets = one_hot_targets.repeat(
+            tuple(
+                [num_steps]
+                + torch.ones(len(one_hot_targets.size()), dtype=int).tolist()
+            )
+        )
+        one_hot_inverse = one_hot_inverse.repeat(
+            tuple(
+                [num_steps]
+                + torch.ones(len(one_hot_inverse.size()), dtype=int).tolist()
+            )
+        )
+
+        # create tensor of spike_targets for correct class
+        if correct_rate != 1:
+            correct_spike_targets, correct_spike_times = target_rate_code(
+                num_steps=num_steps,
+                first_spike_time=first_spike_time,
+                rate=correct_rate,
+                firing_pattern=firing_pattern,
+            )
+            correct_spikes_one_hot = one_hot_targets * correct_spike_targets.unsqueeze(
+                -1
+            ).unsqueeze(
+                -1
+            )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. time is broadcasted in every other direction
+
+        # create tensor of spike targets for incorrect class
+        if incorrect_rate != 0:
+            incorrect_spike_targets, incorrect_spike_times = target_rate_code(
+                num_steps=num_steps,
+                first_spike_time=first_spike_time,
+                rate=incorrect_rate,
+                firing_pattern=firing_pattern,
+            )
+            incorrect_spikes_one_hot = one_hot_inverse * incorrect_spike_targets.unsqueeze(
+                -1
+            ).unsqueeze(
+                -1
+            )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. time is broadcasted in every other direction
+
+        # merge the incorrect and correct tensors
+        if not interpolate:
+            return torch.clamp(
+                (incorrect_spikes_one_hot + correct_spikes_one_hot) * on_target,
+                off_target,
+            )
+
+        # interpolate values between spikes
+        else:
+            correct_spike_targets = one_hot_targets * (
+                rate_interpolate(
+                    correct_spike_times,
+                    num_steps=num_steps,
+                    on_target=on_target,
+                    off_target=off_target,
+                )
+                .unsqueeze(-1)
+                .unsqueeze(-1)
+            )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. the time is broadcasted in every other direction
+            incorrect_spike_targets = one_hot_inverse * (
+                rate_interpolate(
+                    incorrect_spike_times,
+                    num_steps=num_steps,
+                    on_target=on_target,
+                    off_target=off_target,
+                )
+                .unsqueeze(-1)
+                .unsqueeze(-1)
+            )
+            return correct_spike_targets + incorrect_spike_targets
+
+
+def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regular"):
+    """
+    Rate coding a single output neuron of tensor of length ``num_steps`` containing spikes, and another tensor containing the spike times.
+
+    :param num_steps: Number of time steps, defaults to ``False``
+    :type num_steps: int, optional
+
+    :param first_spike_time: Time step for first spike to occur, defaults to ``0``
+    :type first_spike_time: int, optional
+
+    :param rate: Firing frequency as a ratio, e.g., ``1`` enables firing at every step; ``0.5`` enables firing at 50% of steps, ``0`` means no firing, defaults to ``1``
+    :type rate: float, optional
+
+    :param firing_pattern: Firing pattern of correct and incorrect classes. ``'regular'`` enables periodic firing, ``'uniform'`` samples spike times from a uniform distributions (duplicates are removed), ``'poisson'`` samples from a binomial distribution at each step where each probability is the firing frequency, defaults to ``'regular'``
+    :type firing_pattern: string, optional
+
+    :return: rate coded target of single neuron class of length ``num_steps``
+    :rtype: torch.Tensor
+
+    :return: rate coded spike time targets in terms of steps
+    :rtype: torch.Tensor
+    """
+
+    if firing_pattern == "regular":
+        spike_times = torch.arange(first_spike_time, num_steps, 1 / rate)
+        return torch.zeros(num_steps).scatter(0, spike_times.long(), 1), spike_times
+
+    elif firing_pattern == "uniform":
+        spike_times = (
+            torch.rand(len(torch.arange(first_spike_time, num_steps, 1 / rate)))
+            * (num_steps - first_spike_time)
+            + first_spike_time
+        )
+        return torch.zeros(num_steps).scatter(0, spike_times.long(), 1), spike_times
+
+    elif firing_pattern == "poisson":
+        spike_targets = torch.bernoulli(
+            torch.cat(
+                (
+                    torch.zeros((first_spike_time), device=device),
+                    torch.ones((num_steps - first_spike_time), device=device) * rate,
+                )
+            )
+        )
+        return spike_targets, torch.where(spike_targets == 1)[0]
+
+
+def rate_interpolate(spike_times, num_steps, on_target=1, off_target=0, epsilon=1e-7):
+    """Apply linear interpolation to a tensor of target spike times to enable gradual increasing membrane.
+
+    :param spike_times: spike time targets in terms of steps
+    :type targets: torch.Tensor
+
+    :param num_steps: Number of time steps, defaults to ``False``
+    :type num_steps: int, optional
+
+    :param on_target: Target at spike times, defaults to ``1``
+    :type on_target: float, optional
+
+    :param off_target: Target during refractory period, defaults to ``0``
+    :type off_target: float, optional
+
+    :param epsilon:  A tiny positive value to avoid rounding errors when using torch.arange, defaults to ``1e-7``
+    :type epsilon: float, optional
+
+    :return: interpolated target of output neurons. Output tensor will use time-first dimensions.
+    :rtype: torch.Tensor
+
+    """
+
+    current_time = -1
+
+    interpolated_targets = torch.Tensor([])
+
+    for step in range(num_steps):
+        if step in spike_times:
+            if step == (current_time + 1):
+                interpolated_targets = torch.cat(
+                    (interpolated_targets, torch.Tensor([on_target]))
+                )
+            else:
+                interpolated_targets = torch.cat(
+                    (
+                        interpolated_targets,
+                        torch.arange(
+                            off_target,
+                            on_target + epsilon,
+                            (on_target - off_target) / (step - current_time - 1),
+                        ),
+                    )
+                )
+            current_time = step
+
+    if torch.max(spike_times) < num_steps - 1:
+        for step in range(int(torch.max(spike_times).item()), num_steps - 1):
+            interpolated_targets = torch.cat(
+                (interpolated_targets, torch.Tensor([off_target]))
+            )
+    return interpolated_targets
+
+
+def to_one_hot_inverse(one_hot_targets):
+    """Boolean inversion of a matrix of 1's and 0's.
+    Used to merge the targets of correct and incorrect neuron classes in ``targets_rate``."""
+
+    one_hot_inverse = one_hot_targets.clone()
+    one_hot_inverse[one_hot_targets == 0] = 1
+    one_hot_inverse[one_hot_targets != 0] = 0
+
+    return one_hot_inverse
+
+
 def target_handling(
     targets,
     num_outputs=None,
