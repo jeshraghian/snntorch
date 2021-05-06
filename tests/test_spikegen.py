@@ -21,7 +21,12 @@ def identity(n):
 
 @pytest.mark.parametrize("test_input, expected", [(input_(0), 0), (input_(1), 1)])
 def test_rate(test_input, expected):
-    assert spikegen.rate(test_input) == expected
+    assert spikegen.rate(test_input, time_var_input=True) == expected
+
+
+@pytest.mark.parametrize("test_input, expected", [(input_(1), 2), (input_(0), 0)])
+def test_rate2(test_input, expected):
+    assert spikegen.rate(test_input, first_spike_time=3, num_steps=5).sum() == expected
 
 
 @pytest.mark.parametrize("test_input, expected", [(input_(0), 0), (input_(1), 1)])
@@ -47,16 +52,34 @@ def test_delta(test_input, expected):
 
 
 @pytest.mark.parametrize(
-    "test_input, expected", [(multi_input(0, 1, 2, 3, 4), identity(5))]
-)
-def test_targets_to_spikes(test_input, expected):
-    assert torch.all(
-        torch.eq(spikegen.targets_to_spikes(test_input, num_outputs=5), expected)
-    )
-
-
-@pytest.mark.parametrize(
     "test_input, expected", [(identity(5), (multi_input(0, 1, 2, 3, 4)))]
 )
 def test_from_one_hot(test_input, expected):
     assert torch.all(torch.eq(spikegen.from_one_hot(test_input), expected))
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [(input_(4), multi_input(0, 0, 0, 0, 1))],
+)
+def test_target_rate(test_input, expected):
+    assert torch.all(
+        torch.eq(
+            spikegen.targets_conv(test_input, num_classes=5, code="rate"), expected
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [(input_(4), multi_input(0, 0, 1, 1, 1))],
+)
+def test_target_rate2(test_input, expected):
+    assert torch.all(
+        torch.eq(
+            spikegen.targets_conv(
+                test_input, num_classes=5, code="rate", num_steps=5, first_spike_time=2
+            )[:, 0, 4],
+            expected,
+        )
+    )

@@ -598,7 +598,7 @@ def targets_rate(
     :rtype: torch.Tensor
     """
 
-    if not 0 < correct_rate < 1 or not 0 < incorrect_rate < 1:
+    if not 0 <= correct_rate <= 1 or not 0 <= incorrect_rate <= 1:
         raise Exception(
             f"``correct_rate``{correct_rate} and ``incorrect_rate``{incorrect_rate} must be between 0 and 1."
         )
