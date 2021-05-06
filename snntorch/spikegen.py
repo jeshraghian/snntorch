@@ -611,7 +611,7 @@ def targets_rate(
     if incorrect_rate > correct_rate:
         raise Exception("``correct_rate`` must be greater than ``incorrect_rate``.")
 
-    if firing_pattern is not ("regular" or "uniform" or "poisson"):
+    if firing_pattern.lower() not in ["regular", "uniform", "poisson"]:
         raise Exception(
             "``firing_pattern`` must be either 'regular', 'uniform' or 'poisson'."
         )
