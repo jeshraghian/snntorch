@@ -47,7 +47,7 @@ def rate(
     :param num_outputs: Number of outputs, defaults to ``None``
     :type num_outputs: int, optional
 
-    :param num_steps: Number of time steps. Specify if input data does not have time dimension, defaults to ``False``
+    :param num_steps: Number of time steps. Only specify if input data does not already have time dimension, defaults to ``False``
     :type num_steps: int, optional
 
     :param gain: Scale input features by the gain, defaults to ``1``
@@ -67,7 +67,7 @@ def rate(
 
     """
 
-    if first_spike_time > (num_steps - 1) and num_steps:
+    if first_spike_time > (num_steps - 1) and (num_steps or not time_var_input):
         raise Exception(
             f"first_spike_time ({first_spike_time}) must be equal to or less than num_steps-1 ({num_steps-1})."
         )
@@ -79,27 +79,30 @@ def rate(
         raise Exception(
             "``num_steps`` must be specified if both the input is not time-varying and ``first_spike_time`` is greater than 0."
         )
-        # output tensor is [0, B, D] # need to address that '0' in time-dim
+
+    if time_var_input and num_steps:
+        raise Exception(
+            "``num_steps`` should not be specified if input is time-varying, i.e., ``time_var_input=True``.\n The first dimension of the input data + ``first_spike_time`` will determine ``num_steps``."
+        )
 
     device = torch.device("cuda") if data.is_cuda else torch.device("cpu")
 
     # intended for time-varying input data
     if time_var_input:
-        if not num_steps:
-            spike_data = rate_conv(data)
+        spike_data = rate_conv(data)
 
-            # zeros are added directly to the start of 0th (time) dimension
-            if first_spike_time > 0:
-                spike_data = torch.cat(
-                    (
-                        torch.zeros(
-                            tuple([first_spike_time] + list(spike_data[0].size())),
-                            device=device,
-                            dtype=dtype,
-                        ),
-                        spike_data,
-                    )
+        # zeros are added directly to the start of 0th (time) dimension
+        if first_spike_time > 0:
+            spike_data = torch.cat(
+                (
+                    torch.zeros(
+                        tuple([first_spike_time] + list(spike_data[0].size())),
+                        device=device,
+                        dtype=dtype,
+                    ),
+                    spike_data,
                 )
+            )
 
     # intended for time-static input data
     else:
