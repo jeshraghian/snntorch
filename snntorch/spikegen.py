@@ -1,25 +1,17 @@
 import torch
 
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 dtype = torch.float
 
 
 def rate(
-    data,
-    targets=False,
-    num_outputs=None,
-    num_steps=False,
-    gain=1,
-    offset=0,
-    first_spike_time=0,
-    one_hot=False,
-    time_varying_targets=False,
+    data, num_steps=False, gain=1, offset=0, first_spike_time=0, time_var_input=False
 ):
 
     """Spike rate encoding of input data. Convert tensor into Poisson spike trains using the features as the mean of a
     binomial distribution. If `num_steps` is specified, then the data will be first repeated in the first dimension
-    before being converted into a rate code.
-    Optionally convert targets into temporal one-hot spike trains. Tensor dimensions use time first.
+    before rate encoding.
+
+    If data is time-varying, tensor dimensions use time first.
 
     Example::
 
@@ -38,15 +30,13 @@ def rate(
         spikegen.rate(c)
         >>> tensor([0., 1., 0., 1.])
 
-        # Specifying num_steps
+        # Specifying num_steps treats each input element as a separate neuron
         d = spikegen.rate(torch.Tensor([0.5, 0.5, 0.5, 0.5]), num_steps = 2)
         print(d.size())
         >>> torch.Size([2, 4])
 
         print(c.size())
         >>> torch.Size([4])
-
-
 
     :param data: Data tensor for a single batch of shape [batch x input_size]
     :type data: torch.Tensor
@@ -64,21 +54,15 @@ def rate(
     :type gain: float, optional
 
     :param offset: Shift input features by the offset, defaults to ``0``
-    :type offset: torch.optim
+    :type offset: torch.optim, optional
 
     :param first_spike_time: Time to first spike, defaults to ``0``.
     :type first_spike_time: int, optional
 
-    :param one_hot: Convert targets to one-hot-representation if True, defaults to ``False``
-    :type one_hot: Bool, optional
-
-    :param time_varying_targets: Repeat targets along the time-axis if True, defaults to ``False``
-    :type time_varying_targets: Bool, optional
+    :param time_var_input: Set to ``True`` if input tensor is time-varying. Otherwise, `first_spike_time!=0` will modify the wrong dimension. Defaults to ``False``
+    :type time_var_input: bool, optional
 
     :return: rate encoding spike train of input features of shape [num_steps x batch x input_size]
-    :rtype: torch.Tensor
-
-    :return: optionally return targets with one-hot-encoding or temporal conversion, with time in the first dimension of shape [num_steps x batch x num_outputs]
     :rtype: torch.Tensor
 
     """
@@ -91,22 +75,25 @@ def rate(
     if first_spike_time < 0:
         raise Exception("``first_spike_time`` cannot be negative.")
 
-    # intended for time-varying input data
-    if not num_steps:
-        spike_data = rate_conv(data)
+    device = torch.device("cuda") if data.is_cuda() else torch.device("cpu")
 
-        # zeros are added directly to the start of 0th (time) dimension
-        if first_spike_time > 0:
-            spike_data = torch.cat(
-                (
-                    torch.zeros(
-                        tuple([first_spike_time] + list(spike_data[0].size())),
-                        device=device,
-                        dtype=dtype,
-                    ),
-                    spike_data,
+    # intended for time-varying input data
+    if time_var_input:
+        if not num_steps:
+            spike_data = rate_conv(data)
+
+            # zeros are added directly to the start of 0th (time) dimension
+            if first_spike_time > 0:
+                spike_data = torch.cat(
+                    (
+                        torch.zeros(
+                            tuple([first_spike_time] + list(spike_data[0].size())),
+                            device=device,
+                            dtype=dtype,
+                        ),
+                        spike_data,
+                    )
                 )
-            )
 
     # intended for time-static input data
     else:
@@ -127,19 +114,11 @@ def rate(
         if first_spike_time > 0:
             spike_data[0:first_spike_time] = 0
 
-    if targets is not False:
-        return spike_data, target_handling(
-            targets, num_outputs, num_steps, one_hot, time_varying_targets
-        )
-
-    else:
-        return spike_data
+    return spike_data
 
 
 def latency(
     data,
-    targets=False,
-    num_outputs=None,
     num_steps=1,
     threshold=0.01,
     epsilon=1e-7,
@@ -148,12 +127,9 @@ def latency(
     clip=False,
     normalize=False,
     linear=False,
-    one_hot=False,
-    time_varying_targets=False,
 ):
     """Latency encoding of input data. Use input features to determine time-to-first spike. Assume a LIF neuron model
-    that charges up with time constant tau.
-    Optionally convert targets into temporal one-hot spike trains. Tensor dimensions use time first.
+    that charges up with time constant tau. Tensor dimensions use time first.
 
     Example::
 
@@ -168,223 +144,7 @@ def latency(
     :param data: Data tensor for a single batch of shape [batch x input_size]
     :type data: torch.Tensor
 
-    :param targets: Target tensor for a single batch, defaults to ``False``
-    :type targets: torch.Tensor, optional
-
-    :param num_outputs: Number of outputs, defaults to ``None``
-    :type num_outputs: int, optional
-
-    :param num_steps: Number of time steps. Only needed if ``normalize=True``, defaults to ``1``
-    :type num_steps: int, optional
-
-    :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
-    :type threshold: float, optional
-
-    :param epsilon:  A tiny positive value to avoid dividing by zero in firing time calculations, defaults to ``1e-7``
-    :type epsilon: float, optional
-
-    :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
-    :type tau: float, optional
-
-    :param first_spike_time: Time to first spike, defaults to ``0``.
-    :type first_spike_time: int, optional
-
-    :param clip:  Option to remove spikes from features that fall below the threshold, defaults to ``False``
-    :type clip: Bool, optional
-
-    :param normalize:  Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
-    :type normalize: Bool, optional
-
-    :param linear:  Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
-    :type linear: Bool, optional
-
-    :param one_hot: Convert targets to one-hot-representation if True, defaults to ``False``
-    :type one_hot: Bool, optional
-
-    :param time_varying_targets: Repeat targets along the time-axis if True, defaults to ``False``
-    :type time_varying_targets: Bool, optional
-
-    :return: latency encoding spike train of input features
-    :rtype: torch.Tensor
-
-    :return: optionally return one-hot encoding of targets with time in the first dimension of shape [time x batch x num_outputs]
-    :rtype: torch.Tensor
-    """
-
-    spike_data = latency_conv(
-        data,
-        num_steps=num_steps,
-        threshold=threshold,
-        epsilon=epsilon,
-        tau=tau,
-        first_spike_time=first_spike_time,
-        clip=clip,
-        normalize=normalize,
-        linear=linear,
-    )
-
-    if targets is not False:
-        return spike_data, target_handling(
-            targets, num_outputs, num_steps, one_hot, time_varying_targets
-        )
-
-    else:
-        return spike_data
-
-
-def delta(
-    data,
-    targets=False,
-    threshold=0.1,
-    padding=False,
-    off_spike=False,
-    num_outputs=None,
-    num_steps=False,
-    time_varying_targets=False,
-):
-    """Generate spike only when the difference between two subsequent time steps meets a threshold.
-    Optionally include off_spikes for negative changes.
-
-    Example::
-
-        a = torch.Tensor([1, 2, 2.9, 3, 3.9])
-        spikegen.delta(a, threshold=1)
-        >>> tensor([1., 1., 0., 1., 0.])
-
-        spikegen.delta(a, threshold=1, padding=True)
-        >>> tensor([0., 1., 0., 1., 0.])
-
-        b = torch.Tensor([1, 2, 0, 2, 2.9])
-        spikegen.delta(b, threshold=1, off_spike=True)
-        >>> tensor([ 1.,  1., -1.,  1.,  0.])
-
-        spikegen.delta(b, threshold=1, padding=True, off_spike=True)
-        >>> tensor([ 0.,  1., -1.,  1.,  0.])
-
-    :param data: Data tensor for a single batch of shape [num_steps x batch x input_size]
-    :type data: torch.Tensor
-
-    :param targets: Target tensor for a single batch, defaults to ``False``
-    :type targets: torch.Tensor, optional
-
-    :param threshold: Input features with a change greater than the thresold across one timestep will generate a spike, defaults to ``0.1``
-    :type thr: float, optional
-
-    :param padding: Used to change how the first time step of spikes are measured. If ``True``, the first time step will be repeated with itself resulting in ``0``'s for the output spikes.
-    If ``False``, the first time step will be padded with ``0``'s, defaults to ``False``
-    :type padding: bool, optional
-
-    :param off_spike: If ``True``, negative spikes for changes less than ``-threshold``, defaults to ``False``
-    :type off_spike: bool, optional
-
-    :param num_outputs: Number of outputs, defaults to ``None``
-    :type num_outputs: int, optional
-
-    :param num_steps: Number of time steps. Only needed if ``targets`` and ``time_varying_targets`` are ``True``, defaults to ``False``
-    :type num_steps: bool, optional
-
-    :param time_varying_targets: Repeat targets along the time-axis if ``True``, defaults to ``False``
-    :type time_varying_targets: bool, optional
-    """
-
-    spike_data = delta_conv(data, threshold, padding, off_spike)
-
-    if targets is not False:
-        return spike_data, target_handling(
-            targets, num_outputs, num_steps, time_varying_targets
-        )
-
-    else:
-        return spike_data
-
-
-def delta_conv(data, threshold=0.1, padding=False, off_spike=False):
-
-    if padding:
-        data_offset = torch.cat((data[0].unsqueeze(0), data))[
-            :-1
-        ]  # duplicate first time step, remove final step
-    else:
-        data_offset = torch.cat((torch.zeros_like(data[0]).unsqueeze(0), data))[
-            :-1
-        ]  # add 0's to first step, remove final step
-
-    if not off_spike:
-        spike_data = torch.ones_like(data) * ((data - data_offset) >= threshold)
-
-    else:
-        on_spk = torch.ones_like(data) * ((data - data_offset) >= threshold)
-        off_spk = -torch.ones_like(data) * ((data - data_offset) <= -threshold)
-        spike_data = on_spk + off_spk
-
-    return spike_data
-
-
-def rate_conv(data):
-    """Convert tensor into Poisson spike trains using the features as the mean of a binomial distribution.
-
-        Example::
-
-            # 100% chance of spike generation
-            a = torch.Tensor([1, 1, 1, 1])
-            spikegen.rate(a)
-            >>> tensor([1., 1., 1., 1.])
-
-            # 0% chance of spike generation
-            b = torch.Tensor([0, 0, 0, 0])
-            spikegen.rate(b)
-            >>> tensor([0., 0., 0., 0.])
-
-            # 50% chance of spike generation per time step
-            c = torch.Tensor([0.5, 0.5, 0.5, 0.5])
-            spikegen.rate(c)
-            >>> tensor([0., 1., 0., 1.])
-
-    :param data: Data tensor for a single batch of shape [batch x input_size]
-    :type data: torch.Tensor
-
-    :return: rate encoding spike train of input features of shape [num_steps x batch x input_size]
-    :rtype: torch.Tensor
-    """
-
-    # Clip all features between 0 and 1 so they can be used as probabilities.
-    clipped_data = torch.clamp(data, min=0, max=1)
-
-    # pass time_data matrix into bernoulli function.
-    spike_data = torch.bernoulli(clipped_data)
-
-    return spike_data
-
-
-def latency_conv(
-    data,
-    num_steps=False,
-    threshold=0.01,
-    epsilon=1e-7,
-    tau=1,
-    first_spike_time=0,
-    clip=False,
-    normalize=False,
-    linear=False,
-):
-    """Latency encoding of input data. Convert input features to spikes that fire according to the latency code.
-    Input features are assumed to not be time-varying, so Time is added to the first dimension: e.g., [T x B x W x H].
-    Assumes a LIF neuron model that charges up with time constant tau by default.
-
-    Example::
-
-        a = torch.Tensor([0.02, 0.5, 1])
-        spikegen.latency_conv(a, num_steps=5, normalize=True, linear=True)
-        >>> tensor([[0., 0., 1.],
-                    [0., 0., 0.],
-                    [0., 1., 0.],
-                    [0., 0., 0.],
-                    [1., 0., 0.]])
-
-    :param data: Data tensor for a single batch of shape [batch x input_size]
-    :type data: torch.Tensor
-
-    :param num_steps: Number of time steps. Explicitly needed if ``normalize=True``, defaults to ``False`` (then changed to ``1`` if ``normalize=False``)
+    :param num_steps: Number of time steps, defaults to ``1``
     :type num_steps: int, optional
 
     :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
@@ -423,6 +183,8 @@ def latency_conv(
         linear=linear,
     )
 
+    device = torch.device("cuda") if data.is_cuda() else torch.device("cpu")
+
     if not num_steps:
         num_steps = 1
 
@@ -455,6 +217,99 @@ def latency_conv(
     # Use idx to remove spikes below the threshold
     if clip:
         spike_data = spike_data * ~idx  # idx is broadcast in T direction
+
+    return spike_data
+
+
+def delta(
+    data,
+    threshold=0.1,
+    padding=False,
+    off_spike=False,
+):
+    """Generate spike only when the difference between two subsequent time steps meets a threshold.
+    Optionally include off_spikes for negative changes.
+
+    Example::
+
+        a = torch.Tensor([1, 2, 2.9, 3, 3.9])
+        spikegen.delta(a, threshold=1)
+        >>> tensor([1., 1., 0., 1., 0.])
+
+        spikegen.delta(a, threshold=1, padding=True)
+        >>> tensor([0., 1., 0., 1., 0.])
+
+        b = torch.Tensor([1, 2, 0, 2, 2.9])
+        spikegen.delta(b, threshold=1, off_spike=True)
+        >>> tensor([ 1.,  1., -1.,  1.,  0.])
+
+        spikegen.delta(b, threshold=1, padding=True, off_spike=True)
+        >>> tensor([ 0.,  1., -1.,  1.,  0.])
+
+    :param data: Data tensor for a single batch of shape [num_steps x batch x input_size]
+    :type data: torch.Tensor
+
+    :param threshold: Input features with a change greater than the thresold across one timestep will generate a spike, defaults to ``0.1``
+    :type thr: float, optional
+
+    :param padding: Used to change how the first time step of spikes are measured. If ``True``, the first time step will be repeated with itself resulting in ``0``'s for the output spikes.
+    If ``False``, the first time step will be padded with ``0``'s, defaults to ``False``
+    :type padding: bool, optional
+
+    :param off_spike: If ``True``, negative spikes for changes less than ``-threshold``, defaults to ``False``
+    :type off_spike: bool, optional
+    """
+
+    if padding:
+        data_offset = torch.cat((data[0].unsqueeze(0), data))[
+            :-1
+        ]  # duplicate first time step, remove final step
+    else:
+        data_offset = torch.cat((torch.zeros_like(data[0]).unsqueeze(0), data))[
+            :-1
+        ]  # add 0's to first step, remove final step
+
+    if not off_spike:
+        return torch.ones_like(data) * ((data - data_offset) >= threshold)
+
+    else:
+        on_spk = torch.ones_like(data) * ((data - data_offset) >= threshold)
+        off_spk = -torch.ones_like(data) * ((data - data_offset) <= -threshold)
+        return on_spk + off_spk
+
+
+def rate_conv(data):
+    """Convert tensor into Poisson spike trains using the features as the mean of a binomial distribution.
+
+        Example::
+
+            # 100% chance of spike generation
+            a = torch.Tensor([1, 1, 1, 1])
+            spikegen.rate(a)
+            >>> tensor([1., 1., 1., 1.])
+
+            # 0% chance of spike generation
+            b = torch.Tensor([0, 0, 0, 0])
+            spikegen.rate(b)
+            >>> tensor([0., 0., 0., 0.])
+
+            # 50% chance of spike generation per time step
+            c = torch.Tensor([0.5, 0.5, 0.5, 0.5])
+            spikegen.rate(c)
+            >>> tensor([0., 1., 0., 1.])
+
+    :param data: Data tensor for a single batch of shape [batch x input_size]
+    :type data: torch.Tensor
+
+    :return: rate encoding spike train of input features of shape [num_steps x batch x input_size]
+    :rtype: torch.Tensor
+    """
+
+    # Clip all features between 0 and 1 so they can be used as probabilities.
+    clipped_data = torch.clamp(data, min=0, max=1)
+
+    # pass time_data matrix into bernoulli function.
+    spike_data = torch.bernoulli(clipped_data)
 
     return spike_data
 
@@ -594,13 +449,17 @@ def targets_conv(
     interpolate=False,
     smoothing=0,
 ):
-    """Spike encoding of targets. Input tensor must be one-dimensional with target indexes.
+    """Spike encoding of targets. Expected input is a 1-D tensor with index of targets.
     If the output tensor is time-varying, the returned tensor will have time in the first dimension.
     If it is not time-varying, then the returned tensor will omit the time dimension and use batch first.
-    If ``code='latency'``, ``first_spike_time!=0``, ``correct_rate!=1``, or ``incorrect_rate!=0``, the output tensor will be time-varying.
 
-    If ``on_target=1``, ``off_target=0``, and ``interpolate=False``, then the target may sensibly be applied as a target for the output spike.
-    IF any of the above 3 conditions do not hold, then the target would be better suited for the output membrane potential.
+    The following arguments will necessarily incur a time-varying output:
+        ``code='latency'``, ``first_spike_time!=0``, ``correct_rate!=1``, or ``incorrect_rate!=0``
+
+    The following arguments will produce an output tensor that may sensibly be applied as a target to either the output spike or the membrane potential, as the output will consistently be either a `1` or `0`:
+        ``on_target=1``, ``off_target=0``, and ``interpolate=False``
+
+    If any of the above 3 conditions do not hold, then the target is better suited for the output membrane potential, as the output will likely include values other than `1` and `0`.
 
     :param targets: Target tensor for a single batch. The target should be a class index in the range [0, C-1] where C=number of classes.
     :type targets: torch.Tensor
@@ -880,8 +739,10 @@ def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regu
         spike_targets = torch.bernoulli(
             torch.cat(
                 (
-                    torch.zeros((first_spike_time), device=device),
-                    torch.ones((num_steps - first_spike_time), device=device) * rate,
+                    # torch.zeros((first_spike_time), device=device),
+                    # torch.ones((num_steps - first_spike_time), device=device) * rate,
+                    torch.zeros((first_spike_time)),
+                    torch.ones((num_steps - first_spike_time)) * rate,
                 )
             )
         )
@@ -1077,6 +938,9 @@ def to_one_hot(targets, num_outputs):
     :return: one-hot encoding of targets of shape [batch x num_outputs]
     :rtype: torch.Tensor
     """
+
+    device = torch.device("cuda") if targets.is_cuda() else torch.device("cpu")
+
     # Initialize zeros. E.g, for MNIST: (batch_size, 10).
     one_hot = torch.zeros([len(targets), num_outputs], device=device, dtype=dtype)
 
