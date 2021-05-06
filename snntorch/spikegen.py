@@ -67,13 +67,18 @@ def rate(
 
     """
 
-    if first_spike_time > (num_steps - 1) and (num_steps or not time_var_input):
-        raise Exception(
-            f"first_spike_time ({first_spike_time}) must be equal to or less than num_steps-1 ({num_steps-1})."
-        )
-
     if first_spike_time < 0 or num_steps < 0:
         raise Exception("``first_spike_time`` and ``num_steps`` cannot be negative.")
+
+    if first_spike_time > (num_steps - 1):
+        if num_steps:
+            raise Exception(
+                f"first_spike_time ({first_spike_time}) must be equal to or less than num_steps-1 ({num_steps-1})."
+            )
+        if not time_var_input:
+            raise Exception(
+                "If the input data is time-varying, set ``time_var_input=True``.\n If the input data is not time-varying, ensure ``num_steps > 0``."
+            )
 
     if first_spike_time > 0 and not time_var_input and not num_steps:
         raise Exception(
