@@ -17,35 +17,30 @@ def rate(
 
         # 100% chance of spike generation
         a = torch.Tensor([1, 1, 1, 1])
-        spikegen.rate(a)
+        spikegen.rate(a, num_steps=1)
         >>> tensor([1., 1., 1., 1.])
 
         # 0% chance of spike generation
         b = torch.Tensor([0, 0, 0, 0])
-        spikegen.rate(b)
+        spikegen.rate(b, num_steps=1)
         >>> tensor([0., 0., 0., 0.])
 
         # 50% chance of spike generation per time step
         c = torch.Tensor([0.5, 0.5, 0.5, 0.5])
-        spikegen.rate(c)
+        spikegen.rate(c, num_steps=1)
         >>> tensor([0., 1., 0., 1.])
 
-        # Specifying num_steps treats each input element as a separate neuron
+        # Increasing num_steps will increase the length of the first dimension (time-first)
+        print(c.size())
+        >>> torch.Size([1, 4])
+
         d = spikegen.rate(torch.Tensor([0.5, 0.5, 0.5, 0.5]), num_steps = 2)
         print(d.size())
         >>> torch.Size([2, 4])
 
-        print(c.size())
-        >>> torch.Size([4])
 
     :param data: Data tensor for a single batch of shape [batch x input_size]
     :type data: torch.Tensor
-
-    :param targets: Target tensor for a single batch, defaults to ``False``
-    :type targets: torch.Tensor, optional
-
-    :param num_outputs: Number of outputs, defaults to ``None``
-    :type num_outputs: int, optional
 
     :param num_steps: Number of time steps. Only specify if input data does not already have time dimension, defaults to ``False``
     :type num_steps: int, optional
@@ -294,22 +289,23 @@ def delta(
 
 def rate_conv(data):
     """Convert tensor into Poisson spike trains using the features as the mean of a binomial distribution.
+    Values outside the range of [0, 1] are clipped so they can be treated as probabilities.
 
         Example::
 
             # 100% chance of spike generation
             a = torch.Tensor([1, 1, 1, 1])
-            spikegen.rate(a)
+            spikegen.rate_conv(a)
             >>> tensor([1., 1., 1., 1.])
 
             # 0% chance of spike generation
             b = torch.Tensor([0, 0, 0, 0])
-            spikegen.rate(b)
+            spikegen.rate_conv(b)
             >>> tensor([0., 0., 0., 0.])
 
             # 50% chance of spike generation per time step
             c = torch.Tensor([0.5, 0.5, 0.5, 0.5])
-            spikegen.rate(c)
+            spikegen.rate_conv(c)
             >>> tensor([0., 1., 0., 1.])
 
     :param data: Data tensor for a single batch of shape [batch x input_size]
@@ -345,7 +341,7 @@ def latency_code(
 
         a = torch.Tensor([0.02, 0.5, 1])
         spikegen.latency_code(a, num_steps=5, normalize=True, linear=True)
-        >>> (tensor([3.9200, 2.0000, -0.0000]), tensor([False, False, False]))
+        >>> (tensor([3.9200, 2.0000, 0.0000]), tensor([False, False, False]))
 
     :param data: Data tensor for a single batch of shape [batch x input_size]
     :type data: torch.Tensor
@@ -470,10 +466,27 @@ def targets_conv(
     The following arguments will necessarily incur a time-varying output:
         ``code='latency'``, ``first_spike_time!=0``, ``correct_rate!=1``, or ``incorrect_rate!=0``
 
+    The target output may be applied to the internal state (e.g., membrane) of the neuron or to the spike.
     The following arguments will produce an output tensor that may sensibly be applied as a target to either the output spike or the membrane potential, as the output will consistently be either a `1` or `0`:
         ``on_target=1``, ``off_target=0``, and ``interpolate=False``
 
-    If any of the above 3 conditions do not hold, then the target is better suited for the output membrane potential, as the output will likely include values other than `1` and `0`.
+    If any of the above 3 conditions do not hold, then the target is better suited for the output membrane potential, as it will likely include values other than `1` and `0`.
+
+    Example::
+
+        a = torch.Tensor([4])
+
+        # rate-coding
+        # one-hot
+        spikegen.targets_conv(a, num_classes=5, code="rate")
+        >>> (tensor([[0., 0., 0., 0., 1.]]), )
+
+        # one-hot + time-first
+        spikegen.targets_conv(a, num_classes=5, code="rate", correct_rate=0.8, incorrect_rate=0.2, num_steps=5).size()
+        >>> torch.Size([5, 1, 5])
+
+    For more examples of rate-coding, see ``help(snntorch.spikegen(targets_rate))``.
+
 
     :param targets: Target tensor for a single batch. The target should be a class index in the range [0, C-1] where C=number of classes.
     :type targets: torch.Tensor
@@ -563,6 +576,34 @@ def targets_rate(
 
     If ``on_target=1``, ``off_target=0``, and ``interpolate=False``, then the target may sensibly be applied as a target for the output spike.
     IF any of the above 3 conditions do not hold, then the target would be better suited for the output membrane potential.
+
+
+    Example::
+
+        a = torch.Tensor([4])
+
+        # one-hot
+        spikegen.targets_rate(a, num_classes=5)
+        >>> (tensor([[0., 0., 0., 0., 1.]]), )
+
+        # first spike time delay, spike evolution over time
+        spikegen.targets_rate(a, num_classes=5, num_steps=5, first_spike_time=2).size()
+        >>> torch.Size([5, 1, 5])
+        spikegen.targets_rate(a, num_classes=5, num_steps=5, first_spike_time=2)[:, 0, 4]
+        >>> (tensor([0., 0., 1., 1., 1.]))
+
+        # note: time has not been repeated because every time step would be identical where first_spike_time defaults to 0
+        spikegen.targets_rate(a, num_classes=5, num_steps=5).size()
+        >>> torch.Size([1, 5])
+
+        # on/off targets - membrane evolution over time
+        spikegen.targets_rate(a, num_classes=5, num_steps=5, first_spike_time=2, on_target=1.2, off_target=0.5)[:, 0, 4]
+        >>> (tensor([0.5000, 0.5000, 1.2000, 1.2000, 1.2000]))
+
+        # correct rate at 25% + linear interpolation of membrane evolution
+        spikegen.targets_rate(a, num_classes=5, num_steps=5, correct_rate=0.25, on_target=1.2, off_target=0.5, interpolate=True)[:, 0, 4]
+        >>> tensor([1.2000, 0.5000, 0.7333, 0.9667, 1.2000])
+
 
     :param targets: Target tensor for a single batch. The target should be a class index in the range [0, C-1] where C=number of classes.
     :type targets: torch.Tensor
@@ -743,7 +784,7 @@ def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regu
     :rtype: torch.Tensor
     """
 
-    if not 0 < rate < 1:
+    if not 0 <= rate <= 1:
         raise Exception(f"``rate``{rate} must be between 0 and 1.")
 
     if first_spike_time > num_steps:
