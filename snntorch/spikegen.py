@@ -741,23 +741,32 @@ def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regu
     :return: rate coded target of single neuron class of length ``num_steps``
     :rtype: torch.Tensor
 
-    :return: rate coded spike time targets in terms of steps
+    :return: rate coded spike times in terms of steps
     :rtype: torch.Tensor
     """
 
-    if firing_pattern == "regular":
-        spike_times = torch.arange(first_spike_time, num_steps, 1 / rate)
-        return torch.zeros(num_steps).scatter(0, spike_times.long(), 1), spike_times
+    if rate == 0:
+        return torch.zeros(num_steps), torch.Tensor()
 
-    elif firing_pattern == "uniform":
+    if firing_pattern.lower() == "regular":
+        spike_times = torch.arange(first_spike_time, num_steps, 1 / rate)
+        return (
+            torch.zeros(num_steps).scatter(0, spike_times.long(), 1),
+            spike_times.long(),
+        )
+
+    elif firing_pattern.lower() == "uniform":
         spike_times = (
             torch.rand(len(torch.arange(first_spike_time, num_steps, 1 / rate)))
             * (num_steps - first_spike_time)
             + first_spike_time
         )
-        return torch.zeros(num_steps).scatter(0, spike_times.long(), 1), spike_times
+        return (
+            torch.zeros(num_steps).scatter(0, spike_times.long(), 1),
+            spike_times.long(),
+        )
 
-    elif firing_pattern == "poisson":
+    elif firing_pattern.lower() == "poisson":
         spike_targets = torch.bernoulli(
             torch.cat(
                 (
@@ -793,6 +802,10 @@ def rate_interpolate(spike_times, num_steps, on_target=1, off_target=0, epsilon=
     :rtype: torch.Tensor
 
     """
+
+    # if no spikes
+    if not spike_times.numel():
+        return torch.ones((num_steps)) * off_target
 
     current_time = -1
 
