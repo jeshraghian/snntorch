@@ -75,7 +75,7 @@ def rate(
     if first_spike_time < 0:
         raise Exception("``first_spike_time`` cannot be negative.")
 
-    device = torch.device("cuda") if data.is_cuda() else torch.device("cpu")
+    device = torch.device("cuda") if data.is_cuda else torch.device("cpu")
 
     # intended for time-varying input data
     if time_var_input:
@@ -183,7 +183,7 @@ def latency(
         linear=linear,
     )
 
-    device = torch.device("cuda") if data.is_cuda() else torch.device("cpu")
+    device = torch.device("cuda") if data.is_cuda else torch.device("cpu")
 
     if not num_steps:
         num_steps = 1
