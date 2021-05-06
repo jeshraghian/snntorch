@@ -72,8 +72,14 @@ def rate(
             f"first_spike_time ({first_spike_time}) must be equal to or less than num_steps-1 ({num_steps-1})."
         )
 
-    if first_spike_time < 0:
-        raise Exception("``first_spike_time`` cannot be negative.")
+    if first_spike_time < 0 or num_steps < 0:
+        raise Exception("``first_spike_time`` and ``num_steps`` cannot be negative.")
+
+    if first_spike_time > 0 and not time_var_input and not num_steps:
+        raise Exception(
+            "``num_steps`` must be specified if both the input is not time-varying and ``first_spike_time`` is greater than 0."
+        )
+        # output tensor is [0, B, D] # need to address that '0' in time-dim
 
     device = torch.device("cuda") if data.is_cuda else torch.device("cpu")
 
