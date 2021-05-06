@@ -598,7 +598,7 @@ def targets_rate(
     :rtype: torch.Tensor
     """
 
-    if 0 > correct_rate > 1 or 0 > incorrect_rate > 1:
+    if not 0 < correct_rate < 1 or not 0 < incorrect_rate < 1:
         raise Exception(
             f"``correct_rate``{correct_rate} and ``incorrect_rate``{incorrect_rate} must be between 0 and 1."
         )
@@ -743,6 +743,14 @@ def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regu
     :rtype: torch.Tensor
     """
 
+    if not 0 < rate < 1:
+        raise Exception(f"``rate``{rate} must be between 0 and 1.")
+
+    if first_spike_time > num_steps:
+        raise Exception(
+            f"``first_spike_time {first_spike_time} must be less than num_steps {num_steps}."
+        )
+
     if rate == 0:
         return torch.zeros(num_steps), torch.Tensor()
 
@@ -847,116 +855,13 @@ def to_one_hot_inverse(one_hot_targets):
     return one_hot_inverse
 
 
-def target_handling(
-    targets,
-    num_outputs=None,
-    num_steps=False,
-    one_hot=False,
-    time_varying_targets=False,
-):
-    """Options to convert targets into temporal targets and/or one-hot-encodings.
-
-    :param targets: Target tensor for a single batch
-    :type targets: torch.Tensor
-
-    :param num_outputs:  Number of outputs, defaults to ``None``
-    :type num_outputs: int, optional
-
-    :param num_steps: Number of time steps, defaults to ``False``
-    :type num_steps: int, optional
-
-    :param one_hot: Convert targets to one-hot-representation if True, defaults to ``False``
-    :type one_hot: Bool, optional
-
-    :param time_varying_targets: Repeat targets along the time-axis if True, defaults to ``False``
-    :type time_varying_targets: Bool, optional
-
-    :return: targets with optional one-hot-encoding or temporal conversion with time in the first dimension of shape [num_steps x batch x num_outputs]
-    :rtype: torch.Tensor
-    """
-    if one_hot:
-        # One-hot encoding of targets. If time_varying_targets is True, repeat it along the first dimension, i.e., time first
-        return targets_to_spikes(targets, num_outputs, num_steps, time_varying_targets)
-
-    elif not one_hot and time_varying_targets:
-        # Repeat target tensor in first dimension without converting targets to one-hot
-        return targets.repeat(
-            tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist())
-        )
-
-    else:
-        return targets
-
-
-def targets_to_spikes(
-    targets, num_outputs=None, num_steps=False, time_varying_targets=False
-):
-    """Convert targets to one-hot encodings in the time-domain.
-
-    Example::
-
-        targets = torch.tensor([0, 1, 2, 3])
-        spikegen.targets_to_spikes(targets, num_outputs=4)
-        >>> tensor([[1., 0., 0., 0.],
-                    [0., 1., 0., 0.],
-                    [0., 0., 1., 0.],
-                    [0., 0., 0., 1.]])
-
-    :param targets: Target tensor for a single batch
-    :type targets: torch.Tensor
-
-    :param num_outputs: Number of outputs, defaults to ``None``
-    :type num_outputs: int, optional
-
-    :param num_steps: Number of time steps, defaults to ``1``
-    :type num_steps: int, optional
-
-    :param time_varying_targets: Repeat targets along the time-axis if True, defaults to ``False``
-    :type time_varying_targets: Bool, optional
-
-    :return: latency encoding spike train of input features
-    :rtype: torch.Tensor
-
-    :return: one-hot encoding of targets with time in the first dimension of shape [time x batch x num_outputs]
-    :rtype: torch.Tensor
-    """
-
-    # Autocalc num_outputs if not provided
-    if num_outputs is None:
-        print(
-            "Warning: num_outputs will automatically be calculated using the number of unique values in "
-            "targets.\n"
-            "It is recommended to explicitly pass num_steps as an argument instead."
-        )
-        num_outputs = len(targets.unique())
-        print(f"num_outputs has been calculated to be {num_outputs}.")
-
-    targets_1h = to_one_hot(targets, num_outputs)
-
-    if time_varying_targets:
-        if not num_steps:
-            raise Exception(
-                "num_steps must be specified if time_varying_targets is True."
-            )
-        # Extend one-hot targets in time dimension. Create a new axis in the second dimension.
-        # Allocate first dim to batch size, and subtract it off len(targets_1h.size())
-        spike_targets = targets_1h.repeat(
-            tuple([num_steps] + torch.ones(len(targets_1h.size()), dtype=int).tolist())
-        )
-
-    else:
-        spike_targets = targets_1h
-
-    return spike_targets
-
-
-def to_one_hot(targets, num_outputs):
+def to_one_hot(targets, num_classes):
     """One hot encoding of target labels.
 
     Example::
 
         targets = torch.tensor([0, 1, 2, 3])
-        spikegen.targets_to_spikes(targets, num_outputs=4)
+        spikegen.targets_to_spikes(targets, num_classes=4)
         >>> tensor([[1., 0., 0., 0.],
                     [0., 1., 0., 0.],
                     [0., 0., 1., 0.],
@@ -965,17 +870,17 @@ def to_one_hot(targets, num_outputs):
     :param targets: Target tensor for a single batch
     :type targets: torch.Tensor
 
-    :param num_outputs: Number of outputs
-    :type num_outputs: int
+    :param num_classes: Number of classes
+    :type num_classes: int
 
-    :return: one-hot encoding of targets of shape [batch x num_outputs]
+    :return: one-hot encoding of targets of shape [batch x num_classes]
     :rtype: torch.Tensor
     """
 
     device = torch.device("cuda") if targets.is_cuda else torch.device("cpu")
 
     # Initialize zeros. E.g, for MNIST: (batch_size, 10).
-    one_hot = torch.zeros([len(targets), num_outputs], device=device, dtype=dtype)
+    one_hot = torch.zeros([len(targets), num_classes], device=device, dtype=dtype)
 
     # Unsqueeze converts dims of [100] to [100, 1]
     one_hot = one_hot.scatter(1, targets.type(torch.int64).unsqueeze(-1), 1)
