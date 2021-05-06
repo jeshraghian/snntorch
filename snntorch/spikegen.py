@@ -765,6 +765,23 @@ def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regu
     """
     Rate coding a single output neuron of tensor of length ``num_steps`` containing spikes, and another tensor containing the spike times.
 
+
+    Example::
+
+        spikegen.target_rate_code(num_steps=5, rate=1)
+        >>> (tensor([1., 1., 1., 1., 1.]), tensor([0, 1, 2, 3, 4]))
+
+        spikegen.target_rate_code(num_steps=5, first_spike_time=3, rate=1)
+        >>> (tensor([0., 0., 0., 1., 1.]), tensor([3, 4]))
+
+        spikegen.target_rate_code(num_steps=5, rate=0.3)
+        >>> (tensor([1., 0., 0., 1., 0.]), tensor([0, 3]))
+
+        spikegen.target_rate_code(num_steps=5, rate=0.3, firing_pattern="poisson")
+        >>> (tensor([0., 1., 0., 1., 0.]), tensor([1, 3]))
+
+
+
     :param num_steps: Number of time steps, defaults to ``False``
     :type num_steps: int, optional
 
@@ -830,6 +847,15 @@ def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regu
 def rate_interpolate(spike_times, num_steps, on_target=1, off_target=0, epsilon=1e-7):
     """Apply linear interpolation to a tensor of target spike times to enable gradual increasing membrane.
 
+    Example::
+
+        a = torch.Tensor([0, 4])
+        spikegen.rate_interpolate(a, num_steps=5)
+        >>> tensor([1.0000, 0.0000, 0.3333, 0.6667, 1.0000])
+
+        spikegen.rate_interpolate(a, num_steps=5, on_target=1.25, off_target=0.25)
+        >>> tensor([1.2500, 0.2500, 0.5833, 0.9167, 1.2500])
+
     :param spike_times: spike time targets in terms of steps
     :type targets: torch.Tensor
 
@@ -887,7 +913,15 @@ def rate_interpolate(spike_times, num_steps, on_target=1, off_target=0, epsilon=
 
 def to_one_hot_inverse(one_hot_targets):
     """Boolean inversion of a matrix of 1's and 0's.
-    Used to merge the targets of correct and incorrect neuron classes in ``targets_rate``."""
+    Used to merge the targets of correct and incorrect neuron classes in ``targets_rate``.
+
+    Example::
+
+        a = torch.Tensor([0, 0, 0, 0, 1])
+        spikegen.to_one_hot_inverse(a)
+        >>> tensor([[1., 1., 1., 1., 0.]])
+
+    """
 
     one_hot_inverse = one_hot_targets.clone()
     one_hot_inverse[one_hot_targets == 0] = 1
