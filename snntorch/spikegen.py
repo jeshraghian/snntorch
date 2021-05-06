@@ -657,32 +657,30 @@ def targets_rate(
         )
 
         # create tensor of spike_targets for correct class
-        if correct_rate != 1:
-            correct_spike_targets, correct_spike_times = target_rate_code(
-                num_steps=num_steps,
-                first_spike_time=first_spike_time,
-                rate=correct_rate,
-                firing_pattern=firing_pattern,
-            )
-            correct_spikes_one_hot = one_hot_targets * correct_spike_targets.to(
-                device
-            ).unsqueeze(-1).unsqueeze(
-                -1
-            )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. time is broadcast in every other direction
+        correct_spike_targets, correct_spike_times = target_rate_code(
+            num_steps=num_steps,
+            first_spike_time=first_spike_time,
+            rate=correct_rate,
+            firing_pattern=firing_pattern,
+        )
+        correct_spikes_one_hot = one_hot_targets * correct_spike_targets.to(
+            device
+        ).unsqueeze(-1).unsqueeze(
+            -1
+        )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. time is broadcast in every other direction
 
         # create tensor of spike targets for incorrect class
-        if incorrect_rate != 0:
-            incorrect_spike_targets, incorrect_spike_times = target_rate_code(
-                num_steps=num_steps,
-                first_spike_time=first_spike_time,
-                rate=incorrect_rate,
-                firing_pattern=firing_pattern,
-            )
-            incorrect_spikes_one_hot = one_hot_inverse * incorrect_spike_targets.to(
-                device
-            ).unsqueeze(-1).unsqueeze(
-                -1
-            )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. time is broadcasted in every other direction
+        incorrect_spike_targets, incorrect_spike_times = target_rate_code(
+            num_steps=num_steps,
+            first_spike_time=first_spike_time,
+            rate=incorrect_rate,
+            firing_pattern=firing_pattern,
+        )
+        incorrect_spikes_one_hot = one_hot_inverse * incorrect_spike_targets.to(
+            device
+        ).unsqueeze(-1).unsqueeze(
+            -1
+        )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. time is broadcasted in every other direction
 
         # merge the incorrect and correct tensors
         if not interpolate:
