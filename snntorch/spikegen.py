@@ -953,7 +953,7 @@ def to_one_hot(targets, num_outputs):
     :rtype: torch.Tensor
     """
 
-    device = torch.device("cuda") if targets.is_cuda() else torch.device("cpu")
+    device = torch.device("cuda") if targets.is_cuda else torch.device("cpu")
 
     # Initialize zeros. E.g, for MNIST: (batch_size, 10).
     one_hot = torch.zeros([len(targets), num_outputs], device=device, dtype=dtype)
