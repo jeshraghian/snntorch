@@ -616,6 +616,8 @@ def targets_rate(
             "``firing_pattern`` must be either 'regular', 'uniform' or 'poisson'."
         )
 
+    device = torch.device("cuda") if targets.is_cuda else torch.device("cpu")
+
     # return a non time-varying tensor
     if correct_rate == 1 and incorrect_rate == 0:
         if first_spike_time == 0:
@@ -662,11 +664,11 @@ def targets_rate(
                 rate=correct_rate,
                 firing_pattern=firing_pattern,
             )
-            correct_spikes_one_hot = one_hot_targets * correct_spike_targets.unsqueeze(
+            correct_spikes_one_hot = one_hot_targets * correct_spike_targets.to(
+                device
+            ).unsqueeze(-1).unsqueeze(
                 -1
-            ).unsqueeze(
-                -1
-            )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. time is broadcasted in every other direction
+            )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. time is broadcast in every other direction
 
         # create tensor of spike targets for incorrect class
         if incorrect_rate != 0:
@@ -676,16 +678,20 @@ def targets_rate(
                 rate=incorrect_rate,
                 firing_pattern=firing_pattern,
             )
-            incorrect_spikes_one_hot = one_hot_inverse * incorrect_spike_targets.unsqueeze(
-                -1
-            ).unsqueeze(
+            incorrect_spikes_one_hot = one_hot_inverse * incorrect_spike_targets.to(
+                device
+            ).unsqueeze(-1).unsqueeze(
                 -1
             )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. time is broadcasted in every other direction
 
         # merge the incorrect and correct tensors
         if not interpolate:
             return torch.clamp(
-                (incorrect_spikes_one_hot + correct_spikes_one_hot) * on_target,
+                (
+                    incorrect_spikes_one_hot.to(device)
+                    + correct_spikes_one_hot.to(device)
+                )
+                * on_target,
                 off_target,
             )
 
@@ -698,6 +704,7 @@ def targets_rate(
                     on_target=on_target,
                     off_target=off_target,
                 )
+                .to(device)
                 .unsqueeze(-1)
                 .unsqueeze(-1)
             )  # the two unsquezes make the dims of correct_spikes num_steps x 1 x 1, s.t. the time is broadcasted in every other direction
@@ -708,6 +715,7 @@ def targets_rate(
                     on_target=on_target,
                     off_target=off_target,
                 )
+                .to(device)
                 .unsqueeze(-1)
                 .unsqueeze(-1)
             )
