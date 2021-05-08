@@ -218,6 +218,7 @@ def latency(
                 print_flag = False
             # spike_data = torch.clamp_max(spike_data, num_steps - 1)
             spike_time = torch.clamp_max(spike_time, num_steps - 1)
+            # spike_data = spike_data.scatter(0, torch.round(spike_time).long().unsqueeze(0), 1)
             clamp_flag = 1
 
     if clamp_flag == 1:
@@ -429,6 +430,7 @@ def latency_code(
             )
         if normalize:
             tau = num_steps - 1 - first_spike_time
+
         spike_time = (
             torch.clamp_max((-tau * (data - 1)), -tau * (threshold - 1))
             + first_spike_time
@@ -445,6 +447,7 @@ def latency_code(
     return spike_time, idx
 
 
+# rename - targets_convert, targets_code, targets_encode
 def targets_conv(
     targets,
     num_classes,
@@ -951,6 +954,11 @@ def to_one_hot(targets, num_classes):
     :return: one-hot encoding of targets of shape [batch x num_classes]
     :rtype: torch.Tensor
     """
+
+    if torch.max(targets > num_classes - 1):
+        raise Exception(
+            f"target [{torch.max(targets)}] is out of bounds for ``num_classes`` [{num_classes}]"
+        )
 
     device = torch.device("cuda") if targets.is_cuda else torch.device("cpu")
 
