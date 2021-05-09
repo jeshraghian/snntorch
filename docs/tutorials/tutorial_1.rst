@@ -60,7 +60,7 @@ Let's define a few variables:
   data_path='/data/mnist'
   val_split = 0.1
   subset = 10
-  num_outputs = 10
+  num_classes = 10
 
   # Temporal Dynamics
   num_steps = 100
@@ -194,8 +194,7 @@ For an MNIST image, this probability corresponds to the pixel value. A white pix
   targets_it = targets_it.to(device)
 
   # Spiking Data
-  spike_data, spike_targets = spikegen.rate(data_it, targets_it, num_outputs=num_outputs, num_steps=num_steps,
-                                            gain=1, offset=0, one_hot=False, time_varying_targets=False)
+  spike_data = spikegen.rate(data_it, num_steps=num_steps, gain=1, offset=0)
       
 
 As you can see, :code:`spikegen.rate` takes a few arguments that can modify spiking probability:
@@ -206,11 +205,8 @@ As you can see, :code:`spikegen.rate` takes a few arguments that can modify spik
 If the result falls outside of [0,1], this no longer represents a probability. The result will automatically be clipped such that the feature represents a probability.
 
 .. note::
-  There are also options to convert targets to one hot encodings using :code:`one_hot`, and to extend the encodings along the time-axis using :code:`time_varying_targets`.
   
-  Both are set to :code:`False`, so :code:`targets_it` is simply passed directly to :code:`spike_targets` without any modification. We may also remove `targets_it` as an argument, and only return :code:`spike_data`. 
-  
-  For more detail on converting targets to spikes, please refer to the documentation of :code:`snntorch.spikegen` `here <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html#snntorch.spikegen.targets_to_spikes>`_.
+There are numerous other options available for data conversion available. Fore more detail on converting input features (and targets) to spikes, please [refer to the documentation of `snntorch.spikegen` here](https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html#snntorch.spikegen.targets_to_spikes).
 
 The structure of the input data is :code:`[num_steps x batch_size x input dimensions]`:
 
@@ -267,7 +263,7 @@ The associated target label can be indexed as follows:
 
 ::
 
-  >>> print(f"The corresponding target is: {spike_targets[0]}")
+  >>> print(f"The corresponding target is: {targets_it[0]}")
 
   The corresponding target is: 3
 
@@ -275,7 +271,7 @@ As a matter of interest, let's do that again but with 25% of the gain to promote
 
 ::
 
-  spike_data = spikegen.rate(data_it, num_outputs=num_outputs, num_steps=num_steps, gain=0.25)
+  spike_data = spikegen.rate(data_it, num_steps, gain=0.25)
 
   spike_data_sample2 = spike_data[:, 0, 0]
   fig, ax = plt.subplots()
@@ -526,7 +522,7 @@ We can index into the corresponding target value to check what value it is.
 
 ::
 
-  >>> print(spike_targets[0])
+  >>> print(targets_it[0])
   tensor(4, device='cuda:0')
 
 
@@ -629,7 +625,7 @@ Although we have only shown :code:`spikegen.delta` on a fake sample of data, the
 
 That wraps up the three main spike conversion functions! There are still additional features to each of the three conversion techniques that have not been detailed in this tutorial. We recommend `referring to the documentation for a deeper dive <https://snntorch.readthedocs.io/en/latest/_modules/snntorch/spikegen.html>`_.
 
-3. Spike Generation
+1. Spike Generation
 ---------------------------------
 
 Now what if we don't actually have any data to start with? 
