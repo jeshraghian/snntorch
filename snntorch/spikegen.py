@@ -128,17 +128,22 @@ def rate(
 
 def latency(
     data,
-    num_steps=1,
+    num_steps=False,
     threshold=0.01,
-    epsilon=1e-7,
     tau=1,
     first_spike_time=0,
+    on_target=1,
+    off_target=0,
     clip=False,
     normalize=False,
     linear=False,
+    interpolate=False,
+    bypass=False,
+    epsilon=1e-7,
 ):
-    """Latency encoding of input data. Use input features to determine time-to-first spike. Assume a LIF neuron model
-    that charges up with time constant tau. Tensor dimensions use time first.
+    """Latency encoding of input or target label data. Use input features to determine time-to-first spike. Expected inputs should be between 0 and 1.
+
+    Assume a LIF neuron model that charges up with time constant tau. Tensor dimensions use time first.
 
     Example::
 
@@ -153,14 +158,11 @@ def latency(
     :param data: Data tensor for a single batch of shape [batch x input_size]
     :type data: torch.Tensor
 
-    :param num_steps: Number of time steps, defaults to ``1``
+    :param num_steps: Number of time steps. Explicitly needed if ``normalize=True``, defaults to ``False`` (then changed to ``1`` if ``normalize=False``)
     :type num_steps: int, optional
 
     :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
     :type threshold: float, optional
-
-    :param epsilon:  A tiny positive value to avoid dividing by zero in firing time calculations, defaults to ``1e-7``
-    :type epsilon: float, optional
 
     :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
     :type tau: float, optional
@@ -168,67 +170,104 @@ def latency(
     :param first_spike_time: Time to first spike, defaults to ``0``.
     :type first_spike_time: int, optional
 
-    :param clip:  Option to remove spikes from features that fall below the threshold, defaults to ``False``
+    :param on_target: Target at spike times, defaults to ``1``
+    :type on_target: float, optional
+
+    :param off_target: Target during refractory period, defaults to ``0``
+    :type off_target: float, optional
+
+    :param clip: Option to remove spikes from features that fall below the threshold, defaults to ``False``
     :type clip: Bool, optional
 
-    :param normalize:  Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
+    :param normalize: Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
     :type normalize: Bool, optional
 
-    :param linear:  Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
+    :param linear: Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
     :type linear: Bool, optional
 
-    :return: latency encoding spike train of input features
+    :param interpolate: Applies linear interpolation such that there is a gradually increasing target up to each spike, defaults to ``False``
+    :type interpolate: Bool, optional
+
+    :param bypass: Used to block error messages that occur from either: i) spike times exceeding the bounds of ``num_steps``, or ii) if ``num_steps`` is not specified, setting ``bypass=True`` allows the largest spike time to set ``num_steps``. Defaults to ``False``
+    :type bypass: bool, optional
+
+    :param epsilon: A tiny positive value to avoid rounding errors when using torch.arange, defaults to ``1e-7``
+    :type epsilon: float, optional
+
+    :return: latency encoding spike train of features or labels
     :rtype: torch.Tensor
     """
+
+    if torch.min(data) < 0 or torch.max(data) > 1:
+        raise Exception(
+            f"Elements of ``data`` must be between [0, 1], but input is [{torch.min(data)}, {torch.max(data)}]"
+        )
+
+    if threshold < 0 or threshold > 1:
+        raise Exception(f"``threshold`` [{threshold}] must be between [0, 1]")
+
+    if not num_steps and not bypass:
+        raise Exception(
+            "``num_steps`` must be specified. Alternatively, setting ``bypass=True`` will automatically set ``num_steps`` to the last spike time. This may lead to uneven tensor sizes when used in a loop."
+        )
+
+    device = torch.device("cuda") if data.is_cuda else torch.device("cpu")
 
     spike_time, idx = latency_code(
         data,
         num_steps=num_steps,
         threshold=threshold,
-        epsilon=epsilon,
         tau=tau,
         first_spike_time=first_spike_time,
         normalize=normalize,
         linear=linear,
+        epsilon=epsilon,
     )
 
-    device = torch.device("cuda") if data.is_cuda else torch.device("cpu")
+    # automatically set num_steps using max element in spike_time
+    if not num_steps and bypass:
+        num_steps = int(torch.round(torch.max(spike_time)).long() + 1)
 
-    if not num_steps:
-        num_steps = 1
-
-    spike_data = torch.zeros(
-        (tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device
-    )
-    clamp_flag = 0
-    print_flag = True
-
-    while True:  # can remove while loop + break.
-        try:
-            spike_data = spike_data.scatter(
-                0, torch.round(spike_time).long().unsqueeze(0), 1
+        if num_steps <= 0:
+            raise Exception(
+                f"``num_steps`` [{num_steps}] must be positive. This can be specifiedInput data should be normalized to larger values or ``threshold`` should be set to a smaller value."
             )
-            break
-        except RuntimeError:  # this block runs if indexes in spike_time exceed range in num_steps.
-            if print_flag:
-                print(
-                    "Warning: the spikes outside of the range of num_steps have been clipped.\n "
-                    "Setting ``normalize = True`` or increasing ``num_steps`` can fix this."
-                )
-                print_flag = False
-            # spike_data = torch.clamp_max(spike_data, num_steps - 1)
-            spike_time = torch.clamp_max(spike_time, num_steps - 1)
-            # spike_data = spike_data.scatter(0, torch.round(spike_time).long().unsqueeze(0), 1)
-            clamp_flag = 1
 
-    if clamp_flag == 1:
-        spike_data[-1] = 0
+    if torch.round(torch.max(spike_time)).long() > (num_steps - 1) and not bypass:
+        raise Exception(
+            f"The maximum value in ``spike_time`` [{torch.round(torch.max(spike_time)).long()}] is out of bounds for ``num_steps`` [{num_steps}-1].\n To bypass this error, set ``bypass=True``.\n Alternatively, constrain ``spike_time`` within the range of ``num_steps`` by either decreasing ``tau`` or ``setting normalize=True``."
+        )
 
-    # Use idx to remove spikes below the threshold
-    if clip:
-        spike_data = spike_data * ~idx  # idx is broadcast in T direction
+    if not interpolate:
 
-    return spike_data
+        spike_data = torch.zeros(
+            (tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device
+        )
+
+        # use rm_idx to remove spikes beyond the range of num_steps
+        rm_idx = torch.round(spike_time).long() > num_steps - 1
+        spike_data = (
+            spike_data.scatter(
+                0,
+                torch.round(torch.clamp_max(spike_time, num_steps - 1))
+                .long()
+                .unsqueeze(0),
+                1,
+            )
+            * ~rm_idx
+        )
+
+        # Use idx to remove spikes below the threshold
+        if clip:
+            spike_data = spike_data * ~idx  # idx is broadcast in T direction
+
+        return torch.clamp(spike_data * on_target, off_target)
+
+    elif interpolate:
+
+        return latency_interpolate(
+            spike_time, num_steps, on_target=on_target, off_target=off_target
+        )
 
 
 def delta(
@@ -329,13 +368,13 @@ def latency_code(
     data,
     num_steps=False,
     threshold=0.01,
-    epsilon=1e-7,
     tau=1,
     first_spike_time=0,
     normalize=False,
     linear=False,
+    epsilon=1e-7,
 ):
-    """Latency encoding of input data. Convert input features to spike times. Assumes a LIF neuron model
+    """Latency encoding of input data. Convert input features or target labels to spike times. Assumes a LIF neuron model
     that charges up with time constant tau by default.
 
     Example::
@@ -353,27 +392,179 @@ def latency_code(
     :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
     :type threshold: float, optional
 
-    :param epsilon:  A tiny positive value to avoid dividing by zero in firing time calculations, defaults to ``1e-7``
-    :type epsilon: float, optional
-
     :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
     :type tau: float, optional
 
     :param first_spike_time: Time to first spike, defaults to ``0``.
     :type first_spike_time: int, optional
 
-    :param normalize:  Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
+    :param normalize: Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
     :type normalize: Bool, optional
 
-    :param linear:  Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
+    :param linear: Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
     :type linear: Bool, optional
 
-    :return: latency encoding spike times of input features
+    :param epsilon: A tiny positive value to avoid rounding errors when using torch.arange, defaults to ``1e-7``
+    :type epsilon: float, optional
+
+    :return: latency encoding spike times of features
     :rtype: torch.Tensor
 
     :return: Tensor of Boolean values which correspond to the latency encoding elements that fall below the threshold. Used in ``latency_conv`` to clip saturated spikes.
     :rtype: torch.Tensor
     """
+
+    idx = data < threshold
+
+    data = torch.clamp(
+        data, threshold + epsilon
+    )  # saturates all values below threshold.
+
+    if not linear:
+        spike_time = latency_code_log(
+            data,
+            num_steps=num_steps,
+            threshold=threshold,
+            tau=tau,
+            first_spike_time=first_spike_time,
+            normalize=normalize,
+        )
+
+    elif linear:
+        spike_time = latency_code_linear(
+            data,
+            num_steps=num_steps,
+            threshold=threshold,
+            tau=tau,
+            first_spike_time=first_spike_time,
+            normalize=normalize,
+        )
+
+    return spike_time, idx
+
+
+def latency_code_linear(
+    data,
+    num_steps=False,
+    threshold=0.01,
+    tau=1,
+    first_spike_time=0,
+    normalize=False,
+):
+
+    """Linear latency encoding of input data. Convert input features or target labels to spike times.
+
+    Example::
+
+        a = torch.Tensor([0.02, 0.5, 1])
+        spikegen.latency_code(a, num_steps=5, normalize=True, linear=True)
+        >>> (tensor([3.9200, 2.0000, 0.0000]), tensor([False, False, False]))
+
+    :param data: Data tensor for a single batch of shape [batch x input_size]
+    :type data: torch.Tensor
+
+    :param num_steps: Number of time steps. Explicitly needed if ``normalize=True``, defaults to ``False`` (then changed to ``1`` if ``normalize=False``)
+    :type num_steps: int, optional
+
+    :param threshold: Input features below the threhold will fire at the final time step, defaults to ``0.01``
+    :type threshold: float, optional
+
+    :param tau:  Linear time constant used to calculate firing time, defaults to ``1``
+    :type tau: float, optional
+
+    :param first_spike_time: Time to first spike, defaults to ``0``.
+    :type first_spike_time: int, optional
+
+    :param normalize: Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
+    :type normalize: Bool, optional
+
+    :return: linear latency encoding spike times of features
+    :rtype: torch.Tensor
+
+    """
+
+    _latency_errors(
+        data, num_steps, threshold, tau, first_spike_time, normalize
+    )  # error checks
+
+    if normalize:
+        tau = num_steps - 1 - first_spike_time
+
+    spike_time = (
+        torch.clamp_max((-tau * (data - 1)), -tau * (threshold - 1))
+    ) + first_spike_time
+
+    # the following code is intended for negative input data.
+    # it is more broadly caught in latency code by ensuring 0 < data < 1. Consider disabling ~(0<data<1) input.
+    if torch.min(spike_time) < 0 and normalize:
+        spike_time = (
+            (spike_time - torch.min(spike_time))
+            * (1 / (torch.max(spike_time) - torch.min(spike_time)))
+            * (num_steps - 1)
+        )
+    return spike_time
+
+
+def latency_code_log(
+    data,
+    num_steps=False,
+    threshold=0.01,
+    tau=1,
+    first_spike_time=0,
+    normalize=False,
+):
+
+    """Logarithmic latency encoding of input data. Convert input features or target labels to spike times.
+
+    Example::
+
+        a = torch.Tensor([0.02, 0.5, 1])
+        spikegen.latency_code(a, num_steps=5, normalize=True)
+        >>> (tensor([4.0000, 0.1166, 0.0580]), tensor([False, False, False]))
+
+    :param data: Data tensor for a single batch of shape [batch x input_size]
+    :type data: torch.Tensor
+
+    :param num_steps: Number of time steps. Explicitly needed if ``normalize=True``, defaults to ``False`` (then changed to ``1`` if ``normalize=False``)
+    :type num_steps: int, optional
+
+    :param threshold: Input features below the threhold will fire at the final time step, defaults to ``0.01``
+    :type threshold: float, optional
+
+    :param tau: Logarithmic time constant used to calculate firing time, defaults to ``1``
+    :type tau: float, optional
+
+    :param first_spike_time: Time to first spike, defaults to ``0``.
+    :type first_spike_time: int, optional
+
+    :param normalize: Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
+    :type normalize: Bool, optional
+
+    :return: logarithmic latency encoding spike times of features
+    :rtype: torch.Tensor
+
+    """
+
+    _latency_errors(
+        data, num_steps, threshold, tau, first_spike_time, normalize
+    )  # error checks
+
+    spike_time = tau * torch.log(data / (data - threshold))
+
+    if first_spike_time > 0:
+        spike_time += first_spike_time
+
+    if normalize:
+        spike_time = (spike_time - first_spike_time) * (
+            num_steps - first_spike_time - 1
+        ) / torch.max(spike_time - first_spike_time) + first_spike_time
+
+    return spike_time
+
+
+def _latency_errors(data, num_steps, threshold, tau, first_spike_time, normalize):
+
+    """Catches errors for spike time encoding latency functions ``latency_code_linear`` and ``latency_code_log``"""
 
     if (
         threshold <= 0 or threshold >= 1
@@ -383,72 +574,28 @@ def latency_code(
     if tau <= 0:  # double check if this can just be threshold < 0 instead.
         raise Exception("``tau`` must be greater than 0.")
 
-    if normalize and not num_steps:
-        raise Exception("`num_steps` should not be empty if normalize is set to True.")
-
-    if not num_steps:
-        num_steps = 1
-
-    if first_spike_time > (num_steps - 1):
+    if first_spike_time and num_steps and first_spike_time > (num_steps - 1):
         raise Exception(
             f"first_spike_time ({first_spike_time}) must be equal to or less than num_steps-1 ({num_steps-1})."
         )
 
+    # this condition is more broadly caught in latency code by ensuring 0 < data < 1
     if first_spike_time and torch.max(data) > 1 and torch.min(data) < 0:
         raise Exception(
             "`first_spike_time` can only be applied to data between `0` and `1`."
         )
 
     if first_spike_time < 0:
-        raise Exception("``first_spike_time`` cannot be negative.")
+        raise Exception("``first_spike_time`` [{first_spike_time}] cannot be negative.")
 
-    idx = data < threshold
+    if num_steps < 0:
+        raise Exception("``num_steps`` [{num_steps}] cannot be negative.")
 
-    if not linear:
-        data = torch.clamp(
-            data, threshold + epsilon
-        )  # saturates all values below threshold.
-        spike_time = tau * torch.log(data / (data - threshold))
-        if (
-            first_spike_time > 0
-        ):  # linearly shift spike times s.t. first spike occurs at first_spike_time.
-            spike_time = spike_time - first_spike_time * (
-                torch.min(spike_time) / first_spike_time - 1
-            )
-        if normalize:
-            # tmax = torch.Tensor([(threshold + epsilon) / epsilon])
-            # spike_time = spike_time * (num_steps - 1) / (tau * torch.log(tmax))
-            spike_time = (spike_time - first_spike_time) * (
-                num_steps - first_spike_time - 1
-            ) / torch.max(spike_time - first_spike_time) + first_spike_time
-
-    elif linear:
-        if torch.max(data) > 1 and not normalize:
-            raise Exception(
-                "For ``linear=True``, data > 1 results in negative spike times.\n"
-                "Either set ``normalize=True``, or ensure all values in data <= 1."
-            )
-        if normalize:
-            tau = num_steps - 1 - first_spike_time
-
-        spike_time = (
-            torch.clamp_max((-tau * (data - 1)), -tau * (threshold - 1))
-            + first_spike_time
-        )
-
-        #  if data has values > 1, negative spike_time values will exist. Normalize btwn 0 & 1, then renormalize 1 --> num_steps.
-        if torch.min(spike_time) < 0 and normalize:
-            spike_time = (
-                (spike_time - torch.min(spike_time))
-                * (1 / (torch.max(spike_time) - torch.min(spike_time)))
-                * (num_steps - 1)
-            )
-
-    return spike_time, idx
+    if normalize and not num_steps:
+        raise Exception("`num_steps` should not be empty if normalize is set to True.")
 
 
-# rename - targets_convert, targets_code, targets_encode
-def targets_conv(
+def targets_convert(
     targets,
     num_classes,
     code="rate",
@@ -460,7 +607,13 @@ def targets_conv(
     off_target=0,
     firing_pattern="regular",
     interpolate=False,
-    smoothing=0,
+    epsilon=1e-7,
+    threshold=0.01,
+    tau=1,
+    clip=False,
+    normalize=False,
+    linear=False,
+    bypass=False,
 ):
     """Spike encoding of targets. Expected input is a 1-D tensor with index of targets.
     If the output tensor is time-varying, the returned tensor will have time in the first dimension.
@@ -481,11 +634,11 @@ def targets_conv(
 
         # rate-coding
         # one-hot
-        spikegen.targets_conv(a, num_classes=5, code="rate")
+        spikegen.targets_convert(a, num_classes=5, code="rate")
         >>> (tensor([[0., 0., 0., 0., 1.]]), )
 
         # one-hot + time-first
-        spikegen.targets_conv(a, num_classes=5, code="rate", correct_rate=0.8, incorrect_rate=0.2, num_steps=5).size()
+        spikegen.targets_convert(a, num_classes=5, code="rate", correct_rate=0.8, incorrect_rate=0.2, num_steps=5).size()
         >>> torch.Size([5, 1, 5])
 
     For more examples of rate-coding, see ``help(snntorch.spikegen(targets_rate))``.
@@ -524,8 +677,11 @@ def targets_conv(
     :param interpolate: Applies linear interpolation such that there is a gradually increasing target up to each spike, defaults to ``False``
     :type interpolate: Bool, optional
 
-    :param smoothing: Determines how gradually linear interpolation is applied for a latency coded spike in terms of number of steps, defaults to ``0``
-    :type smoothing: int, optional
+    :param epsilon: A tiny positive value to avoid rounding errors when using torch.arange, defaults to ``1e-7``
+    :type epsilon: float, optional
+
+    :param bypass: Used to block error messages that occur from either: i) spike times exceeding the bounds of ``num_steps``, or ii) if ``num_steps`` is not specified, setting ``bypass=True`` allows the largest spike time to set ``num_steps``. Defaults to ``False``
+    :type bypass: bool, optional
 
     :return: spike coded target of output neurons. If targets are time-varying, the output tensor will use time-first dimensions. Otherwise, time is omitted from the tensor.
     :rtype: torch.Tensor
@@ -546,17 +702,26 @@ def targets_conv(
             off_target=off_target,
             firing_pattern=firing_pattern,
             interpolate=interpolate,
+            epsilon=epsilon,
         )
 
-    # uncomment this soon
-    # if code is "latency":
-    #     if not num_steps:
-    #         raise Exception("``num_steps`` must be passed if latency coding is used.")
-    #     return targets_latency(target=targets, num_classes=num_classes, num_steps=num_steps, first_spike_time = 0, on_target=on_target, off_target=off_target, interpolate=interpolate, smoothing=smoothing)
-    # q: how do we use interp for latency?
-    # if code is "latency":
-    #     return targets_latency(targets=targets, num_classes=num_classes, num_steps=num_steps, on_target=on_target, off_target=off_target, interpolate=interpolate, smoothing=smoothing)
-    # targets = to_one_hot(targets, num_classes, on_target, off_target).repeat(tuple([num_steps] + torch.ones(len(targets.size()), dtype=int).tolist()))
+    # do we need num_steps
+    elif code == "latency":
+        return targets_latency(
+            targets,
+            num_classes,
+            num_steps=num_steps,
+            threshold=threshold,
+            tau=tau,
+            first_spike_time=first_spike_time,
+            clip=clip,
+            normalize=normalize,
+            linear=linear,
+            bypass=bypass,
+        )
+
+    else:
+        raise Exception(f"code ['{code}'] must be either 'rate' or 'latency'")
 
 
 def targets_rate(
@@ -570,6 +735,7 @@ def targets_rate(
     off_target=0,
     firing_pattern="regular",
     interpolate=False,
+    epsilon=1e-7,
 ):
 
     """Spike rate encoding of targets. Input tensor must be one-dimensional with target indexes.
@@ -637,6 +803,9 @@ def targets_rate(
 
     :param interpolate: Applies linear interpolation such that there is a gradually increasing target up to each spike, defaults to ``False``
     :type interpolate: Bool, optional
+
+    :param epsilon:  A tiny positive value to avoid rounding errors when using torch.arange, defaults to ``1e-7``
+    :type epsilon: float, optional
 
     :return: rate coded target of output neurons. If targets are time-varying, the output tensor will use time-first dimensions. Otherwise, time is omitted from the tensor.
     :rtype: torch.Tensor
@@ -745,6 +914,7 @@ def targets_rate(
                     num_steps=num_steps,
                     on_target=on_target,
                     off_target=off_target,
+                    epsilon=epsilon,
                 )
                 .to(device)
                 .unsqueeze(-1)
@@ -756,6 +926,7 @@ def targets_rate(
                     num_steps=num_steps,
                     on_target=on_target,
                     off_target=off_target,
+                    epsilon=epsilon,
                 )
                 .to(device)
                 .unsqueeze(-1)
@@ -782,8 +953,6 @@ def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regu
 
         spikegen.target_rate_code(num_steps=5, rate=0.3, firing_pattern="poisson")
         >>> (tensor([0., 1., 0., 1., 0.]), tensor([1, 3]))
-
-
 
     :param num_steps: Number of time steps, defaults to ``False``
     :type num_steps: int, optional
@@ -847,7 +1016,7 @@ def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regu
         return spike_targets, torch.where(spike_targets == 1)[0]
 
 
-def rate_interpolate(spike_times, num_steps, on_target=1, off_target=0, epsilon=1e-7):
+def rate_interpolate(spike_time, num_steps, on_target=1, off_target=0, epsilon=1e-7):
     """Apply linear interpolation to a tensor of target spike times to enable gradual increasing membrane.
 
     Example::
@@ -859,7 +1028,7 @@ def rate_interpolate(spike_times, num_steps, on_target=1, off_target=0, epsilon=
         spikegen.rate_interpolate(a, num_steps=5, on_target=1.25, off_target=0.25)
         >>> tensor([1.2500, 0.2500, 0.5833, 0.9167, 1.2500])
 
-    :param spike_times: spike time targets in terms of steps
+    :param spike_time: spike time targets in terms of steps
     :type targets: torch.Tensor
 
     :param num_steps: Number of time steps, defaults to ``False``
@@ -880,7 +1049,7 @@ def rate_interpolate(spike_times, num_steps, on_target=1, off_target=0, epsilon=
     """
 
     # if no spikes
-    if not spike_times.numel():
+    if not spike_time.numel():
         return torch.ones((num_steps)) * off_target
 
     current_time = -1
@@ -888,7 +1057,7 @@ def rate_interpolate(spike_times, num_steps, on_target=1, off_target=0, epsilon=
     interpolated_targets = torch.Tensor([])
 
     for step in range(num_steps):
-        if step in spike_times:
+        if step in spike_time:
             if step == (current_time + 1):
                 interpolated_targets = torch.cat(
                     (interpolated_targets, torch.Tensor([on_target]))
@@ -906,12 +1075,198 @@ def rate_interpolate(spike_times, num_steps, on_target=1, off_target=0, epsilon=
                 )
             current_time = step
 
-    if torch.max(spike_times) < num_steps - 1:
-        for step in range(int(torch.max(spike_times).item()), num_steps - 1):
+    if torch.max(spike_time) < num_steps - 1:
+        for step in range(int(torch.max(spike_time).item()), num_steps - 1):
             interpolated_targets = torch.cat(
                 (interpolated_targets, torch.Tensor([off_target]))
             )
     return interpolated_targets
+
+
+def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
+
+    """Apply linear interpolation to a tensor of target spike times to enable gradual increasing membrane.
+    Each spike is assumed to occur from a separate neuron.
+
+    Example::
+
+        a = torch.Tensor([0, 4])
+        spikegen.latency_interpolate(a, num_steps=5)
+        >>> tensor([[1.0000, 0.0000],
+                    [0.0000, 0.2500],
+                    [0.0000, 0.5000],
+                    [0.0000, 0.7500],
+                    [0.0000, 1.0000]])
+
+        spikegen.latency_interpolate(a, num_steps=5, on_target=1.25, off_target=0.25)
+        >>> tensor([[1.2500, 0.2500],
+                    [0.2500, 0.5000],
+                    [0.2500, 0.7500],
+                    [0.2500, 1.0000],
+                    [0.2500, 1.2500]])
+
+    :param spike_time: spike time targets in terms of steps
+    :type targets: torch.Tensor
+
+    :param num_steps: Number of time steps, defaults to ``False``
+    :type num_steps: int, optional
+
+    :param on_target: Target at spike times, defaults to ``1``
+    :type on_target: float, optional
+
+    :param off_target: Target during refractory period, defaults to ``0``
+    :type off_target: float, optional
+
+    :return: interpolated target of output neurons. Output tensor will use time-first dimensions.
+    :rtype: torch.Tensor
+
+    """
+
+    if on_target < off_target:
+        raise Exception(
+            f"``on_target`` [{on_target}] must be greater than ``off_target`` [{off_target}]."
+        )
+
+    device = torch.device("cuda") if spike_time.is_cuda else torch.device("cpu")
+
+    spike_time = torch.round(
+        spike_time
+    ).float()  # Needs to be float as 0s and out-of-bounds spikes are set to 0.5
+
+    spike_time[
+        spike_time > num_steps
+    ] = 0.5  # avoid div by 0. instead setting spike time to < 1 --> (step/spike_time) > 1, which gets clipped.
+
+    # check if i can replace the following with torch.Tensor() w/the size below, coz i dont use the ones yet
+    interpolated_targets = torch.ones(
+        (tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device
+    )
+
+    # offset skips first step if a 0 spike occurs. must be handled separately to avoid div by zero.
+    offset = 0
+    # index into first step
+    if 0 in spike_time:
+        interpolated_targets[0] = torch.where(
+            spike_time == 0, interpolated_targets[0], interpolated_targets[0] * 0
+        )  # replace 0's with ones for first spike time, others with 0s
+        spike_time[spike_time == 0] = 0.5
+        offset = 1
+
+    # i.e., when step/spike_time=1
+    for step in range(num_steps - offset):
+        interpolated_targets[step + offset] = (step + offset) / spike_time
+
+    # next we clamp those that exceed 1, and rescale
+    interpolated_targets = interpolated_targets * (on_target - off_target) + off_target
+    interpolated_targets[interpolated_targets > on_target] = off_target
+
+    return interpolated_targets
+
+
+def targets_latency(
+    targets,
+    num_classes,
+    num_steps=False,
+    first_spike_time=0,
+    on_target=1,
+    off_target=0,
+    interpolate=False,
+    threshold=0.01,
+    tau=1,
+    clip=False,
+    normalize=False,
+    linear=False,
+    epsilon=1e-7,
+    bypass=False,
+):
+
+    """Latency encoding of target labels. Use target labels to determine time-to-first spike. Expected input is index of correct class.
+    The index is one-hot-encoded before being passed to ``spikegen.latency``.
+
+    Assume a LIF neuron model that charges up with time constant tau. Tensor dimensions use time first.
+
+    Example::
+
+        a = torch.Tensor([0, 3])
+        spikegen.targets_latency(a, num_classes=4, num_steps=5, normalize=True).size()
+        >>> torch.Size([5, 2, 4])
+
+        # time evolution of correct neuron class
+        spikegen.targets_latency(a, num_classes=4, num_steps=5, normalize=True)[:, 0, 0]
+        >>> tensor([1., 0., 0., 0., 0.])
+
+        # time evolution of incorrect neuron class
+        spikegen.targets_latency(a, num_classes=4, num_steps=5, normalize=True)[:, 0, 1]
+        >>> tensor([0., 0., 0., 0., 1.])
+
+        # correct class w/interpolation
+        spikegen.targets_latency(a, num_classes=4, num_steps=5, normalize=True, interpolate=True)[:, 0, 0]
+        >>> tensor([1., 0., 0., 0., 0.])
+
+        # incorrect class w/interpolation
+        spikegen.targets_latency(a, num_classes=4, num_steps=5, normalize=True, interpolate=True)[:, 0, 1]
+        >>> tensor([0.0000, 0.2500, 0.5000, 0.7500, 1.0000])
+
+    :param targets: Target tensor for a single batch. The target should be a class index in the range [0, C-1] where C=number of classes.
+    :type targets: torch.Tensor
+
+    :param num_classes: Number of outputs.
+    :type num_classes: int
+
+    :param num_steps: Number of time steps. Explicitly needed if ``normalize=True``, defaults to ``False`` (then changed to ``1`` if ``normalize=False``)
+    :type num_steps: int, optional
+
+    :param first_spike_time: Time to first spike, defaults to ``0``.
+    :type first_spike_time: int, optional
+
+    :param on_target: Target at spike times, defaults to ``1``
+    :type on_target: float, optional
+
+    :param off_target: Target during refractory period, defaults to ``0``
+    :type off_target: float, optional
+
+    :param interpolate: Applies linear interpolation such that there is a gradually increasing target up to each spike, defaults to ``False``
+    :type interpolate: Bool, optional
+
+    :param threshold: Input features below the threhold will fire at the final time step unless ``clip=True`` in which case they will not fire at all, defaults to ``0.01``
+    :type threshold: float, optional
+
+    :param tau:  RC Time constant for LIF model used to calculate firing time, defaults to ``1``
+    :type tau: float, optional
+
+    :param clip: Option to remove spikes from features that fall below the threshold, defaults to ``False``
+    :type clip: Bool, optional
+
+    :param normalize: Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
+    :type normalize: Bool, optional
+
+    :param linear: Apply a linear latency code rather than the default logarithmic code, defaults to ``False``
+    :type linear: Bool, optional
+
+    :param bypass: Used to block error messages that occur from either: i) spike times exceeding the bounds of ``num_steps``, or ii) if ``num_steps`` is not specified, setting ``bypass=True`` allows the largest spike time to set ``num_steps``. Defaults to ``False``
+    :type bypass: bool, optional
+
+    :param epsilon: A tiny positive value to avoid rounding errors when using torch.arange, defaults to ``1e-7``
+    :type epsilon: float, optional
+
+    :return: latency encoding spike train of features or labels
+    :rtype: torch.Tensor
+    """
+    return latency(
+        to_one_hot(targets, num_classes),
+        num_steps=num_steps,
+        first_spike_time=first_spike_time,
+        on_target=on_target,
+        off_target=off_target,
+        interpolate=interpolate,
+        threshold=threshold,
+        tau=tau,
+        clip=clip,
+        normalize=normalize,
+        linear=linear,
+        bypass=bypass,
+        epsilon=epsilon,
+    )
 
 
 def to_one_hot_inverse(one_hot_targets):

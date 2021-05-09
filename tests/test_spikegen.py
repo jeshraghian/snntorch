@@ -29,18 +29,19 @@ def test_rate2(test_input, expected):
     assert spikegen.rate(test_input, first_spike_time=3, num_steps=5).sum() == expected
 
 
-@pytest.mark.parametrize("test_input, expected", [(input_(0), 0), (input_(1), 1)])
+@pytest.mark.parametrize("test_input, expected", [(input_(0), 1), (input_(1), 1)])
 def test_latency(test_input, expected):
-    assert spikegen.latency(test_input) == expected
+    assert spikegen.latency(test_input, bypass=True).sum() == expected
 
 
 @pytest.mark.parametrize(
-    "test_input, expected", [(input_(0), (5.0, True)), (input_(1), (5.0, False))]
+    "test_input, expected", [(input_(0), (16, True)), (input_(1), (5, False))]
 )
 def test_latency_code(test_input, expected):
-    assert (
-        spikegen.latency_code(test_input, first_spike_time=5, num_steps=10) == expected
+    spike_time, idx = spikegen.latency_code(
+        test_input, first_spike_time=5, num_steps=10
     )
+    assert tuple((spike_time.long(), idx)) == expected
 
 
 @pytest.mark.parametrize(
@@ -65,7 +66,7 @@ def test_from_one_hot(test_input, expected):
 def test_target_rate(test_input, expected):
     assert torch.all(
         torch.eq(
-            spikegen.targets_conv(test_input, num_classes=5, code="rate"), expected
+            spikegen.targets_convert(test_input, num_classes=5, code="rate"), expected
         )
     )
 
@@ -77,7 +78,7 @@ def test_target_rate(test_input, expected):
 def test_target_rate2(test_input, expected):
     assert torch.all(
         torch.eq(
-            spikegen.targets_conv(
+            spikegen.targets_convert(
                 test_input, num_classes=5, code="rate", num_steps=5, first_spike_time=2
             )[:, 0, 4],
             expected,
