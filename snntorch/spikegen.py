@@ -416,10 +416,6 @@ def latency_code(
 
     idx = data < threshold
 
-    data = torch.clamp(
-        data, threshold + epsilon
-    )  # saturates all values below threshold.
-
     if not linear:
         spike_time = latency_code_log(
             data,
@@ -428,6 +424,7 @@ def latency_code(
             tau=tau,
             first_spike_time=first_spike_time,
             normalize=normalize,
+            epsilon=epsilon,
         )
 
     elif linear:
@@ -512,6 +509,7 @@ def latency_code_log(
     tau=1,
     first_spike_time=0,
     normalize=False,
+    epsilon=1e-7,
 ):
 
     """Logarithmic latency encoding of input data. Convert input features or target labels to spike times.
@@ -540,6 +538,9 @@ def latency_code_log(
     :param normalize: Option to normalize the latency code such that the final spike(s) occur within num_steps, defaults to ``False``
     :type normalize: Bool, optional
 
+    :param epsilon: A tiny positive value to avoid rounding errors when using torch.arange, defaults to ``1e-7``
+    :type epsilon: float, optional
+
     :return: logarithmic latency encoding spike times of features
     :rtype: torch.Tensor
 
@@ -548,6 +549,10 @@ def latency_code_log(
     _latency_errors(
         data, num_steps, threshold, tau, first_spike_time, normalize
     )  # error checks
+
+    data = torch.clamp(
+        data, threshold + epsilon
+    )  # saturates all values below threshold.
 
     spike_time = tau * torch.log(data / (data - threshold))
 
@@ -1137,7 +1142,6 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
         spike_time > num_steps
     ] = 0.5  # avoid div by 0. instead setting spike time to < 1 --> (step/spike_time) > 1, which gets clipped.
 
-    # check if i can replace the following with torch.Tensor() w/the size below, coz i dont use the ones yet
     interpolated_targets = torch.ones(
         (tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device
     )
