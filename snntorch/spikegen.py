@@ -569,7 +569,7 @@ def latency_code_log(
 
 def _latency_errors(data, num_steps, threshold, tau, first_spike_time, normalize):
 
-    """Catches errors for spike time encoding latency functions ``latency_code_linear`` and ``latency_code_log``"""
+    """Catch errors for spike time encoding latency functions ``latency_code_linear`` and ``latency_code_log``"""
 
     if (
         threshold <= 0 or threshold >= 1
