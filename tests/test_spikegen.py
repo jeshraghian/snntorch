@@ -84,3 +84,102 @@ def test_target_rate2(test_input, expected):
             expected,
         )
     )
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [(input_(4), input_([[0], [0.25], [0.5], [0.75], [1]]))],
+)
+def test_latency_interpolate(test_input, expected):
+    assert torch.all(
+        torch.eq(spikegen.latency_interpolate(test_input, num_steps=5), expected)
+    )
+
+
+# note: .squeeze(0) just makes it easier to parametrize from input_
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [(input_([0, 1]), input_([[1, 0], [0, 1]]))],
+)
+def test_to_one_hot(test_input, expected):
+    assert torch.all(torch.eq(spikegen.to_one_hot(test_input.squeeze(0), 2), expected))
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [(input_([0, 1]), input_([[0, 1], [1, 0]]))],
+)
+def test_to_one_hot_inverse(test_input, expected):
+    assert torch.all(
+        torch.eq(
+            spikegen.to_one_hot_inverse(spikegen.to_one_hot(test_input.squeeze(0), 2)),
+            expected,
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "test_input, expected_1, expected_2",
+    [
+        (
+            input_([0, 1]),
+            input_([1.0, 0.0, 0.0, 0.0, 0.0]),
+            input_([0.0, 0.0, 0.0, 0.0, 1.0]),
+        )
+    ],
+)
+def test_targets_latency(test_input, expected_1, expected_2):
+    targets = spikegen.targets_latency(
+        test_input.squeeze(0), num_classes=2, num_steps=5, normalize=True
+    ).squeeze(0)
+    assert torch.all(torch.eq(targets[:, 0, 0], expected_1))
+    assert torch.all(torch.eq(targets[:, 0, 1], expected_2))
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [(input_(4), input_([0, 0.25, 0.5, 0.75, 1]))],
+)
+def test_rate_interpolate(test_input, expected):
+    assert torch.all(
+        torch.eq(spikegen.rate_interpolate(test_input, num_steps=5), expected)
+    )
+
+
+@pytest.mark.parametrize(
+    "expected_1, expected_2",
+    [(input_([1, 0, 1, 0, 1]), input_([0, 2, 4]))],
+)
+def test_target_rate_code(expected_1, expected_2):
+    targets, idx = spikegen.target_rate_code(num_steps=5, rate=0.5)
+    assert torch.all(torch.eq(targets, expected_1))
+    assert torch.all(torch.eq(idx, expected_2))
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [(input_([0, 1]), input_([2.99, 2.00]))],
+)
+def test_latency_code_linear(test_input, expected):
+    # assert torch.all(torch.eq(spikegen.latency_code_linear(torch.clamp(test_input, 0.01), num_steps=5, first_spike_time=2), expected))
+    assert torch.all(
+        torch.eq(
+            spikegen.latency_code_linear(test_input, num_steps=5, first_spike_time=2),
+            expected,
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [(input_([0, 1]), input_([14, 2]))],
+)
+def test_latency_code_log(test_input, expected):
+    assert torch.all(
+        torch.eq(
+            torch.round(
+                spikegen.latency_code_log(test_input, num_steps=5, first_spike_time=2)
+            ),
+            expected,
+        )
+    )
