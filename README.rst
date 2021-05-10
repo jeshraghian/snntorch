@@ -15,7 +15,7 @@ Introduction
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/snntorch_alpha.png?raw=true
         :align: center
-        :scale: 50%
+        :scale: 0.5
 
 
 The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
@@ -26,7 +26,7 @@ computation. Pre-designed spiking neuron models are seamlessly integrated within
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/spike-excitation.gif?raw=true
         :align: center
-        :scale: 50%
+        :scale: 0.5
 
 snnTorch Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^
