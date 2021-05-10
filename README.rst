@@ -16,6 +16,7 @@ Introduction
         
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/snntorch_alpha_scaled.png?raw=true
         :align: center
+        :width: 700
 
 
 The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
@@ -23,13 +24,13 @@ snnTorch is a Python package for performing gradient-based learning with spiking
 Rather than reinventing the wheel, it sits on top of PyTorch and takes advantage of its GPU accelerated tensor 
 computation. Pre-designed spiking neuron models are seamlessly integrated within the PyTorch framework and can be treated as recurrent activation units. 
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/readme/docs/_static/img/spike_excite_alpha_ps.gif?raw=true
-        :align: center
-        :width: 800
-
-.. .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/spike_excite_alpha_ps.gif?raw=true
+.. .. image:: https://github.com/jeshraghian/snntorch/blob/readme/docs/_static/img/spike_excite_alpha_ps.gif?raw=true
 ..         :align: center
 ..         :width: 800
+
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/spike_excite_alpha_ps.gif?raw=true
+        :align: center
+        :width: 800
 
 snnTorch Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^
