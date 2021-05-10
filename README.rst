@@ -22,7 +22,7 @@ snnTorch is a Python package for performing gradient-based learning with spiking
 Rather than reinventing the wheel, it sits on top of PyTorch and takes advantage of its GPU accelerated tensor 
 computation. Pre-designed spiking neuron models are seamlessly integrated within the PyTorch framework and can be treated as recurrent activation units. 
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/readme/docs/_static/img/spike_excitation_scaled.gif?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/readme/docs/_static/img/spike_excite_width.gif?raw=true
         :align: center
 
 snnTorch Structure
