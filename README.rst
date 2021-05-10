@@ -13,7 +13,7 @@ Introduction
         :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://github.com/jeshraghian/snntorch/tree/readme/docs/_static/img/snntorch_alpha_scaled.png?raw=true
+.. image:: https://raw.githubusercontent.com/jeshraghian/snntorch/readme/docs/_static/img/snntorch_alpha_scaled.png
         :align: center
         :width: 400
 
