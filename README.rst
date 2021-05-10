@@ -15,7 +15,6 @@ Introduction
 
 .. image:: https://raw.githubusercontent.com/jeshraghian/snntorch/readme/docs/_static/img/snntorch_alpha_scaled.png
         :align: center
-        :width: 400
 
 
 The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
