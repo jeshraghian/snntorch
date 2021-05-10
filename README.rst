@@ -24,7 +24,7 @@ Rather than reinventing the wheel, it sits on top of PyTorch and takes advantage
 computation. Pre-designed spiking neuron models are seamlessly integrated within the PyTorch framework and can be treated as recurrent activation units. 
 
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/spike_excitation.gif?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/spike-excitation.gif?raw=true
         :align: center
         :width: 200
 
