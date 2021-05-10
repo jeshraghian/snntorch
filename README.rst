@@ -25,7 +25,7 @@ computation. Pre-designed spiking neuron models are seamlessly integrated within
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/spike_excite.gif?raw=true
         :align: center
-        :width: 300
+        :width: 200
 
 snnTorch Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^
