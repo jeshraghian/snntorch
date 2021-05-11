@@ -41,21 +41,21 @@ class LIF(nn.Module):
                 "reset_mechanism must be set to either 'subtract' or 'zero'."
             )
 
-    def fire(self, mem):
+    def fire(self, mem, **kwargs):
         """Generates spike if mem > threshold.
         Returns spk and reset."""
         mem_shift = mem - self.threshold
-        spk = self.spike_grad(mem_shift).to(device)
+        spk = self.spike_grad(mem_shift, **kwargs).to(device)
         reset = spk.clone().detach()
 
         return spk, reset
 
-    def fire_inhibition(self, batch_size, mem):
+    def fire_inhibition(self, batch_size, mem, **kwargs):
         """Generates spike if mem > threshold, only for the largest membrane. All others neurons will be inhibited for that time step.
         Returns spk and reset."""
         mem_shift = mem - self.threshold
         index = torch.argmax(mem_shift, dim=1)
-        spk_tmp = self.spike_grad(mem_shift)
+        spk_tmp = self.spike_grad(mem_shift, **kwargs)
 
         mask_spk1 = torch.zeros_like(spk_tmp)
         mask_spk1[torch.arange(batch_size), index] = 1
@@ -261,12 +261,12 @@ class Stein(LIF):
                     "batch_size must be specified to enable firing inhibition."
                 )
 
-    def forward(self, input_, syn, mem):
+    def forward(self, input_, syn, mem, **kwargs):
         if not self.hidden_init:
             if self.inhibition:
-                spk, reset = self.fire_inhibition(self.batch_size, mem)
+                spk, reset = self.fire_inhibition(self.batch_size, mem, **kwargs)
             else:
-                spk, reset = self.fire(mem)
+                spk, reset = self.fire(mem, **kwargs)
             syn = self.alpha * syn + input_
 
             if self.reset_mechanism == "subtract":
@@ -470,12 +470,12 @@ class Lapicque(LIF):
                     "batch_size must be specified to enable firing inhibition."
                 )
 
-    def forward(self, input_, mem):
+    def forward(self, input_, mem, **kwargs):
         if not self.hidden_init:
             if self.inhibition:
-                spk, reset = self.fire_inhibition(self.batch_size, mem)
+                spk, reset = self.fire_inhibition(self.batch_size, mem, **kwargs)
             else:
-                spk, reset = self.fire(mem)
+                spk, reset = self.fire(mem, **kwargs)
 
             if self.reset_mechanism == "subtract":
                 mem = (
@@ -675,16 +675,16 @@ class SRM0(LIF):
 
         self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
 
-    def forward(self, input_, syn_pre, syn_post, mem):
+    def forward(self, input_, syn_pre, syn_post, mem, **kwargs):
 
         # if hidden states are passed externally
         if not self.hidden_init:
 
             if self.inhibition:
-                spk, reset = self.fire_inhibition(self.batch_size, mem)
+                spk, reset = self.fire_inhibition(self.batch_size, mem, **kwargs)
 
             else:
-                spk, reset = self.fire(mem)
+                spk, reset = self.fire(mem, **kwargs)
 
             # if neuron fires, subtract threhsold from neuron
             if self.reset_mechanism == "subtract":
