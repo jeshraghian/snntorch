@@ -111,19 +111,18 @@ class SpikeRateEscape(torch.autograd.Function):
 
     * Wulfram Gerstner and Werner M. Kistler, Spiking neuron models: Single neurons, populations, plasticity. Cambridge University Press, 2002.*"""
 
-    def __init__(self, beta=1):
-        self.beta = beta
-
     @staticmethod
-    def forward(ctx, input_):
+    def forward(ctx, input_, beta=1):
         ctx.save_for_backward(input_)
+        ctx.beta = beta
         out = (input_ > 0).float()
         return out
 
-    def backward(self, ctx, grad_output):
+    def backward(ctx, grad_output):
         (input_,) = ctx.saved_tensors
+        beta = ctx.beta
         grad_input = grad_output.clone()
-        grad = grad_input * slope * torch.exp(-self.beta * torch.abs(input_ - 1))
+        grad = grad_input * slope * torch.exp(-beta * torch.abs(input_ - 1))
         return grad
 
 
@@ -149,18 +148,18 @@ class SpikeOperator(torch.autograd.Function):
                 """
 
     @staticmethod
-    def forward(ctx, input_):
-        ctx.save_for_backward(input_)
+    def forward(ctx, input_, threshold=1):
         out = (input_ > 0).float()
+        ctx.save_for_backward(input_, out)
+        ctx.threshold = threshold
         return out
 
     @staticmethod
     def backward(ctx, grad_output):
-        (input_,) = ctx.saved_tensors
+        (input_, out) = ctx.saved_tensors
+        threshold = ctx.threshold
         grad_input = grad_output.clone()
-        input_[input_ > 0] = grad_input / input_
-        input_[input_ <= 0] = 0
-        grad = input_.clone()
+        grad = (grad_input * out) / (input_ + threshold)
         return grad
 
 
@@ -175,10 +174,10 @@ class StochasticSpikeOperator(torch.autograd.Function):
             0 & \\text{if U < U$_{\\rm thr}$}
             \\end{cases}
 
-    **Backward pass:** Gradient of spike operator with uniformly distributed noise on the interval :math:`[-0.25, 0.25) × var`  for subthreshold membrane potentials.
+    **Backward pass:** Gradient of spike operator with uniformly distributed noise on the interval :math:`\\mathcal{U}`[-0.25, 0.25) × var  for subthreshold membrane potentials.
 
         .. math::
-
+it s
                 S&≈\\frac{U(t)}{U} \\\\
 
                 \\frac{∂S}{∂U}=\\begin{cases} \\frac{1}{U} \\text{if U ≥ U$_{\\rm thr}$} \\\\
@@ -186,24 +185,25 @@ class StochasticSpikeOperator(torch.autograd.Function):
                 \\end{cases}
                 """
 
-    def __init__(self, var=0.25):
-        super(StochasticSpikeOperator, self).__init__(var)
-
-        self.var = var
-
     @staticmethod
-    def forward(ctx, input_):
-        ctx.save_for_backward(input_)
+    def forward(ctx, input_, threshold=1, variance=0.25):
         out = (input_ > 0).float()
+        ctx.save_for_backward(input_, out)
+        ctx.threshold = threshold
+        ctx.variance = variance
         return out
 
     @staticmethod
-    def backward(self, ctx, grad_output):
-        (input_,) = ctx.saved_tensors
+    def backward(ctx, grad_output):
+        (input_, out) = ctx.saved_tensors
+        threshold = ctx.threshold
+        variance = ctx.variance
         grad_input = grad_output.clone()
-        input_[input_ > 0] = grad_input / input_
-        input_[input_ <= 0] = (torch.rand(input_.size()) - 0.5) * self.var
-        grad = input_.clone()
+        grad = (grad_input * out) / (input_ + threshold) + (
+            grad_input * (~out.bool()).float()
+        ) * ((torch.rand_like(input_) - 0.5) * variance)
+        # grad += ((torch.rand(input_.size()) - 0.5) * variance) * (~grad.bool()).float()
+
         return grad
 
 
@@ -227,24 +227,21 @@ class LocalStochasticSpikeOperator(torch.autograd.Function):
                 \\end{cases}
                 """
 
-    def __init__(self, var=0.25):
-        super(StochasticSpikeOperator, self).__init__(var)
-
-        self.var = var
-
     @staticmethod
-    def forward(ctx, input_):
-        ctx.save_for_backward(input_)
+    def forward(ctx, input_, variance=0.1):
         out = (input_ > 0).float()
+        ctx.save_for_backward(input_, out)
+        ctx.variance = variance
         return out
 
     @staticmethod
-    def backward(self, ctx, grad_output):
-        (input_,) = ctx.saved_tensors
+    def backward(ctx, grad_output):
+        (input_, out) = ctx.saved_tensors
+        variance = ctx.variance
         grad_input = grad_output.clone()
-        input_[input_ > 0] = grad_input
-        input_[input_ <= 0] = (torch.rand(input_.size()) - 0.5) * self.var
-        grad = input_.clone()
+        grad = grad_input * out + (grad_input * (~out.bool()).float()) * (
+            (torch.rand_like(input_) - 0.5) * variance
+        )
         return grad
 
 
@@ -270,25 +267,19 @@ class LeakyLocalSpikeOperator(torch.autograd.Function):
 
         Same rationale as the Heaviside gradient, but with the Leaky ReLU gradient."""
 
-    def __init__(self, leaky=0.25):
-
-        super(LeakyLocalSpikeOperator, self).__init__(leaky)
-
-        self.leaky = leaky
-
     @staticmethod
-    def forward(ctx, input_):
+    def forward(ctx, input_, leaky=0.1):
         out = (input_ > 0).float()
         ctx.save_for_backward(out)
+        ctx.leaky = leaky
         return out
 
     @staticmethod
-    def backward(self, ctx, grad_output):
-        (input_,) = ctx.saved_tensors
+    def backward(ctx, grad_output):
+        (out,) = ctx.saved_tensors
+        leaky = ctx.leaky
         grad_input = grad_output.clone()
-        input_[input_ > 0] = grad_input
-        input_[input_ <= 0] = grad_input * self.leaky
-        grad = input_.clone()
+        grad = grad_input * out + (~out.bool()).float() * leaky * grad_input
         return grad
 
 
