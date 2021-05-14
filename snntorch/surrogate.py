@@ -271,7 +271,7 @@ class StochasticSpikeOperator(torch.autograd.Function):
             grad_input * (~out.bool()).float()
         ) * ((torch.rand_like(input_) - 0.5 + ctx.mean) * ctx.variance)
 
-        return grad, None, None
+        return grad, None, None, None
 
 
 def SSO(threshold=1, mean=0, variance=0.25):
