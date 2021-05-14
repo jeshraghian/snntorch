@@ -87,6 +87,7 @@ celerybeat-schedule
 .venv
 venv/
 ENV/
+snnenv/
 
 # Spyder project settings
 .spyderproject
@@ -108,3 +109,6 @@ ENV/
 tbptt_test/
 test_1.py
 temp/
+jupyter/
+jup-colab.cmd
+checkpoint.pt
