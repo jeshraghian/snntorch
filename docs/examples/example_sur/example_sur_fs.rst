@@ -4,8 +4,7 @@ Fast Sigmoid
 
 There are two ways to apply the Fast Sigmoid surrogate gradient:
 
-Example::
-
+.. code-block:: python
         
         import torch.nn as nn
         import snntorch as snn

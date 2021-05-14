@@ -4,7 +4,7 @@ Spike Rate Escape
 
 There are two ways to apply the Spike Rate Escape surrogate gradient:
 
-Example::
+.. code-block:: python
 
         
         import torch.nn as nn
@@ -20,7 +20,7 @@ Example::
 
 Example::
 
-        # Method 1 uses a closure to wrap around Spike Rate Escape, bundling it with the specified beta and slope before calling it
+        # Method 1 uses a closure to wrap around SpikeRateEscape, bundling it with the specified beta and slope before calling it
 
         # initialize layers
         fc1 = nn.Linear(num_inputs, num_hidden)
@@ -30,7 +30,7 @@ Example::
 
 Example::
 
-        # Method 2 applies the autograd inherited method directly, using the default value of slope=25
+        # Method 2 applies the autograd inherited method directly, using the default values of beta=1 and slope=25
         # The default value could also be called by specifying ``spike_rate_escape()`` instead
 
         # initialize layers

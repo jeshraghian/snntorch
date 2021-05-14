@@ -4,7 +4,7 @@ Sigmoid
 
 There are two ways to apply the Sigmoid surrogate gradient:
 
-Example::
+.. code-block:: python
 
         
         import torch.nn as nn

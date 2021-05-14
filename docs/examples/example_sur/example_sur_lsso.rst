@@ -4,7 +4,7 @@ Local Stochastic Spike Operator
 
 There are two ways to apply the Local Stochastic Spike Operator surrogate gradient:
 
-Example::
+.. code-block:: python
 
         
         import torch.nn as nn

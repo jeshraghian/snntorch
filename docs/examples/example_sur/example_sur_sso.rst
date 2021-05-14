@@ -4,7 +4,7 @@ Stochastic Spike Operator
 
 There are two ways to apply the Stochastic Spike Operator surrogate gradient:
 
-Example::
+.. code-block:: python
 
         
         import torch.nn as nn
@@ -30,7 +30,7 @@ Example::
 
 Example::
 
-        # Method 2 applies the autograd inherited method directly, using the default value of threshold=1, mean=0, variance=0.2
+        # Method 2 applies the autograd inherited method directly, using the default values of threshold=1, mean=0, variance=0.2
         # The default value could also be called by specifying ``SSO()`` instead
 
         # initialize layers

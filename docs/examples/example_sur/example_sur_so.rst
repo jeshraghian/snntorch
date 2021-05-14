@@ -4,7 +4,7 @@ Spike Operator
 
 There are two ways to apply the Spike Operator surrogate gradient:
 
-Example::
+.. code-block:: python
 
         
         import torch.nn as nn
