@@ -240,14 +240,14 @@ class StochasticSpikeOperator(torch.autograd.Function):
 
     :math:`μ` defaults to 0, and can be modified by calling ``surrogate.SSO(mean=0)``.
 
-    :math:`σ^2` defaults to 0.5, and can be modified by calling ``surrogate.SSO(variance=0.5)``.
+    :math:`σ^2` defaults to 0.2, and can be modified by calling ``surrogate.SSO(variance=0.5)``.
 
     The above defaults set the gradient to the following expression:
 
     .. math::
 
                 \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{U}  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-                (𝒰\\sim[-0.25, 0.25) & \\text{if U < U$_{\\rm thr}$}
+                (𝒰\\sim[-0.1, 0.1) & \\text{if U < U$_{\\rm thr}$}
                 \\end{cases}
 
     .. warning:: ``threshold`` should match the threshold of the neuron, which defaults to 1 as well.
@@ -255,7 +255,7 @@ class StochasticSpikeOperator(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, input_, threshold=1, mean=0, variance=0.25):
+    def forward(ctx, input_, threshold=1, mean=0, variance=0.2):
         out = (input_ > 0).float()
         ctx.save_for_backward(input_, out)
         ctx.threshold = threshold
@@ -274,7 +274,7 @@ class StochasticSpikeOperator(torch.autograd.Function):
         return grad, None, None
 
 
-def SSO(threshold=1, mean=0, variance=0.25):
+def SSO(threshold=1, mean=0, variance=0.2):
     """Stochastic spike operator gradient enclosed with a parameterized threshold, mean and variance."""
     threshold = threshold
     mean = mean
@@ -311,20 +311,20 @@ class LocalStochasticSpikeOperator(torch.autograd.Function):
 
     :math:`μ` defaults to 0, and can be modified by calling ``surrogate.LSSO(mean=0)``.
 
-    :math:`σ^2` defaults to 0.5, and can be modified by calling ``surrogate.LSSO(variance=0.5)``.
+    :math:`σ^2` defaults to 0.2, and can be modified by calling ``surrogate.LSSO(variance=0.5)``.
 
     The above defaults set the gradient to the following expression:
 
     .. math::
 
                 \\frac{∂S}{∂U}&=\\begin{cases} 1  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-                (𝒰\\sim[-0.25, 0.25) & \\text{if U < U$_{\\rm thr}$}
+                (𝒰\\sim[-0.1, 0.1) & \\text{if U < U$_{\\rm thr}$}
                 \\end{cases}
 
     """
 
     @staticmethod
-    def forward(ctx, input_, mean=0, variance=0.1):
+    def forward(ctx, input_, mean=0, variance=0.2):
         out = (input_ > 0).float()
         ctx.save_for_backward(input_, out)
         ctx.mean = mean
@@ -341,7 +341,7 @@ class LocalStochasticSpikeOperator(torch.autograd.Function):
         return grad, None, None
 
 
-def LSSO(mean=0, variance=0.25):
+def LSSO(mean=0, variance=0.2):
     """Local stochastic spike operator gradient enclosed with a parameterized mean and variance."""
     mean = mean
     variance = variance

@@ -105,7 +105,7 @@ Here are a few ways you can get started with snnTorch:
 * `Tutorials`_
 
 .. _The API Reference: https://snntorch.readthedocs.io/
-.. _Examples: https://snntorch.readthedocs.io/en/latest/examples.html
+.. _Examples: https://snntorch.readthedocs.io/en/latest/examples/index.html
 .. _Tutorials: https://snntorch.readthedocs.io/en/latest/tutorials/index.html
 
 
