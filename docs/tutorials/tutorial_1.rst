@@ -6,11 +6,11 @@ Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.j
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
-        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_1_spikegen.ipynb
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_1_spikegen.ipynb
 
 .. note::
   This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
-    * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_1_spikegen.ipynb>`_
+    * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_1_spikegen.ipynb>`_
     * `Local Notebook (download via GitHub) <https://github.com/jeshraghian/snntorch/tree/master/examples>`_
 
 Spike Encoding and Visualization
