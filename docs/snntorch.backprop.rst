@@ -7,7 +7,7 @@ How to use backprop
 ^^^^^^^^^^^^^^^^^^^^^^^^
 To use :mod:`snntorch.backprop` you must first construct a network, determine a loss criterion, and select an optimizer. When initializing neurons, set ``hidden_init=True``. This enables the methods in :mod:`snntorch.backprop` to automatically clear the hidden state variables, as well as detach them from the computational graph when necessary.
 
-.. note:: The first dimension of input ``data`` is assumed to be time. The built-in backprop functions iterate through the first dimension of ``data`` by default. For time-invariant inputs, set ``data_time=False``.
+.. note:: The first dimension of input ``data`` is assumed to be time. The built-in backprop functions iterate through the first dimension of ``data`` by default. For time-invariant inputs, set ``time_varying_data=False``.
 
 Example::
 
@@ -21,7 +21,7 @@ Example::
       
       # Time-invariant input data
       for input, targets in dataset:
-         loss = BPTT(net, input, target, num_steps, batch_size, optimizer, criterion, data_time=False)
+         loss = BPTT(net, input, target, num_steps, batch_size, optimizer, criterion, time_varying_data=False)
 
 .. automodule:: snntorch.backprop
    :members:
