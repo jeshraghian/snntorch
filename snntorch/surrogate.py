@@ -404,5 +404,59 @@ def LLSO(slope=0.1):
     return inner
 
 
+class SparseFastSigmoid(torch.autograd.Function):
+    """
+    Surrogate gradient of the Heaviside step function.
+
+    **Forward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Gradient of fast sigmoid function clipped below B.
+
+        .. math::
+
+                S&≈\\frac{U}{1 + k|U|}H(U-B) \\\\
+                \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{(1+k|U|)^2} & \\text{\\rm if U > B}
+                0 & \\text{\\rm otherwise}
+
+    :math:`k` defaults to 25, and can be modified by calling ``surrogate.SFS(slope=25)``.
+    :math:`B` defaults to 1, and can be modified by calling ``surrogate.SFS(B=1)``.
+
+    Adapted from:
+
+    *N. Perez-Nieves and D.F.M. Goodman (2021) Sparse Spiking Gradient Descent. https://arxiv.org/pdf/2105.08810.pdf.*"""
+
+    @staticmethod
+    def forward(ctx, input_, slope=25, B=1):
+        ctx.save_for_backward(input_)
+        ctx.slope = slope
+        ctx.B=B
+        out = (input_ > 0).float()
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        (input_,) = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        grad = grad_input / (ctx.slope * torch.abs(input_) + 1.0) ** 2 * (input_ > ctx.B).float()
+        return grad, None, None
+
+
+def SFS(slope=25, B=1):
+    """SparseFastSigmoid surrogate gradient enclosed with a parameterized slope and sparsity threshold."""
+    slope = slope
+    B = B
+
+    def inner(x):
+        return SparseFastSigmoid.apply(x, slope, B)
+
+    return inner
+
+
 # piecewise linear func
 # tanh surrogate func
