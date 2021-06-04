@@ -12,4 +12,4 @@ Example::
         >>> torch.Size([100, 9])
 
         #  Plot
-        traces(mem_rec, dim=(3,3))
+        splt.traces(mem_rec, dim=(3,3))

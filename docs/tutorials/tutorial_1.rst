@@ -173,8 +173,8 @@ The module :code:`snntorch.spikegen` contains a series of functions that simplif
 2.1 Rate coding of MNIST
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Each input feature is used as the probability an event occurs, sampled from a binomial distribution. Formally, **X** is a matrix of random variables and **X**\~ :math:`B(n=1, p=x^{(i)})` where the
-**expected value** :math:`𝔼[`**X**:math:`]=x^{(i)}` is simply the probability that a spike is generated at any given time step.
+Each input feature is used as the probability an event occurs, sampled from a binomial distribution. Formally, **X** is a matrix of random variables and each element of **X**, :math:`X^{(i)}`, is sampled from the distribution using the original feature as the probability that a '1' occurs: :math:`X^{(i)}\sim B(n=1, p=x^{(i)})` where the
+**expected value** :math:`𝔼[X^{(i)}]=x^{(i)}` is simply the probability that a spike is generated at any given time step.
 
 For an MNIST image, this probability corresponds to the pixel value. A white pixel corresponds to a 100% probability of spiking, and a black pixel will never generate a spike.
 
@@ -350,7 +350,7 @@ The idea of rate coding is actually quite controversial. Multiple spikes are nee
 
 We know that the reaction time of a human is around 250ms. If the averaging firing rate of a neuron in the human brain is on the order of 10Hz, then we can only process about 2 spikes within our reaction timescale.
 
-On the other hand, biological neurons are somewhat stochastic. In fact,  neurons fail to fire around 70% of the time that our idealized models would have us believe. Spike rate coding offsets the power disadvantage by showing huge noise robustness: it's fine if some of the spikes fail to generte, because there will be plenty more where they came from.
+On the other hand, biological neurons are somewhat stochastic. In fact,  neurons fail to fire around 70% of the time that our idealized models would have us believe. Spike rate coding offsets the power disadvantage by showing huge noise robustness: it's fine if some of the spikes fail to generate, because there will be plenty more where they came from.
 
 Rate coding is almost certainly working in conjunction with other encoding schemes in the brain. We'll consider these other encoding mechanisms in the following sections. 
 
@@ -625,7 +625,7 @@ Although we have only shown :code:`spikegen.delta` on a fake sample of data, the
 
 That wraps up the three main spike conversion functions! There are still additional features to each of the three conversion techniques that have not been detailed in this tutorial. We recommend `referring to the documentation for a deeper dive <https://snntorch.readthedocs.io/en/latest/_modules/snntorch/spikegen.html>`_.
 
-1. Spike Generation
+3. Spike Generation
 ---------------------------------
 
 Now what if we don't actually have any data to start with? 
