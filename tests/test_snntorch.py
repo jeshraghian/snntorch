@@ -32,6 +32,21 @@ import torch
 
 
 @pytest.fixture(scope="module")
+def lif1_instance():
+    return snn.LIF1(beta=0.5)
+
+
+@pytest.fixture(scope="module")
+def lapicque_instance():
+    return snn.Lapicque(beta=0.5)
+
+
+@pytest.fixture(scope="module")
+def lif2_instance():
+    return snn.LIF2(alpha=0.5, beta=0.5)
+
+
+@pytest.fixture(scope="module")
 def stein_instance():
     return snn.Stein(alpha=0.5, beta=0.5)
 
@@ -45,6 +60,105 @@ def srm0_instance():
 def input_():
     return torch.Tensor([0.25, 0])
 
+
+class TestLIF1:
+    def test_lif1(self, lif1_instance, input_):
+        spk, mem = lif1_instance.init_lif1(1)
+        assert len(spk) == 1
+        assert len(mem) == 1
+
+        mem_rec = []
+        spk_rec = []
+
+        for i in range(2):
+            spk, mem = lif1_instance(input_[i], mem)
+            mem_rec.append(mem)
+            spk_rec.append(spk)
+
+        assert mem_rec[1] == mem_rec[0] * 0.5 + input_[1]
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_lif1_hidden_init(self):
+
+        with pytest.raises(ValueError):
+            snn.LIF1(beta=0.5, hidden_init=True)
+            snn.LIF1(beta=0.5, num_inputs=1, hidden_init=True)
+            snn.LIF1(beta=0.5, batch_size=1, hidden_init=True)
+
+        lif1 = snn.LIF1(
+            beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
+        )
+
+        assert lif1.spk == 0
+        assert lif1.mem == 0
+
+
+class TestLIF2:
+    def test_stein(self, lif2_instance, input_):
+        spk, syn, mem = lif2_instance.init_lif2(1)
+        assert len(spk) == 1
+        assert len(syn) == 1
+        assert len(mem) == 1
+
+        syn_rec = []
+        mem_rec = []
+        spk_rec = []
+
+        for i in range(2):
+            spk, syn, mem = lif2_instance(input_[i], syn, mem)
+            syn_rec.append(syn)
+            mem_rec.append(mem)
+            spk_rec.append(spk)
+
+        assert syn_rec[0] == 2 * syn_rec[1]
+        assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1]
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_lif2_hidden_init(self):
+
+        with pytest.raises(ValueError):
+            snn.LIF2(alpha=0.5, beta=0.5, hidden_init=True)
+            snn.LIF2(alpha=0.5, beta=0.5, num_inputs=1, hidden_init=True)
+            snn.LIF2(alpha=0.5, beta=0.5, batch_size=1, hidden_init=True)
+
+        lif2 = snn.LIF2(
+            alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
+        )
+
+        assert lif2.spk == 0
+        assert lif2.syn == 0
+        assert lif2.mem == 0
+
+class TestLapicque:
+    def test_lapicque(self, lapicque_instance, input_):
+        spk, mem = lapicque_instance.init_lapicque(1)
+        assert len(spk) == 1
+        assert len(mem) == 1
+
+        mem_rec = []
+        spk_rec = []
+
+        for i in range(2):
+            spk, mem = lapicque_instance(input_[i], mem)
+            mem_rec.append(mem)
+            spk_rec.append(spk)
+
+        assert mem_rec[1] == mem_rec[0] * (1 - (lapicque_instance.time_step / (lapicque_instance.R * lapicque_instance.C))) + input_[1] * lapicque_instance.R * (1 / lapicque_instance.R * lapicque_instance.C * lapicque_instance.time_step)
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_lapicque_hidden_init(self):
+
+        with pytest.raises(ValueError):
+            snn.Lapicque(beta=0.5, hidden_init=True)
+            snn.Lapicque(beta=0.5, num_inputs=1, hidden_init=True)
+            snn.Lapicque(beta=0.5, batch_size=1, hidden_init=True)
+
+        lapicque = snn.Lapicque(
+            beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
+        )
+
+        assert lapicque.spk == 0
+        assert lapicque.mem == 0
 
 class TestStein:
     def test_stein(self, stein_instance, input_):
