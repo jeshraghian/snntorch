@@ -1,8 +1,8 @@
-==================================================================
-Building Networks with Instance Variables: Stein's Neuron
-==================================================================
+=========================================================================
+Building Networks with Instance Variables: Conductance-based LIF Neuron
+=========================================================================
 
-Building a fully-connected network using Stein's neuron model.
+Building a fully-connected network using a Conductance-based neuron model.
 Using instance variables are only required when calling the built-in backprop methods in `snntorch.backprop`.
 
 Example::
@@ -31,9 +31,9 @@ Example::
             # initialize layers
             snn.LIF.clear_instances() # boilerplate
             self.fc1 = nn.Linear(num_inputs, num_hidden)
-            self.lif1 = snn.Stein(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, hidden_init=True)
+            self.lif1 = snn.Cond(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, hidden_init=True)
             self.fc2 = nn.Linear(num_hidden, num_outputs)
-            self.lif2 = snn.Stein(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, hidden_init=True)
+            self.lif2 = snn.Cond(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, hidden_init=True)
 
       # move the time-loop into the training-loop
       def forward(self, x):

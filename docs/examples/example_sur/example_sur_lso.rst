@@ -1,8 +1,8 @@
 ==================================================================
-Leaky Local Spike Operator
+Leaky Spike Operator
 ==================================================================
 
-There are two ways to apply the Leaky Local Spike Operator surrogate gradient:
+There are two ways to apply the Leaky Spike Operator surrogate gradient:
 
 .. code-block:: python
 
@@ -20,21 +20,21 @@ There are two ways to apply the Leaky Local Spike Operator surrogate gradient:
 
 Example::
 
-        # Method 1 uses a closure to wrap around LeakyLocalSpikeOperator, bundling it with the specified slope before calling it
+        # Method 1 uses a closure to wrap around LeakySpikeOperator, bundling it with the specified slope before calling it
 
         # initialize layers
         fc1 = nn.Linear(num_inputs, num_hidden)
-        lif1 = snn.Stein(alpha=alpha, beta=beta, spike_grad=surrogate.LLSO(slope=0.2))
+        lif1 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.LSO(slope=0.2))
         fc2 = nn.Linear(num_hidden, num_outputs)
-        lif2 = snn.Stein(alpha=alpha, beta=beta, spike_grad=surrogate.LLSO(slope=0.2))
+        lif2 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.LSO(slope=0.2))
 
 Example::
 
         # Method 2 applies the autograd inherited method directly, using the default values of slope=0.2
-        # The default value could also be called by specifying ``LLSO()`` instead
+        # The default value could also be called by specifying ``LSO()`` instead
 
         # initialize layers
         fc1 = nn.Linear(num_inputs, num_hidden)
-        lif1 = snn.Stein(alpha=alpha, beta=beta, spike_grad=surrogate.LeakyLocalSpikeOperator.apply)
+        lif1 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.LeakySpikeOperator.apply)
         fc2 = nn.Linear(num_hidden, num_outputs)
-        lif2 = snn.Stein(alpha=alpha, beta=beta, spike_grad=surrogate.LeakyLocalSpikeOperator.apply)
+        lif2 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.LeakySpikeOperator.apply)

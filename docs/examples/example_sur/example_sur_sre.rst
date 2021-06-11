@@ -24,9 +24,9 @@ Example::
 
         # initialize layers
         fc1 = nn.Linear(num_inputs, num_hidden)
-        lif1 = snn.Stein(alpha=alpha, beta=beta, spike_grad=surrogate.spike_rate_escape(beta=2, slope=50))
+        lif1 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.spike_rate_escape(beta=2, slope=50))
         fc2 = nn.Linear(num_hidden, num_outputs)
-        lif2 = snn.Stein(alpha=alpha, beta=beta, spike_grad=surrogate.spike_rate_escape(beta=2, slope=25))
+        lif2 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.spike_rate_escape(beta=2, slope=25))
 
 Example::
 
@@ -35,6 +35,6 @@ Example::
 
         # initialize layers
         fc1 = nn.Linear(num_inputs, num_hidden)
-        lif1 = snn.Stein(alpha=alpha, beta=beta, spike_grad=surrogate.SpikeRateEscape.apply)
+        lif1 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.SpikeRateEscape.apply)
         fc2 = nn.Linear(num_hidden, num_outputs)
-        lif2 = snn.Stein(alpha=alpha, beta=beta, spike_grad=surrogate.SpikeRateEscape.apply)
+        lif2 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.SpikeRateEscape.apply)

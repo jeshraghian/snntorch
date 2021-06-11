@@ -17,7 +17,7 @@ How to use surrogate
 
 The surrogate gradient must be passed as the ``spike_grad`` argument to the neuron model. 
 If ``spike_grad`` is left unspecified, it defaults to :mod:`snntorch.LIF.Heaviside`.
-In the following example, we apply the fast sigmoid surrogate to :mod:`snntorch.Stein`.
+In the following example, we apply the fast sigmoid surrogate to :mod:`snntorch.Cond`.
 
 Example::
 
@@ -41,9 +41,9 @@ Example::
 
     # Initialize layers, specify the ``spike_grad`` argument
         self.fc1 = nn.Linear(num_inputs, num_hidden)
-        self.lif1 = snn.Stein(alpha=alpha, beta=beta, spike_grad=spike_grad1)
+        self.lif1 = snn.Cond(alpha=alpha, beta=beta, spike_grad=spike_grad1)
         self.fc2 = nn.Linear(num_hidden, num_outputs)
-        self.lif2 = snn.Stein(alpha=alpha, beta=beta, spike_grad=spike_grad3)
+        self.lif2 = snn.Cond(alpha=alpha, beta=beta, spike_grad=spike_grad3)
 
     def forward(self, x, syn1, mem1, spk1, syn2, mem2):
         cur1 = self.fc1(x)
