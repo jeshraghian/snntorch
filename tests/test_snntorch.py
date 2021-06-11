@@ -32,8 +32,8 @@ import torch
 
 
 @pytest.fixture(scope="module")
-def lif1_instance():
-    return snn.LIF1(beta=0.5)
+def leaky_instance():
+    return snn.Leaky(beta=0.5)
 
 
 @pytest.fixture(scope="module")
@@ -42,8 +42,8 @@ def lapicque_instance():
 
 
 @pytest.fixture(scope="module")
-def lif2_instance():
-    return snn.LIF2(alpha=0.5, beta=0.5)
+def synaptic_instance():
+    return snn.Synaptic(alpha=0.5, beta=0.5)
 
 
 @pytest.fixture(scope="module")
@@ -61,9 +61,9 @@ def input_():
     return torch.Tensor([0.25, 0])
 
 
-class TestLIF1:
-    def test_lif1(self, lif1_instance, input_):
-        spk, mem = lif1_instance.init_lif1(1)
+class TestLeaky:
+    def test_leaky(self, leaky_instance, input_):
+        spk, mem = leaky_instance.init_leaky(1)
         assert len(spk) == 1
         assert len(mem) == 1
 
@@ -71,21 +71,21 @@ class TestLIF1:
         spk_rec = []
 
         for i in range(2):
-            spk, mem = lif1_instance(input_[i], mem)
+            spk, mem = leaky_instance(input_[i], mem)
             mem_rec.append(mem)
             spk_rec.append(spk)
 
         assert mem_rec[1] == mem_rec[0] * 0.5 + input_[1]
         assert spk_rec[0] == spk_rec[1]
 
-    def test_lif1_hidden_init(self):
+    def test_leaky_hidden_init(self):
 
         with pytest.raises(ValueError):
-            snn.LIF1(beta=0.5, hidden_init=True)
-            snn.LIF1(beta=0.5, num_inputs=1, hidden_init=True)
-            snn.LIF1(beta=0.5, batch_size=1, hidden_init=True)
+            snn.Leaky(beta=0.5, hidden_init=True)
+            snn.Leaky(beta=0.5, num_inputs=1, hidden_init=True)
+            snn.Leaky(beta=0.5, batch_size=1, hidden_init=True)
 
-        lif1 = snn.LIF1(
+        lif1 = snn.Leaky(
             beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
         )
 
@@ -93,9 +93,9 @@ class TestLIF1:
         assert lif1.mem == 0
 
 
-class TestLIF2:
-    def test_stein(self, lif2_instance, input_):
-        spk, syn, mem = lif2_instance.init_lif2(1)
+class TestSynaptic:
+    def test_stein(self, synaptic_instance, input_):
+        spk, syn, mem = synaptic_instance.init_synaptic(1)
         assert len(spk) == 1
         assert len(syn) == 1
         assert len(mem) == 1
@@ -105,7 +105,7 @@ class TestLIF2:
         spk_rec = []
 
         for i in range(2):
-            spk, syn, mem = lif2_instance(input_[i], syn, mem)
+            spk, syn, mem = synaptic_instance(input_[i], syn, mem)
             syn_rec.append(syn)
             mem_rec.append(mem)
             spk_rec.append(spk)
@@ -114,14 +114,14 @@ class TestLIF2:
         assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1]
         assert spk_rec[0] == spk_rec[1]
 
-    def test_lif2_hidden_init(self):
+    def test_synaptic_hidden_init(self):
 
         with pytest.raises(ValueError):
-            snn.LIF2(alpha=0.5, beta=0.5, hidden_init=True)
-            snn.LIF2(alpha=0.5, beta=0.5, num_inputs=1, hidden_init=True)
-            snn.LIF2(alpha=0.5, beta=0.5, batch_size=1, hidden_init=True)
+            snn.Synaptic(alpha=0.5, beta=0.5, hidden_init=True)
+            snn.Synaptic(alpha=0.5, beta=0.5, num_inputs=1, hidden_init=True)
+            snn.Synaptic(alpha=0.5, beta=0.5, batch_size=1, hidden_init=True)
 
-        lif2 = snn.LIF2(
+        lif2 = snn.Synaptic(
             alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
         )
 

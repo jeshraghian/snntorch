@@ -395,7 +395,7 @@ class Synaptic(LIF):
         inhibition=False,
         reset_mechanism="subtract",
     ):
-        super(Cond, self).__init__(
+        super(Synaptic, self).__init__(
             beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 

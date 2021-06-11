@@ -21,7 +21,7 @@ class Net(nn.Module):
         # initialize layers
         snn.LIF.clear_instances()  # boilerplate
         self.fc1 = nn.Linear(1, 1)
-        self.lif1 = snn.Stein(
+        self.lif1 = snn.Synaptic(
             alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
         )
         self.lif2 = snn.SRM0(

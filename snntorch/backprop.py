@@ -97,6 +97,12 @@ def TBPTT(
             optimizer.zero_grad()
             loss_trunc.backward()
             optimizer.step()
+            if is_lapicque:
+                snn.Lapicque.detach_hidden()
+            if is_leaky:
+                snn.Leaky.detach_hidden()
+            if is_synaptic:
+                snn.Synaptic.detach_hidden()
             if is_stein:
                 snn.Stein.detach_hidden()
             if is_srm0:
@@ -108,6 +114,12 @@ def TBPTT(
         optimizer.zero_grad()
         loss_trunc.backward()
         optimizer.step()
+        if is_lapicque:
+            snn.Lapicque.detach_hidden()
+        if is_leaky:
+            snn.Leaky.detach_hidden()
+        if is_synaptic:
+            snn.Synaptic.detach_hidden()
         if is_stein:
             snn.Stein.detach_hidden()
         if is_srm0:
@@ -276,9 +288,15 @@ def _layer_init(net):
 
     global is_stein
     global is_srm0
+    global is_leaky
+    global is_lapicque
+    global is_synaptic
 
     is_stein = False
     is_srm0 = False
+    is_leaky = False
+    is_synaptic = False
+    is_lapicque = False
 
     _layer_check(net=net)
 
@@ -288,10 +306,19 @@ def _layer_init(net):
 def _layer_check(net):
     """Check for the types of LIF neurons contained in net."""
 
+    global is_leaky
+    global is_lapicque
+    global is_synaptic
     global is_stein
     global is_srm0
 
     for idx in range(len(list(net._modules.values()))):
+        if isinstance(list(net._modules.values())[idx], snn.Lapicque):
+            is_lapicque = True
+        if isinstance(list(net._modules.values())[idx], snn.Synaptic):
+            is_synaptic = True
+        if isinstance(list(net._modules.values())[idx], snn.Leaky):
+            is_leaky = True
         if isinstance(list(net._modules.values())[idx], snn.Stein):
             is_stein = True
         if isinstance(list(net._modules.values())[idx], snn.SRM0):
@@ -300,7 +327,16 @@ def _layer_check(net):
 
 def _layer_reset():
     """Reset hidden parameters to zero and detach them from the current computation graph."""
-
+    
+    if is_lapicque:
+        snn.Lapicque.zeros_hidden()  # reset hidden state to 0's
+        snn.Lapicque.detach_hidden()
+    if is_synaptic:
+        snn.Synaptic.zeros_hidden()  # reset hidden state to 0's
+        snn.Synaptic.detach_hidden()
+    if is_leaky:
+        snn.Leaky.zeros_hidden()  # reset hidden state to 0's
+        snn.Leaky.detach_hidden()
     if is_stein:
         snn.Stein.zeros_hidden()  # reset hidden state to 0's
         snn.Stein.detach_hidden()
