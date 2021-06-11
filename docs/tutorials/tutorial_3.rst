@@ -36,7 +36,7 @@ As a quick recap, `Tutorial 1 <https://colab.research.google.com/github/jeshragh
 `Tutorial 2 <https://colab.research.google.com/github/jeshraghian/snntorch/blob/tutorials/examples/tutorial_2_neuronal_dynamics.ipynb>`_ showed how to build neural networks using three different leaky integrate-and-fire (LIF) neuron models:
 
   * Lapicque's RC model
-  * Stein's model
+  * Synaptic conductance-based model
   * Spike Response model
 
 At the end of the tutorial, a basic supervised learning algorithm will be implemented. We will use the original static MNIST dataset and train a multi-layer fully-connected spiking neural network using gradient descent to perform image classification. 
@@ -60,7 +60,7 @@ $$U_{\\rm mem}=I_{\\rm syn}(t)R + [U_0 - I_{\\rm syn}(t)R]e^{-t/\\tau_{\\rm mem}
 
 In Lapicque's model, :math:`I_{\rm syn}(t)` is also the input current, :math:`I_{\rm in}(t)`. 
 
-In Stein's model, a more biologically plausible approach is taken that ensures :math:`I_{\rm syn}(t)` follows an exponential decay as a function of the input:
+In the Synaptic conductance-based model (which we will loosely refer to as the synaptic model), a more biologically plausible approach is taken that ensures :math:`I_{\rm syn}(t)` follows an exponential decay as a function of the input:
 
 
 $$I_{\\rm syn}(t) = \\sum_k W_{i,j} S_{in; i,j}(t) e^{-(t-t_k)/\\tau_{syn}}\\Theta(t-t_k)$$
@@ -69,14 +69,14 @@ $$I_{\\rm syn}(t) = \\sum_k W_{i,j} S_{in; i,j}(t) e^{-(t-t_k)/\\tau_{syn}}\\The
         :align: center
         :width: 600
 
-Stein's model has two exponentially decaying terms: :math:`I_{\rm syn}(t)` and :math:`U_{\rm mem}(t)`. The ratio between subsequent terms (i.e., decay rate) of :math:`I_{\rm syn}(t)` is set to :math:`\alpha`, and that of :math:`U_{\rm mem}(t)` is set to :math:`\beta`:
+The synaptic model has two exponentially decaying terms: :math:`I_{\rm syn}(t)` and :math:`U_{\rm mem}(t)`. The ratio between subsequent terms (i.e., decay rate) of :math:`I_{\rm syn}(t)` is set to :math:`\alpha`, and that of :math:`U_{\rm mem}(t)` is set to :math:`\beta`:
 
 $$ \\alpha = e^{-1/\\tau_{\\rm syn}}$$
 
 $$ \\beta = e^{-1/\\tau_{\\rm mem}}$$
 
 
-RNNs will process data sequentially, and so time must be discretised, and the neuron models must be converted into a recursive form. :math:`\alpha` and :math:`\beta` can be used to give a recursive representation of Stein's neuron model:
+RNNs will process data sequentially, and so time must be discretised, and the neuron models must be converted into a recursive form. :math:`\alpha` and :math:`\beta` can be used to give a recursive representation of the Synaptic neuron model:
 
 $$I_{\\rm syn}[t+1]=\\underbrace{\\alpha I_{\\rm syn}[t]}_\\text{decay} + \\underbrace{WS_{\\rm in}[t+1]}_\\text{input}$$
 
@@ -112,7 +112,7 @@ The reset term is activated only when the neuron triggers a spike. That is to sa
 
 The other neurons follow a similar form, which is `detailed in the documentation <https://snntorch.readthedocs.io/en/latest/snntorch.html>`_. The recursive neuron equations can be mapped into computation graphs, where the recurrent connections take place with a delay of a single time step, from the state at time math:`t` to the state at time :math:`t+1`. 
 
-An alternative way to represent recurrent models is to unfold the computational graph, in which each component is represented by a sequence of different variables, with one variable per time step. The unfolded form of Stein's model is shown below:
+An alternative way to represent recurrent models is to unfold the computational graph, in which each component is represented by a sequence of different variables, with one variable per time step. The unfolded form of the Synaptic model is shown below:
 
 
 
@@ -207,9 +207,9 @@ If the above code blocks throws an error, e.g. the MNIST servers are down, then 
 3. Define the Network
 ----------------------------------------
 
-The spiking neurons available in snnTorch are designed to be treated as activation units. The only difference is that these spiking neuron activations depend not only on their inputs, but also on their previous state (e.g., :math:`I[t-1]` and :math:`U[t-1]` for Stein's neuron). This can be implemented in a for-loop with ease.
+The spiking neurons available in snnTorch are designed to be treated as activation units. The only difference is that these spiking neuron activations depend not only on their inputs, but also on their previous state (e.g., :math:`I[t-1]` and :math:`U[t-1]` for the Synaptic neuron). This can be implemented in a for-loop with ease.
 
-If you have a basic understanding of PyTorch, the following code block should look familiar. :code:`nn.Linear` initializes the linear transformation layer, and instead of applying a sigmoid, ReLU or some other nonlinear activation, a spiking neuron is applied instead by calling :code:`snn.Stein`:
+If you have a basic understanding of PyTorch, the following code block should look familiar. :code:`nn.Linear` initializes the linear transformation layer, and instead of applying a sigmoid, ReLU or some other nonlinear activation, a spiking neuron is applied instead by calling :code:`snn.Synaptic`:
 
 ::
 
@@ -220,15 +220,15 @@ If you have a basic understanding of PyTorch, the following code block should lo
 
           # Initialize layers
           self.fc1 = nn.Linear(num_inputs, num_hidden)
-          self.lif1 = snn.Stein(alpha=alpha, beta=beta)
+          self.lif1 = snn.Synaptic(alpha=alpha, beta=beta)
           self.fc2 = nn.Linear(num_hidden, num_outputs)
-          self.lif2 = snn.Stein(alpha=alpha, beta=beta)
+          self.lif2 = snn.Synaptic(alpha=alpha, beta=beta)
 
       def forward(self, x):
 
           # Initialize hidden states and outputs at t=0
-          spk1, syn1, mem1 = self.lif1.init_stein(batch_size, num_hidden)
-          spk2, syn2, mem2 = self.lif2.init_stein(batch_size, num_outputs)
+          spk1, syn1, mem1 = self.lif1.init_synaptic(batch_size, num_hidden)
+          spk2, syn2, mem2 = self.lif2.init_synaptic(batch_size, num_outputs)
           
           # Record the final layer
           spk2_rec = []
@@ -313,7 +313,7 @@ In latency encoding, the neuron that fires first is the predicted class. The tar
 
 Consider the case of a neuron receiving an input spike. Depending on the neuron model in use, the post-synaptic potential may experience a time delay :math:`t_{\rm psp}` to reach the peak of its membrane potential, and subsequently emit an output spike. If this neuron is connected in a deep neural network, the minimum time before the final layer could generate output spikes *as a result of the input (and not biases)* would thus be :math:`t_{\rm min} = Lt_{\rm psp}`, where :math:`L` is the number of layers in the network. 
 
-For Stein's and Lapicque's models, the membrane potential will immediately jump as a result of the input. But there is a time delay of one step before the output spike can be triggered as a result. Therefore, we set :math:`t_{\rm psp}=1` time step. For SRM0, it will take a longer time to reach the peak, and is a function of the decay rates, :math:`\alpha` and :math:`\beta`. 
+For the Synaptic and Lapicque models, the membrane potential will immediately jump as a result of the input. But there is a time delay of one step before the output spike can be triggered as a result. Therefore, we set :math:`t_{\rm psp}=1` time step. For SRM0, it will take a longer time to reach the peak, and is a function of the decay rates, :math:`\alpha` and :math:`\beta`. 
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/3_3_delay.png?raw=true
@@ -368,7 +368,7 @@ The first two terms can be analytically solved by taking the derivative of the c
 
 $$ \\frac{\\partial{U[3]}}{\\partial{Y[3]}} = \\frac{\\partial{U[3]}}{\\partial{I[3]}} \\frac{\\partial{I[3]}}{\\partial{Y[3]}}$$
 
-Recall the recursive form of Stein's neuron model:
+Recall the recursive form of the Synaptic neuron model:
 
 
 $$I[t+1]=\\alpha I[t] + WX[t+1]$$
@@ -402,7 +402,7 @@ Luckily for you, all of this is automatically taken care of by PyTorch's autodif
 
 The above analysis only solved for parameter updates for the final layer. This was not an issue as we used membrane potential :math:`U` to calculate the loss, which is a continuous function. If we backpropagate to earlier layers, we need to take the derivative of spikes, i.e., a non-differentiable, non-continuous function.
 
-Let's open up the computational graph of Stein's neuron model to identify exactly where this problem occurs.
+Let's open up the computational graph of the Synaptic neuron model to identify exactly where this problem occurs.
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/3_7_stein_bptt.png?raw=true
