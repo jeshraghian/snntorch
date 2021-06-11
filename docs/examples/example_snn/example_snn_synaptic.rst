@@ -1,8 +1,8 @@
 ==================================================================
-Building Networks: Conductance-based LIF Neuron
+Building Networks: Synaptic Conductance-based LIF Neuron
 ==================================================================
 
-Building a fully-connected network using a 2nd Order Conductance-based neuron model.
+Building a fully-connected network using a 2nd Order Synaptic Conductance-based neuron model.
 
 Example::
 
@@ -29,13 +29,13 @@ Example::
 
             # initialize layers
             self.fc1 = nn.Linear(num_inputs, num_hidden)
-            self.lif1 = snn.Cond(alpha=alpha, beta=beta)
+            self.lif1 = snn.Synaptic(alpha=alpha, beta=beta)
             self.fc2 = nn.Linear(num_hidden, num_outputs)
-            self.lif2 = snn.Cond(alpha=alpha, beta=beta)
+            self.lif2 = snn.Synaptic(alpha=alpha, beta=beta)
 
          def forward(self, x):
-            spk1, syn1, mem1 = self.lif1.init_cond(batch_size, num_hidden)
-            spk2, syn2, mem2 = self.lif2.init_cond(batch_size, num_outputs)
+            spk1, syn1, mem1 = self.lif1.init_synaptic(batch_size, num_hidden)
+            spk2, syn2, mem2 = self.lif2.init_synaptic(batch_size, num_outputs)
 
             spk2_rec = []  # Record the output trace of spikes
             mem2_rec = []  # Record the output trace of membrane potential

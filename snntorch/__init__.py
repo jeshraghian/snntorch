@@ -11,7 +11,7 @@ class LIF(nn.Module):
     """Parent class for leaky integrate and fire neuron models."""
 
     instances = []
-    """Each :mod:`snntorch.LIF` neuron (e.g., :mod:`snntorch.Stein`) will populate the :mod:`snntorch.LIF.instances` list with a new entry.
+    """Each :mod:`snntorch.LIF` neuron (e.g., :mod:`snntorch.Synaptic`) will populate the :mod:`snntorch.LIF.instances` list with a new entry.
     The list is used to initialize and clear neuron states when the argument `init_hidden=True`."""
 
     def __init__(
@@ -69,20 +69,20 @@ class LIF(nn.Module):
         cls.instances = []
 
     @staticmethod
-    def init_lif1(batch_size, *args):
+    def init_leaky(batch_size, *args):
         """Used to initialize mem and spk.
         *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_lif1(128, 1, 28, 28)``."""
+        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_leaky(128, 1, 28, 28)``."""
         mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
         spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
 
         return spk, mem
 
     @staticmethod
-    def init_lif2(batch_size, *args):
+    def init_synaptic(batch_size, *args):
         """Used to initialize syn, mem and spk.
         *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_lif2(128, 1, 28, 28)``."""
+        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_synaptic(128, 1, 28, 28)``."""
         syn = torch.zeros((batch_size, *args), device=device, dtype=dtype)
         mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
         spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
@@ -95,7 +95,7 @@ class LIF(nn.Module):
         *args are the input feature dimensions.
         E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_stein(128, 1, 28, 28)``."""
 
-        return LIF.init_lif2(batch_size, *args)
+        return LIF.init_synaptic(batch_size, *args)
 
     @staticmethod
     def init_lapicque(batch_size, *args):
@@ -103,7 +103,7 @@ class LIF(nn.Module):
         *args are the input feature dimensions.
         E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_lapicque(128, 1, 28, 28)``."""
 
-        return LIF.init_lif1(batch_size, *args)
+        return LIF.init_leaky(batch_size, *args)
 
     @staticmethod
     def init_srm0(batch_size, *args):
@@ -168,7 +168,7 @@ class LIF(nn.Module):
 
 # Neuron Models
 
-class LIF1(LIF):
+class Leaky(LIF):
     """
     First-order leaky integrate-and-fire neuron model.
     Input is assumed to be a current injection.
@@ -209,9 +209,9 @@ class LIF1(LIF):
 
                 # initialize layers
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.LIF1(beta=beta)
+                self.lif1 = snn.Leaky(beta=beta)
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.LIF1(beta=beta)
+                self.lif2 = snn.Leaky(beta=beta)
 
             def forward(self, x, mem1, spk1, mem2):
                 cur1 = self.fc1(x)
@@ -234,7 +234,7 @@ class LIF1(LIF):
         inhibition=False,
         reset_mechanism="subtract",
     ):
-        super(LIF1, self).__init__(
+        super(Leaky, self).__init__(
             beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 
@@ -252,11 +252,11 @@ class LIF1(LIF):
                     "batch_size must be specified to initialize hidden states as instance variables."
                 )
             elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.mem = self.init_lif1(
+                self.spk, self.mem = self.init_leaky(
                     self.batch_size, *(self.num_inputs)
                 )  # need to automatically call batch_size
             else:
-                self.spk, self.mem = self.init_lif1(
+                self.spk, self.mem = self.init_leaky(
                     self.batch_size, self.num_inputs
                 )
         if self.inhibition:
@@ -305,7 +305,7 @@ class LIF1(LIF):
         Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], LIF1):
+            if isinstance(cls.instances[layer], Leaky):
                 cls.instances[layer].spk.detach_()
                 cls.instances[layer].mem.detach_()
 
@@ -315,14 +315,14 @@ class LIF1(LIF):
         Intended for use where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], Stein):
+            if isinstance(cls.instances[layer], Leaky):
                 cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
                 cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
 
 
-class LIF2(LIF):
+class Synaptic(LIF):
     """
-    Conductance-based model of the leaky integrate and fire neuron.
+    2nd order leaky integrate and fire neuron model accounting for synaptic conductance.
     The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.
     Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
@@ -365,9 +365,9 @@ class LIF2(LIF):
 
                 # initialize layers
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.LIF2(alpha=alpha, beta=beta)
+                self.lif1 = snn.Synaptic(alpha=alpha, beta=beta)
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.LIF2(alpha=alpha, beta=beta)
+                self.lif2 = snn.Synaptic(alpha=alpha, beta=beta)
 
             def forward(self, x, syn1, mem1, spk1, syn2, mem2):
                 cur1 = self.fc1(x)
@@ -395,7 +395,7 @@ class LIF2(LIF):
         inhibition=False,
         reset_mechanism="subtract",
     ):
-        super(LIF2, self).__init__(
+        super(Cond, self).__init__(
             beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 
@@ -414,11 +414,11 @@ class LIF2(LIF):
                     "batch_size must be specified to initialize hidden states as instance variables."
                 )
             elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.syn, self.mem = self.init_lif2(
+                self.spk, self.syn, self.mem = self.init_synaptic(
                     self.batch_size, *(self.num_inputs)
                 )  # need to automatically call batch_size
             else:
-                self.spk, self.syn, self.mem = self.init_lif2(
+                self.spk, self.syn, self.mem = self.init_synaptic(
                     self.batch_size, self.num_inputs
                 )
         if self.inhibition:
@@ -469,7 +469,7 @@ class LIF2(LIF):
         Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], LIF2):
+            if isinstance(cls.instances[layer], Synaptic):
                 cls.instances[layer].spk.detach_()
                 cls.instances[layer].syn.detach_()
                 cls.instances[layer].mem.detach_()
@@ -480,7 +480,7 @@ class LIF2(LIF):
         Intended for use where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], LIF2):
+            if isinstance(cls.instances[layer], Synaptic):
                 cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
                 cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
                 cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
@@ -489,7 +489,7 @@ class LIF2(LIF):
 class Lapicque(LIF):
     """
     An extension of Lapicque's experimental comparison between extracellular nerve fibers and an RC circuit.
-    It is equivalent to Stein's model without synaptic current dynamics.
+    It is qualitatively equivalent to :code:`Leaky` but defined using RC circuit parameters.
     Input stimulus is integrated by membrane potential which decays exponentially with a rate of beta.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
@@ -1046,7 +1046,7 @@ class Stein(LIF):
             beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 
-        print("`Stein` has been deprecated and will be removed in a future version. Use `LIF2` instead.")
+        print("`Stein` has been deprecated and will be removed in a future version. Use `Synaptic` instead.")
 
         self.alpha = alpha
         self.num_inputs = num_inputs

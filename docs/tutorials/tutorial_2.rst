@@ -24,9 +24,9 @@ In this tutorial, you will:
 * Learn the fundamentals of the leaky integrate-and-fire (LIF) neuron model
 * Use snnTorch to implement variations of the LIF model: 
   
-  * Lapicque's neuron model
+  * Lapicque's neuron model (1st order)
   
-  * Stein's neuron model
+  * Conductance based model (2nd order)
   
   * :math:`0^{th}` Order Spike Response Model
 
@@ -57,11 +57,13 @@ A large variety of neuron models are out there, ranging from biophysically accur
         :width: 1000
 
 
-The different versions of the LIF model each have their own dynamics and use-cases. snnTorch currently supports three types of LIF neurons:
+The different versions of the LIF model each have their own dynamics and use-cases. snnTorch currently supports four types of LIF neurons:
 
 * Lapicque's RC model: ``snntorch.Lapicque``
+
+* Non-physical 1st order model: ``snntorch.Leaky``
   
-* Stein's neuron model: ``snntorch.Stein``
+* Synaptic Conductance-based neuron model: ``snntorch.Synaptic``
   
 * :math:`0^{th}` Order Spike Response Model: ``snntorch.SRM0``
 
@@ -1045,13 +1047,12 @@ So which one is better? Applying :code:`"subtract"` (the default value in :code:
 On the other hand, applying a hard reset with :code:`"zero"` promotes sparsity and potentially less power consumption when running on dedicated neuromorphic hardware. Both options are available for you to experiment with. 
 
 
-2.4 Stein's LIF Neuron Model
+2.4 Synaptic Conductance-based LIF Neuron Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The passive membrane model allows discrete current spikes to be passed directly into the neuron. In reality, a spike will result in the gradual release of neurotransmitters from the pre-synaptic neuron to the post-synaptic neuron. Stein's model, `first published in 1965 <https://www.sciencedirect.com/science/article/pii/S0006349565867091>`_, accounts for the gradual temporal dynamics of input current, and was amongst the first to introduce a reset to zero mechanism.
+The passive membrane model allows discrete current spikes to be passed directly into the neuron. In reality, a spike will result in the gradual release of neurotransmitters from the pre-synaptic neuron to the post-synaptic neuron. This model accounts for the gradual temporal dynamics of input current, and is no longer strictly modelling a LIF neuron alone.
 
-
-2.4.1 Stein: Synaptic Current
+2.4.1 Synaptic Current
 """"""""""""""""""""""""""""""""""
 
 If a pre-synaptic neuron fires, the voltage spike is transmitted down the axon of the neuron. It triggers the vesicles to release neurotransmitters into the synaptic cleft. These activate the post-synaptic receptors, which directly influence the effective current that flows into the post-synaptic neuron. 
@@ -1064,7 +1065,7 @@ Shown below are two types of excitatory receptors.
 
 The simplest model of synaptic current assumes an increasing current on a very fast time-scale (or instantaneous), followed by a relatively slow exponential decay. This is very similar to the membrane potential dynamics of Lapicque's model.
 
-Stein's neuron model combines the synaptic current dynamics with the passive membrane. It must be instantiated with two input arguments:
+The synaptic conductance-based neuron model combines the synaptic current dynamics with the passive membrane. It must be instantiated with two input arguments:
 
 * :math:`\alpha`: the decay rate of the synaptic current
 * :math:`\beta`: the decay rate of the membrane potential (as with Lapicque)
@@ -1076,8 +1077,8 @@ Stein's neuron model combines the synaptic current dynamics with the passive mem
   alpha = 0.9
   beta = 0.8
 
-  # Initialize Stein neuron
-  lif5 = snn.Stein(alpha=alpha, beta=beta)
+  # Initialize Synaptic neuron
+  lif5 = snn.Synaptic(alpha=alpha, beta=beta)
 
 
 Using this neuron is the exact same as Lapcique's neuron, but now with the addition of synaptic current :code:`syn` as an input and output:
@@ -1135,7 +1136,7 @@ Apply a periodic spiking input to see how current and membrane evolve with time:
   # Plot input current
   splt.raster(spk_in, ax[0], s=400, c="black", marker="|")
   ax[0].set_ylabel("Input Spikes")
-  ax[0].set_title("Stein's Neuron Model With Input Spikes")
+  ax[0].set_title("Synaptic Conductance-based Neuron Model With Input Spikes")
   ax[0].set_yticks([]) 
 
   # Plot membrane potential
@@ -1192,13 +1193,13 @@ That is to say: :math:`\Delta I_{\rm syn}(t=t_k) = W_{i, j}`
 
 In summary, each spike contributes a shifted exponential decay to the synaptic current :math:`I_{\rm syn}`, which are all summed together. This current is then integrated by the passive membrane equation derived in the previous section, thus generating output spikes.
 
-If the math doesn't make sense, don't worry about it. A graphical intuition is usually sufficient to understand the essence of the Stein neuron model. 
+If the math doesn't make sense, don't worry about it. A graphical intuition is usually sufficient to understand the essence of the synaptic conductance-based neuron model. 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_7_stein.png?raw=true
         :align: center
         :width: 600
 
-Stein's model has the same optional input arguments of :code:`reset_mechanism` and :code:`threshold` as described for Lapicque's neuron model.
+This model has the same optional input arguments of :code:`reset_mechanism` and :code:`threshold` as described for Lapicque's neuron model.
 
 
 3. A Feedforward Spiking Neural Network
@@ -1229,12 +1230,12 @@ First, initialize all layers.
 
   # initialize layers
   fc1 = nn.Linear(num_inputs, num_hidden)
-  lif1 = snn.Stein(alpha=alpha, beta=beta)
+  lif1 = snn.Synaptic(alpha=alpha, beta=beta)
   fc2 = nn.Linear(num_hidden, num_outputs)
-  lif2 = snn.Stein(alpha=alpha, beta=beta)
+  lif2 = snn.Synaptic(alpha=alpha, beta=beta)
 
 Next, initialize the hidden variables and outputs of each spiking neuron. 
-As your networks increase in size, this will become a tedious process. So we can call a static method :code:`init_stein` to take care of this. All neurons in snnTorch have their own initialization methods that follow this same syntax, e.g., :code:`init_lapicque`:
+As your networks increase in size, this will become a tedious process. So we can call a static method :code:`init_synaptic` to take care of this. All neurons in snnTorch have their own initialization methods that follow this same syntax, e.g., :code:`init_lapicque`:
 
 * The first dimension is the :code:`batch_size` which we will just set to 1
 * The second dimension is the number of neurons in the layer
@@ -1245,8 +1246,8 @@ As your networks increase in size, this will become a tedious process. So we can
   batch_size = 1
 
   # Initialize hidden states and outputs
-  spk1, syn1, mem1 = lif1.init_stein(batch_size, num_hidden)
-  spk2, syn2, mem2 = lif2.init_stein(batch_size, num_outputs)
+  spk1, syn1, mem1 = lif1.init_synaptic(batch_size, num_hidden)
+  spk2, syn2, mem2 = lif2.init_synaptic(batch_size, num_outputs)
 
   # Lists to record output traces
   mem2_rec = []
@@ -1455,7 +1456,7 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
         :align: center
         :width: 425
 
-As with the Lapicque and Stein models, the SRM0 model also has options to modify the threshold and reset mechanism.
+As with the Lapicque and Synaptic models, the SRM0 model also has options to modify the threshold and reset mechanism.
 
 
 Conclusion

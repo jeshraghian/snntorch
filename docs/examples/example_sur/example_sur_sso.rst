@@ -24,9 +24,9 @@ Example::
 
         # initialize layers
         fc1 = nn.Linear(num_inputs, num_hidden)
-        lif1 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.SSO(mean=0.1, variance=0.1))
+        lif1 = snn.Synaptic(alpha=alpha, beta=beta, spike_grad=surrogate.SSO(mean=0.1, variance=0.1))
         fc2 = nn.Linear(num_hidden, num_outputs)
-        lif2 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.SSO(mean=0.1, variance=0.1))
+        lif2 = snn.Synaptic(alpha=alpha, beta=beta, spike_grad=surrogate.SSO(mean=0.1, variance=0.1))
 
 Example::
 
@@ -35,6 +35,6 @@ Example::
 
         # initialize layers
         fc1 = nn.Linear(num_inputs, num_hidden)
-        lif1 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.StochasticSpikeOperator.apply)
+        lif1 = snn.Synaptic(alpha=alpha, beta=beta, spike_grad=surrogate.StochasticSpikeOperator.apply)
         fc2 = nn.Linear(num_hidden, num_outputs)
-        lif2 = snn.Cond(alpha=alpha, beta=beta, spike_grad=surrogate.StochasticSpikeOperator.apply)
+        lif2 = snn.Synaptic(alpha=alpha, beta=beta, spike_grad=surrogate.StochasticSpikeOperator.apply)
