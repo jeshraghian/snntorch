@@ -301,6 +301,7 @@ class SparseFastSigmoid(torch.autograd.Function):
                 S&≈\\frac{U}{1 + k|U|}H(U-B) \\\\
                 \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{(1+k|U|)^2} & \\text{\\rm if U > B}
                 0 & \\text{\\rm otherwise}
+                \\end{cases}
 
     :math:`k` defaults to 25, and can be modified by calling ``surrogate.SFS(slope=25)``.
     :math:`B` defaults to 1, and can be modified by calling ``surrogate.SFS(B=1)``.
