@@ -23,7 +23,7 @@ The discrete nature of spikes makes it difficult for ``torch.autograd`` to calcu
 At present, the neurons available in :mod:`snntorch` are variants of the Leaky Integrate-and-Fire neuron model:
 
 * **Leaky** - 1st-Order Leaky Integrate-and-Fire Neuron
-* **Cond** - Conductance-based Leaky Integrate-and-Fire Neuron (2nd-Order)
+* **Synaptic** - 2nd-Order Integrate-and-Fire Neuron (including synaptic conductance)
 * **Lapicque** - Lapicque's RC Neuron Model
 * **SRM0** - Spike Response Model :math:`0^{\rm th}` order
 
@@ -52,13 +52,13 @@ Example::
 
             # initialize layers
             self.fc1 = nn.Linear(num_inputs, num_hidden)
-            self.lif1 = snn.Cond(alpha=alpha, beta=beta)
+            self.lif1 = snn.Synaptic(alpha=alpha, beta=beta)
             self.fc2 = nn.Linear(num_hidden, num_outputs)
-            self.lif2 = snn.Cond(alpha=alpha, beta=beta)
+            self.lif2 = snn.Synaptic(alpha=alpha, beta=beta)
 
          def forward(self, x):
-            spk1, syn1, mem1 = self.lif1.init_cond(batch_size, num_hidden)
-            spk2, syn2, mem2 = self.lif2.init_cond(batch_size, num_outputs)
+            spk1, syn1, mem1 = self.lif1.init_synaptic(batch_size, num_hidden)
+            spk2, syn2, mem2 = self.lif2.init_synaptic(batch_size, num_outputs)
 
             spk2_rec = []  # Record the output trace of spikes
             mem2_rec = []  # Record the output trace of membrane potential
@@ -106,9 +106,9 @@ An example of this is shown below::
             # initialize layers
             snn.LIF.clear_instances() # boilerplate
             self.fc1 = nn.Linear(num_inputs, num_hidden)
-            self.lif1 = snn.Cond(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, hidden_init=True)
+            self.lif1 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, hidden_init=True)
             self.fc2 = nn.Linear(num_hidden, num_outputs)
-            self.lif2 = snn.Cond(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, hidden_init=True)
+            self.lif2 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, hidden_init=True)
 
 
          #  Remove time step loop
