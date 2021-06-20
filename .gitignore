@@ -107,9 +107,13 @@ snnenv/
 
 # Additional Files
 tbptt_test/
+test.ipynb
 test_1.py
 temp/
 jupyter/
 jup-colab.cmd
 checkpoint.pt
 great_lakes/
+data/
+neural_sampling_machines/
+torchneuromorphic/
