@@ -314,7 +314,7 @@ class SparseFastSigmoid(torch.autograd.Function):
     def forward(ctx, input_, slope=25, B=1):
         ctx.save_for_backward(input_)
         ctx.slope = slope
-        ctx.B=B
+        ctx.B = B
         out = (input_ > 0).float()
         return out
 
@@ -322,7 +322,11 @@ class SparseFastSigmoid(torch.autograd.Function):
     def backward(ctx, grad_output):
         (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
-        grad = grad_input / (ctx.slope * torch.abs(input_) + 1.0) ** 2 * (input_ > ctx.B).float()
+        grad = (
+            grad_input
+            / (ctx.slope * torch.abs(input_) + 1.0) ** 2
+            * (input_ > ctx.B).float()
+        )
         return grad, None, None
 
 
@@ -335,7 +339,6 @@ def SFS(slope=25, B=1):
         return SparseFastSigmoid.apply(x, slope, B)
 
     return inner
-
 
 
 # class InverseSpikeOperator(torch.autograd.Function):
@@ -458,7 +461,6 @@ def SFS(slope=25, B=1):
 #         return InverseStochasticSpikeOperator.apply(x, threshold, mean, variance)
 
 #     return inner
-
 
 
 # piecewise linear func
