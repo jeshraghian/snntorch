@@ -35,36 +35,36 @@ class NMNIST(NeuromorphicDataset):
 
         train_ds = spikevision.data.NMNIST("data/nmnist", train=True, num_steps=300)
         test_ds = spikevision.data.NMNIST("data/nmnist", train=False, num_steps=300)
-        
 
-    Args:
-        :param root: Root directory of dataset where ``Train.zip`` and  ``Test.zip`` exist.
-        :type root: string
 
-        :param train: If True, creates dataset from ``Train.zip``, otherwise from ``Test.zip``
-        :type train: bool, optional
 
-        :param transform: A function/transform that takes in a PIL image and returns a transforms version. By default, a pre-defined set of transforms are applied to NMNIST to convert them into a time-first tensor.
-        :type transform: callable, optional
+    :param root: Root directory of dataset where ``Train.zip`` and  ``Test.zip`` exist.
+    :type root: string
 
-        :param target_transform: A function/transform that takes in the target and transforms it.
-        :type target_transform: callable, optional
+    :param train: If True, creates dataset from ``Train.zip``, otherwise from ``Test.zip``
+    :type train: bool, optional
 
-        :param download_and_create: If True, downloads the dataset from the internet and puts it in root directory. If dataset is already downloaded, it is not downloaded again.
-        :type download_and_create: bool, optional
+    :param transform: A function/transform that takes in a PIL image and returns a transforms version. By default, a pre-defined set of transforms are applied to NMNIST to convert them into a time-first tensor.
+    :type transform: callable, optional
 
-        :param num_steps: Number of time steps, defaults to ``300``
-        :type num_steps: int, optional
+    :param target_transform: A function/transform that takes in the target and transforms it.
+    :type target_transform: callable, optional
 
-        :param dt: Duration of each time step in microseconds, defaults to ``1000``
-        :type dt: int, optional
+    :param download_and_create: If True, downloads the dataset from the internet and puts it in root directory. If dataset is already downloaded, it is not downloaded again.
+    :type download_and_create: bool, optional
+
+    :param num_steps: Number of time steps, defaults to ``300``
+    :type num_steps: int, optional
+
+    :param dt: Duration of each time step in microseconds, defaults to ``1000``
+    :type dt: int, optional
     
     Adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci and Clemens Schaefer.
         
     """
 
 
-    resources_url = [['https://www.dropbox.com/sh/tg2ljlbmtzygrag/AABlMOuR15ugeOxMCX0Pvoxga/Train.zip?dl=1', None, 'Train.zip'],
+    _resources_url = [['https://www.dropbox.com/sh/tg2ljlbmtzygrag/AABlMOuR15ugeOxMCX0Pvoxga/Train.zip?dl=1', None, 'Train.zip'],
                      ['https://www.dropbox.com/sh/tg2ljlbmtzygrag/AADSKgJ2CjaBWh75HnTNZyhca/Test.zip?dl=1', None, 'Test.zip']]
 
     def __init__(
@@ -121,10 +121,10 @@ class NMNIST(NeuromorphicDataset):
                 raise
 
 
-    def download(self):
-        isexisting = super(NMNIST, self).download()
+    def _download(self):
+        isexisting = super(NMNIST, self)._download()
 
-    def create_hdf5(self):
+    def _create_hdf5(self):
         create_events_hdf5(self.directory, self.root)
 
 

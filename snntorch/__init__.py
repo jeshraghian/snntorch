@@ -99,9 +99,11 @@ class LIF(nn.Module):
 
     @staticmethod
     def init_lapicque(batch_size, *args):
-        """Used to initialize mem and spk.
+        """
+        Used to initialize mem and spk.
         *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_lapicque(128, 1, 28, 28)``."""
+        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_lapicque(128, 1, 28, 28)``.
+        """
 
         return LIF.init_leaky(batch_size, *args)
 

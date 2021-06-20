@@ -129,8 +129,8 @@ class NeuromorphicDataset(data.Dataset):
         if root is not None:
             if not os.path.isfile(root):
                 if self.download_and_create:
-                    self.download()  # check if raw files exist in root
-                    self.create_hdf5()  #
+                    self._download()  # check if raw files exist in root
+                    self._create_hdf5()  #
                 else:
                     raise Exception(
                         "File {} does not exist and download_and_create is False".format(
@@ -195,18 +195,18 @@ class NeuromorphicDataset(data.Dataset):
                     print(self.resources_local[i])
         return res
 
-    def download(self):
+    def _download(self):
         if self._check_exists():
             return True
         else:
             os.makedirs(self.directory, exist_ok=True)
-            for url, md5, filename in self.resources_url:
+            for url, md5, filename in self._resources_url:
                 download_and_extract_archive(
                     url, download_root=self.directory, filename=filename, md5=md5
                 )
             return False
 
-    def create_hdf5(self):
+    def _create_hdf5(self):
         raise NotImplementedError()
 
     def target_transform_append(self, transform):

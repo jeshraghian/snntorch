@@ -50,4 +50,4 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
 
 
-Future tutorials on spiking neurons and training are scheduled to be completed by April 2021. 
+Future tutorials on spiking neurons and training are under construction. 
