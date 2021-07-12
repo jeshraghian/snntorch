@@ -123,7 +123,8 @@ class DVSGesture(NeuromorphicDataset):
             transform = Compose([
             Downsample(factor=[self.dt, 1, ds[0], ds[1]]),
             ToCountFrame(T = self.num_steps, size = size),
-            ToTensor()
+            ToTensor(),
+            dvs_permute()
             ])
         
         if target_transform is not None:
@@ -214,7 +215,7 @@ def create_events_hdf5(directory, extracted_directory, hdf5_filename):
         metas = []
         data_grp = f.create_group('data')
         extra_grp = f.create_group('extra')
-        print(f"Creating dvs_gesture.hdf5...")
+        print(f"\nCreating dvs_gesture.hdf5...")
         for file_d in tqdm(fns_train+fns_test):
             istrain = file_d in fns_train
             data, labels_starttime = aedat_to_events(file_d)
@@ -263,7 +264,7 @@ def gather_aedat(directory, extracted_directory, start_id, end_id, filename_pref
             fns+=glob_out
     return fns
 
-    
+
 # def create_dataloader(
 #         root = 'data/dvsgesture/dvs_gestures_build19.hdf5',
 #         batch_size = 72 ,

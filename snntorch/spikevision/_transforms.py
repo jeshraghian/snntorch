@@ -339,7 +339,7 @@ class rot90(object):
         return self.__class__.__name__ + "()"
 
 
-class nmnist_permute(object):
+class dvs_permute(object):
     def __call__(self, target):
         return target.flip([-2]).rot90(1, [-1, -2])
 

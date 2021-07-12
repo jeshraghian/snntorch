@@ -98,7 +98,7 @@ class NMNIST(NeuromorphicDataset):
                 Downsample(factor=[dt, 1, 1, 1]),
                 ToCountFrame(T = num_steps, size = size),
                 ToTensor(), 
-                nmnist_permute()])
+                dvs_permute()])
 
         if target_transform is not None:
             target_transform = Compose([Repeat(num_steps), toOneHot(10)])
