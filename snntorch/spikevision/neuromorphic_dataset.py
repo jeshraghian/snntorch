@@ -120,7 +120,7 @@ class NeuromorphicDataset(data.Dataset):
     _repr_indent = 4
 
     def __init__(
-        self, root=None, transforms=None, transform=None, target_transform=None
+        self, root=None, transforms=None, transform=None, target_transform=None, transform_train=None, transform_test=None, target_transform_train=None, target_transform_test=None,
     ):
         if isinstance(root, torch._six.string_classes):
             root = os.path.expanduser(root)
@@ -195,9 +195,21 @@ class NeuromorphicDataset(data.Dataset):
                     print(self.resources_local[i])
         return res
 
+    def _extract_exists(self):
+        res_ = [os.path.exists(d) for d in self.resources_local_extracted]
+        res = all(res_)
+        if res is False:
+            for _, _, filename in self._resources_url:
+                extract_root = self.directory
+                archive = os.path.join(extract_root, filename)
+                print("Extracting {} to {}...".format(archive, extract_root))  # test?
+                extract_archive(archive, extract_root, remove_finished=False)
+        return res
+
     def _download(self):
         if self._check_exists():
-            return True
+            if self._extract_exists():  # test
+                return True
         else:
             os.makedirs(self.directory, exist_ok=True)
             for url, md5, filename in self._resources_url:

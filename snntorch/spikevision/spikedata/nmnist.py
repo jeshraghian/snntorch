@@ -31,10 +31,10 @@ class NMNIST(NeuromorphicDataset):
    
     Example::
 
-        from snntorch import spikevision.data
+        from snntorch.spikevision import data
 
-        train_ds = spikevision.data.NMNIST("data/nmnist", train=True, num_steps=300)
-        test_ds = spikevision.data.NMNIST("data/nmnist", train=False, num_steps=300)
+        train_ds = data.NMNIST("data/nmnist", train=True, num_steps=300)
+        test_ds = data.NMNIST("data/nmnist", train=False, num_steps=300)
 
 
 
@@ -56,7 +56,7 @@ class NMNIST(NeuromorphicDataset):
     :param num_steps: Number of time steps, defaults to ``300``
     :type num_steps: int, optional
 
-    :param dt: Duration of each time step in microseconds, defaults to ``1000``
+    :param dt: Number of time stamps integrated in microseconds, defaults to ``1000``
     :type dt: int, optional
     
     Adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci and Clemens Schaefer.
@@ -84,8 +84,12 @@ class NMNIST(NeuromorphicDataset):
         self.dt = dt
         self.num_steps = num_steps
         self.directory = root.split('n_mnist.hdf5')[0]
-        self.resources_local = [self.directory + '/Train.zip', self.directory + '/Test.zip']  # debug: to-do: check if forward-slash holds up in colab
-        
+        self.resources_local = [self.directory + '/Train.zip', self.directory + '/Test.zip'] 
+        if self.train:
+            self.resources_local_extracted = [self.directory + "/Train"]
+        else:
+            self.resources_local_extracted = [self.directory + "/Test"]
+
         size = [2, 32, 32]  # 32//ds
 
         if transform is None:
@@ -150,7 +154,6 @@ class NMNIST(NeuromorphicDataset):
 
         return data, target
 
-
 def create_events_hdf5(directory, hdf5_filename):
     fns_train, fns_test = nmnist_get_file_names(directory)
     fns_train = [val for sublist in fns_train for val in sublist]
@@ -199,7 +202,7 @@ def create_events_hdf5(directory, hdf5_filename):
         extra_grp.attrs['Ntest'] = len(test_keys)
         print(f"n_mnist.hdf5 was created successfully.")
 
-
+# 
 def nmnist_load_events_from_bin(file_path, max_duration=None):
     timestamps, xaddr, yaddr, pol = load_ATIS_bin(file_path)
     return np.column_stack([

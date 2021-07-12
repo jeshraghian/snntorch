@@ -117,3 +117,6 @@ great_lakes/
 neural_sampling_machines/
 torchneuromorphic/
 dataset/
+debug.py
+test_dvsgesture.ipynb
+test_nmnist.ipynb
