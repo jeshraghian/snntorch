@@ -156,9 +156,9 @@ class SHD(NeuromorphicDataset):
             transform=None,
             target_transform=None,
             download_and_create=True,
-            num_steps = 500,
+            num_steps = 1000,
             ds = 1,
-            dt = 500):
+            dt = 1000):
 
         self.n = 0
         self.root = root
@@ -177,7 +177,8 @@ class SHD(NeuromorphicDataset):
                         Downsample(factor=[self.dt, self.ds]),
                         ToChannelHeightWidth(),
                         ToCountFrame(T = self.num_steps, size = size),
-                        ToTensor()
+                        ToTensor(),
+                        hflip()
                         ])
 
         if target_transform is not None:
