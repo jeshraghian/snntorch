@@ -57,9 +57,9 @@ def create_events_hdf5(directory, hdf5_filename):
         data_grp = f.create_group('data')
         extra_grp = f.create_group('extra')
         print(f"Creating shd.hdf5...")
-        for i,data in enumerate(tmad):
-            times = data[:,0]
-            addrs = data[:,1:]
+        for i, data in enumerate(tmad):
+            times = data[:, 0]
+            addrs = data[:, 1:]
             label = labels[i]
             out = []
             istrain = i<border
@@ -141,9 +141,7 @@ class SHD(NeuromorphicDataset):
 
     :param ds: Rescaling factor, defaults to ``1``.
     :type ds: int, optional
-    
-    Dataloader adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci and Clemens Schaefer.
-    
+
 
     Dataloader adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci.
 
@@ -243,7 +241,6 @@ def sample(hdf5_file,
 
 
 
-# remove below
 
 # def create_dataloader(
 #         root = 'data/shd/shd.hdf5',
@@ -277,4 +274,4 @@ def sample(hdf5_file,
 #     print(dl_kwargs)
                                  
 
-    return train_dl, test_dl
+    # return train_dl, test_dl
