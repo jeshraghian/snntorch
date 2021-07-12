@@ -37,8 +37,24 @@ class DVSGesture(NeuromorphicDataset):
 
         from snntorch.spikevision import data
 
-        train_ds = data.DVSGesture("data/dvsgesture", train=True)
-        test_ds = data.DVSGesture("data/dvsgesture", train=False)
+        train_ds = data.DVSGesture("data/dvsgesture", train=True, num_steps=500)
+        test_ds = data.DVSGesture("data/dvsgesture", train=False, num_steps=1800)
+
+        # by default, each time step is integrated over 1ms, or dt=1000 microseconds
+        # dt can be changed to integrate events over a varying number of time steps
+        # Note that num_steps should be scaled inversely by the same factor
+
+        train_ds = data.DVSGesture("data/dvsgesture", train=True, num_steps=250, dt=2000)
+        test_ds = data.DVSGesture("data/dvsgesture", train=False, num_steps=900, dt=2000)
+    
+    The dataset is released under a Creative Commons Attribution 4.0 license.
+
+    The dataset can also be manually downloaded, extracted and placed into ``root`` which will allow the dataloader to bypass straight to the generation of a hdf5 file.
+    
+    `IBM Box Link <https://ibm.ent.box.com/s/3hiq58ww1pbbjrinh367ykfdf60xsfm8/folder/50167556794>`_
+    
+    `Dropbox Link <https://www.dropbox.com/s/cct5kyilhtsliup/DvsGesture.tar.gz?dl=0>`_
+
 
     :param root: Root directory of dataset.
     :type root: string
@@ -46,7 +62,7 @@ class DVSGesture(NeuromorphicDataset):
     :param train: If True, creates dataset from training set of dvsgesture, otherwise test set.
     :type train: bool, optional
 
-    :param transform: A function/transform that takes in a PIL image and returns a transforms version. By default, a pre-defined set of transforms are applied to DVSGesture to convert them into a time-first tensor.
+    :param transform: A function/transform that takes in a PIL image and returns a transforms version. By default, a pre-defined set of transforms are applied to all samples to convert them into a time-first tensor with correct orientation.
     :type transform: callable, optional
 
     :param target_transform: A function/transform that takes in the target and transforms it.

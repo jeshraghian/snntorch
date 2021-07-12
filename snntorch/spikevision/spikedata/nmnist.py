@@ -29,6 +29,8 @@ class NMNIST(NeuromorphicDataset):
 
     """`NMNIST <https://www.garrickorchard.com/datasets/n-mnist>`_ Dataset.
    
+    Orchard, G.; Cohen, G.; Jayawant, A.; and Thakor, N.  “Converting Static Image Datasets to Spiking Neuromorphic Datasets Using Saccades", Frontiers in Neuroscience, vol.9, no.437, Oct. 2015.
+    
     Example::
 
         from snntorch.spikevision import data
@@ -36,7 +38,20 @@ class NMNIST(NeuromorphicDataset):
         train_ds = data.NMNIST("data/nmnist", train=True, num_steps=300)
         test_ds = data.NMNIST("data/nmnist", train=False, num_steps=300)
 
+        # by default, each time step is integrated over 1ms, or dt=1000 microseconds
+        # dt can be changed to integrate events over a varying number of time steps
+        # Note that num_steps should be scaled inversely by the same factor
 
+        train_ds = data.NMNIST("data/nmnist", train=True, num_steps=150, dt=2000)
+        test_ds = data.NMNIST("data/nmnist", train=False, num_steps=150, dt=2000)
+
+    The dataset is released under the Creative Commons Attribution-ShareAlike 4.0 license.
+
+    The dataset can also be manually downloaded, extracted and placed into ``root`` which will allow the dataloader to bypass straight to the generation of a hdf5 file.
+    
+    `Dropbox Train Set Link <https://www.dropbox.com/sh/tg2ljlbmtzygrag/AABlMOuR15ugeOxMCX0Pvoxga/Train.zip?dl=0>`_
+
+    `Dropbox Test Set Link <https://www.dropbox.com/sh/tg2ljlbmtzygrag/AADSKgJ2CjaBWh75HnTNZyhca/Test.zip?dl=0>`_
 
     :param root: Root directory of dataset where ``Train.zip`` and  ``Test.zip`` exist.
     :type root: string
@@ -44,7 +59,7 @@ class NMNIST(NeuromorphicDataset):
     :param train: If True, creates dataset from ``Train.zip``, otherwise from ``Test.zip``
     :type train: bool, optional
 
-    :param transform: A function/transform that takes in a PIL image and returns a transforms version. By default, a pre-defined set of transforms are applied to NMNIST to convert them into a time-first tensor.
+    :param transform: A function/transform that takes in a PIL image and returns a transforms version. By default, a pre-defined set of transforms are applied to all samples to convert them into a time-first tensor with correct orientation.
     :type transform: callable, optional
 
     :param target_transform: A function/transform that takes in the target and transforms it.
