@@ -107,7 +107,7 @@ def download_and_extract_archive(
     download_url(url, download_root, filename, md5)
 
     archive = os.path.join(download_root, filename)
-    print("Extracting {} to {}".format(archive, extract_root))
+    print("Extracting {} to {}".format(archive, extract_root))  # test *might need to change syntax to colab-friendly here
     extract_archive(archive, extract_root, remove_finished)
 
 
@@ -201,7 +201,7 @@ class NeuromorphicDataset(data.Dataset):
         if res is False:
             for _, _, filename in self._resources_url:
                 extract_root = self.directory
-                archive = os.path.join(extract_root, filename)
+                archive = os.path.join(extract_root, filename).replace('\\', '/')
                 print("Extracting {} to {}...".format(archive, extract_root))  # test?
                 extract_archive(archive, extract_root, remove_finished=False)
         return res
