@@ -1,4 +1,5 @@
-# Adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
+# DVS Gesture citation: A. Amir, B. Taba, D. Berg, T. Melano, J. McKinstry, C. Di Nolfo, T. Nayak, A. Andreopoulos, G. Garreau, M. Mendoza, J. Kusnitz, M. Debole, S. Esser, T. Delbruck, M. Flickner, and D. Modha, "A Low Power, Fully Event-Based Gesture Recognition System," 2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), Honolulu, HI, 2017.
+# Dataloader adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
 
 import struct
 import time
@@ -35,7 +36,7 @@ class DVSGesture(NeuromorphicDataset):
    
     Example::
 
-        from snntorch.spikevision import data
+        from snntorch.spikevision import spikedata
 
         train_ds = data.DVSGesture("data/dvsgesture", train=True, num_steps=500)
         test_ds = data.DVSGesture("data/dvsgesture", train=False, num_steps=1800)
@@ -78,7 +79,7 @@ class DVSGesture(NeuromorphicDataset):
     :type dt: int, optional
 
     :param ds: Rescaling factor, defaults to ``1``.
-    :type dt: int, optional
+    :type ds: int, optional
 
     :return_meta: Option to return metadata, defaults to ``False``
     :type return_meta: bool, optional

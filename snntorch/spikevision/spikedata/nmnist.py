@@ -1,4 +1,6 @@
-# Adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
+# NMNIST Dataset Citation: Orchard, G.; Cohen, G.; Jayawant, A.; and Thakor, N.  “Converting Static Image Datasets to Spiking Neuromorphic Datasets Using Saccades", Frontiers in Neuroscience, vol.9, no.437, Oct. 2015.
+
+# Dataloader adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
 
 import struct
 import time, copy
@@ -33,7 +35,7 @@ class NMNIST(NeuromorphicDataset):
     
     Example::
 
-        from snntorch.spikevision import data
+        from snntorch.spikevision import spikedata
 
         train_ds = data.NMNIST("data/nmnist", train=True, num_steps=300)
         test_ds = data.NMNIST("data/nmnist", train=False, num_steps=300)
@@ -74,7 +76,7 @@ class NMNIST(NeuromorphicDataset):
     :param dt: Number of time stamps integrated in microseconds, defaults to ``1000``
     :type dt: int, optional
     
-    Adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci and Clemens Schaefer.
+    Dataloader adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci and Clemens Schaefer.
         
     """
 
