@@ -2,16 +2,9 @@ import os
 import torch
 import torch.utils.data as data
 from torchvision.datasets.utils import (
-    # extract_archive,
     verify_str_arg,
     check_integrity,
     gen_bar_updater,
-    _is_tar, 
-    _is_targz, 
-    _is_tarxz, 
-    _is_gzip, 
-    _is_zip,
-    _is_tgz
 )
 from ._transforms import Compose
 from tqdm import tqdm
@@ -270,7 +263,7 @@ def _extract_archive(from_path, to_path = None, remove_finished = False):
 
         if remove_finished:
             os.remove(from_path)
-            
+
 class StandardTransform(object):
     def __init__(self, transform=None, target_transform=None):
         self.transform = transform
@@ -300,6 +293,28 @@ class StandardTransform(object):
 
         return "\n".join(body)
 
+def _is_tarxz(filename: str) -> bool:
+    return filename.endswith(".tar.xz")
+
+
+def _is_tar(filename: str) -> bool:
+    return filename.endswith(".tar")
+
+
+def _is_targz(filename: str) -> bool:
+    return filename.endswith(".tar.gz")
+
+
+def _is_tgz(filename: str) -> bool:
+    return filename.endswith(".tgz")
+
+
+def _is_gzip(filename: str) -> bool:
+    return filename.endswith(".gz") and not filename.endswith(".tar.gz")
+
+
+def _is_zip(filename: str) -> bool:
+    return filename.endswith(".zip")
 
 class DownloadProgressBar(tqdm):
     def update_to(self, b=1, bsize=1, tsize=None):
