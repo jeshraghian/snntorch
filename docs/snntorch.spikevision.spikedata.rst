@@ -1,5 +1,5 @@
-snntorch.spikevision.data
-===========================
+snntorch.spikevision.spikedata
+===============================
 
 All datasets are subclasses of :code:`torch.utils.data.Dataset` i.e., they have :code:`__getitem__` and :code:`__len__` methods implemented. 
 Hence, they can all be passed to a :code:`torch.utils.data.DataLoader` which can load multiple samples in parallel using :code:`torch.multiprocessing` workers. 

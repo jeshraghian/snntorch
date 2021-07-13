@@ -14,15 +14,15 @@ It is the neuromorphic analog to `torchvision <https://pytorch.org/vision/stable
    * - Dataset
      - Description
      - Author URL
-   * - `NMNIST <https://snntorch.readthedocs.io/en/latest/snntorch.spikevision.data.html#nmnist>`_
+   * - `NMNIST <https://snntorch.readthedocs.io/en/latest/snntorch.spikevision.spikedata.html#nmnist>`_
      - | A spiking version of the original 
        | frame-based `MNIST <http://yann.lecun.com/exdb/mnist/>`_ dataset.
      - `G. Orchard <https://www.garrickorchard.com/datasets/n-mnist>`_
-   * - `DVSGesture <https://snntorch.readthedocs.io/en/latest/snntorch.spikevision.data.html#dvsgesture>`_
+   * - `DVSGesture <https://snntorch.readthedocs.io/en/latest/snntorch.spikevision.spikedata.html#dvsgesture>`_
      - | 11 hand gestures recorded from 29 subjects 
        | under 3 illumination conditions using a DVS128.
      - `IBM Research <https://www.research.ibm.com/dvsgesture/>`_
-   * - `SHD <https://snntorch.readthedocs.io/en/latest/snntorch.spikevision.data.html#shd>`_
+   * - `SHD <https://snntorch.readthedocs.io/en/latest/snntorch.spikevision.spikedata.html#shd>`_
      - | Spikes in 700 input channels were generated 
        | using an artificial cochlea model listening 
        | to studio recordings of spoken digits from 
@@ -36,7 +36,7 @@ It is the neuromorphic analog to `torchvision <https://pytorch.org/vision/stable
     :maxdepth: 2
     :glob:
 
-    snntorch.spikevision.data
+    snntorch.spikevision.spikedata
 
 
 Model architectures and additional datasets are planned to be released.
