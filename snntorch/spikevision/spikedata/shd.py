@@ -61,10 +61,10 @@ def create_events_hdf5(directory, hdf5_filename):
         extra_grp = f.create_group("extra")
         print("Creating shd.hdf5...")
         for i, data in enumerate(tmad):
-            # times = data[:, 0]
-            # addrs = data[:, 1:]
+            times = data[:, 0]
+            addrs = data[:, 1:]
             label = labels[i]
-            # out = []
+            out = []
             istrain = i < border
             if istrain:
                 train_keys.append(key)
@@ -72,9 +72,11 @@ def create_events_hdf5(directory, hdf5_filename):
                 test_keys.append(key)
             metas.append({"key": str(key), "training sample": istrain})
             subgrp = data_grp.create_group(str(key))
-            # tm_dset = subgrp.create_dataset("times", data=times, dtype=np.uint32)
-            # ad_dset = subgrp.create_dataset("addrs", data=addrs, dtype=np.uint16)
-            # lbl_dset = subgrp.create_dataset("labels", data=label, dtype=np.uint8)
+            tm_dset = subgrp.create_dataset(
+                "times", data=times, dtype=np.uint32
+            )  # next 3 lines are commented - test
+            ad_dset = subgrp.create_dataset("addrs", data=addrs, dtype=np.uint16)
+            lbl_dset = subgrp.create_dataset("labels", data=label, dtype=np.uint8)
             subgrp.attrs["meta_info"] = str(metas[-1])
             assert label in mapping
             key += 1
@@ -91,7 +93,7 @@ def load_shd_hdf5(filename, train=True):
         evs = []
         labels = []
         for i, tl in enumerate(f["labels"]):
-            # label_ = tl
+            label_ = tl
             digit = tl
             digit = int(digit)
             labels.append(digit)
@@ -266,7 +268,7 @@ class SHD(NeuromorphicDataset):
 def sample(hdf5_file, key, T=500, shuffle=False):
     dset = hdf5_file["data"][str(key)]
     label = dset["labels"][()]
-    # tend = dset["times"][-1]
+    tend = dset["times"][-1]
     start_time = 0
 
     tmad = get_tmad_slice(dset["times"][()], dset["addrs"][()], start_time, T * 1000)

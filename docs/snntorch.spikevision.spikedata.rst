@@ -11,6 +11,7 @@ For example::
                             shuffle=True, 
                             num_workers=args.nThreads)
 
+
 The docstrings for the following datasets are currently not compiling correctly below.
 For further information on each dataset and its use, please refer to the help function or `examples <https://snntorch.readthedocs.io/en/latest/examples/examples_svision.html>`_.
 
