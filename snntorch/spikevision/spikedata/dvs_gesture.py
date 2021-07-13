@@ -32,21 +32,29 @@ class DVSGesture(NeuromorphicDataset):
 
     """`DVS Gesture <https://www.research.ibm.com/dvsgesture/>`_ Dataset.
 
+    The data was recorded using a DVS128. The dataset contains 11 hand gestures from 29 subjects under 3 illumination conditions.
+
+    Number of classes: 11
+
+    Number of train samples: 1176
+    
+    Number of test samples: 288
+
     A. Amir, B. Taba, D. Berg, T. Melano, J. McKinstry, C. Di Nolfo, T. Nayak, A. Andreopoulos, G. Garreau, M. Mendoza, J. Kusnitz, M. Debole, S. Esser, T. Delbruck, M. Flickner, and D. Modha, "A Low Power, Fully Event-Based Gesture Recognition System," 2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), Honolulu, HI, 2017.
    
     Example::
 
         from snntorch.spikevision import spikedata
 
-        train_ds = data.DVSGesture("data/dvsgesture", train=True, num_steps=500)
-        test_ds = data.DVSGesture("data/dvsgesture", train=False, num_steps=1800)
+        train_ds = data.DVSGesture("data/dvsgesture", train=True, num_steps=500, dt=1000)
+        test_ds = data.DVSGesture("data/dvsgesture", train=False, num_steps=1800, dt=1000)
 
         # by default, each time step is integrated over 1ms, or dt=1000 microseconds
         # dt can be changed to integrate events over a varying number of time steps
         # Note that num_steps should be scaled inversely by the same factor
 
-        train_ds = data.DVSGesture("data/dvsgesture", train=True, num_steps=250, dt=2000)
-        test_ds = data.DVSGesture("data/dvsgesture", train=False, num_steps=900, dt=2000)
+        train_ds = spikedata.DVSGesture("data/dvsgesture", train=True, num_steps=250, dt=2000)
+        test_ds = spikedata.DVSGesture("data/dvsgesture", train=False, num_steps=900, dt=2000)
     
     The dataset is released under a Creative Commons Attribution 4.0 license.
 
@@ -280,73 +288,3 @@ def gather_aedat(directory, extracted_directory, start_id, end_id, filename_pref
         if len(glob_out)>0:
             fns+=glob_out
     return fns
-
-
-# def create_dataloader(
-#         root = 'data/dvsgesture/dvs_gestures_build19.hdf5',
-#         batch_size = 72 ,
-#         chunk_size_train = 500,
-#         chunk_size_test = 1800,
-#         ds = None,
-#         dt = 1000,
-#         transform_train = None,
-#         transform_test = None,
-#         target_transform_train = None,
-#         target_transform_test = None,
-#         n_events_attention=None,
-#         return_meta=False,
-#         sample_shuffle=True,
-#         time_shuffle=True,
-#         **dl_kwargs):
-#     if ds is None:
-#         ds = 4
-#     if isinstance(ds,int):
-#         ds = [ds,ds]
-        
-#     size = [2, 128//ds[0], 128//ds[1]]
-
-#     if n_events_attention is None:
-#         default_transform = lambda chunk_size: Compose([
-#             Downsample(factor=[dt,1,ds[0],ds[1]]),
-#             ToCountFrame(T = chunk_size, size = size),
-#             ToTensor()
-#         ])
-#     else:
-#         default_transform = lambda chunk_size: Compose([
-#             Downsample(factor=[dt,1,1,1]),
-#             Attention(n_events_attention, size=size),
-#             ToCountFrame(T = chunk_size, size = size),
-#             ToTensor()
-#         ])
-
-#     if transform_train is None:
-#         transform_train = default_transform(chunk_size_train)
-#     if transform_test is None:
-#         transform_test = default_transform(chunk_size_test)
-
-#     if target_transform_train is None:
-#         target_transform_train =Compose([Repeat(chunk_size_train), toOneHot(11)])
-#     if target_transform_test is None:
-#         target_transform_test = Compose([Repeat(chunk_size_test), toOneHot(11)])
-
-#     train_d = DVSGesture(root,
-#                                 train=True,
-#                                 transform = transform_train, 
-#                                 target_transform = target_transform_train, 
-#                                 chunk_size = chunk_size_train,
-#                                 return_meta = return_meta,
-#                                 time_shuffle=time_shuffle)
-
-#     train_dl = torch.utils.data.DataLoader(train_d, batch_size=batch_size, shuffle=sample_shuffle, **dl_kwargs)
-
-#     test_d = DVSGesture(root,
-#                                transform = transform_test, 
-#                                target_transform = target_transform_test, 
-#                                train=False,
-#                                chunk_size = chunk_size_test,
-#                                return_meta = return_meta,
-#                                time_shuffle=time_shuffle) # WAS FALSE
-
-#     test_dl = torch.utils.data.DataLoader(test_d, batch_size=batch_size, **dl_kwargs)
-
-#     return train_dl, test_dl

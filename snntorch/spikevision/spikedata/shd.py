@@ -101,6 +101,14 @@ class SHD(NeuromorphicDataset):
 
     """`Spiking Heidelberg Digits <https://zenkelab.org/resources/spiking-heidelberg-datasets-shd/>`_ Dataset.
 
+    Spikes in 700 input channels were generated using an artificial cochlea model listening to studio recordings of spoken digits from 0 to 9 in both German and English languages.
+    
+    Number of classes: 20
+    
+    Number of train samples: 8156
+    
+    Number of test samples: 2264
+
     Cramer, B., Stradmann, Y., Schemmel, J., and Zenke, F. (2020). The Heidelberg Spiking Data Sets for the Systematic Evaluation of Spiking Neural Networks. IEEE Transactions on Neural Networks and Learning Systems 1–14.
 
     Example::
@@ -109,6 +117,13 @@ class SHD(NeuromorphicDataset):
 
         train_ds = data.SHD("data/shd", train=True)
         test_ds = data.SHD("data/shd", train=False)
+
+        # by default, each time step is integrated over 1ms, or dt=1000 microseconds
+        # dt can be changed to integrate events over a varying number of time steps
+        # Note that num_steps should be scaled inversely by the same factor
+
+        train_ds = data.NMNIST("data/nmnist", train=True, num_steps=500, dt=2000)
+        test_ds = data.NMNIST("data/nmnist", train=False, num_steps=500, dt=2000)
     
     The dataset is released under a Creative Commons Attribution 4.0 International License.
     
@@ -133,10 +148,10 @@ class SHD(NeuromorphicDataset):
     :param download_and_create: If True, downloads the dataset from the internet and puts it in root directory. If dataset is already downloaded, it is not downloaded again.
     :type download_and_create: bool, optional
 
-    :param num_steps: Number of time steps, defaults to ``500`` for train set, or ``1800`` for test set
+    :param num_steps: Number of time steps, defaults to ``1000``
     :type num_steps: int, optional
 
-    :param dt: The number of time stamps integrated in microseconds, defaults to ``500``
+    :param dt: The number of time stamps integrated in microseconds, defaults to ``1000``
     :type dt: int, optional
 
     :param ds: Rescaling factor, defaults to ``1``.
@@ -239,40 +254,3 @@ def sample(hdf5_file,
     tmad = get_tmad_slice(dset['times'][()], dset['addrs'][()], start_time, T*1000)
     tmad[:,0]-=tmad[0,0]
     return tmad, label
-
-
-
-
-# def create_dataloader(
-#         root = 'data/shd/shd.hdf5',
-#         batch_size = 72 ,
-#         chunk_size_train = 1000,
-#         chunk_size_test = 1000,
-#         ds = 1,
-#         dt = 500,
-#         transform_train = None,
-#         transform_test = None,
-#         target_transform_train = None,
-#         target_transform_test = None,
-#         **dl_kwargs):
-
-#     collate_fn = None
-#     #collate_fn = lambda x: zip(*[x[i] for i in range(len(x))])
-
-#     train_d = SHDDataset(root,train=True,
-#                                  transform = transform_train, 
-#                                  target_transform = target_transform_train, 
-#                                  chunk_size = chunk_size_train)
-
-#     train_dl = torch.utils.data.DataLoader(train_d, shuffle=True, batch_size=batch_size, collate_fn = collate_fn,**dl_kwargs)
-
-#     test_d = SHDDataset(root, transform = transform_test, 
-#                                  target_transform = target_transform_test, 
-#                                  train=False,
-#                                  chunk_size = chunk_size_test)
-
-#     test_dl = torch.utils.data.DataLoader(test_d, shuffle=False, batch_size=batch_size, collate_fn = collate_fn,**dl_kwargs)
-#     print(dl_kwargs)
-                                 
-
-    # return train_dl, test_dl

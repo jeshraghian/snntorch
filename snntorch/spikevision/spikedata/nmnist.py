@@ -1,5 +1,4 @@
 # NMNIST Dataset Citation: Orchard, G.; Cohen, G.; Jayawant, A.; and Thakor, N.  “Converting Static Image Datasets to Spiking Neuromorphic Datasets Using Saccades", Frontiers in Neuroscience, vol.9, no.437, Oct. 2015.
-
 # Dataloader adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
 
 import struct
@@ -30,6 +29,17 @@ mapping = { 0 :'0',
 class NMNIST(NeuromorphicDataset):
 
     """`NMNIST <https://www.garrickorchard.com/datasets/n-mnist>`_ Dataset.
+
+    The Neuromorphic-MNIST (NMNIST) dataset is a spiking version of the original frame-based `MNIST <http://yann.lecun.com/exdb/mnist/>`_ dataset. 
+
+    The downloaded and extracted dataset consists of the same 60000 training and 10000 testing samples as the MNIST dataset, and is captured at the same visual scale as the original MNIST dataset (28x28 pixels).
+    For compatibility with the .hdf5 conversion process, this is reduced such that the number of samples for each class are balanced to the label with the minimum number of samples (training - 5: 5421, test - 5: 892). 
+    
+    Number of classes: 10
+
+    Number of train samples: 54210
+    
+    Number of test samples: 8920
    
     Orchard, G.; Cohen, G.; Jayawant, A.; and Thakor, N.  “Converting Static Image Datasets to Spiking Neuromorphic Datasets Using Saccades", Frontiers in Neuroscience, vol.9, no.437, Oct. 2015.
     
@@ -37,8 +47,8 @@ class NMNIST(NeuromorphicDataset):
 
         from snntorch.spikevision import spikedata
 
-        train_ds = data.NMNIST("data/nmnist", train=True, num_steps=300)
-        test_ds = data.NMNIST("data/nmnist", train=False, num_steps=300)
+        train_ds = spikedata.NMNIST("data/nmnist", train=True, num_steps=300, dt=1000)
+        test_ds = spikedata.NMNIST("data/nmnist", train=False, num_steps=300, dt=1000)
 
         # by default, each time step is integrated over 1ms, or dt=1000 microseconds
         # dt can be changed to integrate events over a varying number of time steps
@@ -92,7 +102,7 @@ class NMNIST(NeuromorphicDataset):
             target_transform=None,
             download_and_create=True,
             num_steps = 300,
-            dt = 1000):
+            dt = 1000,):
 
         self.n = 0
         self.nclasses = self.num_classes = 10
@@ -100,6 +110,7 @@ class NMNIST(NeuromorphicDataset):
         self.train = train 
         self.dt = dt
         self.num_steps = num_steps
+        # self.balance = balance
         self.directory = root.split('n_mnist.hdf5')[0]
         self.resources_local = [self.directory + '/Train.zip', self.directory + '/Test.zip'] 
         if self.train:
@@ -147,6 +158,7 @@ class NMNIST(NeuromorphicDataset):
 
     def _create_hdf5(self):
         create_events_hdf5(self.directory, self.root)
+        # create_events_hdf5(self.directory, self.root, self.balance)
 
 
     def __len__(self):
@@ -172,6 +184,7 @@ class NMNIST(NeuromorphicDataset):
         return data, target
 
 def create_events_hdf5(directory, hdf5_filename):
+    # fns_train, fns_test = nmnist_get_file_names(directory, balance)
     fns_train, fns_test = nmnist_get_file_names(directory)
     fns_train = [val for sublist in fns_train for val in sublist]
     fns_test = [val for sublist in fns_test for val in sublist]
@@ -210,6 +223,9 @@ def create_events_hdf5(directory, hdf5_filename):
             subgrp.attrs['meta_info']= str(metas[-1])
             assert label in range(10)
             key += 1
+
+        # TO-DO: implement method for balanced MNIST classes
+        # if balance:
         extra_grp.create_dataset('train_keys', data = train_keys)
         extra_grp.create_dataset('train_keys_by_label', data = train_label_list)
         extra_grp.create_dataset('test_keys_by_label', data = test_label_list)
@@ -219,7 +235,24 @@ def create_events_hdf5(directory, hdf5_filename):
         extra_grp.attrs['Ntest'] = len(test_keys)
         print(f"n_mnist.hdf5 was created successfully.")
 
-# 
+        # else:  # test
+        #     extra_grp.create_dataset('train_keys', data = train_keys)
+            
+        #     for idx, item in enumerate(train_label_list):
+        #         _class_imbalance(extra_grp, 'train_keys_by_label_' + str(idx), item)
+        #     for idx, item in enumerate(test_label_list):
+        #         _class_imbalance(extra_grp, 'test_keys_by_label_'+str(idx), item)
+            
+        #     extra_grp.create_dataset('test_keys', data = test_keys)
+        #     extra_grp.attrs['N'] = len(train_keys) + len(test_keys)
+        #     extra_grp.attrs['Ntrain'] = len(train_keys)
+        #     extra_grp.attrs['Ntest'] = len(test_keys)
+        #     print(f"n_mnist.hdf5 was created successfully.")
+
+# def _class_imbalance(group, header, data):
+#     group.create_dataset(header, data)
+
+
 def nmnist_load_events_from_bin(file_path, max_duration=None):
     timestamps, xaddr, yaddr, pol = load_ATIS_bin(file_path)
     return np.column_stack([
@@ -240,7 +273,8 @@ def nmnist_get_file_names(dataset_path):
         digit_test = glob.glob(os.path.join(dataset_path, 'Test/{}/*.bin'.format(digit)))
         train_files.append(digit_train)
         test_files.append(digit_test)
-
+    
+    # if balance:
     # We need the same number of train and test samples for each digit, let's compute the minimum
     max_n_train = min(map(lambda l: len(l), train_files))
     max_n_test = min(map(lambda l: len(l), test_files))
@@ -254,6 +288,10 @@ def nmnist_get_file_names(dataset_path):
     test_files = map(lambda l: l[:n_test], test_files)
 
     return list(train_files), list(test_files)
+    
+    # else:  # test
+    # print(f"\nN-MNIST: {60000} train samples and {10000} test samples")
+    # return list(train_files), list(test_files)
 
 
 def sample(hdf5_file,
@@ -268,82 +306,3 @@ def sample(hdf5_file,
     tmad = get_tmad_slice(dset['times'][()], dset['addrs'][()], start_time, T*1000)
     tmad[:,0]-=tmad[0,0]
     return tmad, label
-
-
-# def create_datasets(
-#         root = 'data/nmnist/n_mnist.hdf5',
-#         batch_size = 72 ,
-#         num_steps_train = 300,
-#         num_steps_test = 300,
-#         ds = 1,
-#         dt = 1000,
-#         transform_train = None,
-#         transform_test = None,
-#         target_transform_train = None,
-#         target_transform_test = None):
-
-#     size = [2, 32//ds, 32//ds]
-
-#     if transform_train is None:
-#         transform_train = Compose([
-#             CropDims(low_crop=[0,0], high_crop=[32,32], dims=[2,3]),
-#             Downsample(factor=[dt,1,1,1]),
-#             ToCountFrame(T = num_steps_train, size = size),
-#             ToTensor()])
-#     if transform_test is None:
-#         transform_test = Compose([
-#             CropDims(low_crop=[0,0], high_crop=[32,32], dims=[2,3]),
-#             Downsample(factor=[dt,1,1,1]),
-#             ToCountFrame(T = num_steps_test, size = size),
-#             ToTensor()])
-
-#     if target_transform_train is None:
-#         target_transform_train =Compose([Repeat(num_steps_train), toOneHot(10)])
-#     if target_transform_test is None:
-#         target_transform_test = Compose([Repeat(num_steps_test), toOneHot(10)])
-
-#     train_ds = NMNIST(root,train=True,
-#                                  transform = transform_train, 
-#                                  target_transform = target_transform_train, 
-#                                  num_steps = num_steps_train,
-#                                  dt = dt)
-
-#     test_ds = NMNIST(root, transform = transform_test, 
-#                                  target_transform = target_transform_test, 
-#                                  train=False,
-#                                  num_steps = num_steps_test,
-#                                  dt = dt)
-
-#     return train_ds, test_ds
-
-
-# def create_dataloader(
-#         root = 'data/nmnist/n_mnist.hdf5',
-#         batch_size = 72 ,
-#         num_steps_train = 300,
-#         num_steps_test = 300,
-#         ds = 1,
-#         dt = 1000,
-#         transform_train = None,
-#         transform_test = None,
-#         target_transform_train = None,
-#         target_transform_test = None,
-#         **dl_kwargs):
-
-#     train_d, test_d = create_datasets(
-#         root = root,
-#         batch_size = batch_size,
-#         num_steps_train = num_steps_train,
-#         num_steps_test = num_steps_test,
-#         ds = ds,
-#         dt = dt,
-#         transform_train = transform_train,
-#         transform_test = transform_test,
-#         target_transform_train = target_transform_train,
-#         target_transform_test = target_transform_test)
-
-
-#     train_dl = torch.utils.data.DataLoader(train_d, shuffle=True, batch_size=batch_size, **dl_kwargs)
-#     test_dl = torch.utils.data.DataLoader(test_d, shuffle=False, batch_size=batch_size, **dl_kwargs)
-
-#     return train_dl, test_dl
