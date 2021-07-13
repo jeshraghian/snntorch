@@ -20,8 +20,6 @@ NMNIST
 
 .. autoclass:: snntorch.spikevision.spikedata.nmnist.NMNIST
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 
 DVSGesture
@@ -29,8 +27,7 @@ DVSGesture
 
 .. autoclass:: snntorch.spikevision.spikedata.dvs_gesture.DVSGesture
    :members:
-   :undoc-members:
-   :show-inheritance:
+
 
 
 SHD
@@ -38,6 +35,4 @@ SHD
 
 .. autoclass:: snntorch.spikevision.spikedata.shd.SHD
    :members:
-   :undoc-members:
-   :show-inheritance:
 
