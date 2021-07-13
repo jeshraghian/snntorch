@@ -21,21 +21,3 @@ NMNIST
    :undoc-members:
    :show-inheritance:
 
-
-DVSGesture
-^^^^^^^^^^^
-
-.. automodule:: snntorch.spikevision.spikedata.dvs_gesture
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-SHD
-^^^^^^^^^^^
-
-.. automodule:: snntorch.spikevision.spikedata.shd
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
