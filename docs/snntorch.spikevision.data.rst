@@ -15,9 +15,28 @@ For example::
 NMNIST
 ^^^^^^^^
 
-.. automodule:: snntorch.spikevision.data.nmnist
+.. automodule:: snntorch.spikevision.spikedata.nmnist.NMNIST
    :members:
    :undoc-members:
    :show-inheritance:
 
+
+DVSGesture
+^^^^^^^^^^^
+
+.. automodule:: snntorch.spikevision.spikedata.dvs_gesture.DVSGesture
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+
+
+SHD
+^^^^^^^^^^^
+
+.. automodule:: snntorch.spikevision.spikedata.shd.SHD
+   :members:
+   :undoc-members:
+   :show-inheritance:
 

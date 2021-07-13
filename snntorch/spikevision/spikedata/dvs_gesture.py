@@ -34,20 +34,31 @@ class DVSGesture(NeuromorphicDataset):
 
     The data was recorded using a DVS128. The dataset contains 11 hand gestures from 29 subjects under 3 illumination conditions.
 
-    Number of classes: 11
+    **Number of classes:** 11
 
-    Number of train samples: 1176
+    **Number of train samples:**  1176
     
-    Number of test samples: 288
+    **Number of test samples:**  288
 
-    A. Amir, B. Taba, D. Berg, T. Melano, J. McKinstry, C. Di Nolfo, T. Nayak, A. Andreopoulos, G. Garreau, M. Mendoza, J. Kusnitz, M. Debole, S. Esser, T. Delbruck, M. Flickner, and D. Modha, "A Low Power, Fully Event-Based Gesture Recognition System," 2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), Honolulu, HI, 2017.
+    **Dimensions:** ``[num_steps x 2 x 128 x 128]``
+
+    * **num_steps:** time-dimension of event-based footage
+    * **2:** number of channels (on-spikes for luminance increasing; off-spikes for luminance decreasing)
+    * **128x128:** W x H spatial dimensions of event-based footage
+
+    For further reading, see:
+
+        *A. Amir, B. Taba, D. Berg, T. Melano, J. McKinstry, C. Di Nolfo, T. Nayak, A. Andreopoulos, G. Garreau, M. Mendoza, J. Kusnitz, M. Debole, S. Esser, T. Delbruck, M. Flickner, and D. Modha, "A Low Power, Fully Event-Based Gesture Recognition System," 2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), Honolulu, HI, 2017.*
    
+
+
+
     Example::
 
         from snntorch.spikevision import spikedata
 
-        train_ds = data.DVSGesture("data/dvsgesture", train=True, num_steps=500, dt=1000)
-        test_ds = data.DVSGesture("data/dvsgesture", train=False, num_steps=1800, dt=1000)
+        train_ds = spikedata.DVSGesture("data/dvsgesture", train=True, num_steps=500, dt=1000)
+        test_ds = spikedata.DVSGesture("data/dvsgesture", train=False, num_steps=1800, dt=1000)
 
         # by default, each time step is integrated over 1ms, or dt=1000 microseconds
         # dt can be changed to integrate events over a varying number of time steps
@@ -55,14 +66,15 @@ class DVSGesture(NeuromorphicDataset):
 
         train_ds = spikedata.DVSGesture("data/dvsgesture", train=True, num_steps=250, dt=2000)
         test_ds = spikedata.DVSGesture("data/dvsgesture", train=False, num_steps=900, dt=2000)
-    
-    The dataset is released under a Creative Commons Attribution 4.0 license.
+
 
     The dataset can also be manually downloaded, extracted and placed into ``root`` which will allow the dataloader to bypass straight to the generation of a hdf5 file.
     
-    `IBM Box Link <https://ibm.ent.box.com/s/3hiq58ww1pbbjrinh367ykfdf60xsfm8/folder/50167556794>`_
+    **Direct Download Links:**
+
+        `IBM Box Link <https://ibm.ent.box.com/s/3hiq58ww1pbbjrinh367ykfdf60xsfm8/folder/50167556794>`_
     
-    `Dropbox Link <https://www.dropbox.com/s/cct5kyilhtsliup/DvsGesture.tar.gz?dl=0>`_
+        `Dropbox Link <https://www.dropbox.com/s/cct5kyilhtsliup/DvsGesture.tar.gz?dl=0>`_
 
 
     :param root: Root directory of dataset.
@@ -97,6 +109,7 @@ class DVSGesture(NeuromorphicDataset):
     
     Dataloader adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci and Clemens Schaefer.
     
+    The dataset is released under a Creative Commons Attribution 4.0 license. All rights remain with the original authors.
     """
     # _resources_url = [['Manually Download dataset here: https://ibm.ent.box.com/s/3hiq58ww1pbbjrinh367ykfdf60xsfm8/file/211521748942?sb=/details and place under {0}'.format(directory),None, 'DvsGesture.tar.gz']]
     

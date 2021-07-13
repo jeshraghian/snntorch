@@ -13,4 +13,5 @@ More detail is available in the `tutorials. <https://snntorch.readthedocs.io/en/
 
     examples/examples_snn
     examples/examples_splt
+    examples/examples_svision
     examples/examples_sur

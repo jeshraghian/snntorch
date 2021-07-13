@@ -103,35 +103,45 @@ class SHD(NeuromorphicDataset):
 
     Spikes in 700 input channels were generated using an artificial cochlea model listening to studio recordings of spoken digits from 0 to 9 in both German and English languages.
     
-    Number of classes: 20
+    **Number of classes:** 20
     
-    Number of train samples: 8156
+    **Number of train samples:** 8156
     
-    Number of test samples: 2264
+    **Number of test samples:** 2264
 
-    Cramer, B., Stradmann, Y., Schemmel, J., and Zenke, F. (2020). The Heidelberg Spiking Data Sets for the Systematic Evaluation of Spiking Neural Networks. IEEE Transactions on Neural Networks and Learning Systems 1–14.
+    **Dimensions:** ``[num_steps x 700]``
+
+    * **num_steps:** time-dimension of audio channels
+    * **700:** number of channels in cochlea model
+
+    For further reading, see:
+
+        *Cramer, B., Stradmann, Y., Schemmel, J., and Zenke, F. (2020). The Heidelberg Spiking Data Sets for the Systematic Evaluation of Spiking Neural Networks. IEEE Transactions on Neural Networks and Learning Systems 1–14.*
+    
+
+
 
     Example::
 
-    from snntorch.spikevision import data
+        from snntorch.spikevision import spikedata
 
-        train_ds = data.SHD("data/shd", train=True)
-        test_ds = data.SHD("data/shd", train=False)
+        train_ds = spikedata.SHD("data/shd", train=True)
+        test_ds = spikedata.SHD("data/shd", train=False)
 
         # by default, each time step is integrated over 1ms, or dt=1000 microseconds
         # dt can be changed to integrate events over a varying number of time steps
         # Note that num_steps should be scaled inversely by the same factor
 
-        train_ds = data.NMNIST("data/nmnist", train=True, num_steps=500, dt=2000)
-        test_ds = data.NMNIST("data/nmnist", train=False, num_steps=500, dt=2000)
-    
-    The dataset is released under a Creative Commons Attribution 4.0 International License.
+        train_ds = spikedata.SHD("data/shd", train=True, num_steps=500, dt=2000)
+        test_ds = spikedata.SHD("data/shd", train=False, num_steps=500, dt=2000)
     
     The dataset can also be manually downloaded, extracted and placed into ``root`` which will allow the dataloader to bypass straight to the generation of a hdf5 file.
     
-    `CompNeuro Train Set Link <https://compneuro.net/datasets/shd_train.h5.gz>`_
+    **Direct Download Links:** 
+
+        `CompNeuro Train Set Link <https://compneuro.net/datasets/shd_train.h5.gz>`_
     
-    `CompNeuro Test Set Link <https://compneuro.net/datasets/shd_test.h5.gz>`_
+        `CompNeuro Test Set Link <https://compneuro.net/datasets/shd_test.h5.gz>`_
 
     :param root: Root directory of dataset.
     :type root: string
@@ -159,6 +169,8 @@ class SHD(NeuromorphicDataset):
 
 
     Dataloader adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci.
+
+    The dataset is released under a Creative Commons Attribution 4.0 International License. All rights remain with the original authors.
 
     """
 

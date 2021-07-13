@@ -33,15 +33,23 @@ class NMNIST(NeuromorphicDataset):
     The Neuromorphic-MNIST (NMNIST) dataset is a spiking version of the original frame-based `MNIST <http://yann.lecun.com/exdb/mnist/>`_ dataset. 
 
     The downloaded and extracted dataset consists of the same 60000 training and 10000 testing samples as the MNIST dataset, and is captured at the same visual scale as the original MNIST dataset (28x28 pixels).
-    For compatibility with the .hdf5 conversion process, this is reduced such that the number of samples for each class are balanced to the label with the minimum number of samples (training - 5: 5421, test - 5: 892). 
+    For compatibility with the .hdf5 conversion process, this is reduced such that the number of samples for each class are balanced to the label with the minimum number of samples (training: 5421, test: 892). 
     
-    Number of classes: 10
+    **Number of classes:** 10
 
-    Number of train samples: 54210
+    **Number of train samples:** 54210
     
-    Number of test samples: 8920
+    **Number of test samples:** 8920
+    
+    **Dimensions:** ``[num_steps x 2 x 32 x 32]``
+
+        * **num_steps:** time-dimension of event-based footage
+        * **2:** number of channels (on-spikes for luminance increasing; off-spikes for luminance decreasing)
+        * **32x32:** W x H spatial dimensions of event-based footage
+
+    For further reading, see:
    
-    Orchard, G.; Cohen, G.; Jayawant, A.; and Thakor, N.  “Converting Static Image Datasets to Spiking Neuromorphic Datasets Using Saccades", Frontiers in Neuroscience, vol.9, no.437, Oct. 2015.
+        *Orchard, G.; Cohen, G.; Jayawant, A.; and Thakor, N.  “Converting Static Image Datasets to Spiking Neuromorphic Datasets Using Saccades", Frontiers in Neuroscience, vol.9, no.437, Oct. 2015.*
     
     Example::
 
@@ -54,16 +62,17 @@ class NMNIST(NeuromorphicDataset):
         # dt can be changed to integrate events over a varying number of time steps
         # Note that num_steps should be scaled inversely by the same factor
 
-        train_ds = data.NMNIST("data/nmnist", train=True, num_steps=150, dt=2000)
-        test_ds = data.NMNIST("data/nmnist", train=False, num_steps=150, dt=2000)
+        train_ds = spikedata.NMNIST("data/nmnist", train=True, num_steps=150, dt=2000)
+        test_ds = spikedata.NMNIST("data/nmnist", train=False, num_steps=150, dt=2000)
 
-    The dataset is released under the Creative Commons Attribution-ShareAlike 4.0 license.
 
     The dataset can also be manually downloaded, extracted and placed into ``root`` which will allow the dataloader to bypass straight to the generation of a hdf5 file.
-    
-    `Dropbox Train Set Link <https://www.dropbox.com/sh/tg2ljlbmtzygrag/AABlMOuR15ugeOxMCX0Pvoxga/Train.zip?dl=0>`_
 
-    `Dropbox Test Set Link <https://www.dropbox.com/sh/tg2ljlbmtzygrag/AADSKgJ2CjaBWh75HnTNZyhca/Test.zip?dl=0>`_
+    **Direct Download Links:**  
+
+        `Dropbox Train Set Link <https://www.dropbox.com/sh/tg2ljlbmtzygrag/AABlMOuR15ugeOxMCX0Pvoxga/Train.zip?dl=0>`_
+        
+        `Dropbox Test Set Link <https://www.dropbox.com/sh/tg2ljlbmtzygrag/AADSKgJ2CjaBWh75HnTNZyhca/Test.zip?dl=0>`_
 
     :param root: Root directory of dataset where ``Train.zip`` and  ``Test.zip`` exist.
     :type root: string
@@ -87,7 +96,8 @@ class NMNIST(NeuromorphicDataset):
     :type dt: int, optional
     
     Dataloader adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci and Clemens Schaefer.
-        
+
+    The dataset is released under the Creative Commons Attribution-ShareAlike 4.0 license. All rights remain with the original authors.
     """
 
 
