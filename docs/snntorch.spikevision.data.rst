@@ -30,8 +30,6 @@ DVSGesture
    :show-inheritance:
 
 
-
-
 SHD
 ^^^^^^^^^^^
 

@@ -30,11 +30,12 @@ It is the neuromorphic analog to `torchvision <https://pytorch.org/vision/stable
      - `Zenke Lab <https://zenkelab.org/resources/spiking-heidelberg-datasets-shd/>`_
 
 
+**Module Reference:**
 .. toctree::
+    :maxdepth: 2
+    :glob:
 
-   :maxdepth: 2
-   :caption: Module reference:
+    snntorch.spikevision.data
 
-   snntorch.spikevision.data
 
 Model architectures and additional datasets are planned to be released.
