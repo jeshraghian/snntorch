@@ -11,12 +11,31 @@ For example::
                             shuffle=True, 
                             num_workers=args.nThreads)
 
-
+The docstrings for the following datasets are currently not compiling correctly below.
+For further information on each dataset and its use, please refer to the help function or `examples <https://snntorch.readthedocs.io/en/latest/examples/examples_svision.html>`_.
 
 NMNIST
 ^^^^^^^^
 
-.. automodule:: snntorch.spikevision.spikedata.nmnist
+.. autoclass:: snntorch.spikevision.spikedata.nmnist.NMNIST
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+DVSGesture
+^^^^^^^^^^^
+
+.. autoclass:: snntorch.spikevision.spikedata.dvs_gesture.DVSGesture
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+SHD
+^^^^^^^^^^^
+
+.. autoclass:: snntorch.spikevision.spikedata.shd.SHD
    :members:
    :undoc-members:
    :show-inheritance:
