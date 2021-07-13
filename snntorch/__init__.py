@@ -1117,7 +1117,7 @@ class Stein(LIF):
 
     @classmethod
     def detach_hidden(cls):
-        """Returns the hidden states, detached from the current graph.
+        """Returns the hidden states and detaches them from the current graph.
         Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
