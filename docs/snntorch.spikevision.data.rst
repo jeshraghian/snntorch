@@ -12,10 +12,11 @@ For example::
                             num_workers=args.nThreads)
 
 
+
 NMNIST
 ^^^^^^^^
 
-.. automodule:: snntorch.spikevision.spikedata.nmnist.NMNIST
+.. automodule:: snntorch.spikevision.spikedata.nmnist
    :members:
    :undoc-members:
    :show-inheritance:
@@ -24,7 +25,7 @@ NMNIST
 DVSGesture
 ^^^^^^^^^^^
 
-.. automodule:: snntorch.spikevision.spikedata.dvs_gesture.DVSGesture
+.. automodule:: snntorch.spikevision.spikedata.dvs_gesture
    :members:
    :undoc-members:
    :show-inheritance:
@@ -33,7 +34,7 @@ DVSGesture
 SHD
 ^^^^^^^^^^^
 
-.. automodule:: snntorch.spikevision.spikedata.shd.SHD
+.. automodule:: snntorch.spikevision.spikedata.shd
    :members:
    :undoc-members:
    :show-inheritance:

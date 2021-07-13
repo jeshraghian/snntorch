@@ -31,6 +31,7 @@ It is the neuromorphic analog to `torchvision <https://pytorch.org/vision/stable
 
 
 **Module Reference:**
+
 .. toctree::
     :maxdepth: 2
     :glob:
