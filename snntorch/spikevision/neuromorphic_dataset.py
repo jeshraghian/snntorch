@@ -8,7 +8,9 @@ from torchvision.datasets.utils import (
 )
 from ._transforms import Compose
 from tqdm import tqdm
-import tarfile, zipfile, gzip
+import tarfile
+import zipfile
+import gzip
 
 
 # Adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
@@ -108,7 +110,7 @@ def download_and_extract_archive(
     download_url(url, download_root, filename, md5)
 
     archive = os.path.join(download_root, filename)
-    print("Extracting {} to {}".format(archive, extract_root))  # test *might need to change syntax to colab-friendly here
+    print("Extracting {} to {}".format(archive, extract_root))
     _extract_archive(archive, extract_root, remove_finished)
 
 
@@ -121,7 +123,15 @@ class NeuromorphicDataset(data.Dataset):
     _repr_indent = 4
 
     def __init__(
-        self, root=None, transforms=None, transform=None, target_transform=None, transform_train=None, transform_test=None, target_transform_train=None, target_transform_test=None,
+        self,
+        root=None,
+        transforms=None,
+        transform=None,
+        target_transform=None,
+        transform_train=None,
+        transform_test=None,
+        target_transform_train=None,
+        target_transform_test=None,
     ):
         if isinstance(root, torch._six.string_classes):
             root = os.path.expanduser(root)
@@ -202,14 +212,14 @@ class NeuromorphicDataset(data.Dataset):
         if res is False:
             for _, _, filename in self._resources_url:
                 extract_root = self.directory
-                archive = os.path.join(extract_root, filename).replace('\\', '/')
-                print("Extracting {} to {}...".format(archive, extract_root))  # test?
+                archive = os.path.join(extract_root, filename).replace("\\", "/")
+                print("Extracting {} to {}...".format(archive, extract_root))
                 _extract_archive(archive, extract_root, remove_finished=False)
         return res
 
     def _download(self):
         if self._check_exists():
-            if self._extract_exists():  # test
+            if self._extract_exists():
                 return True
         else:
             os.makedirs(self.directory, exist_ok=True)
@@ -238,31 +248,35 @@ class NeuromorphicDataset(data.Dataset):
         else:
             self.transform = Compose([self.transform, transform])
 
-def _extract_archive(from_path, to_path = None, remove_finished = False):
-        if to_path is None:
-            to_path = os.path.dirname(from_path)
 
-        if _is_tar(from_path):
-            with tarfile.open(from_path, 'r') as tar:
-                tar.extractall(path=to_path)
-        elif _is_targz(from_path) or _is_tgz(from_path):
-            with tarfile.open(from_path, 'r:gz') as tar:
-                tar.extractall(path=to_path)
-        elif _is_tarxz(from_path):
-            with tarfile.open(from_path, 'r:xz') as tar:
-                tar.extractall(path=to_path)
-        elif _is_gzip(from_path):
-            to_path = os.path.join(to_path, os.path.splitext(os.path.basename(from_path))[0])
-            with open(to_path, "wb") as out_f, gzip.GzipFile(from_path) as zip_f:
-                out_f.write(zip_f.read())
-        elif _is_zip(from_path):
-            with zipfile.ZipFile(from_path, 'r') as z:
-                z.extractall(to_path)
-        else:
-            raise ValueError("Extraction of {} not supported".format(from_path))
+def _extract_archive(from_path, to_path=None, remove_finished=False):
+    if to_path is None:
+        to_path = os.path.dirname(from_path)
 
-        if remove_finished:
-            os.remove(from_path)
+    if _is_tar(from_path):
+        with tarfile.open(from_path, "r") as tar:
+            tar.extractall(path=to_path)
+    elif _is_targz(from_path) or _is_tgz(from_path):
+        with tarfile.open(from_path, "r:gz") as tar:
+            tar.extractall(path=to_path)
+    elif _is_tarxz(from_path):
+        with tarfile.open(from_path, "r:xz") as tar:
+            tar.extractall(path=to_path)
+    elif _is_gzip(from_path):
+        to_path = os.path.join(
+            to_path, os.path.splitext(os.path.basename(from_path))[0]
+        )
+        with open(to_path, "wb") as out_f, gzip.GzipFile(from_path) as zip_f:
+            out_f.write(zip_f.read())
+    elif _is_zip(from_path):
+        with zipfile.ZipFile(from_path, "r") as z:
+            z.extractall(to_path)
+    else:
+        raise ValueError("Extraction of {} not supported".format(from_path))
+
+    if remove_finished:
+        os.remove(from_path)
+
 
 class StandardTransform(object):
     def __init__(self, transform=None, target_transform=None):
@@ -293,6 +307,7 @@ class StandardTransform(object):
 
         return "\n".join(body)
 
+
 def _is_tarxz(filename: str) -> bool:
     return filename.endswith(".tar.xz")
 
@@ -315,6 +330,7 @@ def _is_gzip(filename: str) -> bool:
 
 def _is_zip(filename: str) -> bool:
     return filename.endswith(".zip")
+
 
 class DownloadProgressBar(tqdm):
     def update_to(self, b=1, bsize=1, tsize=None):

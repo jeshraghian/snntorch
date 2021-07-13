@@ -72,9 +72,7 @@ def create_events_hdf5(directory, hdf5_filename):
                 test_keys.append(key)
             metas.append({"key": str(key), "training sample": istrain})
             subgrp = data_grp.create_group(str(key))
-            tm_dset = subgrp.create_dataset(
-                "times", data=times, dtype=np.uint32
-            )  # next 3 lines are commented - test
+            tm_dset = subgrp.create_dataset("times", data=times, dtype=np.uint32)
             ad_dset = subgrp.create_dataset("addrs", data=addrs, dtype=np.uint16)
             lbl_dset = subgrp.create_dataset("labels", data=label, dtype=np.uint8)
             subgrp.attrs["meta_info"] = str(metas[-1])
