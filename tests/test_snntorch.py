@@ -85,9 +85,7 @@ class TestLeaky:
             snn.Leaky(beta=0.5, num_inputs=1, hidden_init=True)
             snn.Leaky(beta=0.5, batch_size=1, hidden_init=True)
 
-        lif1 = snn.Leaky(
-            beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
-        )
+        lif1 = snn.Leaky(beta=0.5, num_inputs=1, batch_size=1, hidden_init=True)
 
         assert lif1.spk == 0
         assert lif1.mem == 0
@@ -129,6 +127,7 @@ class TestSynaptic:
         assert lif2.syn == 0
         assert lif2.mem == 0
 
+
 class TestLapicque:
     def test_lapicque(self, lapicque_instance, input_):
         spk, mem = lapicque_instance.init_lapicque(1)
@@ -143,7 +142,15 @@ class TestLapicque:
             mem_rec.append(mem)
             spk_rec.append(spk)
 
-        assert mem_rec[1] == mem_rec[0] * (1 - (lapicque_instance.time_step / (lapicque_instance.R * lapicque_instance.C))) + input_[1] * lapicque_instance.R * (1 / lapicque_instance.R * lapicque_instance.C * lapicque_instance.time_step)
+        assert mem_rec[1] == mem_rec[0] * (
+            1
+            - (
+                lapicque_instance.time_step
+                / (lapicque_instance.R * lapicque_instance.C)
+            )
+        ) + input_[1] * lapicque_instance.R * (
+            1 / lapicque_instance.R * lapicque_instance.C * lapicque_instance.time_step
+        )
         assert spk_rec[0] == spk_rec[1]
 
     def test_lapicque_hidden_init(self):
@@ -153,12 +160,11 @@ class TestLapicque:
             snn.Lapicque(beta=0.5, num_inputs=1, hidden_init=True)
             snn.Lapicque(beta=0.5, batch_size=1, hidden_init=True)
 
-        lapicque = snn.Lapicque(
-            beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
-        )
+        lapicque = snn.Lapicque(beta=0.5, num_inputs=1, batch_size=1, hidden_init=True)
 
         assert lapicque.spk == 0
         assert lapicque.mem == 0
+
 
 class TestStein:
     def test_stein(self, stein_instance, input_):

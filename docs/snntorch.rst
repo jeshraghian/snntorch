@@ -1,8 +1,6 @@
 snntorch
 ================
 
-   Submodules - Unindent if submodules are introduced
-   ----------
 
 snnTorch Neurons
 ---------------------

@@ -21,8 +21,8 @@ Introduction
 
 The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
 snnTorch is a Python package for performing gradient-based learning with spiking neural networks.
-Rather than reinventing the wheel, it sits on top of PyTorch and takes advantage of its GPU accelerated tensor 
-computation. Pre-designed spiking neuron models are seamlessly integrated within the PyTorch framework and can be treated as recurrent activation units. 
+It extends the capabilities of PyTorch, taking advantage of its GPU accelerated tensor 
+computation and applying it to networks of spiking neurons. Pre-designed spiking neuron models are seamlessly integrated within the PyTorch framework and can be treated as recurrent activation units. 
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/spike_excite_alpha_ps2.gif?raw=true
@@ -47,6 +47,8 @@ snnTorch contains the following components:
      - a library for spike generation and data conversion
    * - `snntorch.spikeplot <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`_
      - visualization tools for spike-based data using matplotlib and celluloid
+   * - `snntorch.spikevision <https://snntorch.readthedocs.io/en/latest/snntorch.spikevision.html>`_
+     - contains popular neuromorphic datasets
    * - `snntorch.surrogate <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html>`_
      - optional surrogate gradient functions
    * - `snntorch.utils <https://snntorch.readthedocs.io/en/latest/snntorch.utils.html>`_

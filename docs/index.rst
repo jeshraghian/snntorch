@@ -15,6 +15,7 @@ snnTorch Documentation
    snntorch.backprop
    snntorch.spikegen
    snntorch.spikeplot
+   snntorch.spikevision
    snntorch.surrogate
    snntorch.utils
    examples
@@ -22,8 +23,3 @@ snnTorch Documentation
    contributing
    history
 
-Indices and tables
-==================
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

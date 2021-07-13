@@ -327,7 +327,7 @@ def _layer_check(net):
 
 def _layer_reset():
     """Reset hidden parameters to zero and detach them from the current computation graph."""
-    
+
     if is_lapicque:
         snn.Lapicque.zeros_hidden()  # reset hidden state to 0's
         snn.Lapicque.detach_hidden()

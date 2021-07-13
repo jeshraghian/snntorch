@@ -77,12 +77,11 @@ Ready to contribute? Here's how to set up `snntorch` for local development.
    Now you can make your changes locally.
 
 5. When you're done making changes, check that your changes pass flake8 and the
-   tests, including testing other Python versions with tox. In addition, ensure that your code is formatted using black:::
+   tests. In addition, ensure that your code is formatted using black::
 
     $ flake8 snntorch tests
-    $ black sntorch tests
+    $ black snntorch tests
     $ python setup.py test or pytest
-    $ tox
 
    To get flake8, black and tox, just pip install them into your virtualenv. If you wish, you can add pre-commit hooks for both flake8 and black to make all formatting easier.
 

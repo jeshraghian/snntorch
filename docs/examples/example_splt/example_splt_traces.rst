@@ -1,5 +1,5 @@
 ==================================================================
-Spike Count
+Traces
 ==================================================================
 
 Plot an array of neuron traces (e.g., membrane potential or synaptic current). 

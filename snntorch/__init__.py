@@ -99,9 +99,11 @@ class LIF(nn.Module):
 
     @staticmethod
     def init_lapicque(batch_size, *args):
-        """Used to initialize mem and spk.
+        """
+        Used to initialize mem and spk.
         *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_lapicque(128, 1, 28, 28)``."""
+        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_lapicque(128, 1, 28, 28)``.
+        """
 
         return LIF.init_leaky(batch_size, *args)
 
@@ -168,6 +170,7 @@ class LIF(nn.Module):
 
 # Neuron Models
 
+
 class Leaky(LIF):
     """
     First-order leaky integrate-and-fire neuron model.
@@ -219,9 +222,9 @@ class Leaky(LIF):
                 cur2 = self.fc2(spk1)
                 spk2, mem2 = self.lif2(cur2, mem2)
                 return mem1, spk1, mem2, spk2
-                
-        
-        """
+
+
+    """
 
     def __init__(
         self,
@@ -256,9 +259,7 @@ class Leaky(LIF):
                     self.batch_size, *(self.num_inputs)
                 )  # need to automatically call batch_size
             else:
-                self.spk, self.mem = self.init_leaky(
-                    self.batch_size, self.num_inputs
-                )
+                self.spk, self.mem = self.init_leaky(self.batch_size, self.num_inputs)
         if self.inhibition:
             if not self.batch_size:
                 raise ValueError(
@@ -1046,7 +1047,9 @@ class Stein(LIF):
             beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 
-        print("`Stein` has been deprecated and will be removed in a future version. Use `Synaptic` instead.")
+        print(
+            "`Stein` has been deprecated and will be removed in a future version. Use `Synaptic` instead."
+        )
 
         self.alpha = alpha
         self.num_inputs = num_inputs
