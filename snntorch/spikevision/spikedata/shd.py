@@ -5,7 +5,6 @@
 import struct
 import time
 import numpy as np
-import scipy.misc
 import h5py
 import torch.utils.data
 from ..neuromorphic_dataset import NeuromorphicDataset
