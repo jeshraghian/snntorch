@@ -70,6 +70,7 @@ Requirements
 The following packages need to be installed to use snnTorch:
 
 * torch >= 1.2.0
+* torchvision >= 0.9.1
 * numpy >= 1.17
 * pandas
 * matplotlib

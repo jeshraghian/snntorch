@@ -1048,7 +1048,7 @@ On the other hand, applying a hard reset with :code:`"zero"` promotes sparsity a
 
 
 2.4 Synaptic Conductance-based LIF Neuron Model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The passive membrane model allows discrete current spikes to be passed directly into the neuron. In reality, a spike will result in the gradual release of neurotransmitters from the pre-synaptic neuron to the post-synaptic neuron. This model accounts for the gradual temporal dynamics of input current, and is no longer strictly modelling a LIF neuron alone.
 
