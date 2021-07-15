@@ -18,7 +18,8 @@ requirements = [
     "torch>=1.2.0",
     "torchvision>=0.9.1",
     "pandas",
-    "h5py>=3.2.1" "matplotlib",
+    "h5py>=3.2.1",
+    "matplotlib",
     "celluloid",
     "numpy>=1.17",
 ]
