@@ -16,8 +16,9 @@ __version__ = '0.4.2'
 
 requirements = [
     "torch>=1.2.0",
-    "torchvision>=0.9.1" "pandas",
-    "matplotlib",
+    "torchvision>=0.9.1",
+    "pandas",
+    "h5py>=3.2.1" "matplotlib",
     "celluloid",
     "numpy>=1.17",
 ]

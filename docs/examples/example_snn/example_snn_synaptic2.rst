@@ -1,6 +1,6 @@
-=========================================================================
+==============================================================================================
 Building Networks with Instance Variables: Synaptic Conductance-based LIF Neuron
-=========================================================================
+==============================================================================================
 
 Building a fully-connected network using a Synaptic Conductance-based neuron model.
 Using instance variables are only required when calling the built-in backprop methods in `snntorch.backprop`.
