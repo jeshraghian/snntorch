@@ -79,6 +79,8 @@ The following packages need to be installed to use snnTorch:
 * math
 * celluloid
 
+They are automatically installed if snnTorch is installed using the pip command. Ensure the correct versions of torch and torchvision are installed for your system to enable CUDA compatibility. 
+
 Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 

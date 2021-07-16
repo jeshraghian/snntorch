@@ -21,6 +21,7 @@ requirements = [
     "h5py>=3.0.0",
     "matplotlib",
     "celluloid",
+    "tqdm",
     "numpy>=1.17",
 ]
 
