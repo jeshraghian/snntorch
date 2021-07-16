@@ -72,7 +72,7 @@ The following packages need to be installed to use snnTorch:
 * torch >= 1.2.0
 * torchvision >= 0.9.1
 * numpy >= 1.17
-* h5py >= 3.2.1
+* h5py >= 3.0.0
 * pandas
 * matplotlib
 * math
