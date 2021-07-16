@@ -5,3 +5,4 @@ h5py>=3.0.0
 matplotlib
 celluloid
 numpy>=1.17
+tqdm
