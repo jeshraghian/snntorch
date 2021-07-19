@@ -313,7 +313,7 @@ In latency encoding, the neuron that fires first is the predicted class. The tar
 
 Consider the case of a neuron receiving an input spike. Depending on the neuron model in use, the post-synaptic potential may experience a time delay :math:`t_{\rm psp}` to reach the peak of its membrane potential, and subsequently emit an output spike. If this neuron is connected in a deep neural network, the minimum time before the final layer could generate output spikes *as a result of the input (and not biases)* would thus be :math:`t_{\rm min} = Lt_{\rm psp}`, where :math:`L` is the number of layers in the network. 
 
-For the Synaptic and Lapicque models, the membrane potential will immediately jump as a result of the input. But there is a time delay of one step before the output spike can be triggered as a result. Therefore, we set :math:`t_{\rm psp}=1` time step. For SRM0, it will take a longer time to reach the peak, and is a function of the decay rates, :math:`\alpha` and :math:`\beta`. 
+For the Synaptic and Lapicque models, the membrane potential will immediately jump as a result of the input. But there is a time delay of one step before the output spike can be triggered as a result. Therefore, we set :math:`t_{\rm psp}=1` time step. For the Alpha neuron model, it will take a longer time to reach the peak, and is a function of the decay rates, :math:`\alpha` and :math:`\beta`. 
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/3_3_delay.png?raw=true

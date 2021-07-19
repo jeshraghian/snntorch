@@ -108,16 +108,16 @@ class LIF(nn.Module):
         return LIF.init_leaky(batch_size, *args)
 
     @staticmethod
-    def init_srm0(batch_size, *args):
-        """Used to initialize syn_pre, syn_post, mem and spk.
+    def init_alpha(batch_size, *args):
+        """Used to initialize syn_exc, syn_inh, mem and spk.
         *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_srm0(128, 1, 28, 28).``"""
-        syn_pre = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        syn_post = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_alpha(128, 1, 28, 28).``"""
+        syn_exc = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+        syn_inh = torch.zeros((batch_size, *args), device=device, dtype=dtype)
         mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
         spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
 
-        return spk, syn_pre, syn_post, mem
+        return spk, syn_exc, syn_inh, mem
 
     @staticmethod
     def detach(*args):
@@ -716,41 +716,41 @@ class Lapicque(LIF):
                 cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
 
 
-class SRM0(LIF):
+class Alpha(LIF):
     """
-    Simplified Spike Response Model (:math:`0^{\\rm th}`` order) of the leaky integrate and fire neuron.
+    A variant of the leaky integrate and fire neuron where membrane potential follows an alpha function.
     The time course of the membrane potential response depends on a combination of exponentials.
     In general, this causes the change in membrane potential to experience a delay with respect to an input spike.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
     .. warning:: For a positive input current to induce a positive membrane response, ensure :math:`α > β`.
 
-    If `reset_mechanism = "subtract"`, then :math:`I_{\\rm syn-pre}, I_{\\rm syn-post}` will both have `threshold` subtracted from them whenever the neuron emits a spike:
+    If `reset_mechanism = "subtract"`, then :math:`I_{\\rm exc}, I_{\\rm inh}` will both have `threshold` subtracted from them whenever the neuron emits a spike:
 
     .. math::
 
-            I_{\\rm syn-pre}[t+1] = (αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) \\\\
-            I_{\\rm syn-post}[t+1] = (βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) \\\\
+            I_{\\rm exc}[t+1] = (αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) \\\\
+            I_{\\rm inh}[t+1] = (βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) \\\\
             U_{\\rm residual}[t+1] = R(U[t]-U_{\\rm thr}) + U_{\\rm residual}[t]/τ_{\\rm SRM} \\\\
-            U[t+1] = τ_{\\rm SRM}(I_{\\rm syn-pre}[t+1] + I_{\\rm syn-post}[t+1]) + U_{\\rm residual}[t+1]
+            U[t+1] = τ_{\\rm SRM}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1]) + U_{\\rm residual}[t+1]
 
-    If `reset_mechanism = "zero"`, then :math:`I_{\\rm syn-pre}, I_{\\rm syn-post}` will both be set to `0` whenever the neuron emits a spike:
+    If `reset_mechanism = "zero"`, then :math:`I_{\\rm exc}, I_{\\rm inh}` will both be set to `0` whenever the neuron emits a spike:
 
     .. math::
 
-            I_{\\rm syn-pre}[t+1] = (αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm syn-pre}[t] + I_{\\rm in}[t+1]) \\\\
-            I_{\\rm syn-post}[t+1] = (βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm syn-post}[t] - I_{\\rm in}[t+1]) \\\\
-            U[t+1] = τ_{\\rm SRM}(I_{\\rm syn-pre}[t+1] + I_{\\rm syn-post}[t+1])
+            I_{\\rm exc}[t+1] = (αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) \\\\
+            I_{\\rm inh}[t+1] = (βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) \\\\
+            U[t+1] = τ_{\\rm SRM}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1])
 
-    * :math:`I_{\\rm syn-pre}` - Pre-synaptic current
-    * :math:`I_{\\rm syn-post}` - Post-synaptic current
+    * :math:`I_{\\rm exc}` - Excitatory current
+    * :math:`I_{\\rm inh}` - Inhibitory current
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`U_{\\rm residual}` - Residual membrane potential after reset by subtraction
     * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise :math:`R = 0`
-    * :math:`α` - Pre-synaptic current decay rate
-    * :math:`β` - Post-synaptic current decay rate
+    * :math:`α` - Excitatory current decay rate
+    * :math:`β` - Inhibitory current decay rate
     * :math:`τ_{\\rm SRM} = \\frac{log(α)}{log(β)} - log(α) + 1`
 
     Example::
@@ -769,21 +769,19 @@ class SRM0(LIF):
 
                 # initialize layers
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.SRM0(alpha=alpha, beta=beta)
+                self.lif1 = snn.Alpha(alpha=alpha, beta=beta)
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.SRM0(alpha=alpha, beta=beta)
+                self.lif2 = snn.Alpha(alpha=alpha, beta=beta)
 
-            def forward(self, x, presyn1, postsyn1, mem1, spk1, presyn2, postsyn2, mem2):
+            def forward(self, x, synex1, postsyn1, mem1, spk1, synex2, synin2, mem2):
                 cur1 = self.fc1(x)
-                spk1, presyn1, postsyn1, mem1 = self.lif1(cur1, presyn1, postsyn1, mem1)
+                spk1, synex1, synin1, mem1 = self.lif1(cur1, synex1, synin1, mem1)
                 cur2 = self.fc2(spk1)
-                spk2, presyn2, postsyn2, mem2 = self.lif2(cur2, presyn2, postsyn2, mem2)
-                return presyn1, postsyn1, mem1, spk1, presyn2, postsyn2, mem2, spk2
+                spk2, synex2, synin2, mem2 = self.lif2(cur2, synex2, synin2, mem2)
+                return synex1, synin1, mem1, spk1, synex2, synin2, mem2, spk2
 
 
-    For further reading, see:
-
-    *R. Jovilet, J. Timothy, W. Gerstner (2003) The spike response model: A framework to predict neuronal spike trains. Artificial Neural Networks and Neural Information Processing, pp. 846-853.*"""
+    """
 
     def __init__(
         self,
@@ -797,7 +795,7 @@ class SRM0(LIF):
         inhibition=False,
         reset_mechanism="subtract",
     ):
-        super(SRM0, self).__init__(
+        super(Alpha, self).__init__(
             beta, threshold, spike_grad, inhibition, reset_mechanism
         )
 
@@ -816,11 +814,11 @@ class SRM0(LIF):
                     "batch_size must be specified to initialize hidden states as instance variables."
                 )
             elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.syn_pre, self.syn_post, self.mem = self.init_srm0(
+                self.spk, self.syn_exc, self.syn_inh, self.mem = self.init_alpha(
                     batch_size=self.batch_size, *(self.num_inputs)
                 )
             else:
-                self.spk, self.syn_pre, self.syn_post, self.mem = self.init_srm0(
+                self.spk, self.syn_exc, self.syn_inh, self.mem = self.init_alpha(
                     batch_size, num_inputs
                 )
         if self.inhibition:
@@ -842,7 +840,7 @@ class SRM0(LIF):
 
         self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
 
-    def forward(self, input_, syn_pre, syn_post, mem):
+    def forward(self, input_, syn_exc, syn_inh, mem):
 
         # if hidden states are passed externally
         if not self.hidden_init:
@@ -859,29 +857,29 @@ class SRM0(LIF):
                 if self.mem_residual is False:
                     self.mem_residual = torch.zeros_like(mem)
 
-                syn_pre = (self.alpha * syn_pre + input_) - reset * (
-                    self.alpha * syn_pre + input_
+                syn_exc = (self.alpha * syn_exc + input_) - reset * (
+                    self.alpha * syn_exc + input_
                 )
-                syn_post = (self.beta * syn_post - input_) - reset * (
-                    self.beta * syn_post - input_
+                syn_inh = (self.beta * syn_inh - input_) - reset * (
+                    self.beta * syn_inh - input_
                 )
                 # The residual of (mem - threshold) decays separately
                 self.mem_residual = reset * (mem - self.threshold) + (
                     self.mem_residual / self.tau_srm
                 )
-                mem = self.tau_srm * (syn_pre + syn_post) + self.mem_residual
+                mem = self.tau_srm * (syn_exc + syn_inh) + self.mem_residual
 
             # if neuron fires, reset membrane to zero
             elif self.reset_mechanism == "zero":
-                syn_pre = (self.alpha * syn_pre + input_) - reset * (
-                    self.alpha * syn_pre + input_
+                syn_exc = (self.alpha * syn_exc + input_) - reset * (
+                    self.alpha * syn_exc + input_
                 )
-                syn_post = (self.beta * syn_post - input_) - reset * (
-                    self.beta * syn_post - input_
+                syn_inh = (self.beta * syn_inh - input_) - reset * (
+                    self.beta * syn_inh - input_
                 )
-                mem = self.tau_srm * (syn_pre + syn_post)
+                mem = self.tau_srm * (syn_exc + syn_inh)
 
-            return spk, syn_pre, syn_post, mem
+            return spk, syn_exc, syn_inh, mem
 
         # if hidden states and outputs are instance variables
         if self.hidden_init:
@@ -898,47 +896,47 @@ class SRM0(LIF):
                 if self.mem_residual is False:
                     self.mem_residual = torch.zeros_like(mem)
 
-                self.syn_pre = (self.alpha * self.syn_pre + input_) - self.reset * (
-                    self.alpha * self.syn_pre + input_
+                self.syn_exc = (self.alpha * self.syn_exc + input_) - self.reset * (
+                    self.alpha * self.syn_exc + input_
                 )
-                syn_post = (self.beta * self.syn_post - input_) - self.reset * (
-                    self.beta * self.syn_post - input_
+                syn_inh = (self.beta * self.syn_inh - input_) - self.reset * (
+                    self.beta * self.syn_inh - input_
                 )
                 # The residual of (mem - threshold) decays separately
                 self.mem_residual = self.reset * (self.mem - self.threshold) + (
                     self.mem_residual / self.tau_srm
                 )
                 self.mem = (
-                    self.tau_srm * (self.syn_pre + self.syn_post) + self.mem_residual
+                    self.tau_srm * (self.syn_exc + self.syn_inh) + self.mem_residual
                 )
 
             # if neuron fires, reset membrane to zero
             elif self.reset_mechanism == "zero":
 
-                syn_pre = (self.alpha * syn_pre + input_) - self.reset * (
-                    self.alpha * syn_pre + input_
+                syn_exc = (self.alpha * syn_exc + input_) - self.reset * (
+                    self.alpha * syn_exc + input_
                 )
-                syn_post = (self.beta * syn_post - input_) - self.reset * (
-                    self.beta * syn_post - input_
+                syn_inh = (self.beta * syn_inh - input_) - self.reset * (
+                    self.beta * syn_inh - input_
                 )
-                self.mem = self.tau_srm * (syn_pre + syn_post)
+                self.mem = self.tau_srm * (syn_exc + syn_inh)
 
-            return self.spk, self.syn_pre, self.syn_post, self.mem
+            return self.spk, self.syn_exc, self.syn_inh, self.mem
 
     # cool forward function that resulted in burst firing - worth exploring
 
-    # def forward(self, input_, syn_pre, syn_post, mem):
+    # def forward(self, input_, syn_exc, syn_inh, mem):
     #     mem_shift = mem - self.threshold
     #     spk = self.spike_grad(mem_shift).to(device)
     #     reset = torch.zeros_like(mem)
     #     spk_idx = (mem_shift > 0)
     #     reset[spk_idx] = torch.ones_like(mem)[spk_idx]
     #
-    #     syn_pre = self.alpha * syn_pre + input_
-    #     syn_post = self.beta * syn_post - input_
-    #     mem = self.tau_srm * (syn_pre + syn_post) - reset
+    #     syn_exc = self.alpha * syn_exc + input_
+    #     syn_inh = self.beta * syn_inh - input_
+    #     mem = self.tau_srm * (syn_exc + syn_inh) - reset
 
-    # return spk, syn_pre, syn_post, mem
+    # return spk, syn_exc, syn_inh, mem
 
     @classmethod
     def detach_hidden(cls):
@@ -946,10 +944,10 @@ class SRM0(LIF):
         Intended for use in truncated backpropagation through
         time where hidden state variables are instance variables."""
         for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], SRM0):
+            if isinstance(cls.instances[layer], Alpha):
                 cls.instances[layer].spk.detach_()
-                cls.instances[layer].syn_pre.detach_()
-                cls.instances[layer].syn_post.detach_()
+                cls.instances[layer].syn_exc.detach_()
+                cls.instances[layer].syn_inh.detach_()
                 cls.instances[layer].mem.detach_()
 
     @classmethod
@@ -957,18 +955,186 @@ class SRM0(LIF):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables."""
         for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], SRM0):
+            if isinstance(cls.instances[layer], Alpha):
                 cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
-                cls.instances[layer].syn_pre = torch.zeros_like(
-                    cls.instances[layer].syn_pre
+                cls.instances[layer].syn_exc = torch.zeros_like(
+                    cls.instances[layer].syn_exc
                 )
-                cls.instances[layer].syn_post = torch.zeros_like(
-                    cls.instances[layer].syn_post
+                cls.instances[layer].syn_inh = torch.zeros_like(
+                    cls.instances[layer].syn_inh
                 )
                 cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
 
 
-class Stein(LIF):
+class SRM(LIF):
+    """
+    Spike Response Neuron Model (alpha-function filter convolved with input).
+    Input is assumed to be a current injection.
+    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+
+    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have `threshold` subtracted from it whenever the neuron emits a spike:
+
+    .. math::
+
+            U[t+1] = βU[t] + I_{\\rm in}[t+1] - RU_{\\rm thr}
+
+    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
+
+    .. math::
+
+            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - R(βU[t] + I_{\\rm in}[t+1])
+
+    * :math:`I_{\\rm in}` - Input current
+    * :math:`U` - Membrane potential
+    * :math:`U_{\\rm thr}` - Membrane threshold
+    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise :math:`R = 0`
+    * :math:`β` - Membrane potential decay rate
+
+    Example::
+
+        import torch
+        import torch.nn as nn
+        import snntorch as snn
+
+        alpha = 0.9
+        beta = 0.5
+
+        # Define Network
+        class Net(nn.Module):
+            def __init__(self):
+                super().__init__()
+
+                # initialize layers
+                self.fc1 = nn.Linear(num_inputs, num_hidden)
+                self.lif1 = snn.Leaky(beta=beta)
+                self.fc2 = nn.Linear(num_hidden, num_outputs)
+                self.lif2 = snn.Leaky(beta=beta)
+
+            def forward(self, x, mem1, spk1, mem2):
+                cur1 = self.fc1(x)
+                spk1, mem1 = self.lif1(cur1, mem1)
+                cur2 = self.fc2(spk1)
+                spk2, mem2 = self.lif2(cur2, mem2)
+                return mem1, spk1, mem2, spk2
+
+
+    """
+
+    def __init__(
+        self,
+        tau,
+        num_steps,
+        scale=1.0,
+        epsilon=0.01,
+        threshold=1.0,
+        num_inputs=False,
+        spike_grad=None,
+        batch_size=False,
+        hidden_init=False,
+        inhibition=False,
+        reset_mechanism="subtract",
+    ):
+        super(SRM, self).__init__(threshold, spike_grad, inhibition, reset_mechanism)
+
+        self.tau = tau
+        self.num_steps = num_steps
+        self.scale = scale
+        self.epsilon = epsilon
+        self.num_inputs = num_inputs
+        self.batch_size = batch_size
+        self.hidden_init = hidden_init
+
+        self.kernel = self._alpha_kernel(
+            self.num_steps, self.tau, self.scale, self.epsilon
+        )
+
+        if self.hidden_init:
+            if not self.num_inputs:
+                raise ValueError(
+                    "num_inputs must be specified to initialize hidden states as instance variables."
+                )
+            elif not self.batch_size:
+                raise ValueError(
+                    "batch_size must be specified to initialize hidden states as instance variables."
+                )
+            elif hasattr(self.num_inputs, "__iter__"):
+                self.spk, self.mem = self.init_leaky(
+                    self.batch_size, *(self.num_inputs)
+                )  # need to automatically call batch_size
+            else:
+                self.spk, self.mem = self.init_leaky(self.batch_size, self.num_inputs)
+        if self.inhibition:
+            if not self.batch_size:
+                raise ValueError(
+                    "batch_size must be specified to enable firing inhibition."
+                )
+
+    def forward(self, input_, mem):
+        if not self.hidden_init:
+            if self.inhibition:
+                spk, reset = self.fire_inhibition(self.batch_size, mem)
+            else:
+                spk, reset = self.fire(mem)
+
+            if self.reset_mechanism == "subtract":
+                mem = self.beta * mem + input_ - reset * self.threshold
+
+            elif self.reset_mechanism == "zero":
+                mem = self.beta * mem + input_ - reset * (self.beta * mem + input_)
+
+            return spk, mem
+
+        # intended for truncated-BPTT where instance variables are hidden states
+        if self.hidden_init:
+            if self.inhibition:
+                self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
+            else:
+                self.spk, self.reset = self.fire(self.mem)
+
+            if self.reset_mechanism == "subtract":
+                self.mem = self.beta * self.mem + input_ - self.reset * self.threshold
+
+            elif self.reset_mechanism == "zero":
+                self.mem = (
+                    self.beta * self.mem
+                    + input_
+                    - self.reset * (self.beta * self.mem + input_)
+                )
+
+            return self.spk, self.mem
+
+    def _alpha_kernel(self):
+        kernel = []
+        for step in np.range(0, self.num_steps):
+            kernelVal = self.scale * step / self.tau * np.exp(1 - step / self.tau)
+            if abs(kernelVal) < self.epsilon and step > self.tau:
+                break
+            kernel.append(kernelVal)
+        return torch.FloatTensor(kernel)
+
+    @classmethod
+    def detach_hidden(cls):
+        """Returns the hidden states, detached from the current graph.
+        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
+
+        for layer in range(len(cls.instances)):
+            if isinstance(cls.instances[layer], Leaky):
+                cls.instances[layer].spk.detach_()
+                cls.instances[layer].mem.detach_()
+
+    @classmethod
+    def zeros_hidden(cls):
+        """Used to clear hidden state variables to zero.
+        Intended for use where hidden state variables are instance variables."""
+
+        for layer in range(len(cls.instances)):
+            if isinstance(cls.instances[layer], Leaky):
+                cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
+                cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
+
+
+####### Deprecated / Renamed
+class Stein(LIF):  # see: Synaptic(LIF)
     """
     Stein's model of the leaky integrate and fire neuron.
     The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.

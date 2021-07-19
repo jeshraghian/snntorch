@@ -52,8 +52,8 @@ def stein_instance():
 
 
 @pytest.fixture(scope="module")
-def srm0_instance():
-    return snn.SRM0(alpha=0.6, beta=0.5)
+def alpha_instance():
+    return snn.Alpha(alpha=0.6, beta=0.5)
 
 
 @pytest.fixture(scope="module")
@@ -203,52 +203,52 @@ class TestStein:
         assert stein.mem == 0
 
 
-class TestSRM0:
+class TestAlpha:
 
     with pytest.raises(ValueError):
-        snn.SRM0(0.5, 0.5)
+        snn.Alpha(0.5, 0.5)
 
-    def test_srm0(self, srm0_instance, input_):
-        spk, syn_pre, syn_post, mem = srm0_instance.init_srm0(1)
+    def test_alpha(self, alpha_instance, input_):
+        spk, syn_exc, syn_inh, mem = alpha_instance.init_alpha(1)
 
         assert len(spk) == 1
-        assert len(syn_pre) == 1
-        assert len(syn_post) == 1
+        assert len(syn_exc) == 1
+        assert len(syn_inh) == 1
         assert len(mem) == 1
 
-        syn_pre_rec = []
-        syn_post_rec = []
+        syn_exc_rec = []
+        syn_inh_rec = []
         mem_rec = []
         spk_rec = []
 
         for i in range(2):
-            spk, syn_pre, syn_post, mem = srm0_instance(
-                input_[i], syn_pre, syn_post, mem
+            spk, syn_exc, syn_inh, mem = alpha_instance(
+                input_[i], syn_exc, syn_inh, mem
             )
-            syn_pre_rec.append(syn_pre)
-            syn_post_rec.append(syn_post)
+            syn_exc_rec.append(syn_exc)
+            syn_inh_rec.append(syn_inh)
             mem_rec.append(mem)
             spk_rec.append(spk)
 
         assert spk_rec[0] == spk_rec[1]
-        assert syn_pre_rec[0] + syn_post_rec[0] == 0
-        assert syn_pre_rec[1] + syn_post_rec[1] > 0
+        assert syn_exc_rec[0] + syn_inh_rec[0] == 0
+        assert syn_exc_rec[1] + syn_inh_rec[1] > 0
         assert mem_rec[0] < mem_rec[1]
 
-    def test_srm0_hidden_init(self):
+    def test_alpha_hidden_init(self):
         with pytest.raises(ValueError):
-            snn.SRM0(alpha=0.6, beta=0.5, hidden_init=True)
-            snn.SRM0(alpha=0.6, beta=0.5, num_inputs=1, hidden_init=True)
-            snn.SRM0(alpha=0.6, beta=0.5, batch_size=1, hidden_init=True)
+            snn.Alpha(alpha=0.6, beta=0.5, hidden_init=True)
+            snn.Alpha(alpha=0.6, beta=0.5, num_inputs=1, hidden_init=True)
+            snn.Alpha(alpha=0.6, beta=0.5, batch_size=1, hidden_init=True)
 
-        srm0 = snn.SRM0(
+        alpha_response = snn.Alpha(
             alpha=0.6, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
         )
 
-        assert srm0.spk == 0
-        assert srm0.syn_pre == 0
-        assert srm0.syn_post == 0
-        assert srm0.mem == 0
+        assert alpha_response.spk == 0
+        assert alpha_response.syn_exc == 0
+        assert alpha_response.syn_inh == 0
+        assert alpha_response.mem == 0
 
 
 def test_fire():
@@ -260,5 +260,5 @@ def test_fire():
 def test_instances():
     snn.LIF.instances = []
     snn.Stein(alpha=0.5, beta=0.5)
-    snn.SRM0(alpha=0.5, beta=0.4)
+    snn.Alpha(alpha=0.5, beta=0.4)
     assert len(snn.LIF.instances) == 2
