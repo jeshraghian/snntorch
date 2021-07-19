@@ -37,7 +37,7 @@ As a quick recap, `Tutorial 1 <https://colab.research.google.com/github/jeshragh
 
   * Lapicque's RC model
   * Synaptic conductance-based model
-  * Spike Response model
+  * Alpha Neuron Model
 
 At the end of the tutorial, a basic supervised learning algorithm will be implemented. We will use the original static MNIST dataset and train a multi-layer fully-connected spiking neural network using gradient descent to perform image classification. 
 

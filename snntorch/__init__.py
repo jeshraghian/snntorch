@@ -773,12 +773,12 @@ class Alpha(LIF):
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
                 self.lif2 = snn.Alpha(alpha=alpha, beta=beta)
 
-            def forward(self, x, synex1, postsyn1, mem1, spk1, synex2, synin2, mem2):
+            def forward(self, x, syn_exc1, syn_inh1, mem1, spk1, syn_exc2, syn_inh2, mem2):
                 cur1 = self.fc1(x)
-                spk1, synex1, synin1, mem1 = self.lif1(cur1, synex1, synin1, mem1)
+                spk1, syn_exc1, syn_inh1, mem1 = self.lif1(cur1, syn_exc1, syn_inh1, mem1)
                 cur2 = self.fc2(spk1)
-                spk2, synex2, synin2, mem2 = self.lif2(cur2, synex2, synin2, mem2)
-                return synex1, synin1, mem1, spk1, synex2, synin2, mem2, spk2
+                spk2, syn_exc2, syn_inh2, mem2 = self.lif2(cur2, syn_exc2, syn_inh2, mem2)
+                return syn_exc1, syn_inh1, mem1, spk1, syn_exc2, syn_inh2, mem2, spk2
 
 
     """
@@ -963,173 +963,6 @@ class Alpha(LIF):
                 cls.instances[layer].syn_inh = torch.zeros_like(
                     cls.instances[layer].syn_inh
                 )
-                cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
-
-
-class SRM(LIF):
-    """
-    Spike Response Neuron Model (alpha-function filter convolved with input).
-    Input is assumed to be a current injection.
-    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
-
-    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have `threshold` subtracted from it whenever the neuron emits a spike:
-
-    .. math::
-
-            U[t+1] = βU[t] + I_{\\rm in}[t+1] - RU_{\\rm thr}
-
-    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
-
-    .. math::
-
-            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - R(βU[t] + I_{\\rm in}[t+1])
-
-    * :math:`I_{\\rm in}` - Input current
-    * :math:`U` - Membrane potential
-    * :math:`U_{\\rm thr}` - Membrane threshold
-    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise :math:`R = 0`
-    * :math:`β` - Membrane potential decay rate
-
-    Example::
-
-        import torch
-        import torch.nn as nn
-        import snntorch as snn
-
-        alpha = 0.9
-        beta = 0.5
-
-        # Define Network
-        class Net(nn.Module):
-            def __init__(self):
-                super().__init__()
-
-                # initialize layers
-                self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.Leaky(beta=beta)
-                self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.Leaky(beta=beta)
-
-            def forward(self, x, mem1, spk1, mem2):
-                cur1 = self.fc1(x)
-                spk1, mem1 = self.lif1(cur1, mem1)
-                cur2 = self.fc2(spk1)
-                spk2, mem2 = self.lif2(cur2, mem2)
-                return mem1, spk1, mem2, spk2
-
-
-    """
-
-    def __init__(
-        self,
-        tau,
-        num_steps,
-        scale=1.0,
-        epsilon=0.01,
-        threshold=1.0,
-        num_inputs=False,
-        spike_grad=None,
-        batch_size=False,
-        hidden_init=False,
-        inhibition=False,
-        reset_mechanism="subtract",
-    ):
-        super(SRM, self).__init__(threshold, spike_grad, inhibition, reset_mechanism)
-
-        self.tau = tau
-        self.num_steps = num_steps
-        self.scale = scale
-        self.epsilon = epsilon
-        self.num_inputs = num_inputs
-        self.batch_size = batch_size
-        self.hidden_init = hidden_init
-
-        self.kernel = self._alpha_kernel(
-            self.num_steps, self.tau, self.scale, self.epsilon
-        )
-
-        if self.hidden_init:
-            if not self.num_inputs:
-                raise ValueError(
-                    "num_inputs must be specified to initialize hidden states as instance variables."
-                )
-            elif not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to initialize hidden states as instance variables."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.mem = self.init_leaky(
-                    self.batch_size, *(self.num_inputs)
-                )  # need to automatically call batch_size
-            else:
-                self.spk, self.mem = self.init_leaky(self.batch_size, self.num_inputs)
-        if self.inhibition:
-            if not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to enable firing inhibition."
-                )
-
-    def forward(self, input_, mem):
-        if not self.hidden_init:
-            if self.inhibition:
-                spk, reset = self.fire_inhibition(self.batch_size, mem)
-            else:
-                spk, reset = self.fire(mem)
-
-            if self.reset_mechanism == "subtract":
-                mem = self.beta * mem + input_ - reset * self.threshold
-
-            elif self.reset_mechanism == "zero":
-                mem = self.beta * mem + input_ - reset * (self.beta * mem + input_)
-
-            return spk, mem
-
-        # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
-            if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
-            else:
-                self.spk, self.reset = self.fire(self.mem)
-
-            if self.reset_mechanism == "subtract":
-                self.mem = self.beta * self.mem + input_ - self.reset * self.threshold
-
-            elif self.reset_mechanism == "zero":
-                self.mem = (
-                    self.beta * self.mem
-                    + input_
-                    - self.reset * (self.beta * self.mem + input_)
-                )
-
-            return self.spk, self.mem
-
-    def _alpha_kernel(self):
-        kernel = []
-        for step in np.range(0, self.num_steps):
-            kernelVal = self.scale * step / self.tau * np.exp(1 - step / self.tau)
-            if abs(kernelVal) < self.epsilon and step > self.tau:
-                break
-            kernel.append(kernelVal)
-        return torch.FloatTensor(kernel)
-
-    @classmethod
-    def detach_hidden(cls):
-        """Returns the hidden states, detached from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
-
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], Leaky):
-                cls.instances[layer].spk.detach_()
-                cls.instances[layer].mem.detach_()
-
-    @classmethod
-    def zeros_hidden(cls):
-        """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are instance variables."""
-
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], Leaky):
-                cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
                 cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
 
 
