@@ -67,6 +67,13 @@ def TBPTT(
 
     _layer_init(net=net)  # Check which LIF neurons are in net. Reset and detach them.
 
+    neurons_dict = {
+        is_lapicque: snn.Lapicque,
+        is_leaky: snn.Leaky,
+        is_synaptic: snn.Synaptic,
+        is_alpha: snn.Alpha,
+    }
+
     t = 0
     loss_trunc = 0  # reset every K time steps
     loss_avg = 0
@@ -97,16 +104,21 @@ def TBPTT(
             optimizer.zero_grad()
             loss_trunc.backward()
             optimizer.step()
-            if is_lapicque:
-                snn.Lapicque.detach_hidden()
-            if is_leaky:
-                snn.Leaky.detach_hidden()
-            if is_synaptic:
-                snn.Synaptic.detach_hidden()
-            if is_stein:
-                snn.Stein.detach_hidden()
-            if is_srm0:
-                snn.SRM0.detach_hidden()
+
+            for neuron in neurons_dict:
+                if neuron:
+                    neurons_dict[neuron].detach_hidden()
+
+            # if is_lapicque:
+            #     snn.Lapicque.detach_hidden()
+            # if is_leaky:
+            #     snn.Leaky.detach_hidden()
+            # if is_synaptic:
+            #     snn.Synaptic.detach_hidden()
+            # if is_stein:
+            #     snn.Stein.detach_hidden()
+            # if is_alpha:
+            #     snn.Alpha.detach_hidden()
             t = 0
             loss_trunc = 0
 
@@ -114,16 +126,21 @@ def TBPTT(
         optimizer.zero_grad()
         loss_trunc.backward()
         optimizer.step()
-        if is_lapicque:
-            snn.Lapicque.detach_hidden()
-        if is_leaky:
-            snn.Leaky.detach_hidden()
-        if is_synaptic:
-            snn.Synaptic.detach_hidden()
-        if is_stein:
-            snn.Stein.detach_hidden()
-        if is_srm0:
-            snn.SRM0.detach_hidden()
+
+        for neuron in neurons_dict:
+            if neuron:
+                neurons_dict[neuron].detach_hidden()
+
+        # if is_lapicque:
+        #     snn.Lapicque.detach_hidden()
+        # if is_leaky:
+        #     snn.Leaky.detach_hidden()
+        # if is_synaptic:
+        #     snn.Synaptic.detach_hidden()
+        # if is_stein:
+        #     snn.Stein.detach_hidden()
+        # if is_alpha:
+        #     snn.Alpha.detach_hidden()
 
     if return_spk:
         if return_mem:
@@ -287,13 +304,13 @@ def _layer_init(net):
     from the current computation graph."""
 
     global is_stein
-    global is_srm0
+    global is_alpha
     global is_leaky
     global is_lapicque
     global is_synaptic
 
     is_stein = False
-    is_srm0 = False
+    is_alpha = False
     is_leaky = False
     is_synaptic = False
     is_lapicque = False
@@ -310,7 +327,7 @@ def _layer_check(net):
     global is_lapicque
     global is_synaptic
     global is_stein
-    global is_srm0
+    global is_alpha
 
     for idx in range(len(list(net._modules.values()))):
         if isinstance(list(net._modules.values())[idx], snn.Lapicque):
@@ -321,8 +338,8 @@ def _layer_check(net):
             is_leaky = True
         if isinstance(list(net._modules.values())[idx], snn.Stein):
             is_stein = True
-        if isinstance(list(net._modules.values())[idx], snn.SRM0):
-            is_srm0 = True
+        if isinstance(list(net._modules.values())[idx], snn.Alpha):
+            is_alpha = True
 
 
 def _layer_reset():
@@ -340,6 +357,6 @@ def _layer_reset():
     if is_stein:
         snn.Stein.zeros_hidden()  # reset hidden state to 0's
         snn.Stein.detach_hidden()
-    if is_srm0:
-        snn.SRM0.zeros_hidden()  # reset hidden state to 0's
-        snn.SRM0.detach_hidden()
+    if is_alpha:
+        snn.Alpha.zeros_hidden()  # reset hidden state to 0's
+        snn.Alpha.detach_hidden()
