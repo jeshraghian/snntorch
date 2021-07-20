@@ -44,7 +44,7 @@ class LIF(nn.Module):
         """Generates spike if mem > threshold.
         Returns spk and reset."""
         mem_shift = mem - self.threshold
-        spk = self.spike_grad(mem_shift).to(device)
+        spk = self.spike_grad(mem_shift)  # .to(device)
         reset = spk.clone().detach()
 
         return spk, reset
@@ -58,7 +58,7 @@ class LIF(nn.Module):
 
         mask_spk1 = torch.zeros_like(spk_tmp)
         mask_spk1[torch.arange(batch_size), index] = 1
-        spk = spk_tmp * mask_spk1.to(device)
+        spk = spk_tmp * mask_spk1  # .to(device)
         reset = spk.clone().detach()
 
         return spk, reset
@@ -185,18 +185,25 @@ def _SpikeTorchConv(*args, input_):
     """Convert SpikeTensor to torch.Tensor of zeros extended in the batch dimension.
     E.g., (1, 28, 28) of type _SpikeTensor--> (128, 1, 28, 28) of type torch.Tensor."""
     states = []
+    if len(input_.size()) == 0:
+        _batch_size = 1  # assume batch_size=1 if 1D input
+    else:
+        _batch_size = input_.size()[0]
+    if len(args) == 1:  # if only one hidden state, make it iterable
+        args = (args,)
     for arg in args:
         arg = torch.Tensor(arg)
         arg = (
-            torch.zeros_like(arg, dtype=dtype, device=device)
+            torch.zeros_like(arg, dtype=dtype)
             .unsqueeze(0)
             .repeat(
-                tuple(
-                    [input_.size()[0]] + torch.ones(len(arg.size()), dtype=int).tolist()
-                )
+                tuple([_batch_size] + torch.ones(len(arg.size()), dtype=int).tolist())
             )
         )
         states.append(arg)
+    if len(states) == 1:  # otherwise, list isn't unpacked
+        return states[0]
+
     return states
 
 
@@ -289,7 +296,7 @@ class Leaky(LIF):
                     self.batch_size, *(self.num_inputs)
                 )  # need to automatically call batch_size
             else:
-                self.spk, self.mem = self.init_leaky(self.batch_size, self.num_inputs)
+                self.mem = self.init_leaky(self.batch_size, self.num_inputs)
         if self.inhibition:
             if not self.batch_size:
                 raise ValueError(
@@ -885,6 +892,15 @@ class Alpha(LIF):
         self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
 
     def forward(self, input_, syn_exc, syn_inh, mem):
+
+        if (
+            hasattr(syn_exc, "batch_flag")
+            or hasattr(syn_inh, "batch_flag")
+            or hasattr(mem, "batch_flag")
+        ):  # only triggered on first-pass
+            syn_exc, syn_inh, mem = _SpikeTorchConv(
+                syn_exc, syn_inh, mem, input_=input_
+            )
 
         # if hidden states are passed externally
         if not self.init_hidden:
