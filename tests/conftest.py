@@ -10,8 +10,8 @@ import torch.nn as nn
 
 #     # initialize layers
 #         snn.LIF.clear_instances()  # boilerplate
-#         self.lif1 = snn.Stein(alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True)
-#         self.srm0 = snn.SRM0(alpha=0.5, beta=0.4, num_inputs=1, batch_size=1, hidden_init=True)
+#         self.lif1 = snn.Stein(alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True)
+#         self.srm0 = snn.SRM0(alpha=0.5, beta=0.4, num_inputs=1, batch_size=1, init_hidden=True)
 
 
 class Net(nn.Module):
@@ -22,10 +22,10 @@ class Net(nn.Module):
         snn.LIF.clear_instances()  # boilerplate
         self.fc1 = nn.Linear(1, 1)
         self.lif1 = snn.Synaptic(
-            alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
+            alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
         )
         self.lif2 = snn.SRM0(
-            alpha=0.6, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
+            alpha=0.6, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
         )
 
     def forward(self, x):

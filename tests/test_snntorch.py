@@ -78,14 +78,14 @@ class TestLeaky:
         assert mem_rec[1] == mem_rec[0] * 0.5 + input_[1]
         assert spk_rec[0] == spk_rec[1]
 
-    def test_leaky_hidden_init(self):
+    def test_leaky_init_hidden(self):
 
         with pytest.raises(ValueError):
-            snn.Leaky(beta=0.5, hidden_init=True)
-            snn.Leaky(beta=0.5, num_inputs=1, hidden_init=True)
-            snn.Leaky(beta=0.5, batch_size=1, hidden_init=True)
+            snn.Leaky(beta=0.5, init_hidden=True)
+            snn.Leaky(beta=0.5, num_inputs=1, init_hidden=True)
+            snn.Leaky(beta=0.5, batch_size=1, init_hidden=True)
 
-        lif1 = snn.Leaky(beta=0.5, num_inputs=1, batch_size=1, hidden_init=True)
+        lif1 = snn.Leaky(beta=0.5, num_inputs=1, batch_size=1, init_hidden=True)
 
         assert lif1.spk == 0
         assert lif1.mem == 0
@@ -112,15 +112,15 @@ class TestSynaptic:
         assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1]
         assert spk_rec[0] == spk_rec[1]
 
-    def test_synaptic_hidden_init(self):
+    def test_synaptic_init_hidden(self):
 
         with pytest.raises(ValueError):
-            snn.Synaptic(alpha=0.5, beta=0.5, hidden_init=True)
-            snn.Synaptic(alpha=0.5, beta=0.5, num_inputs=1, hidden_init=True)
-            snn.Synaptic(alpha=0.5, beta=0.5, batch_size=1, hidden_init=True)
+            snn.Synaptic(alpha=0.5, beta=0.5, init_hidden=True)
+            snn.Synaptic(alpha=0.5, beta=0.5, num_inputs=1, init_hidden=True)
+            snn.Synaptic(alpha=0.5, beta=0.5, batch_size=1, init_hidden=True)
 
         lif2 = snn.Synaptic(
-            alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
+            alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
         )
 
         assert lif2.spk == 0
@@ -153,14 +153,14 @@ class TestLapicque:
         )
         assert spk_rec[0] == spk_rec[1]
 
-    def test_lapicque_hidden_init(self):
+    def test_lapicque_init_hidden(self):
 
         with pytest.raises(ValueError):
-            snn.Lapicque(beta=0.5, hidden_init=True)
-            snn.Lapicque(beta=0.5, num_inputs=1, hidden_init=True)
-            snn.Lapicque(beta=0.5, batch_size=1, hidden_init=True)
+            snn.Lapicque(beta=0.5, init_hidden=True)
+            snn.Lapicque(beta=0.5, num_inputs=1, init_hidden=True)
+            snn.Lapicque(beta=0.5, batch_size=1, init_hidden=True)
 
-        lapicque = snn.Lapicque(beta=0.5, num_inputs=1, batch_size=1, hidden_init=True)
+        lapicque = snn.Lapicque(beta=0.5, num_inputs=1, batch_size=1, init_hidden=True)
 
         assert lapicque.spk == 0
         assert lapicque.mem == 0
@@ -187,15 +187,15 @@ class TestStein:
         assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1]
         assert spk_rec[0] == spk_rec[1]
 
-    def test_stein_hidden_init(self):
+    def test_stein_init_hidden(self):
 
         with pytest.raises(ValueError):
-            snn.Stein(alpha=0.5, beta=0.5, hidden_init=True)
-            snn.Stein(alpha=0.5, beta=0.5, num_inputs=1, hidden_init=True)
-            snn.Stein(alpha=0.5, beta=0.5, batch_size=1, hidden_init=True)
+            snn.Stein(alpha=0.5, beta=0.5, init_hidden=True)
+            snn.Stein(alpha=0.5, beta=0.5, num_inputs=1, init_hidden=True)
+            snn.Stein(alpha=0.5, beta=0.5, batch_size=1, init_hidden=True)
 
         stein = snn.Stein(
-            alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
+            alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
         )
 
         assert stein.spk == 0
@@ -235,14 +235,14 @@ class TestSRM0:
         assert syn_pre_rec[1] + syn_post_rec[1] > 0
         assert mem_rec[0] < mem_rec[1]
 
-    def test_srm0_hidden_init(self):
+    def test_srm0_init_hidden(self):
         with pytest.raises(ValueError):
-            snn.SRM0(alpha=0.6, beta=0.5, hidden_init=True)
-            snn.SRM0(alpha=0.6, beta=0.5, num_inputs=1, hidden_init=True)
-            snn.SRM0(alpha=0.6, beta=0.5, batch_size=1, hidden_init=True)
+            snn.SRM0(alpha=0.6, beta=0.5, init_hidden=True)
+            snn.SRM0(alpha=0.6, beta=0.5, num_inputs=1, init_hidden=True)
+            snn.SRM0(alpha=0.6, beta=0.5, batch_size=1, init_hidden=True)
 
         srm0 = snn.SRM0(
-            alpha=0.6, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
+            alpha=0.6, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
         )
 
         assert srm0.spk == 0

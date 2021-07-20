@@ -31,9 +31,9 @@ Example::
             # initialize layers
             snn.LIF.clear_instances() # boilerplate
             self.fc1 = nn.Linear(num_inputs, num_hidden)
-            self.lif1 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, hidden_init=True)
+            self.lif1 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, init_hidden=True)
             self.fc2 = nn.Linear(num_hidden, num_outputs)
-            self.lif2 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, hidden_init=True)
+            self.lif2 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, init_hidden=True)
 
       # move the time-loop into the training-loop
       def forward(self, x):

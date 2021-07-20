@@ -69,55 +69,56 @@ class LIF(nn.Module):
         cls.instances = []
 
     @staticmethod
-    def init_leaky(batch_size, *args):
-        """Used to initialize mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_leaky(128, 1, 28, 28)``."""
-        mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-
-        return spk, mem
-
-    @staticmethod
-    def init_synaptic(batch_size, *args):
-        """Used to initialize syn, mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_synaptic(128, 1, 28, 28)``."""
-        syn = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-
-        return spk, syn, mem
-
-    @staticmethod
-    def init_stein(batch_size, *args):
-        """Used to initialize syn, mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_stein(128, 1, 28, 28)``."""
-
-        return LIF.init_synaptic(batch_size, *args)
-
-    @staticmethod
-    def init_lapicque(batch_size, *args):
+    def init_leaky(*args):
         """
-        Used to initialize mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_lapicque(128, 1, 28, 28)``.
+        Used to initialize mem.
+        *args are the input feature dimensions (without time or batch size).
+        E.g., Input feature of size=1x28x28 would require ``init_leaky(1, 28, 28)``.
+        """
+        mem = _SpikeTensor(*args, batch_flag=False)
+
+        return mem
+
+    @staticmethod
+    def init_synaptic(*args):
+        """Used to initialize syn and mem.
+        *args are the input feature dimensions (without time or batch size).
+        E.g., Input feature of size=1x28x28 would require ``init_leaky(1, 28, 28)``.
+        """
+        syn = _SpikeTensor(*args, batch_flag=False)
+        mem = _SpikeTensor(*args, batch_flag=False)
+
+        return syn, mem
+
+    @staticmethod
+    def init_stein(*args):
+        """Used to initialize syn and mem.
+        *args are the input feature dimensions (without time or batch size).
+        E.g., Input feature of size=1x28x28 would require ``init_stein(1, 28, 28)``.
         """
 
-        return LIF.init_leaky(batch_size, *args)
+        return LIF.init_synaptic(*args)
 
     @staticmethod
-    def init_srm0(batch_size, *args):
-        """Used to initialize syn_pre, syn_post, mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_srm0(128, 1, 28, 28).``"""
-        syn_pre = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        syn_post = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+    def init_lapicque(*args):
+        """
+        Used to initialize mem.
+        *args are the input feature dimensions (without time or batch size).
+        E.g., Input feature of size=1x28x28 would require ``init_lapicque(1, 28, 28)``.
+        """
 
-        return spk, syn_pre, syn_post, mem
+        return LIF.init_leaky(*args)
+
+    @staticmethod
+    def init_alpha(*args):
+        """Used to initialize syn_exc, syn_inh and mem.
+        *args are the input feature dimensions (without time or batch size).
+        E.g., Input feature of size=1x28x28 would require ``init_alpha(1, 28, 28)``."""
+        syn_exc = _SpikeTensor(*args, batch_flag=False)
+        syn_inh = _SpikeTensor(*args, batch_flag=False)
+        mem = _SpikeTensor(*args, batch_flag=False)
+
+        return syn_exc, syn_inh, mem
 
     @staticmethod
     def detach(*args):
@@ -168,9 +169,38 @@ class LIF(nn.Module):
             return grad
 
 
-# Neuron Models
+class _SpikeTensor(torch.Tensor):
+    """Set a batch_flag before hidden-state variables enter loop"""
+
+    @staticmethod
+    def __new__(cls, *args, batch_flag=False, **kwargs):
+        return super().__new__(cls, *args, **kwargs)
+
+    def __init__(self, *args, batch_flag=True):
+        # super().__init__() # optional
+        self.batch_flag = batch_flag
 
 
+def _SpikeTorchConv(*args, input_):
+    """Convert SpikeTensor to torch.Tensor of zeros extended in the batch dimension.
+    E.g., (1, 28, 28) of type _SpikeTensor--> (128, 1, 28, 28) of type torch.Tensor."""
+    states = []
+    for arg in args:
+        arg = torch.Tensor(arg)
+        arg = (
+            torch.zeros_like(arg, dtype=dtype, device=device)
+            .unsqueeze(0)
+            .repeat(
+                tuple(
+                    [input_.size()[0]] + torch.ones(len(arg.size()), dtype=int).tolist()
+                )
+            )
+        )
+        states.append(arg)
+    return states
+
+
+# # Neuron Models
 class Leaky(LIF):
     """
     First-order leaky integrate-and-fire neuron model.
@@ -233,7 +263,7 @@ class Leaky(LIF):
         num_inputs=False,
         spike_grad=None,
         batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
     ):
@@ -243,9 +273,9 @@ class Leaky(LIF):
 
         self.num_inputs = num_inputs
         self.batch_size = batch_size
-        self.hidden_init = hidden_init
+        self.init_hidden = init_hidden
 
-        if self.hidden_init:
+        if self.init_hidden:
             if not self.num_inputs:
                 raise ValueError(
                     "num_inputs must be specified to initialize hidden states as instance variables."
@@ -267,7 +297,11 @@ class Leaky(LIF):
                 )
 
     def forward(self, input_, mem):
-        if not self.hidden_init:
+
+        if hasattr(mem, "batch_flag"):  # only triggered on first-pass
+            mem = _SpikeTorchConv(mem, input_=input_)
+
+        if not self.init_hidden:
             if self.inhibition:
                 spk, reset = self.fire_inhibition(self.batch_size, mem)
             else:
@@ -282,7 +316,7 @@ class Leaky(LIF):
             return spk, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
+        if self.init_hidden:
             if self.inhibition:
                 self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
             else:
@@ -392,7 +426,7 @@ class Synaptic(LIF):
         num_inputs=False,
         spike_grad=None,
         batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
     ):
@@ -403,9 +437,9 @@ class Synaptic(LIF):
         self.alpha = alpha
         self.num_inputs = num_inputs
         self.batch_size = batch_size
-        self.hidden_init = hidden_init
+        self.init_hidden = init_hidden
 
-        if self.hidden_init:
+        if self.init_hidden:
             if not self.num_inputs:
                 raise ValueError(
                     "num_inputs must be specified to initialize hidden states as instance variables."
@@ -429,7 +463,13 @@ class Synaptic(LIF):
                 )
 
     def forward(self, input_, syn, mem):
-        if not self.hidden_init:
+
+        if hasattr(syn, "batch_flag") or hasattr(
+            mem, "batch_flag"
+        ):  # only triggered on first-pass
+            syn, mem = _SpikeTorchConv(syn, mem, input_=input_)
+
+        if not self.init_hidden:
             if self.inhibition:
                 spk, reset = self.fire_inhibition(self.batch_size, mem)
             else:
@@ -445,7 +485,7 @@ class Synaptic(LIF):
             return spk, syn, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
+        if self.init_hidden:
             if self.inhibition:
                 self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
             else:
@@ -575,7 +615,7 @@ class Lapicque(LIF):
         num_inputs=False,
         spike_grad=None,
         batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
     ):
@@ -589,7 +629,7 @@ class Lapicque(LIF):
         self.time_step = time_step
         self.num_inputs = num_inputs
         self.batch_size = batch_size
-        self.hidden_init = hidden_init
+        self.init_hidden = init_hidden
 
         if not self.beta and not (self.R and self.C):
             raise ValueError(
@@ -614,7 +654,7 @@ class Lapicque(LIF):
         elif self.beta and self.C and not self.R:
             self.R = self.time_step / (self.C * torch.log(torch.tensor(1 / self.beta)))
 
-        if self.hidden_init:
+        if self.init_hidden:
             if not self.num_inputs:
                 raise ValueError(
                     "num_inputs must be specified to initialize hidden states as instance variables."
@@ -638,7 +678,11 @@ class Lapicque(LIF):
                 )
 
     def forward(self, input_, mem):
-        if not self.hidden_init:
+
+        if hasattr(mem, "batch_flag"):  # only triggered on first-pass
+            mem = _SpikeTorchConv(mem, input_=input_)
+
+        if not self.init_hidden:
             if self.inhibition:
                 spk, reset = self.fire_inhibition(self.batch_size, mem)
             else:
@@ -667,7 +711,7 @@ class Lapicque(LIF):
             return spk, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
+        if self.init_hidden:
             if self.inhibition:
                 self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
             else:
@@ -793,7 +837,7 @@ class SRM0(LIF):
         num_inputs=False,
         spike_grad=None,
         batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
     ):
@@ -804,9 +848,9 @@ class SRM0(LIF):
         self.alpha = alpha
         self.num_inputs = num_inputs
         self.batch_size = batch_size
-        self.hidden_init = hidden_init
+        self.init_hidden = init_hidden
 
-        if self.hidden_init:
+        if self.init_hidden:
             if not self.num_inputs:
                 raise ValueError(
                     "num_inputs must be specified to initialize hidden states as instance variables."
@@ -845,7 +889,7 @@ class SRM0(LIF):
     def forward(self, input_, syn_pre, syn_post, mem):
 
         # if hidden states are passed externally
-        if not self.hidden_init:
+        if not self.init_hidden:
 
             if self.inhibition:
                 spk, reset = self.fire_inhibition(self.batch_size, mem)
@@ -884,7 +928,7 @@ class SRM0(LIF):
             return spk, syn_pre, syn_post, mem
 
         # if hidden states and outputs are instance variables
-        if self.hidden_init:
+        if self.init_hidden:
 
             if self.inhibition:
                 self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
@@ -1039,7 +1083,7 @@ class Stein(LIF):
         num_inputs=False,
         spike_grad=None,
         batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
     ):
@@ -1054,9 +1098,9 @@ class Stein(LIF):
         self.alpha = alpha
         self.num_inputs = num_inputs
         self.batch_size = batch_size
-        self.hidden_init = hidden_init
+        self.init_hidden = init_hidden
 
-        if self.hidden_init:
+        if self.init_hidden:
             if not self.num_inputs:
                 raise ValueError(
                     "num_inputs must be specified to initialize hidden states as instance variables."
@@ -1066,13 +1110,11 @@ class Stein(LIF):
                     "batch_size must be specified to initialize hidden states as instance variables."
                 )
             elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.syn, self.mem = self.init_stein(
+                self.syn, self.mem = self.init_stein(
                     self.batch_size, *(self.num_inputs)
                 )  # need to automatically call batch_size
             else:
-                self.spk, self.syn, self.mem = self.init_stein(
-                    self.batch_size, self.num_inputs
-                )
+                self.syn, self.mem = self.init_stein(self.batch_size, self.num_inputs)
         if self.inhibition:
             if not self.batch_size:
                 raise ValueError(
@@ -1080,7 +1122,13 @@ class Stein(LIF):
                 )
 
     def forward(self, input_, syn, mem):
-        if not self.hidden_init:
+
+        if hasattr(syn, "batch_flag") or hasattr(
+            mem, "batch_flag"
+        ):  # only triggered on first-pass
+            syn, mem = _SpikeTorchConv(syn, mem, input_=input_)
+
+        if not self.init_hidden:
             if self.inhibition:
                 spk, reset = self.fire_inhibition(self.batch_size, mem)
             else:
@@ -1096,7 +1144,7 @@ class Stein(LIF):
             return spk, syn, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
+        if self.init_hidden:
             if self.inhibition:
                 self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
             else:
