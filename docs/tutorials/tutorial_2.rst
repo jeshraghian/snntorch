@@ -28,7 +28,7 @@ In this tutorial, you will:
   
   * Conductance based model (2nd order)
   
-  * :math:`0^{th}` Order Spike Response Model
+  * :math:`0^{th}` Order Spike Response Model (a hacked version)
 
   * Implement a feedforward spiking neural network
 
@@ -65,7 +65,7 @@ The different versions of the LIF model each have their own dynamics and use-cas
   
 * Synaptic Conductance-based neuron model: ``snntorch.Synaptic``
   
-* :math:`0^{th}` Order Spike Response Model: ``snntorch.SRM0``
+* Alpha neuron Model: ``snntorch.Alpha``
 
 Before learning how to use them, let's understand how to construct a simple LIF neuron model.
 
@@ -1351,7 +1351,7 @@ We can also visualize the membrane potential traces with :code:`spikeplot.traces
 4. :math:`0^{\rm th}`-Order Spike Response Model
 -------------------------------------------------
 
-To finish up this tutorial, a recursive version of the :math:`0^{\rm th}`-Order Spike Response Model (SRM) is also available, called using :code:`snntorch.SRM0`. The neuron models thus far have all been based on the passive membrane model, using ordinary differential equations to describe their dynamics.
+To finish up this tutorial, a recursive version of the Spike Response Neuron Model (SRM) is also available, called using :code:`snntorch.Alpha`. The neuron models thus far have all been based on the passive membrane model, using ordinary differential equations to describe their dynamics.
 
 The SRM family of models, on the other hand, is interpreted in terms of a filter. Upon the arrival of an input spike, this spike is convolved with the filter to give the membrane potential response. The form of this filter can be exponential, as is the case with Lapicque's neuron, or they can be more complex such as a sum of exponentials. SRM models are appealing as they can arbitrarily add refractoriness, threshold adaptation, and any number of other features simply by embedding them into the filter. 
 
@@ -1370,9 +1370,9 @@ $$U_{\\rm mem}(t) = \\sum_i W_{i, j}(\\epsilon * S_{\\rm in; i, j})(t)$$
 
 where the incoming spikes :math:`S_{\rm in; i, j}` are convolved with a spike response kernel :math:`\epsilon( \cdot )`. The spike response is scaled by a synaptic weight, :math:`W_{i, j}`. In the figures above, the left kernel is an exponentially decaying function and would be the equivalent of Lapicque's neuron model. On the right, the kernel is an alpha function.
 
-In snnTorch, the SRM0 model is not directly implemented as a filter. Instead, it is recast into a recursive form such that only the previous time step of values are required to calculate the next set of values. This significantly reduces the memory overhead during learning.
+In snnTorch, the spike response model is not directly implemented as a filter. Instead, it is recast into a recursive form such that only the previous time step of values are required to calculate the next set of values. This significantly reduces the memory overhead during learning.
 
-The filter adopted is the alpha function on the right animation above, or equivalently a sum of two exponentials. This results in a membrane potential which peaks at some time delay :math:`t_d` after the input spike. This is often a desirable feature when training networks that rely on spike timing.
+The filter adopted is unsurprisingly the alpha function on the right animation above, or equivalently a sum of two exponentials. This results in a membrane potential which peaks at some time delay :math:`t_d` after the input spike. This is often a desirable feature when training networks that rely on spike timing.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_9_alpha.png?raw=true
         :align: center
@@ -1386,22 +1386,22 @@ As the membrane potential is now determined by the sum of two exponentials, each
   beta = 0.7
 
   # initialize neuron
-  lif6 = snn.SRM0(alpha=alpha, beta=beta, threshold=0.5)
+  lif6 = snn.Alpha(alpha=alpha, beta=beta, threshold=0.5)
 
-Using this neuron is the same as the previous neurons, but the sum of two exponential functions requires the synaptic current :code:`syn` to be split into a :code:`pre_syn` and :code:`post_syn` component:
+Using this neuron is the same as the previous neurons, but the sum of two exponential functions requires the synaptic current :code:`syn` to be split into a :code:`syn_exc` and :code:`syn_inh` component:
 
 **Inputs**
 
 * :code:`spk_in`: each input voltage spike :math:`S_{\rm in}[t]` is sequentially passed in
-* :code:`pre_syn`: pre-synaptic current :math:`I_{\rm pre-syn}[t]` at the present time :math:`t`
-* :code:`post_syn`: post-synaptic current :math:`I_{\rm post-syn}[t]` at the present time :math:`t`
+* :code:`syn_exc`: excitatory post-synaptic current :math:`I_{\rm syn-exc}[t]` at the present time :math:`t`
+* :code:`syn_inh`: inhibitory post-synaptic current :math:`I_{\rm syn-inh}[t]` at the present time :math:`t`
 * :code:`mem`: membrane potential :math:`U_{\rm mem}[t]` at the present time :math:`t`
 
 **Outputs**
 
 * :code:`spk_out`: output spike :math:`S_{\rm out}[t+1]` at the next time step ('1' if there is a spike; '0' if there is no spike)
-* :code:`pre_syn`: pre-synaptic current :math:`I_{\rm pre-syn}[t+1]` at the next time step :math:`t`
-* :code:`post_syn`: post-synaptic current :math:`I_{\rm post-syn}[t+1]` at the next time step :math:`t`
+* :code:`syn_exc`: excitatory post-synaptic current :math:`I_{\rm syn-exc}[t+1]` at the next time step :math:`t`
+* :code:`syn_inh`: inhibitory post-synaptic current :math:`I_{\rm syn-inh}[t+1]` at the next time step :math:`t`
 * :code:`mem`: membrane potential :math:`U_{\rm mem}[t+1]` at the next time step
 
 As with all other neuron models, these must be of type :code:`torch.Tensor`.
@@ -1412,13 +1412,13 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
   spk_in = torch.cat((torch.zeros(10), torch.ones(1), torch.zeros(89), (torch.cat((torch.ones(1), torch.zeros(9)),0).repeat(10))), 0) * 0.85
 
   # initialize parameters
-  spk_out, pre_syn, post_syn, mem = lif6.init_srm0(1, 1)
+  spk_out, syn_exc, syn_inh, mem = lif6.init_alpha(1, 1)
   mem_rec = []
   spk_rec = []
 
   # run simulation
   for step in range(num_steps):
-    spk_out, pre_syn, post_syn, mem = lif6(spk_in[step], pre_syn, post_syn, mem)
+    spk_out, syn_exc, syn_inh, mem = lif6(spk_in[step], syn_exc, syn_inh, mem)
 
     mem_rec.append(mem.squeeze(0))
     spk_rec.append(spk_out.squeeze(0))
@@ -1433,7 +1433,7 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
   # Plot input current
   splt.raster(spk_in, ax[0], s=400, c="black", marker="|")
   ax[0].set_ylabel("Input Spikes")
-  ax[0].set_title("SRM0 Neuron Model With Input Spikes")
+  ax[0].set_title("Alpha Neuron Model With Input Spikes")
   ax[0].set_yticks([]) 
 
   # Plot membrane potential
@@ -1456,7 +1456,7 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
         :align: center
         :width: 425
 
-As with the Lapicque and Synaptic models, the SRM0 model also has options to modify the threshold and reset mechanism.
+As with the Lapicque and Synaptic models, the Alpha model also has options to modify the threshold and reset mechanism.
 
 
 Conclusion
@@ -1471,6 +1471,6 @@ In the next tutorial, you will learn how to train these networks to classify spi
 Further Reading
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* `snnTorch documentation <https://snntorch.readthedocs.io/en/latest/snntorch.html>`_ of the Lapicque, Stein and SRM0 models
+* `snnTorch documentation <https://snntorch.readthedocs.io/en/latest/snntorch.html>`_ of the Lapicque, Stein and Alpha models
 * `Neuronal Dynamics: From single neurons to networks and models of cognition <https://neuronaldynamics.epfl.ch/index.html>`_ by Wulfram Gerstner, Werner M. Kistler, Richard Naud and Liam Paninski.
 * `Theoretical Neuroscience: Computational and Mathematical Modeling of Neural Systems <https://mitpress.mit.edu/books/theoretical-neuroscience>`_ by Laurence F. Abbott and Peter Dayan

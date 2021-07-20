@@ -24,8 +24,8 @@ class Net(nn.Module):
         self.lif1 = snn.Synaptic(
             alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
         )
-        self.lif2 = snn.SRM0(
-            alpha=0.6, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
+        self.lif2 = snn.Alpha(
+            alpha=0.6, beta=0.5, num_inputs=1, batch_size=1, hidden_init=True
         )
 
     def forward(self, x):

@@ -23,7 +23,7 @@ At present, the neurons available in :mod:`snntorch` are variants of the Leaky I
 * **Leaky** - 1st-Order Leaky Integrate-and-Fire Neuron
 * **Synaptic** - 2nd-Order Integrate-and-Fire Neuron (including synaptic conductance)
 * **Lapicque** - Lapicque's RC Neuron Model
-* **SRM0** - Spike Response Model :math:`0^{\rm th}` order
+* **Alpha** - Alpha Membrane Model
 
 
 

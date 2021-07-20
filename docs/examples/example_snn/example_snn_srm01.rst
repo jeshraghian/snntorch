@@ -28,9 +28,9 @@ Example::
 
                 # initialize layers
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.SRM0(alpha=alpha, beta=beta)
+                self.lif1 = snn.Alpha(alpha=alpha, beta=beta)
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.SRM0(alpha=alpha, beta=beta)
+                self.lif2 = snn.Alpha(alpha=alpha, beta=beta)
 
             def forward(self, x):
                 for step in range(num_steps):
