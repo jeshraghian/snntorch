@@ -1045,6 +1045,7 @@ class Alpha(LIF):
 ####### Deprecated / Renamed
 class Stein(LIF):  # see: Synaptic(LIF)
     """
+    **Note: this neuron model has been deprecated. Please use `Synaptic(LIF) instead.
     Stein's model of the leaky integrate and fire neuron.
     The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.
     Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
