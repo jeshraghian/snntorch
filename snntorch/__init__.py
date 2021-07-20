@@ -193,7 +193,9 @@ class _SpikeTensor(torch.Tensor):
 
 def _SpikeTorchConv(*args, input_):
     """Convert SpikeTensor to torch.Tensor of zeros extended in the batch dimension.
-    E.g., (1, 28, 28) of type _SpikeTensor--> (128, 1, 28, 28) of type torch.Tensor."""
+    E.g., (1, 28, 28) of type _SpikeTensor--> (128, 1, 28, 28) of type torch.Tensor.
+    `device_flag` must be specified in the `init_*` function to either cpu or cuda."""
+
     states = []
     if len(input_.size()) == 0:
         _batch_size = 1  # assume batch_size=1 if 1D input
