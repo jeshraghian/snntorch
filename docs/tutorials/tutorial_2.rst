@@ -28,7 +28,7 @@ In this tutorial, you will:
   
   * Conductance based model (2nd order)
   
-  * :math:`0^{th}` Order Spike Response Model (a hacked version)
+  * Spike Response Model (a hacked version: the 'Alpha' model)
 
   * Implement a feedforward spiking neural network
 
@@ -249,6 +249,9 @@ Now it's time to run a simulation! 200 time steps will be simulated, updating :c
 
     # Store recordings of membrane potential
     mem_rec.append(mem)
+  
+  # crunch the -list- of tensors into one tensor
+  mem_rec = torch.stack(mem_rec)
 
 Let's take a look at how the membrane potential and synaptic current evolved.
 
@@ -310,6 +313,9 @@ As before, 200 time steps will be simulated. But this time, the new values of :c
 
     # Store recordings of membrane potential
     mem_rec.append(mem)
+  
+  # crunch -list- of tensors into one tensor
+  mem_rec = torch.stack(mem_rec)
 
 ::
 
@@ -375,6 +381,9 @@ Now what if the step input was clipped at :math:`t=30ms`?
     # Store recordings of membrane potential
     mem_rec1.append(mem)
 
+  # crunch -list- of tensors into one tensor
+  mem_rec1 = torch.stack(mem_rec1)
+
 ::
 
   fig, ax = plt.subplots(2, figsize=(8,6),sharex=True)
@@ -426,6 +435,9 @@ Let's deliver approximately the same amount of charge :math:`Q = I \times t` to 
 
     # Store recordings of membrane potential
     mem_rec2.append(mem)
+  
+  # crunch -list- of tensors into one tensor
+  mem_rec2 = torch.stack(mem_rec2)
 
 ::
 
@@ -473,6 +485,9 @@ Let's do that again, but with an even faster input pulse and higher amplitude:
 
     # Store recordings of membrane potential
     mem_rec3.append(mem)
+  
+  # crunch -list- of tensors into one tensor
+  mem_rec3 = torch.stack(mem_rec3)
 
   # Generate Plots
   fig, ax = plt.subplots(2, figsize=(8,6),sharex=True)
@@ -554,6 +569,9 @@ As the input current pulse amplitude increases, the rise time of the membrane po
 
     # Store recordings of membrane potential
     mem_rec4.append(mem)
+
+  # crunch -list- of tensors into one tensor
+  mem_rec4 = torch.stack(mem_rec4)
 
   # Generate Plots
   fig, ax = plt.subplots(2, figsize=(8,6),sharex=True)
@@ -642,6 +660,10 @@ For :code:`lif2.beta` :math:`=0.98`, the membrane potential is 98% of the value 
     mem_rec.append(mem)
     spk_rec.append(spk_out)
 
+  # crunch -list- of tensors into one tensor
+  mem_rec = torch.stack(mem_rec)
+  spk_rec = torch.stack(spk_rec)
+
 ::
 
   # Generate Plots
@@ -706,6 +728,10 @@ To reach the threshold, we need to ensure that :math:`I_{\rm in}R > U_{\rm thr}`
     mem_rec.append(mem)
     spk_rec.append(spk_out)
 
+  # crunch -list- of tensors into one tensor
+  mem_rec = torch.stack(mem_rec)
+  spk_rec = torch.stack(spk_rec)
+
 
 To plot our results, let's import :code:`snntorch.spikeplot`. From Tutorial 1, we learnt how to use it to create raster plots of spike responses.
   
@@ -735,7 +761,7 @@ To plot our results, let's import :code:`snntorch.spikeplot`. From Tutorial 1, w
   plt.xlabel("Time step")
 
   # Plot output spike using spikeplot
-  splt.raster(torch.tensor(spk_rec), ax[2], s=400, c="black", marker="|")
+  splt.raster(spk_rec, ax[2], s=400, c="black", marker="|")
   ax[2].axvline(x=162, ymin=0, ymax=6.75, alpha = 0.15, linestyle="dashed", c="black", linewidth=2, zorder=0, clip_on=False)
   plt.ylabel("Output spikes")
   plt.yticks([]) 
@@ -781,6 +807,10 @@ If :math:`I_{\rm in}` is increased, then the membrane potential approaches :math
     # record outputs over time
     mem_rec.append(mem)
     spk_rec.append(spk_out)
+  
+  # crunch -list- of tensors into one tensor
+  mem_rec = torch.stack(mem_rec)
+  spk_rec = torch.stack(spk_rec)
 
   # Generate Plots
   fig, ax = plt.subplots(3, figsize=(8,6), sharex=True, 
@@ -801,7 +831,7 @@ If :math:`I_{\rm in}` is increased, then the membrane potential approaches :math
   plt.xlabel("Time step")
 
   # Plot output spike using spikeplot
-  splt.raster(torch.tensor(spk_rec), ax[2], s=400, c="black", marker="|")
+  splt.raster(spk_rec, ax[2], s=400, c="black", marker="|")
   plt.ylabel("Output spikes")
   plt.yticks([]) 
 
@@ -833,6 +863,10 @@ A similar increase in firing frequency can also be induced by decreasing the thr
     mem_rec.append(mem)
     spk_rec.append(spk_out)
 
+  # crunch -list- of tensors into one tensor
+  mem_rec = torch.stack(mem_rec)
+  spk_rec = torch.stack(spk_rec)
+
   # Generate Plots
   fig, ax = plt.subplots(3, figsize=(8,6), sharex=True, 
                         gridspec_kw = {'height_ratios': [1, 1, 0.4]})
@@ -852,7 +886,7 @@ A similar increase in firing frequency can also be induced by decreasing the thr
   plt.xlabel("Time step")
 
   # Plot output spike using spikeplot
-  splt.raster(torch.tensor(spk_rec), ax[2], s=400, c="black", marker="|")
+  splt.raster(spk_rec, ax[2], s=400, c="black", marker="|")
   plt.ylabel("Output spikes")
   plt.yticks([]) 
 
@@ -923,6 +957,10 @@ The following code block shows how many spikes have been generated.
     # Store recordings of output and hidden states
     spk_rec.append(spk_out)
     mem_rec.append(mem)
+  
+  # crunch -list- of tensors into one tensor
+  mem_rec = torch.stack(mem_rec)
+  spk_rec = torch.stack(spk_rec)
 
 ::
 
@@ -944,7 +982,7 @@ The following code block shows how many spikes have been generated.
   plt.xlabel("Time step")
 
   # Plot output spike using spikeplot
-  splt.raster(torch.tensor(spk_rec), ax[2], s=400, c="black", marker="|")
+  splt.raster(spk_rec, ax[2], s=400, c="black", marker="|")
   plt.ylabel("Output spikes")
   plt.yticks([]) 
 
@@ -993,6 +1031,10 @@ By default, snnTorch neuron models use :code:`reset_mechanism = "subtract"`. Thi
     spk_rec0.append(spk_out)
     mem_rec0.append(mem)
 
+  # crunch -list- of tensors into one tensor
+  mem_rec0 = torch.stack(mem_rec0)
+  spk_rec0 = torch.stack(spk_rec0)
+
 ::
 
   # Generate Plots to Compare Reset Mechanisms
@@ -1012,7 +1054,7 @@ By default, snnTorch neuron models use :code:`reset_mechanism = "subtract"`. Thi
   ax[1][0].axhline(y=0.5, alpha=0.25, linestyle="dashed", c="black", linewidth=2)
 
   # Reset by Subtraction: output spikes
-  splt.raster(torch.tensor(spk_rec), ax[2][0], s=400, c="black", marker="|")
+  splt.raster(spk_rec, ax[2][0], s=400, c="black", marker="|")
   ax[2][0].set_yticks([])
   ax[2][0].set_xlabel("Time step")
   ax[2][0].set_ylabel("Output Spikes")
@@ -1030,7 +1072,7 @@ By default, snnTorch neuron models use :code:`reset_mechanism = "subtract"`. Thi
   ax[2][1].set_xlabel("Time step")
 
   # Reset to Zero: output spikes
-  splt.raster(torch.tensor(spk_rec0), ax[2][1], s=400, c="black", marker="|")
+  splt.raster(spk_rec0, ax[2][1], s=400, c="black", marker="|")
   ax[2][1].set_yticks([])
 
   plt.show()
@@ -1127,6 +1169,11 @@ Apply a periodic spiking input to see how current and membrane evolve with time:
     syn_rec.append(syn)
     mem_rec.append(mem)
 
+  # crunch -list- of tensors into one tensor
+  spk_rec = torch.stack(spk_rec)
+  syn_rec = torch.stack(syn_rec)
+  mem_rec = torch.stack(mem_rec)
+
 ::
 
   # Generate Plots
@@ -1153,7 +1200,7 @@ Apply a periodic spiking input to see how current and membrane evolve with time:
   plt.xlabel("Time step")
 
   # Plot output spike using spikeplot
-  splt.raster(torch.tensor(spk_rec), ax[3], s=400, c="black", marker="|")
+  splt.raster(spk_rec, ax[3], s=400, c="black", marker="|")
   plt.ylabel("Output spikes")
   ax[3].set_yticks([]) 
 
@@ -1237,28 +1284,30 @@ First, initialize all layers.
 Next, initialize the hidden variables and outputs of each spiking neuron. 
 As your networks increase in size, this will become a tedious process. So we can call a static method :code:`init_synaptic` to take care of this. All neurons in snnTorch have their own initialization methods that follow this same syntax, e.g., :code:`init_lapicque`:
 
-* The first dimension is the :code:`batch_size` which we will just set to 1
-* The second dimension is the number of neurons in the layer
+* The input arguments should simply be the dimensions of the layer (without batch sizes or time steps)
+* E.g., a fully-connected layer will have one single number, as below (e.g., 1000)
+* E.g., a convolutional layer may have multiple arguments (e.g., 16 x 28 x 28)
 
 ::
 
-  # Only use a single sample
-  batch_size = 1
-
   # Initialize hidden states and outputs
-  spk1, syn1, mem1 = lif1.init_synaptic(batch_size, num_hidden)
-  spk2, syn2, mem2 = lif2.init_synaptic(batch_size, num_outputs)
+  syn1, mem1 = lif1.init_synaptic(num_hidden)
+  syn2, mem2 = lif2.init_synaptic(num_outputs)
+
+  # note: when using multiple batches of input data,
+  # the above samples are automatically duplicated
+  # to match the dimensions of the input
 
   # Lists to record output traces
   mem2_rec = []
   spk1_rec = []
   spk2_rec = []
 
-Create an input spike train to pass into the network. There are 200 time steps to simulate across 784 input neurons, so the dimensions of this input tensor must be 200 :math:`\times` 784:
+Create an input spike train to pass into the network. There are 200 time steps to simulate across 784 input neurons. We 'unsqueeze' the input along :code:`dim=1` to denote this to be 'one batch' of data. So the dimensions of this input tensor must be 200 :math:`\times` 1 :math:`\times` 784:
 
 ::
 
-  spk_in = spikegen.rate_conv(torch.rand((200, 784))*0.1)
+  spk_in = spikegen.rate_conv(torch.rand((200, 784))*0.1).unsqueeze(1)
 
 Now it's finally time to run a full simulation. 
 An intuitive way to think about how PyTorch and snnTorch work together is that PyTorch routes the neurons together, and snnTorch instantiates the spiking neuron models. In terms of coding up a network, these spiking neurons can be treated like time-varying activation functions.
@@ -1280,9 +1329,9 @@ The only difference from our simulations thus far is that we sequentially pass t
       spk2_rec.append(spk2)
 
   # convert output recordings to tensors
-  mem2_rec = torch.stack(mem2_rec, dim=0)
-  spk1_rec = torch.stack(spk1_rec, dim=0)
-  spk2_rec = torch.stack(spk2_rec, dim=0)
+  mem2_rec = torch.stack(mem2_rec)
+  spk1_rec = torch.stack(spk1_rec)
+  spk2_rec = torch.stack(spk2_rec)
 
 At this stage, the spikes don't have any real meaning. The inputs and weights are all randomly initialized, and no training has taken place. But let's take a look at the raster plots just to check that the spikes are propagating to the output layer.
 
@@ -1293,7 +1342,7 @@ At this stage, the spikes don't have any real meaning. The inputs and weights ar
                         gridspec_kw = {'height_ratios': [1, 1, 0.4]})
 
   # Plot input spikes
-  splt.raster(spk_in, ax[0], s=0.05, c="black")
+  splt.raster(spk_in[:,0], ax[0], s=0.05, c="black")
   ax[0].set_ylabel("Input Spikes")
   ax[0].set_title("Fully Connected Spiking Neural Network")
 
@@ -1323,6 +1372,8 @@ We can also use :code:`spikeplot.spike_count` to generate a spike counter of the
   labels=['0', '1', '2', '3', '4', '5', '6', '7', '8','9']
   spk2_rec = spk2_rec.squeeze(1).detach().cpu()
 
+  # plt.rcParams['animation.ffmpeg_path'] = 'C:\\path\\to\\your\\ffmpeg.exe'
+
   #  Plot spike count histogram
   anim = splt.spike_count(spk2_rec, fig, ax, labels=labels, animate=True)
   HTML(anim.to_html5_video())
@@ -1348,10 +1399,10 @@ We can also visualize the membrane potential traces with :code:`spikeplot.traces
         :width: 400
 
 
-4. :math:`0^{\rm th}`-Order Spike Response Model
--------------------------------------------------
+4. Alpha Neuron Model (Hacked Spike Response Model)
+-----------------------------------------------------
 
-To finish up this tutorial, a recursive version of the Spike Response Neuron Model (SRM) is also available, called using :code:`snntorch.Alpha`. The neuron models thus far have all been based on the passive membrane model, using ordinary differential equations to describe their dynamics.
+To finish up this tutorial, a recursive version of the Spike Response Neuron Model (SRM), or 'Alpha' neuron, is also available, called using :code:`snntorch.Alpha`. The neuron models thus far have all been based on the passive membrane model, using ordinary differential equations to describe their dynamics.
 
 The SRM family of models, on the other hand, is interpreted in terms of a filter. Upon the arrival of an input spike, this spike is convolved with the filter to give the membrane potential response. The form of this filter can be exponential, as is the case with Lapicque's neuron, or they can be more complex such as a sum of exponentials. SRM models are appealing as they can arbitrarily add refractoriness, threshold adaptation, and any number of other features simply by embedding them into the filter. 
 
@@ -1411,8 +1462,8 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
   # input spike: initial spike, and then period spiking 
   spk_in = torch.cat((torch.zeros(10), torch.ones(1), torch.zeros(89), (torch.cat((torch.ones(1), torch.zeros(9)),0).repeat(10))), 0) * 0.85
 
-  # initialize parameters
-  spk_out, syn_exc, syn_inh, mem = lif6.init_alpha(1, 1)
+  # initialize parameters - arg '1' is passed to indicate just one sample of data
+  syn_exc, syn_inh, mem = lif6.init_alpha(1)
   mem_rec = []
   spk_rec = []
 
@@ -1423,8 +1474,8 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
     mem_rec.append(mem.squeeze(0))
     spk_rec.append(spk_out.squeeze(0))
 
-  mem_rec = torch.stack(mem_rec, dim=0).squeeze(1)
-  spk_rec = torch.stack(spk_rec, dim=0).squeeze(1)
+  mem_rec = torch.stack(mem_rec).squeeze(1)
+  spk_rec = torch.stack(spk_rec).squeeze(1)
 
   # Generate Plots
   fig, ax = plt.subplots(3, figsize=(8,6), sharex=True, 

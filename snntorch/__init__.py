@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+# device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 dtype = torch.float
 
 
@@ -296,7 +296,7 @@ class Leaky(LIF):
                     self.batch_size, *(self.num_inputs)
                 )  # need to automatically call batch_size
             else:
-                self.mem = self.init_leaky(self.batch_size, self.num_inputs)
+                self.spk, self.mem = self.init_leaky(self.batch_size, self.num_inputs)
         if self.inhibition:
             if not self.batch_size:
                 raise ValueError(
