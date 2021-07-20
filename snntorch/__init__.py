@@ -80,13 +80,13 @@ class LIF(nn.Module):
         return mem
 
     @staticmethod
-    def init_synaptic(*args):
+    def init_synaptic(*args, device="cpu"):
         """Used to initialize syn and mem.
         *args are the input feature dimensions (without time or batch size).
         E.g., Input feature of size=1x28x28 would require ``init_leaky(1, 28, 28)``.
         """
-        syn = _SpikeTensor(*args, batch_flag=False)
-        mem = _SpikeTensor(*args, batch_flag=False)
+        syn = _SpikeTensor(*args, batch_flag=False, device_flag=device)
+        mem = _SpikeTensor(*args, batch_flag=False, device_flag=device)
 
         return syn, mem
 
@@ -173,12 +173,18 @@ class _SpikeTensor(torch.Tensor):
     """Set a batch_flag before hidden-state variables enter loop"""
 
     @staticmethod
-    def __new__(cls, *args, batch_flag=False, **kwargs):
+    def __new__(cls, *args, batch_flag=False, device_flag="cpu", **kwargs):
         return super().__new__(cls, *args, **kwargs)
 
-    def __init__(self, *args, batch_flag=True):
+    def __init__(
+        self,
+        *args,
+        batch_flag=True,
+        device_flag="cpu",
+    ):
         # super().__init__() # optional
         self.batch_flag = batch_flag
+        self.device_flag = device_flag
 
 
 def _SpikeTorchConv(*args, input_):
@@ -192,9 +198,10 @@ def _SpikeTorchConv(*args, input_):
     if len(args) == 1:  # if only one hidden state, make it iterable
         args = (args,)
     for arg in args:
+        device = arg.device_flag
         arg = torch.Tensor(arg)
         arg = (
-            torch.zeros_like(arg, dtype=dtype)
+            torch.zeros_like(arg, dtype=dtype, device=device)
             .unsqueeze(0)
             .repeat(
                 tuple([_batch_size] + torch.ones(len(arg.size()), dtype=int).tolist())

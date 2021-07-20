@@ -227,8 +227,8 @@ If you have a basic understanding of PyTorch, the following code block should lo
       def forward(self, x):
 
           # Initialize hidden states and outputs at t=0
-          spk1, syn1, mem1 = self.lif1.init_synaptic(batch_size, num_hidden)
-          spk2, syn2, mem2 = self.lif2.init_synaptic(batch_size, num_outputs)
+          syn1, mem1 = self.lif1.init_synaptic(num_hidden, device=device)
+          syn2, mem2 = self.lif2.init_synaptic(num_outputs, device=device)
           
           # Record the final layer
           spk2_rec = []
@@ -641,17 +641,8 @@ This function iterates over all minibatches to obtain a measure of accuracy over
       images = images.to(device)
       labels = labels.to(device)
 
-      # If current batch matches batch_size, just do the usual thing
-      if images.size()[0] == batch_size:
-        outputs, _ = net(images.view(batch_size, -1))
-
-      # If current batch does not match batch_size (i.e., is the final batch),
-      # modify batch_size in a temp variable and restore it at the end
-      else:
-        temp_bs = batch_size
-        batch_size = images.size()[0]
-        outputs, _ = net(images.view(images.size()[0], -1))
-        batch_size = temp_bs
+      batch_size = images.size(0) # the final batch has a different size so must be updated
+      outputs, _ = net(images.view(batch_size, -1))
 
       _, predicted = outputs.sum(dim=0).max(1)
       total += labels.size(0)
