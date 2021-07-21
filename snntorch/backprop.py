@@ -1,5 +1,6 @@
 import snntorch as snn
 import torch
+from snntorch import utils
 
 
 def TBPTT(
@@ -15,7 +16,7 @@ def TBPTT(
     return_mem=False,
     K=1,
 ):
-    """Truncated backpropagation through time. LIF layers require parameter ``hidden_init = True``.
+    """Truncated backpropagation through time. LIF layers require parameter ``init_hidden = True``.
     Forward and backward passes are performed at every time step. Weight updates are performed every ``K`` time steps.
     :param net: Network model
     :type net: nn.Module
@@ -50,13 +51,15 @@ def TBPTT(
     if K > num_steps:
         raise ValueError("K must be less than or equal to num_steps.")
 
-    _layer_init(net=net)  # Check which LIF neurons are in net. Reset and detach them.
+    utils._layer_init(
+        net=net
+    )  # Check which LIF neurons are in net. Reset and detach them.
 
     neurons_dict = {
-        is_lapicque: snn.Lapicque,
-        is_leaky: snn.Leaky,
-        is_synaptic: snn.Synaptic,
-        is_alpha: snn.Alpha,
+        utils.is_lapicque: snn.Lapicque,
+        utils.is_leaky: snn.Leaky,
+        utils.is_synaptic: snn.Synaptic,
+        utils.is_alpha: snn.Alpha,
     }
 
     t = 0
@@ -152,7 +155,7 @@ def BPTT(
     return_spk=False,
     return_mem=False,
 ):
-    """Backpropagation through time. LIF layers require parameter ``hidden_init = True``.
+    """Backpropagation through time. LIF layers require parameter ``init_hidden = True``.
     A forward pass is applied for each time step while the loss accumulates. The backward pass and parameter update is only applied at the end of each time step sequence.
     BPTT is equivalent to TBPTT for the case where ``num_steps = K``.
     :param net: Network model
@@ -210,7 +213,7 @@ def RTRL(
     return_spk=False,
     return_mem=False,
 ):
-    """Real-time Recurrent Learning. LIF layers require parameter ``hidden_init = True``.
+    """Real-time Recurrent Learning. LIF layers require parameter ``init_hidden = True``.
     A forward pass, backward pass and parameter update are applied at each time step.
     RTRL is equivalent to TBPTT for the case where ``K = 1``.
     :param net: Network model
@@ -254,67 +257,3 @@ def RTRL(
         return_mem,
         K=1,
     )
-
-
-def _layer_init(net):
-    """Check for the types of LIF neurons contained in net.
-    Reset their hidden parameters to zero and detach them
-    from the current computation graph."""
-
-    global is_stein
-    global is_alpha
-    global is_leaky
-    global is_lapicque
-    global is_synaptic
-
-    is_stein = False
-    is_alpha = False
-    is_leaky = False
-    is_synaptic = False
-    is_lapicque = False
-
-    _layer_check(net=net)
-
-    _layer_reset()
-
-
-def _layer_check(net):
-    """Check for the types of LIF neurons contained in net."""
-
-    global is_leaky
-    global is_lapicque
-    global is_synaptic
-    global is_stein
-    global is_alpha
-
-    for idx in range(len(list(net._modules.values()))):
-        if isinstance(list(net._modules.values())[idx], snn.Lapicque):
-            is_lapicque = True
-        if isinstance(list(net._modules.values())[idx], snn.Synaptic):
-            is_synaptic = True
-        if isinstance(list(net._modules.values())[idx], snn.Leaky):
-            is_leaky = True
-        if isinstance(list(net._modules.values())[idx], snn.Stein):
-            is_stein = True
-        if isinstance(list(net._modules.values())[idx], snn.Alpha):
-            is_alpha = True
-
-
-def _layer_reset():
-    """Reset hidden parameters to zero and detach them from the current computation graph."""
-
-    if is_lapicque:
-        snn.Lapicque.zeros_hidden()  # reset hidden state to 0's
-        snn.Lapicque.detach_hidden()
-    if is_synaptic:
-        snn.Synaptic.zeros_hidden()  # reset hidden state to 0's
-        snn.Synaptic.detach_hidden()
-    if is_leaky:
-        snn.Leaky.zeros_hidden()  # reset hidden state to 0's
-        snn.Leaky.detach_hidden()
-    if is_stein:
-        snn.Stein.zeros_hidden()  # reset hidden state to 0's
-        snn.Stein.detach_hidden()
-    if is_alpha:
-        snn.Alpha.zeros_hidden()  # reset hidden state to 0's
-        snn.Alpha.detach_hidden()
