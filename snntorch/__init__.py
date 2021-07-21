@@ -206,7 +206,6 @@ def _SpikeTorchConv(*args, input_):
     ):  # if only one hidden state, make it iterable
         args = (args,)
     for arg in args:
-        print(arg)
         device = arg.device_flag
         arg = torch.Tensor(arg)
         arg = (
