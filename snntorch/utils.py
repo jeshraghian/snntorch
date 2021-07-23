@@ -130,7 +130,7 @@ def valid_split(ds_train, ds_val, split, seed=0):
     return ds_train, ds_val
 
 
-def layer_init(net):
+def reset(net):
     """Check for the types of LIF neurons contained in net.
     Reset their hidden parameters to zero and detach them
     from the current computation graph."""
@@ -186,10 +186,26 @@ def _layer_reset():
     if is_leaky:
         snn.Leaky.reset_hidden()  # reset hidden state to 0's
         snn.Leaky.detach_hidden()
-        # snn.Leaky.reset_hidden()  # test to go to SpikeTensor
     if is_stein:
         snn.Stein.reset_hidden()  # reset hidden state to 0's
         snn.Stein.detach_hidden()
     if is_alpha:
         snn.Alpha.reset_hidden()  # reset hidden state to 0's
         snn.Alpha.detach_hidden()
+
+
+def _final_layer_check(net):
+    """Check class of final layer and return the number of outputs."""
+
+    if isinstance(list(net._modules.values())[-1], snn.Lapicque):
+        return 2
+    if isinstance(list(net._modules.values())[-1], snn.Synaptic):
+        return 3
+    if isinstance(list(net._modules.values())[-1], snn.Leaky):
+        return 2
+    if isinstance(list(net._modules.values())[-1], snn.Stein):
+        return 3
+    if isinstance(list(net._modules.values())[-1], snn.Alpha):
+        return 4
+    else:  # if not from snn, assume from nn with 1 return
+        return 1

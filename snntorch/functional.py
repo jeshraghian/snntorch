@@ -6,117 +6,172 @@ import numpy as np
 dtype = torch.float
 
 
-def ce_rate_loss(spk_out, targets):
+class LossFunctions:
+    def _prediction_check(self, spk_out):
+        device = "cpu"
+        if spk_out.is_cuda:
+            device = "cuda"
+
+        num_steps = spk_out.size(0)
+        num_outputs = spk_out.size(-1)
+
+        return device, num_steps, num_outputs
+
+    def _population_code(spk_out, num_classes, num_outputs):
+        """Count up spikes sequentially from output classes."""
+        if not num_classes:
+            raise Exception(
+                "``num_classes`` must be specified if ``population_code=True``."
+            )
+        if num_outputs % num_classes:
+            raise Exception(
+                f"``num_outputs {num_outputs} must be a factor of num_classes {num_classes}."
+            )
+        device = "cpu"
+        if spk_out.is_cuda:
+            device = "cuda"
+        pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(device)
+        for idx in range(num_classes):
+            pop_code[:, idx] = (
+                spk_out[
+                    :,
+                    :,
+                    int(num_outputs * idx / num_classes) : int(
+                        num_outputs * (idx + 1) / num_classes
+                    ),
+                ]
+                .sum(-1)
+                .sum(0)
+            )
+        return pop_code
+
+
+class ce_rate_loss(LossFunctions):
     """Cross Entropy Spike Rate Loss.
-    The spikes at each time step are sequentially passed through the Cross Entropy Loss function.
+    When called, the spikes at each time step are sequentially passed through the Cross Entropy Loss function.
     This criterion combines log_softmax and NLLLoss in a single function.
     The losses are accumulated over time steps to give the final loss.
     The Cross Entropy Loss encourages the correct class to fire at all time steps, and aims to suppress incorrect classes from firing.
 
     The Cross Entropy Rate Loss applies the Cross Entropy function at every time step. In contrast, the Cross Entropy Count Loss accumulates spikes first, and applies Cross Entropy Loss only once.
 
-    :param spk_out: Output spikes of shape [num_steps x batch_size x num_classes]
-    :type spk_out: torch.Tensor
 
-    :param targets: Target tensor (without one-hot-encoding) of shape [batch_size]
-    :type targets: torch.Tensor
+    Example::
 
-    :return: cross entropy rate loss
-    :rtype: torch.Tensor
+        import snntorch.functional as SF
+
+        loss_fn = SF.ce_rate_loss()
+        loss = loss_fn(outputs, targets)
+
     """
 
-    device, num_steps, _ = _prediction_check(spk_out)
-    log_softmax_fn = nn.LogSoftmax(dim=-1)
-    loss_fn = nn.NLLLoss()
+    def __init__(self):
+        self.__name__ = "ce_rate_loss"
 
-    log_p_y = log_softmax_fn(spk_out)
-    loss = torch.zeros((1), dtype=dtype, device=device)
+    def __call__(self, spk_out, targets):
+        device, num_steps, _ = self._prediction_check(spk_out)
+        log_softmax_fn = nn.LogSoftmax(dim=-1)
+        loss_fn = nn.NLLLoss()
 
-    for step in range(num_steps):
-        loss += loss_fn(log_p_y[step], targets)
+        log_p_y = log_softmax_fn(spk_out)
+        loss = torch.zeros((1), dtype=dtype, device=device)
 
-    return loss / num_steps
+        for step in range(num_steps):
+            loss += loss_fn(log_p_y[step], targets)
+
+        return loss / num_steps
 
 
-def ce_count_loss(spk_out, targets, population_code=False, num_classes=False):
+class ce_count_loss(LossFunctions):
     """Cross Entropy Spike Count Loss.
+    When called, pass the output spikes of shape [num_steps x batch_size x num_outputs] and the target tensor of labels.
+    The membrane potential and target are then applied to a Mean Square Error Loss Function.
+
     The spikes at each time step are accumulated and then passed through the Cross Entropy Loss function.
     This criterion combines log_softmax and NLLLoss in a single function.
     The Cross Entropy Loss encourages the correct class to fire at all time steps, and aims to suppress incorrect classes from firing.
 
     The Cross Entropy Count Loss accumulates spikes first, and applies Cross Entropy Loss only once. In contrast, the Cross Entropy Rate Loss applies the Cross Entropy function at every time step.
 
-    :param spk_out: Output spikes of shape [num_steps x batch_size x num_outputs]
-    :type spk_out: torch.Tensor
+    Example::
 
-    :param targets: Target tensor (without one-hot-encoding) of shape [batch_size]
-    :type targets: torch.Tensor
+        import snntorch.functional as SF
 
-    :param population_code: Enables the use of multiple neurons to represent a single class, defaults to ``False``
-    :type population_code: bool, optional
+        # if not using population codes (i.e., more output neurons than there are classes)
+        loss_fn = ce_count_loss()
+        loss = loss_fn(spk_out, targets)
 
-    :param num_classes: Must specify the number of output classes if ``population_code=True``, and must be a factor of the number of output neurons.
-    :type num_classes: int, optional
-
-    :return: cross entropy count loss
-    :rtype: torch.Tensor
+        # if using population codes; e.g., 200 output neurons, 10 output classes --> 20 output neurons p/class
+        loss_fn = ce_count_loss(population_code=True, num_classes=10)
+        loss = loss_fn(spk_out, targets)
     """
 
-    log_softmax_fn = nn.LogSoftmax(dim=-1)
-    loss_fn = nn.NLLLoss()
+    def __init__(self, population_code=False, num_classes=False):
+        self.population_code = population_code
+        self.num_classes = num_classes
+        self.__name__ = "ce_count_loss"
 
-    if population_code:
-        _, _, num_outputs = _prediction_check(spk_out)
-        spike_count = _population_code(spk_out, num_classes, num_outputs)
-    else:
-        spike_count = torch.sum(spk_out, 0)  # B x C
-    log_p_y = log_softmax_fn(spike_count)
+    def __call__(self, spk_out, targets):
+        log_softmax_fn = nn.LogSoftmax(dim=-1)
+        loss_fn = nn.NLLLoss()
 
-    loss = loss_fn(log_p_y, targets)
+        if self.population_code:
+            _, _, num_outputs = self._prediction_check(spk_out)
+            spike_count = _population_code(spk_out, self.num_classes, num_outputs)
+        else:
+            spike_count = torch.sum(spk_out, 0)  # B x C
+        log_p_y = log_softmax_fn(spike_count)
 
-    return loss
+        loss = loss_fn(log_p_y, targets)
+
+        return loss
 
 
-def ce_max_membrane_loss(mem_out, targets):
+class ce_max_membrane_loss(LossFunctions):
     """Cross Entropy Max Membrane Loss.
-    The maximum membrane potential value for each output neuron is sampled and passed through the Cross Entropy Loss Function.
+    When called, the maximum membrane potential value for each output neuron is sampled and passed through the Cross Entropy Loss Function.
     This criterion combines log_softmax and NLLLoss in a single function.
     The Cross Entropy Loss encourages the maximum membrane potential of the correct class to increase, while suppressing the maximum membrane potential of incorrect classes.
     This function is adopted from SpyTorch by Friedemann Zenke.
 
-    :param mem_out: Output membrane potential of shape [num_steps x batch_size x num_outputs]
-    :type mem_out: torch.Tensor
+    Example::
 
-    :param targets: Target tensor (without one-hot-encoding) of shape [batch_size]
-    :type targets: torch.Tensor
+        import snntorch.functional as SF
 
-    :return: cross entropy max membrane loss
-    :rtype: torch.Tensor
+        loss_fn = SF.ce_max_membrane_loss()
+        loss = loss_fn(outputs, targets)
+
     """
 
-    log_softmax_fn = nn.LogSoftmax(dim=-1)
-    loss_fn = nn.NLLLoss()
+    def __init__(self):
+        self.__name__ = "ce_max_membrane_loss"
 
-    max_mem_out, _ = torch.max(mem_out, 0)
-    log_p_y = log_softmax_fn(max_mem_out)
+    def __call__(self, mem_out, targets):
+        log_softmax_fn = nn.LogSoftmax(dim=-1)
+        loss_fn = nn.NLLLoss()
 
-    loss = loss_fn(log_p_y, targets)
+        max_mem_out, _ = torch.max(mem_out, 0)
+        log_p_y = log_softmax_fn(max_mem_out)
 
-    return loss
+        loss = loss_fn(log_p_y, targets)
+
+        return loss
 
 
-def mse_count_loss(spk_out, targets, correct_rate=1, incorrect_rate=0):
+class mse_count_loss(LossFunctions):
     """Mean Square Error Spike Count Loss.
-    The total spike count is accumulated over time for each neuron.
+    When called, the total spike count is accumulated over time for each neuron.
     The target spike count for correct classes is set to (num_steps * correct_rate), and for incorrect classes (num_steps * incorrect_rate).
     The spike counts and target spike counts are then applied to a Mean Square Error Loss Function.
     This function is adopted from SLAYER by Sumit Bam Shrestha and Garrick Orchard.
 
-    :param spk_out: Output spikes of shape [num_steps x batch_size x num_outputs]
-    :type spk_out: torch.Tensor
+    Example::
 
-    :param targets: Target tensor (without one-hot-encoding) of shape [batch_size]
-    :type targets: torch.Tensor
+        import snntorch.functional as SF
+
+        loss_fn = SF.mse_count_loss(correct_rate=0.75, incorrect_rate=0.25)
+        loss = loss_fn(outputs, targets)
+
 
     :param correct_rate: Firing frequency of correct class as a ratio, e.g., ``1`` promotes firing at every step; ``0.5`` promotes firing at 50% of steps, ``0`` discourages any firing, defaults to ``1``
     :type correct_rate: float, optional
@@ -124,58 +179,103 @@ def mse_count_loss(spk_out, targets, correct_rate=1, incorrect_rate=0):
     :param incorrect_rate: Firing frequency of incorrect class(es) as a ratio, e.g., ``1`` promotes firing at every step; ``0.5`` promotes firing at 50% of steps, ``0`` discourages any firing, defaults to ``1``
     :type incorrect_rate: float, optional
 
-    :return: mean square error spike count loss
-    :rtype: torch.Tensor
     """
 
-    _, num_steps, num_outputs = _prediction_check(spk_out)
-    loss_fn = nn.MSELoss()
+    def __init__(
+        self, correct_rate=1, incorrect_rate=0, population_code=False, num_classes=False
+    ):
+        self.correct_rate = correct_rate
+        self.incorrect_rate = incorrect_rate
+        self.population_code = population_code
+        self.num_classes = num_classes
+        self.__name__ = "mse_count_loss"
 
-    # generate ideal spike-count in C sized vector
-    on_target = int(num_steps * correct_rate)
-    off_target = int(num_steps * incorrect_rate)
-    spike_count_target = spikegen.targets_convert(
-        targets, num_outputs=num_outputs, on_target=on_target, off_target=off_target
-    )
+    def __call__(self, spk_out, targets):
+        _, num_steps, num_outputs = self._prediction_check(spk_out)
+        loss_fn = nn.MSELoss()
 
-    spike_count = torch.sum(spk_out, 0)  # B x C
+        if not self.population_code:
 
-    loss = loss_fn(spike_count, spike_count_target)
+            # generate ideal spike-count in C sized vector
+            on_target = int(num_steps * self.correct_rate)
+            off_target = int(num_steps * self.incorrect_rate)
+            spike_count_target = spikegen.targets_convert(
+                targets,
+                num_classes=num_outputs,
+                on_target=on_target,
+                off_target=off_target,
+            )
 
-    return loss / num_steps
+            spike_count = torch.sum(spk_out, 0)  # B x C
+
+        else:
+            on_target = int(
+                num_steps * self.correct_rate * (num_outputs / self.num_classes)
+            )
+            off_target = int(
+                num_steps * self.incorrect_rate * (num_outputs / self.num_classes)
+            )
+            spike_count_target = spikegen.targets_convert(
+                targets,
+                num_classes=self.num_classes,
+                on_target=on_target,
+                off_target=off_target,
+            )
+            spike_count = _population_code(spk_out, self.num_classes, num_outputs)
+
+        loss = loss_fn(spike_count, spike_count_target)
+        return loss / num_steps
 
 
-def mse_membrane_loss(mem_out, targets, time_var_targets=False):
+class mse_membrane_loss(LossFunctions):
     """Mean Square Error Membrane Loss.
-    A target membrane potential is specified for every time step.
+    When called, pass the output membrane of shape [num_steps x batch_size x num_outputs] and the target tensor of membrane potential.
     The membrane potential and target are then applied to a Mean Square Error Loss Function.
     This function is adopted from Spike-Op by Jason K. Eshraghian.
 
-    :param mem_out: Output membrane of shape [num_steps x batch_size x num_outputs]
-    :type mem_out: torch.Tensor
+    Example::
 
-    :param targets: Target tensor of membrane potential. If ``time_var_targets=False``, targets should be of shape [batch_size]. If it is set to ``True``, targets should be of shape [num_steps x batch_size].
-    :type targets: torch.Tensor
+        import snntorch.functional as SF
+
+        # if targets are the same at each time-step
+        loss_fn = mse_membrane_loss(time_var_targets=False)
+        loss = loss_fn(outputs, targets)
+
+        # if targets are time-varying
+        loss_fn = mse_membrane_loss(time_var_targets=True)
+        loss = loss_fn(outputs, targets)
 
     :param time_var_targets: Specifies whether the targets are time-varying, defaults to ``False``
     :type correct_rate: bool, optional
 
-    :return: mean square error membrane loss
-    :rtype: torch.Tensor
     """
 
-    device, num_steps, _ = _prediction_check(mem_out)
-    loss = torch.zeros((1), dtype=dtype, device=device)
-    loss_fn = nn.MSELoss()
+    #  to-do: add **kwargs to modify other keyword args in spikegen.targets_convert
+    def __init__(self, time_var_targets=False, on_target=1, off_target=0):
+        self.time_var_targets = time_var_targets
+        self.on_target = on_target
+        self.off_target = off_target
+        self.__name__ = "mse_membrane_loss"
 
-    if time_var_targets:
-        for step in range(num_steps):
-            loss += loss_fn(mem_out[step], targets[step])
-    else:
-        for step in range(num_steps):
-            loss += loss_fn(mem_out[step], targets)
+    def __call__(self, mem_out, targets):
+        device, num_steps, num_outputs = self._prediction_check(mem_out)
+        targets = spikegen.targets_convert(
+            targets,
+            num_classes=num_outputs,
+            on_target=self.on_target,
+            off_target=self.off_target,
+        )
+        loss = torch.zeros((1), dtype=dtype, device=device)
+        loss_fn = nn.MSELoss()
 
-    return loss / num_steps
+        if self.time_var_targets:
+            for step in range(num_steps):
+                loss += loss_fn(mem_out[step], targets[step])
+        else:
+            for step in range(num_steps):
+                loss += loss_fn(mem_out[step], targets)
+
+        return loss / num_steps
 
 
 # assumes that spikes already exist
@@ -231,14 +331,21 @@ def accuracy_rate(spk_out, targets, population_code=False, num_classes=False):
     return accuracy
 
 
-def l1_sparsity(spk_out, Lambda=1e-5):
-    """L1 regularization using total spike count as the penalty term."""
-    return Lambda * torch.sum(spk_out)
+class l1_rate_sparsity:
+    """L1 regularization using total spike count as the penalty term.
+    Lambda is a scalar factor for regularization."""
+
+    def __init__(self, Lambda=1e-5):
+        self.Lambda = Lambda
+        self.__name__ = "l1_rate_sparsity"
+
+    def __call__(self, spk_out):
+        return self.Lambda * torch.sum(spk_out)
 
 
-# def l2_sparsity(mem_out, Lambda=1e-6):
-#     """L2 regularization using accumulated membrane potential as the penalty term."""
-#     return Lambda * (torch.sum(mem_out)**2)
+# # def l2_sparsity(mem_out, Lambda=1e-6):
+# #     """L2 regularization using accumulated membrane potential as the penalty term."""
+# #     return Lambda * (torch.sum(mem_out)**2)
 
 
 def _prediction_check(spk_out):

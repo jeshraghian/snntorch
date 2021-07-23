@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from snntorch import utils
 
 
 # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -17,7 +18,6 @@ class LIF(nn.Module):
     def __init__(
         self,
         beta,
-        num_inputs=False,
         threshold=1.0,
         spike_grad=None,
         init_hidden=False,
@@ -29,7 +29,6 @@ class LIF(nn.Module):
         LIF.instances.append(self)
 
         self.beta = beta
-        self.num_inputs = num_inputs
         self.threshold = threshold
         self.init_hidden = init_hidden
         self.inhibition = inhibition
@@ -75,54 +74,51 @@ class LIF(nn.Module):
         cls.instances = []
 
     @staticmethod
-    def init_leaky(*args, device="cpu"):
+    def init_leaky():
         """
-        Used to initialize mem.
-        *args are the input feature dimensions (without time or batch size).
-        E.g., Input feature of size=1x28x28 would require ``init_leaky(1, 28, 28)``.
+        Used to initialize mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
         """
-        mem = _SpikeTensor(*args, batch_flag=False, device_flag=device)
+        # print(f"init_leaky executing")
+        mem = _SpikeTensor(init_flag=False)
 
         return mem
 
     @staticmethod
-    def init_synaptic(*args, device="cpu"):
-        """Used to initialize syn and mem.
-        *args are the input feature dimensions (without time or batch size).
-        E.g., Input feature of size=1x28x28 would require ``init_leaky(1, 28, 28)``.
+    def init_synaptic():
+        """Used to initialize syn and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
         """
-        syn = _SpikeTensor(*args, batch_flag=False, device_flag=device)
-        mem = _SpikeTensor(*args, batch_flag=False, device_flag=device)
+
+        syn = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
 
         return syn, mem
 
     @staticmethod
-    def init_stein(*args, device="cpu"):
-        """Used to initialize syn and mem.
-        *args are the input feature dimensions (without time or batch size).
-        E.g., Input feature of size=1x28x28 would require ``init_stein(1, 28, 28)``.
+    def init_stein():
+        """Used to initialize syn and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
         """
-
-        return LIF.init_synaptic(*args, device=device)
+        return LIF.init_synaptic()
 
     @staticmethod
-    def init_lapicque(*args, device="cpu"):
+    def init_lapicque():
         """
-        Used to initialize mem.
-        *args are the input feature dimensions (without time or batch size).
-        E.g., Input feature of size=1x28x28 would require ``init_lapicque(1, 28, 28)``.
+        Used to initialize mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
         """
 
-        return LIF.init_leaky(*args, device=device)
+        return LIF.init_leaky()
 
     @staticmethod
-    def init_alpha(*args, device="cpu"):
-        """Used to initialize syn_exc, syn_inh and mem.
-        *args are the input feature dimensions (without time or batch size).
-        E.g., Input feature of size=1x28x28 would require ``init_alpha(1, 28, 28)``."""
-        syn_exc = _SpikeTensor(*args, batch_flag=False, device_flag=device)
-        syn_inh = _SpikeTensor(*args, batch_flag=False, device_flag=device)
-        mem = _SpikeTensor(*args, batch_flag=False, device_flag=device)
+    def init_alpha():
+        """Used to initialize syn_exc, syn_inh and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        """
+        syn_exc = _SpikeTensor(init_flag=False)
+        syn_inh = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
 
         return syn_exc, syn_inh, mem
 
@@ -177,52 +173,38 @@ class LIF(nn.Module):
 
 class _SpikeTensor(torch.Tensor):
     """Inherits from torch.Tensor with additional attributes.
-    batch_flag and device_flag are set at the time of initialization.
+    ``init_flag`` is set at the time of initialization.
     When called in the forward function of any neuron, they are parsed and replaced with a torch.Tensor variable.
-    If batch_flag is set to 'True', the tensor will be repeated along the 0th dimension.
     """
 
     @staticmethod
-    def __new__(cls, *args, batch_flag=False, device_flag="cpu", **kwargs):
+    def __new__(cls, *args, init_flag=False, **kwargs):
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(
         self,
         *args,
-        batch_flag=True,
-        device_flag="cpu",
+        init_flag=True,
     ):
         # super().__init__() # optional
-        self.batch_flag = batch_flag
-        self.device_flag = device_flag
+        self.init_flag = init_flag
 
 
-def _SpikeTorchConv(*args, input_, device_flag=False):
-    """Convert SpikeTensor to torch.Tensor of zeros extended in the batch dimension.
-    E.g., (1, 28, 28) of type _SpikeTensor--> (128, 1, 28, 28) of type torch.Tensor.
-    `device_flag` must be specified in the `init_*` function to either cpu or cuda."""
+def _SpikeTorchConv(*args, input_):
+    """Convert SpikeTensor to torch.Tensor of the same size as ``input_``."""
 
     states = []
-    if len(input_.size()) == 0:
-        _batch_size = 1  # assume batch_size=1 if 1D input
-    else:
-        _batch_size = input_.size(0)
+    # if len(input_.size()) == 0:
+    #     _batch_size = 1  # assume batch_size=1 if 1D input
+    # else:
+    #     _batch_size = input_.size(0)
     if (
         len(args) == 1 and type(args) is not tuple
     ):  # if only one hidden state, make it iterable
         args = (args,)
     for arg in args:
-        device = arg.device_flag
-        if device_flag and input_.is_cuda:
-            device = "cuda"
-        arg = torch.Tensor(arg)
-        arg = (
-            torch.zeros_like(arg, dtype=dtype, device=device)
-            .unsqueeze(0)
-            .repeat(
-                tuple([_batch_size] + torch.ones(len(arg.size()), dtype=int).tolist())
-            )
-        )
+        arg = torch.Tensor(arg)  # wash away the SpikeTensor class
+        arg = torch.zeros_like(input_)
         states.append(arg)
     if len(states) == 1:  # otherwise, list isn't unpacked
         return states[0]
@@ -289,7 +271,6 @@ class Leaky(LIF):
     def __init__(
         self,
         beta,
-        num_inputs=False,
         threshold=1.0,
         spike_grad=None,
         init_hidden=False,
@@ -299,7 +280,6 @@ class Leaky(LIF):
     ):
         super(Leaky, self).__init__(
             beta,
-            num_inputs,
             threshold,
             spike_grad,
             init_hidden,
@@ -309,25 +289,14 @@ class Leaky(LIF):
         )
 
         if self.init_hidden:
-            if not self.num_inputs:
-                raise ValueError(
-                    "`num_inputs` must be specified if `init_hidden=True`."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.mem = self.init_leaky(
-                    *(self.num_inputs)
-                )  # e.g., if num_inputs are conv/images/structured
-            else:
-                self.mem = self.init_leaky(self.num_inputs)
+            self.mem = self.init_leaky()
 
-    def forward(
-        self, input_, mem=False
-    ):  # if init_hidden, mem=False; use self.mem instead
+    def forward(self, input_, mem=False):
 
-        if hasattr(mem, "batch_flag"):  # only triggered on first-pass
+        if hasattr(mem, "init_flag"):  # only triggered on first-pass
             mem = _SpikeTorchConv(mem, input_=input_)
-        elif not mem and hasattr(self.mem, "batch_flag"):  # init_hidden case
-            self.mem = _SpikeTorchConv(self.mem, input_=input_, device_flag=True)
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
         if not self.init_hidden:
             if self.inhibition:
@@ -379,12 +348,9 @@ class Leaky(LIF):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables.
         Assumes hidden states have a batch dimension already."""
-
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Leaky):
-                # assume self.mem has a batch attached to it
-                args = tuple(cls.instances[layer].mem[0].size())
-                cls.instances[layer].mem = _SpikeTensor(*args, batch_flag=False)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
 class Synaptic(LIF):
@@ -455,7 +421,6 @@ class Synaptic(LIF):
         alpha,
         beta,
         threshold=1.0,
-        num_inputs=False,
         spike_grad=None,
         init_hidden=False,
         inhibition=False,
@@ -464,7 +429,6 @@ class Synaptic(LIF):
     ):
         super(Synaptic, self).__init__(
             beta,
-            num_inputs,
             threshold,
             spike_grad,
             init_hidden,
@@ -476,27 +440,16 @@ class Synaptic(LIF):
         self.alpha = alpha
 
         if self.init_hidden:
-            if not self.num_inputs:
-                raise ValueError(
-                    "`num_inputs` must be specified if `init_hidden=True`."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.syn, self.mem = self.init_synaptic(
-                    *(self.num_inputs)
-                )  # e.g., if num_inputs are conv/images/structured
-            else:
-                self.syn, self.mem = self.init_synaptic(self.num_inputs)
+            self.syn, self.mem = self.init_synaptic()
 
     def forward(self, input_, syn=False, mem=False):
 
-        if hasattr(syn, "batch_flag") or hasattr(
-            mem, "batch_flag"
+        if hasattr(syn, "init_flag") or hasattr(
+            mem, "init_flag"
         ):  # only triggered on first-pass
             syn, mem = _SpikeTorchConv(syn, mem, input_=input_)
-        elif not mem and hasattr(self.mem, "batch_flag"):  # init_hidden case
-            self.syn, self.mem = _SpikeTorchConv(
-                self.syn, self.mem, input_=input_, device_flag=True
-            )
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            self.syn, self.mem = _SpikeTorchConv(self.syn, self.mem, input_=input_)
 
         if not self.init_hidden:
             if self.inhibition:
@@ -554,12 +507,8 @@ class Synaptic(LIF):
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Synaptic):
-
-                args = tuple(cls.instances[layer].mem[0].size())
-                cls.instances[layer].syn = _SpikeTensor(*args, batch_flag=False)
-
-                args = tuple(cls.instances[layer].mem[0].size())
-                cls.instances[layer].mem = _SpikeTensor(*args, batch_flag=False)
+                cls.instances[layer].syn = _SpikeTensor(init_flag=False)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
 class Lapicque(LIF):
@@ -647,9 +596,7 @@ class Lapicque(LIF):
         C=False,
         time_step=1,
         threshold=1.0,
-        num_inputs=False,
         spike_grad=None,
-        batch_size=False,
         init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
@@ -657,7 +604,6 @@ class Lapicque(LIF):
     ):
         super(Lapicque, self).__init__(
             beta,
-            num_inputs,
             threshold,
             spike_grad,
             init_hidden,
@@ -694,23 +640,14 @@ class Lapicque(LIF):
             self.R = self.time_step / (self.C * torch.log(torch.tensor(1 / self.beta)))
 
         if self.init_hidden:
-            if not self.num_inputs:
-                raise ValueError(
-                    "`num_inputs` must be specified if `init_hidden=True`."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.mem = self.init_lapicque(
-                    *(self.num_inputs)
-                )  # e.g., if num_inputs are conv/images/structured
-            else:
-                self.mem = self.init_lapicque(self.num_inputs)
+            self.mem = self.init_lapicque()
 
     def forward(self, input_, mem=False):
 
-        if hasattr(mem, "batch_flag"):  # only triggered on first-pass
+        if hasattr(mem, "init_flag"):  # only triggered on first-pass
             mem = _SpikeTorchConv(mem, input_=input_)
-        elif not mem and hasattr(self.mem, "batch_flag"):  # init_hidden case
-            self.mem = _SpikeTorchConv(self.mem, input_=input_, device_flag=True)
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
         if not self.init_hidden:
             if self.inhibition:
@@ -788,8 +725,7 @@ class Lapicque(LIF):
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Lapicque):
-                args = tuple(cls.instances[layer].mem[0].size())
-                cls.instances[layer].mem = _SpikeTensor(*args, batch_flag=False)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
 class Alpha(LIF):
@@ -862,9 +798,7 @@ class Alpha(LIF):
         alpha,
         beta,
         threshold=1.0,
-        num_inputs=False,
         spike_grad=None,
-        batch_size=False,
         init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
@@ -872,7 +806,6 @@ class Alpha(LIF):
     ):
         super(Alpha, self).__init__(
             beta,
-            num_inputs,
             threshold,
             spike_grad,
             init_hidden,
@@ -884,16 +817,7 @@ class Alpha(LIF):
         self.alpha = alpha
 
         if self.init_hidden:
-            if not self.num_inputs:
-                raise ValueError(
-                    "`num_inputs` must be specified if `init_hidden=True`."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.syn_exc, self.syn_inh, self.mem = self.init_alpha(
-                    *(self.num_inputs)
-                )  # e.g., if num_inputs are conv/images/structured
-            else:
-                self.syn_exc, self.syn_inh, self.mem = self.init_alpha(self.num_inputs)
+            self.syn_exc, self.syn_inh, self.mem = self.init_alpha()
 
         if self.alpha <= self.beta:
             raise ValueError("alpha must be greater than beta.")
@@ -908,21 +832,19 @@ class Alpha(LIF):
 
         self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
 
-    def forward(
-        self, input_, syn_exc=False, syn_inh=False, mem=False
-    ):  # if init_hidden, mem=False; use self.mem instead
+    def forward(self, input_, syn_exc=False, syn_inh=False, mem=False):
 
         if (
-            hasattr(syn_exc, "batch_flag")
-            or hasattr(syn_inh, "batch_flag")
-            or hasattr(mem, "batch_flag")
+            hasattr(syn_exc, "init_flag")
+            or hasattr(syn_inh, "init_flag")
+            or hasattr(mem, "init_flag")
         ):  # only triggered on first-pass
             syn_exc, syn_inh, mem = _SpikeTorchConv(
-                syn_exc, syn_inh, mem, input_=input_, device_flag=True
+                syn_exc, syn_inh, mem, input_=input_
             )
-        elif not mem and hasattr(self.mem, "batch_flag"):  # init_hidden case
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
             self.syn_exc, self.syn_inh, self.mem = _SpikeTorchConv(
-                self.syn_exc, self.syn_inh, self.mem, input_=input_, device_flag=True
+                self.syn_exc, self.syn_inh, self.mem, input_=input_
             )
 
         # if hidden states are passed externally
@@ -1041,15 +963,9 @@ class Alpha(LIF):
         Intended for use where hidden state variables are instance variables."""
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Alpha):
-
-                args = tuple(cls.instances[layer].syn_exc[0].size())
-                cls.instances[layer].syn_exc = _SpikeTensor(*args, batch_flag=False)
-
-                args = tuple(cls.instances[layer].syn_inh[0].size())
-                cls.instances[layer].syn_inh = _SpikeTensor(*args, batch_flag=False)
-
-                args = tuple(cls.instances[layer].mem[0].size())
-                cls.instances[layer].mem = _SpikeTensor(*args, batch_flag=False)
+                cls.instances[layer].syn_exc = _SpikeTensor(init_flag=False)
+                cls.instances[layer].syn_inh = _SpikeTensor(init_flag=False)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
 ####### Deprecated / Renamed
@@ -1122,7 +1038,6 @@ class Stein(LIF):  # see: Synaptic(LIF)
         alpha,
         beta,
         threshold=1.0,
-        num_inputs=False,
         spike_grad=None,
         init_hidden=False,
         inhibition=False,
@@ -1131,7 +1046,6 @@ class Stein(LIF):  # see: Synaptic(LIF)
     ):
         super(Stein, self).__init__(
             beta,
-            num_inputs,
             threshold,
             spike_grad,
             init_hidden,
@@ -1147,23 +1061,14 @@ class Stein(LIF):  # see: Synaptic(LIF)
         self.alpha = alpha
 
         if self.init_hidden:
-            if not self.num_inputs:
-                raise ValueError(
-                    "`num_inputs` must be specified if `init_hidden=True`."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.syn, self.mem = self.init_stein(
-                    *(self.num_inputs)
-                )  # e.g., if num_inputs are conv/images/structured
-            else:
-                self.syn, self.mem = self.init_stein(self.num_inputs)
+            self.syn, self.mem = self.init_stein()
 
     def forward(self, input_, syn, mem=False):
 
-        if hasattr(syn, "batch_flag") or hasattr(
-            mem, "batch_flag"
+        if hasattr(syn, "init_flag") or hasattr(
+            mem, "init_flag"
         ):  # only triggered on first-pass
-            syn, mem = _SpikeTorchConv(syn, mem, input_=input_, device_flag=True)
+            syn, mem = _SpikeTorchConv(syn, mem, input_=input_)
 
         if not self.init_hidden:
             if self.inhibition:
@@ -1211,7 +1116,6 @@ class Stein(LIF):  # see: Synaptic(LIF)
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Stein):
-                # cls.instances[layer].spk.detach_()
                 cls.instances[layer].syn.detach_()
                 cls.instances[layer].mem.detach_()
 
@@ -1222,9 +1126,5 @@ class Stein(LIF):  # see: Synaptic(LIF)
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Stein):
-
-                args = tuple(cls.instances[layer].syn[0].size())
-                cls.instances[layer].syn = _SpikeTensor(*args, batch_flag=False)
-
-                args = tuple(cls.instances[layer].mem[0].size())
-                cls.instances[layer].mem = _SpikeTensor(*args, batch_flag=False)
+                cls.instances[layer].syn = _SpikeTensor(init_flag=False)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
