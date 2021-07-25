@@ -12,19 +12,51 @@ def TBPTT(
     num_steps,  # must be specified in case data in is static
     optimizer,
     criterion,
-    time_var,  # add to doc_strings - specifies if data is time_varying
-    regularization=False,  # add to doc_strings
-    device="cpu",  # add to docstrings
+    time_var,  # specifies if data is time_varying
+    regularization=False,
+    device="cpu",
     K=1,
 ):
     """Truncated backpropagation through time. LIF layers require parameter ``init_hidden = True``.
     Forward and backward passes are performed at every time step. Weight updates are performed every ``K`` time steps.
 
-    :param net: Network model
-    :type net: nn.Module
+    Example::
+
+        import snntorch as snn
+        import snntorch.functional as SF
+        from snntorch import utils
+        from snntorch import backprop
+        import torch
+        import torch.nn as nn
+
+        lif1 = snn.Leaky(beta=0.9, init_hidden=True)
+        lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
+
+        net = nn.Sequential(nn.Flatten(),
+                            nn.Linear(784,500),
+                            lif1,
+                            nn.Linear(500, 10),
+                            lif2).to(device)
+
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        num_steps = 100
+
+        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
+        loss_fn = SF.mse_count_loss()
+        reg_fn = SF.l1_rate_sparsity()
+
+        # train_loader is of type torch.utils.data.DataLoader
+        # backprop is automatically applied every K=40 time steps
+        for epoch in range(5):
+            loss, spk, mem = backprop.TBPTT(net, train_loader, num_steps=num_steps,
+            optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device, K=40)
+
+
+    :param net: Network model (either wrapped in Sequential container or as a class)
+    :type net: torch.nn.modules.container.Sequential
 
     :param dataloader: DataLoader containing data and targets
-    :type dataloader: torch.DataLoader
+    :type dataloader: torch.utils.data.DataLoader
 
     :param num_steps: Number of time steps
     :type num_steps: int
@@ -199,7 +231,7 @@ def TBPTT(
                         loss += regularization(mem_rec_trunc)
 
                 loss_trunc += loss
-                loss_avg += loss / K
+                loss_avg += loss / (num_steps / K)
 
                 optimizer.zero_grad()
                 loss_trunc.backward()
@@ -269,116 +301,191 @@ def TBPTT(
 
 def BPTT(
     net,
-    data,
-    target,
-    num_steps,
-    batch_size,
+    dataloader,
+    num_steps,  # must be specified in case data in is static
     optimizer,
     criterion,
-    time_var,
-    return_spk=False,
-    return_mem=False,
+    time_var,  # add to doc_strings - specifies if data is time_varying
+    regularization=False,
+    device="cpu",
 ):
     """Backpropagation through time. LIF layers require parameter ``init_hidden = True``.
     A forward pass is applied for each time step while the loss accumulates. The backward pass and parameter update is only applied at the end of each time step sequence.
     BPTT is equivalent to TBPTT for the case where ``num_steps = K``.
-    :param net: Network model
-    :type net: nn.Module
-    :param data: Data tensor for a single batch
-    :type data: torch.Tensor
-    :param target: Target tensor for a single batch
-    :type target: torch.Tensor
+
+    Example::
+
+        import snntorch as snn
+        import snntorch.functional as SF
+        from snntorch import utils
+        from snntorch import backprop
+        import torch
+        import torch.nn as nn
+
+        lif1 = snn.Leaky(beta=0.9, init_hidden=True)
+        lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
+
+        net = nn.Sequential(nn.Flatten(),
+                            nn.Linear(784,500),
+                            lif1,
+                            nn.Linear(500, 10),
+                            lif2).to(device)
+
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        num_steps = 100
+
+        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
+        loss_fn = SF.mse_count_loss()
+        reg_fn = SF.l1_rate_sparsity()
+
+        # train_loader is of type torch.utils.data.DataLoader
+        # backprop is automatically applied every K=40 time steps
+        for epoch in range(5):
+            loss, spk, mem = backprop.BPTT(net, train_loader, num_steps=num_steps,
+            optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device)
+
+
+    :param net: Network model (either wrapped in Sequential container or as a class)
+    :type net: torch.nn.modules.container.Sequential
+
+    :param dataloader: DataLoader containing data and targets
+    :type dataloader: torch.utils.data.DataLoader
+
     :param num_steps: Number of time steps
     :type num_steps: int
-    :param batch_size: Number of samples in a single batch
-    :type batch_size: int
+
     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
     :type optimizer: torch.optim
-    :param criterion: Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
-    :type criterion: torch.nn.modules.loss
-    :param time_var: True if input data is time-varying [T x B x dims], defaults to ``True``
-    :type time_var: Bool, optional
-    :param return_spk: Option to return output spikes, defaults to ``False``
-    :type return_spk: Bool, optional
-    :param return_mem: Option to return output membrane potential traces, defaults to ``False``
-    :type return_mem: Bool, optional
-    :return: average loss for a single minibatch
+
+    :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
+    :type criterion: snn.functional.LossFunctions
+
+    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims].
+    :type time_var: Bool
+
+    :param regularization: Option to add a regularization term to the loss function
+    :type regularization: snn.functional regularization function, optional
+
+    :param device: Specify either "cuda" or "cpu", defaults to "cpu"
+    :type device: string, optional
+
+    :return: return average loss for one epoch
     :rtype: torch.Tensor
-    :return: optionally return output spikes over time
+
+    :return: return output spikes over time
     :rtype: torch.Tensor
-    :return: optionally return output membrane potential trace over time
+
+    :return: return output membrane potential trace over time
     :rtype: torch.Tensor
     """
+
     #  Net requires hidden instance variables rather than global instance variables for TBPTT
     return TBPTT(
         net,
-        data,
-        target,
+        dataloader,
         num_steps,
-        batch_size,
         optimizer,
         criterion,
         time_var,
-        return_spk,
-        return_mem,
+        regularization,
+        device,
         K=num_steps,
     )
 
 
 def RTRL(
     net,
-    data,
-    target,
-    num_steps,
-    batch_size,
+    dataloader,
+    num_steps,  # must be specified in case data in is static
     optimizer,
     criterion,
-    time_var,
-    return_spk=False,
-    return_mem=False,
+    time_var,  # specifies if data is time_varying
+    regularization=False,
+    device="cpu",
 ):
+
     """Real-time Recurrent Learning. LIF layers require parameter ``init_hidden = True``.
     A forward pass, backward pass and parameter update are applied at each time step.
     RTRL is equivalent to TBPTT for the case where ``K = 1``.
-    :param net: Network model
-    :type net: nn.Module
-    :param data: Data tensor for a single batch
-    :type data: torch.Tensor
-    :param target: Target tensor for a single batch
-    :type target: torch.Tensor
+
+    Example::
+
+        import snntorch as snn
+        import snntorch.functional as SF
+        from snntorch import utils
+        from snntorch import backprop
+        import torch
+        import torch.nn as nn
+
+        lif1 = snn.Leaky(beta=0.9, init_hidden=True)
+        lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
+
+        net = nn.Sequential(nn.Flatten(),
+                            nn.Linear(784,500),
+                            lif1,
+                            nn.Linear(500, 10),
+                            lif2).to(device)
+
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        num_steps = 100
+
+        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
+        loss_fn = SF.mse_count_loss()
+        reg_fn = SF.l1_rate_sparsity()
+
+        # train_loader is of type torch.utils.data.DataLoader
+        # backprop is automatically applied every K=40 time steps
+        for epoch in range(5):
+            loss, spk, mem = backprop.RTRL(net, train_loader, num_steps=num_steps,
+            optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device)
+
+
+    :param net: Network model (either wrapped in Sequential container or as a class)
+    :type net: torch.nn.modules.container.Sequential
+
+    :param dataloader: DataLoader containing data and targets
+    :type dataloader: torch.utils.data.DataLoader
+
     :param num_steps: Number of time steps
     :type num_steps: int
-    :param batch_size: Number of samples in a single batch
-    :type batch_size: int
+
     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
     :type optimizer: torch.optim
-    :param criterion: Loss criterion, e.g., torch.nn.modules.loss.CrossEntropyLoss
-    :type criterion: torch.nn.modules.loss
-    :param time_var_data: True if input data is time-varying [T x B x dims], defaults to ``True``
-    :type time_var_data: Bool, optional
-    :param return_spk: Option to return output spikes, defaults to ``False``
-    :type return_spk: Bool, optional
-    :param return_mem: Option to return output membrane potential traces, defaults to ``False``
-    :type return_mem: Bool, optional
-    :return: average loss for a single minibatch
+
+    :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
+    :type criterion: snn.functional.LossFunctions
+
+    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims].
+    :type time_var: Bool
+
+    :param regularization: Option to add a regularization term to the loss function
+    :type regularization: snn.functional regularization function, optional
+
+    :param device: Specify either "cuda" or "cpu", defaults to "cpu"
+    :type device: string, optional
+
+    :param K: Number of time steps to process per weight update, defaults to ``1``
+    :type K: int, optional
+
+    :return: return average loss for one epoch
     :rtype: torch.Tensor
-    :return: optionally return output spikes over time
+
+    :return: return output spikes over time
     :rtype: torch.Tensor
-    :return: optionally return output membrane potential trace over time
+
+    :return: return output membrane potential trace over time
     :rtype: torch.Tensor
     """
-    #  Net requires hidden instance variables rather than global instance variables for TBPTT
+
     return TBPTT(
         net,
-        data,
-        target,
+        dataloader,
         num_steps,
-        batch_size,
         optimizer,
         criterion,
         time_var,
-        return_spk,
-        return_mem,
+        regularization,
+        device,
         K=1,
     )
 
@@ -392,6 +499,8 @@ def _rec_trunc(
     spk_rec_trunc=False,
     mem_rec_trunc=False,
 ):
+    """Creates truncated mem and spk tensors where needed by criterion & regularization."""
+
     if regularization:
         if loss_spk and reg_spk:
             spk_rec_trunc.append(spk)

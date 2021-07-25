@@ -47,16 +47,15 @@ class LIF(nn.Module):
 
     def fire(self, mem):
         """Generates spike if mem > threshold.
-        Returns spk and reset."""
+        Returns spk."""
         mem_shift = mem - self.threshold
         spk = self.spike_grad(mem_shift)
-        reset = spk.clone().detach()
 
-        return spk, reset
+        return spk
 
     def fire_inhibition(self, batch_size, mem):
         """Generates spike if mem > threshold, only for the largest membrane. All others neurons will be inhibited for that time step.
-        Returns spk and reset."""
+        Returns spk."""
         mem_shift = mem - self.threshold
         index = torch.argmax(mem_shift, dim=1)
         spk_tmp = self.spike_grad(mem_shift)
@@ -64,9 +63,17 @@ class LIF(nn.Module):
         mask_spk1 = torch.zeros_like(spk_tmp)
         mask_spk1[torch.arange(batch_size), index] = 1
         spk = spk_tmp * mask_spk1
-        reset = spk.clone().detach()
+        # reset = spk.clone().detach()
 
-        return spk, reset
+        return spk
+
+    def mem_reset(self, mem):
+        """Generates detached reset signal if mem > threshold.
+        Returns reset."""
+        mem_shift = mem - self.threshold
+        reset = self.spike_grad(mem_shift).clone().detach()
+
+        return reset
 
     @classmethod
     def init(cls):
@@ -204,7 +211,7 @@ def _SpikeTorchConv(*args, input_):
         args = (args,)
     for arg in args:
         arg = torch.Tensor(arg)  # wash away the SpikeTensor class
-        arg = torch.zeros_like(input_)
+        arg = torch.zeros_like(input_, requires_grad=True)
         states.append(arg)
     if len(states) == 1:  # otherwise, list isn't unpacked
         return states[0]
@@ -299,26 +306,23 @@ class Leaky(LIF):
             self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
         if not self.init_hidden:
-            if self.inhibition:
-                spk, reset = self.fire_inhibition(mem.size(0), mem)  # batch_size
-            else:
-                spk, reset = self.fire(mem)
-
+            reset = self.mem_reset(mem)
             if self.reset_mechanism == "subtract":
                 mem = self.beta * mem + input_ - reset * self.threshold
 
             elif self.reset_mechanism == "zero":
                 mem = self.beta * mem + input_ - reset * (self.beta * mem + input_)
 
+            if self.inhibition:
+                spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
+            else:
+                spk = self.fire(mem)
+
             return spk, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
         if self.init_hidden and not mem:
-            if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.mem.size(0), self.mem)
-            else:
-                self.spk, self.reset = self.fire(self.mem)
-
+            self.reset = self.mem_reset(self.mem)
             if self.reset_mechanism == "subtract":
                 self.mem = self.beta * self.mem + input_ - self.reset * self.threshold
 
@@ -328,6 +332,10 @@ class Leaky(LIF):
                     + input_
                     - self.reset * (self.beta * self.mem + input_)
                 )
+            if self.inhibition:
+                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+            else:
+                self.spk = self.fire(self.mem)
 
             if self.output:  # read-out layer returns output+states
                 return self.spk, self.mem
@@ -452,10 +460,7 @@ class Synaptic(LIF):
             self.syn, self.mem = _SpikeTorchConv(self.syn, self.mem, input_=input_)
 
         if not self.init_hidden:
-            if self.inhibition:
-                spk, reset = self.fire_inhibition(mem.size(0), mem)
-            else:
-                spk, reset = self.fire(mem)
+            reset = self.mem_reset(mem)
 
             syn = self.alpha * syn + input_
 
@@ -465,14 +470,17 @@ class Synaptic(LIF):
             elif self.reset_mechanism == "zero":
                 mem = self.beta * mem + syn - reset * (self.beta * mem + syn)
 
+            if self.inhibition:
+                spk = self.fire_inhibition(mem.size(0), mem)
+            else:
+                spk = self.fire(mem)
+
             return spk, syn, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
         if self.init_hidden and not mem and not syn:
-            if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.mem.size(0), self.mem)
-            else:
-                self.spk, self.reset = self.fire(self.mem)
+            self.reset = self.mem_reset(self.mem)
+
             self.syn = self.alpha * self.syn + input_
 
             if self.reset_mechanism == "subtract":
@@ -484,6 +492,11 @@ class Synaptic(LIF):
                     + self.syn
                     - self.reset * (self.beta * self.mem + self.syn)
                 )
+
+            if self.inhibition:
+                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+            else:
+                self.spk = self.fire(self.mem)
 
             if self.output:
                 return self.spk, self.syn, self.mem
@@ -650,10 +663,7 @@ class Lapicque(LIF):
             self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
         if not self.init_hidden:
-            if self.inhibition:
-                spk, reset = self.fire_inhibition(mem.size(0), mem)
-            else:
-                spk, reset = self.fire(mem)
+            reset = self.mem_reset(mem)
 
             if self.reset_mechanism == "subtract":
                 mem = (
@@ -675,14 +685,16 @@ class Lapicque(LIF):
                     )
                 )
 
+            if self.inhibition:
+                spk = self.fire_inhibition(mem.size(0), mem)
+            else:
+                spk = self.fire(mem)
+
             return spk, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
         if self.init_hidden and not mem:
-            if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.mem.size(0), self.mem)
-            else:
-                self.spk, self.reset = self.fire(self.mem)
+            self.reset = self.mem_reset(self.mem)
 
             if self.reset_mechanism == "subtract":
                 self.mem = (
@@ -703,6 +715,11 @@ class Lapicque(LIF):
                         )
                     )
                 )
+
+            if self.inhibition:
+                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+            else:
+                self.spk = self.fire(self.mem)
 
             if self.output:
                 return self.spk, self.mem
@@ -849,12 +866,7 @@ class Alpha(LIF):
 
         # if hidden states are passed externally
         if not self.init_hidden:
-
-            if self.inhibition:
-                spk, reset = self.fire_inhibition(mem.size(0), mem)
-
-            else:
-                spk, reset = self.fire(mem)
+            reset = self.mem_reset(mem)
 
             # if neuron fires, subtract threhsold from neuron
             if self.reset_mechanism == "subtract":
@@ -884,16 +896,18 @@ class Alpha(LIF):
                 )
                 mem = self.tau_srm * (syn_exc + syn_inh)
 
+            if self.inhibition:
+                spk = self.fire_inhibition(mem.size(0), mem)
+
+            else:
+                spk = self.fire(mem)
+
             return spk, syn_exc, syn_inh, mem
 
         # if hidden states and outputs are instance variables
         if self.init_hidden and not mem:
 
-            if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.mem.size(0), self.mem)
-
-            else:
-                self.spk, self.reset = self.fire(self.mem)
+            self.reset = self.mem_reset(self.mem)
 
             # if neuron fires, subtract threhsold from neuron
             if self.reset_mechanism == "subtract":
@@ -925,6 +939,12 @@ class Alpha(LIF):
                     self.beta * syn_inh - input_
                 )
                 self.mem = self.tau_srm * (syn_exc + syn_inh)
+
+            if self.inhibition:
+                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+
+            else:
+                self.spk = self.fire(self.mem)
 
             if self.output:
                 return self.spk, self.syn_exc, self.syn_inh, self.mem
