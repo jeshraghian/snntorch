@@ -58,13 +58,13 @@ def alpha_instance():
 
 @pytest.fixture(scope="module")
 def input_():
-    return torch.Tensor([0.25, 0])
+    return torch.Tensor([0.25, 0]).unsqueeze(-1)
 
 
 class TestLeaky:
     def test_leaky(self, leaky_instance, input_):
-        mem = leaky_instance.init_leaky(1)
-        assert len(mem) == 1
+        mem = leaky_instance.init_leaky()
+        # assert len(mem) == 1
 
         mem_rec = []
         spk_rec = []
@@ -92,10 +92,10 @@ class TestLeaky:
 
 
 class TestSynaptic:
-    def test_stein(self, synaptic_instance, input_):
-        syn, mem = synaptic_instance.init_synaptic(1)
-        assert len(syn) == 1
-        assert len(mem) == 1
+    def test_synaptic(self, synaptic_instance, input_):
+        syn, mem = synaptic_instance.init_synaptic()
+        # assert len(syn) == 1
+        # assert len(mem) == 1
 
         syn_rec = []
         mem_rec = []
@@ -129,8 +129,8 @@ class TestSynaptic:
 
 class TestLapicque:
     def test_lapicque(self, lapicque_instance, input_):
-        mem = lapicque_instance.init_lapicque(1)
-        assert len(mem) == 1
+        mem = lapicque_instance.init_lapicque()
+        # assert len(mem) == 1
 
         mem_rec = []
         spk_rec = []
@@ -164,40 +164,40 @@ class TestLapicque:
     #     assert lapicque.mem == 0
 
 
-class TestStein:
-    def test_stein(self, stein_instance, input_):
-        syn, mem = stein_instance.init_stein(1)
-        assert len(syn) == 1
-        assert len(mem) == 1
+# class TestStein:
+#     def test_stein(self, stein_instance, input_):
+#         syn, mem = stein_instance.init_stein()
+#         # assert len(syn) == 1
+#         # assert len(mem) == 1
 
-        syn_rec = []
-        mem_rec = []
-        spk_rec = []
+#         syn_rec = []
+#         mem_rec = []
+#         spk_rec = []
 
-        for i in range(2):
-            spk, syn, mem = stein_instance(input_[i], syn, mem)
-            syn_rec.append(syn)
-            mem_rec.append(mem)
-            spk_rec.append(spk)
+#         for i in range(2):
+#             spk, syn, mem = stein_instance(input_[i], syn, mem)
+#             syn_rec.append(syn)
+#             mem_rec.append(mem)
+#             spk_rec.append(spk)
 
-        assert syn_rec[0] == 2 * syn_rec[1]
-        assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1]
-        assert spk_rec[0] == spk_rec[1]
+#         assert syn_rec[0] == 2 * syn_rec[1]
+#         assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1]
+#         assert spk_rec[0] == spk_rec[1]
 
-    # def test_stein_init_hidden(self):
+# def test_stein_init_hidden(self):
 
-    #     with pytest.raises(ValueError):
-    #         snn.Stein(alpha=0.5, beta=0.5, init_hidden=True)
-    #         snn.Stein(alpha=0.5, beta=0.5, num_inputs=1, init_hidden=True)
-    #         snn.Stein(alpha=0.5, beta=0.5, batch_size=1, init_hidden=True)
+#     with pytest.raises(ValueError):
+#         snn.Stein(alpha=0.5, beta=0.5, init_hidden=True)
+#         snn.Stein(alpha=0.5, beta=0.5, num_inputs=1, init_hidden=True)
+#         snn.Stein(alpha=0.5, beta=0.5, batch_size=1, init_hidden=True)
 
-    #     stein = snn.Stein(
-    #         alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
-    #     )
+#     stein = snn.Stein(
+#         alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
+#     )
 
-    #     assert stein.spk == 0
-    #     assert stein.syn == 0
-    #     assert stein.mem == 0
+#     assert stein.spk == 0
+#     assert stein.syn == 0
+#     assert stein.mem == 0
 
 
 class TestAlpha:
@@ -206,11 +206,11 @@ class TestAlpha:
         snn.Alpha(0.5, 0.5)
 
     def test_alpha(self, alpha_instance, input_):
-        syn_exc, syn_inh, mem = alpha_instance.init_alpha(1)
+        syn_exc, syn_inh, mem = alpha_instance.init_alpha()
 
-        assert len(syn_exc) == 1
-        assert len(syn_inh) == 1
-        assert len(mem) == 1
+        # assert len(syn_exc) == 1
+        # assert len(syn_inh) == 1
+        # assert len(mem) == 1
 
         syn_exc_rec = []
         syn_inh_rec = []
