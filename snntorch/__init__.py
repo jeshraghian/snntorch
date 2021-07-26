@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from snntorch import utils
 
 
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+# device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 dtype = torch.float
 
 
@@ -19,16 +20,20 @@ class LIF(nn.Module):
         beta,
         threshold=1.0,
         spike_grad=None,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
+        output=False,
     ):
         super(LIF, self).__init__()
         LIF.instances.append(self)
 
         self.beta = beta
         self.threshold = threshold
+        self.init_hidden = init_hidden
         self.inhibition = inhibition
         self.reset_mechanism = reset_mechanism
+        self.output = output
 
         if spike_grad is None:
             self.spike_grad = self.Heaviside.apply
@@ -42,82 +47,87 @@ class LIF(nn.Module):
 
     def fire(self, mem):
         """Generates spike if mem > threshold.
-        Returns spk and reset."""
+        Returns spk."""
         mem_shift = mem - self.threshold
-        spk = self.spike_grad(mem_shift).to(device)
-        reset = spk.clone().detach()
+        spk = self.spike_grad(mem_shift)
 
-        return spk, reset
+        return spk
 
     def fire_inhibition(self, batch_size, mem):
         """Generates spike if mem > threshold, only for the largest membrane. All others neurons will be inhibited for that time step.
-        Returns spk and reset."""
+        Returns spk."""
         mem_shift = mem - self.threshold
         index = torch.argmax(mem_shift, dim=1)
         spk_tmp = self.spike_grad(mem_shift)
 
         mask_spk1 = torch.zeros_like(spk_tmp)
         mask_spk1[torch.arange(batch_size), index] = 1
-        spk = spk_tmp * mask_spk1.to(device)
-        reset = spk.clone().detach()
+        spk = spk_tmp * mask_spk1
+        # reset = spk.clone().detach()
 
-        return spk, reset
+        return spk
+
+    def mem_reset(self, mem):
+        """Generates detached reset signal if mem > threshold.
+        Returns reset."""
+        mem_shift = mem - self.threshold
+        reset = self.spike_grad(mem_shift).clone().detach()
+
+        return reset
 
     @classmethod
-    def clear_instances(cls):
+    def init(cls):
         """Removes all items from :mod:`snntorch.LIF.instances` when called."""
         cls.instances = []
 
     @staticmethod
-    def init_leaky(batch_size, *args):
-        """Used to initialize mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_leaky(128, 1, 28, 28)``."""
-        mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-
-        return spk, mem
-
-    @staticmethod
-    def init_synaptic(batch_size, *args):
-        """Used to initialize syn, mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_synaptic(128, 1, 28, 28)``."""
-        syn = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-
-        return spk, syn, mem
-
-    @staticmethod
-    def init_stein(batch_size, *args):
-        """Used to initialize syn, mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_stein(128, 1, 28, 28)``."""
-
-        return LIF.init_synaptic(batch_size, *args)
-
-    @staticmethod
-    def init_lapicque(batch_size, *args):
+    def init_leaky():
         """
-        Used to initialize mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_lapicque(128, 1, 28, 28)``.
+        Used to initialize mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        """
+        # print(f"init_leaky executing")
+        mem = _SpikeTensor(init_flag=False)
+
+        return mem
+
+    @staticmethod
+    def init_synaptic():
+        """Used to initialize syn and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
         """
 
-        return LIF.init_leaky(batch_size, *args)
+        syn = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
+
+        return syn, mem
 
     @staticmethod
-    def init_alpha(batch_size, *args):
-        """Used to initialize syn_exc, syn_inh, mem and spk.
-        *args are the input feature dimensions.
-        E.g., ``batch_size=128`` and input feature of size=1x28x28 would require ``init_alpha(128, 1, 28, 28).``"""
-        syn_exc = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        syn_inh = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        mem = torch.zeros((batch_size, *args), device=device, dtype=dtype)
-        spk = torch.zeros((batch_size, *args), device=device, dtype=dtype)
+    def init_stein():
+        """Used to initialize syn and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        """
+        return LIF.init_synaptic()
 
-        return spk, syn_exc, syn_inh, mem
+    @staticmethod
+    def init_lapicque():
+        """
+        Used to initialize mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        """
+
+        return LIF.init_leaky()
+
+    @staticmethod
+    def init_alpha():
+        """Used to initialize syn_exc, syn_inh and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        """
+        syn_exc = _SpikeTensor(init_flag=False)
+        syn_inh = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
+
+        return syn_exc, syn_inh, mem
 
     @staticmethod
     def detach(*args):
@@ -168,9 +178,48 @@ class LIF(nn.Module):
             return grad
 
 
-# Neuron Models
+class _SpikeTensor(torch.Tensor):
+    """Inherits from torch.Tensor with additional attributes.
+    ``init_flag`` is set at the time of initialization.
+    When called in the forward function of any neuron, they are parsed and replaced with a torch.Tensor variable.
+    """
+
+    @staticmethod
+    def __new__(cls, *args, init_flag=False, **kwargs):
+        return super().__new__(cls, *args, **kwargs)
+
+    def __init__(
+        self,
+        *args,
+        init_flag=True,
+    ):
+        # super().__init__() # optional
+        self.init_flag = init_flag
 
 
+def _SpikeTorchConv(*args, input_):
+    """Convert SpikeTensor to torch.Tensor of the same size as ``input_``."""
+
+    states = []
+    # if len(input_.size()) == 0:
+    #     _batch_size = 1  # assume batch_size=1 if 1D input
+    # else:
+    #     _batch_size = input_.size(0)
+    if (
+        len(args) == 1 and type(args) is not tuple
+    ):  # if only one hidden state, make it iterable
+        args = (args,)
+    for arg in args:
+        arg = torch.Tensor(arg)  # wash away the SpikeTensor class
+        arg = torch.zeros_like(input_, requires_grad=True)
+        states.append(arg)
+    if len(states) == 1:  # otherwise, list isn't unpacked
+        return states[0]
+
+    return states
+
+
+# # Neuron Models
 class Leaky(LIF):
     """
     First-order leaky integrate-and-fire neuron model.
@@ -230,64 +279,50 @@ class Leaky(LIF):
         self,
         beta,
         threshold=1.0,
-        num_inputs=False,
         spike_grad=None,
-        batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
+        output=False,
     ):
         super(Leaky, self).__init__(
-            beta, threshold, spike_grad, inhibition, reset_mechanism
+            beta,
+            threshold,
+            spike_grad,
+            init_hidden,
+            inhibition,
+            reset_mechanism,
+            output,
         )
 
-        self.num_inputs = num_inputs
-        self.batch_size = batch_size
-        self.hidden_init = hidden_init
+        if self.init_hidden:
+            self.mem = self.init_leaky()
 
-        if self.hidden_init:
-            if not self.num_inputs:
-                raise ValueError(
-                    "num_inputs must be specified to initialize hidden states as instance variables."
-                )
-            elif not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to initialize hidden states as instance variables."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.mem = self.init_leaky(
-                    self.batch_size, *(self.num_inputs)
-                )  # need to automatically call batch_size
-            else:
-                self.spk, self.mem = self.init_leaky(self.batch_size, self.num_inputs)
-        if self.inhibition:
-            if not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to enable firing inhibition."
-                )
+    def forward(self, input_, mem=False):
 
-    def forward(self, input_, mem):
-        if not self.hidden_init:
-            if self.inhibition:
-                spk, reset = self.fire_inhibition(self.batch_size, mem)
-            else:
-                spk, reset = self.fire(mem)
+        if hasattr(mem, "init_flag"):  # only triggered on first-pass
+            mem = _SpikeTorchConv(mem, input_=input_)
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
+        if not self.init_hidden:
+            reset = self.mem_reset(mem)
             if self.reset_mechanism == "subtract":
                 mem = self.beta * mem + input_ - reset * self.threshold
 
             elif self.reset_mechanism == "zero":
                 mem = self.beta * mem + input_ - reset * (self.beta * mem + input_)
 
+            if self.inhibition:
+                spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
+            else:
+                spk = self.fire(mem)
+
             return spk, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
-            if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
-            else:
-                self.spk, self.reset = self.fire(self.mem)
-
+        if self.init_hidden and not mem:
+            self.reset = self.mem_reset(self.mem)
             if self.reset_mechanism == "subtract":
                 self.mem = self.beta * self.mem + input_ - self.reset * self.threshold
 
@@ -297,8 +332,15 @@ class Leaky(LIF):
                     + input_
                     - self.reset * (self.beta * self.mem + input_)
                 )
+            if self.inhibition:
+                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+            else:
+                self.spk = self.fire(self.mem)
 
-            return self.spk, self.mem
+            if self.output:  # read-out layer returns output+states
+                return self.spk, self.mem
+            else:  # hidden layer e.g., in nn.Sequential, only returns output
+                return self.spk
 
     @classmethod
     def detach_hidden(cls):
@@ -307,18 +349,16 @@ class Leaky(LIF):
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Leaky):
-                cls.instances[layer].spk.detach_()
                 cls.instances[layer].mem.detach_()
 
     @classmethod
-    def zeros_hidden(cls):
+    def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are instance variables."""
-
+        Intended for use where hidden state variables are instance variables.
+        Assumes hidden states have a batch dimension already."""
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Leaky):
-                cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
-                cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
 class Synaptic(LIF):
@@ -389,51 +429,39 @@ class Synaptic(LIF):
         alpha,
         beta,
         threshold=1.0,
-        num_inputs=False,
         spike_grad=None,
-        batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
+        output=False,
     ):
         super(Synaptic, self).__init__(
-            beta, threshold, spike_grad, inhibition, reset_mechanism
+            beta,
+            threshold,
+            spike_grad,
+            init_hidden,
+            inhibition,
+            reset_mechanism,
+            output,
         )
 
         self.alpha = alpha
-        self.num_inputs = num_inputs
-        self.batch_size = batch_size
-        self.hidden_init = hidden_init
 
-        if self.hidden_init:
-            if not self.num_inputs:
-                raise ValueError(
-                    "num_inputs must be specified to initialize hidden states as instance variables."
-                )
-            elif not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to initialize hidden states as instance variables."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.syn, self.mem = self.init_synaptic(
-                    self.batch_size, *(self.num_inputs)
-                )  # need to automatically call batch_size
-            else:
-                self.spk, self.syn, self.mem = self.init_synaptic(
-                    self.batch_size, self.num_inputs
-                )
-        if self.inhibition:
-            if not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to enable firing inhibition."
-                )
+        if self.init_hidden:
+            self.syn, self.mem = self.init_synaptic()
 
-    def forward(self, input_, syn, mem):
-        if not self.hidden_init:
-            if self.inhibition:
-                spk, reset = self.fire_inhibition(self.batch_size, mem)
-            else:
-                spk, reset = self.fire(mem)
+    def forward(self, input_, syn=False, mem=False):
+
+        if hasattr(syn, "init_flag") or hasattr(
+            mem, "init_flag"
+        ):  # only triggered on first-pass
+            syn, mem = _SpikeTorchConv(syn, mem, input_=input_)
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            self.syn, self.mem = _SpikeTorchConv(self.syn, self.mem, input_=input_)
+
+        if not self.init_hidden:
+            reset = self.mem_reset(mem)
+
             syn = self.alpha * syn + input_
 
             if self.reset_mechanism == "subtract":
@@ -442,14 +470,17 @@ class Synaptic(LIF):
             elif self.reset_mechanism == "zero":
                 mem = self.beta * mem + syn - reset * (self.beta * mem + syn)
 
+            if self.inhibition:
+                spk = self.fire_inhibition(mem.size(0), mem)
+            else:
+                spk = self.fire(mem)
+
             return spk, syn, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
-            if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
-            else:
-                self.spk, self.reset = self.fire(self.mem)
+        if self.init_hidden and not mem and not syn:
+            self.reset = self.mem_reset(self.mem)
+
             self.syn = self.alpha * self.syn + input_
 
             if self.reset_mechanism == "subtract":
@@ -462,7 +493,15 @@ class Synaptic(LIF):
                     - self.reset * (self.beta * self.mem + self.syn)
                 )
 
-            return self.spk, self.syn, self.mem
+            if self.inhibition:
+                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+            else:
+                self.spk = self.fire(self.mem)
+
+            if self.output:
+                return self.spk, self.syn, self.mem
+            else:
+                return self.spk
 
     @classmethod
     def detach_hidden(cls):
@@ -471,20 +510,18 @@ class Synaptic(LIF):
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Synaptic):
-                cls.instances[layer].spk.detach_()
                 cls.instances[layer].syn.detach_()
                 cls.instances[layer].mem.detach_()
 
     @classmethod
-    def zeros_hidden(cls):
+    def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Synaptic):
-                cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
-                cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
-                cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
+                cls.instances[layer].syn = _SpikeTensor(init_flag=False)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
 class Lapicque(LIF):
@@ -572,24 +609,25 @@ class Lapicque(LIF):
         C=False,
         time_step=1,
         threshold=1.0,
-        num_inputs=False,
         spike_grad=None,
-        batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
+        output=False,
     ):
         super(Lapicque, self).__init__(
-            beta, threshold, spike_grad, inhibition, reset_mechanism
+            beta,
+            threshold,
+            spike_grad,
+            init_hidden,
+            inhibition,
+            reset_mechanism,
+            output,
         )
 
-        self.beta = beta
         self.R = R
         self.C = C
         self.time_step = time_step
-        self.num_inputs = num_inputs
-        self.batch_size = batch_size
-        self.hidden_init = hidden_init
 
         if not self.beta and not (self.R and self.C):
             raise ValueError(
@@ -614,35 +652,18 @@ class Lapicque(LIF):
         elif self.beta and self.C and not self.R:
             self.R = self.time_step / (self.C * torch.log(torch.tensor(1 / self.beta)))
 
-        if self.hidden_init:
-            if not self.num_inputs:
-                raise ValueError(
-                    "num_inputs must be specified to initialize hidden states as instance variables."
-                )
-            elif not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to initialize hidden states as instance variables."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.mem = self.init_lapicque(
-                    self.batch_size, *(self.num_inputs)
-                )  # need to automatically call batch_size
-            else:
-                self.spk, self.mem = self.init_lapicque(
-                    self.batch_size, self.num_inputs
-                )
-        if self.inhibition:
-            if not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to enable firing inhibition."
-                )
+        if self.init_hidden:
+            self.mem = self.init_lapicque()
 
-    def forward(self, input_, mem):
-        if not self.hidden_init:
-            if self.inhibition:
-                spk, reset = self.fire_inhibition(self.batch_size, mem)
-            else:
-                spk, reset = self.fire(mem)
+    def forward(self, input_, mem=False):
+
+        if hasattr(mem, "init_flag"):  # only triggered on first-pass
+            mem = _SpikeTorchConv(mem, input_=input_)
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            self.mem = _SpikeTorchConv(self.mem, input_=input_)
+
+        if not self.init_hidden:
+            reset = self.mem_reset(mem)
 
             if self.reset_mechanism == "subtract":
                 mem = (
@@ -664,14 +685,16 @@ class Lapicque(LIF):
                     )
                 )
 
+            if self.inhibition:
+                spk = self.fire_inhibition(mem.size(0), mem)
+            else:
+                spk = self.fire(mem)
+
             return spk, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
-            if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
-            else:
-                self.spk, self.reset = self.fire(self.mem)
+        if self.init_hidden and not mem:
+            self.reset = self.mem_reset(self.mem)
 
             if self.reset_mechanism == "subtract":
                 self.mem = (
@@ -693,7 +716,15 @@ class Lapicque(LIF):
                     )
                 )
 
-            return self.spk, self.mem
+            if self.inhibition:
+                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+            else:
+                self.spk = self.fire(self.mem)
+
+            if self.output:
+                return self.spk, self.mem
+            else:
+                return self.spk
 
     @classmethod
     def detach_hidden(cls):
@@ -702,18 +733,16 @@ class Lapicque(LIF):
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Lapicque):
-                cls.instances[layer].spk.detach_()
                 cls.instances[layer].mem.detach_()
 
     @classmethod
-    def zeros_hidden(cls):
+    def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Lapicque):
-                cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
-                cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
 class Alpha(LIF):
@@ -731,8 +760,7 @@ class Alpha(LIF):
 
             I_{\\rm exc}[t+1] = (αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) \\\\
             I_{\\rm inh}[t+1] = (βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) \\\\
-            U_{\\rm residual}[t+1] = R(U[t]-U_{\\rm thr}) + U_{\\rm residual}[t]/τ_{\\rm SRM} \\\\
-            U[t+1] = τ_{\\rm SRM}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1]) + U_{\\rm residual}[t+1]
+            U[t+1] = τ_{\\rm SRM}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1])
 
     If `reset_mechanism = "zero"`, then :math:`I_{\\rm exc}, I_{\\rm inh}` will both be set to `0` whenever the neuron emits a spike:
 
@@ -747,7 +775,6 @@ class Alpha(LIF):
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
-    * :math:`U_{\\rm residual}` - Residual membrane potential after reset by subtraction
     * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise :math:`R = 0`
     * :math:`α` - Excitatory current decay rate
     * :math:`β` - Inhibitory current decay rate
@@ -788,44 +815,26 @@ class Alpha(LIF):
         alpha,
         beta,
         threshold=1.0,
-        num_inputs=False,
         spike_grad=None,
-        batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
+        output=False,
     ):
         super(Alpha, self).__init__(
-            beta, threshold, spike_grad, inhibition, reset_mechanism
+            beta,
+            threshold,
+            spike_grad,
+            init_hidden,
+            inhibition,
+            reset_mechanism,
+            output,
         )
 
         self.alpha = alpha
-        self.num_inputs = num_inputs
-        self.batch_size = batch_size
-        self.hidden_init = hidden_init
 
-        if self.hidden_init:
-            if not self.num_inputs:
-                raise ValueError(
-                    "num_inputs must be specified to initialize hidden states as instance variables."
-                )
-            elif not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to initialize hidden states as instance variables."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.syn_exc, self.syn_inh, self.mem = self.init_alpha(
-                    batch_size=self.batch_size, *(self.num_inputs)
-                )
-            else:
-                self.spk, self.syn_exc, self.syn_inh, self.mem = self.init_alpha(
-                    batch_size, num_inputs
-                )
-        if self.inhibition:
-            if not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to enable firing inhibition."
-                )
+        if self.init_hidden:
+            self.syn_exc, self.syn_inh, self.mem = self.init_alpha()
 
         if self.alpha <= self.beta:
             raise ValueError("alpha must be greater than beta.")
@@ -835,27 +844,35 @@ class Alpha(LIF):
                 "beta cannot be '1' otherwise ZeroDivisionError occurs: tau_srm = log(alpha)/log(beta) - log(alpha) + 1"
             )
 
-        if reset_mechanism == "subtract":
-            self.mem_residual = False
+        # if reset_mechanism == "subtract":
+        #     self.mem_residual = False
 
         self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
 
-    def forward(self, input_, syn_exc, syn_inh, mem):
+    def forward(self, input_, syn_exc=False, syn_inh=False, mem=False):
+
+        if (
+            hasattr(syn_exc, "init_flag")
+            or hasattr(syn_inh, "init_flag")
+            or hasattr(mem, "init_flag")
+        ):  # only triggered on first-pass
+            syn_exc, syn_inh, mem = _SpikeTorchConv(
+                syn_exc, syn_inh, mem, input_=input_
+            )
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            self.syn_exc, self.syn_inh, self.mem = _SpikeTorchConv(
+                self.syn_exc, self.syn_inh, self.mem, input_=input_
+            )
 
         # if hidden states are passed externally
-        if not self.hidden_init:
-
-            if self.inhibition:
-                spk, reset = self.fire_inhibition(self.batch_size, mem)
-
-            else:
-                spk, reset = self.fire(mem)
+        if not self.init_hidden:
+            reset = self.mem_reset(mem)
 
             # if neuron fires, subtract threhsold from neuron
             if self.reset_mechanism == "subtract":
 
-                if self.mem_residual is False:
-                    self.mem_residual = torch.zeros_like(mem)
+                # if self.mem_residual is False:
+                #     self.mem_residual = torch.zeros_like(mem)
 
                 syn_exc = (self.alpha * syn_exc + input_) - reset * (
                     self.alpha * syn_exc + input_
@@ -863,11 +880,11 @@ class Alpha(LIF):
                 syn_inh = (self.beta * syn_inh - input_) - reset * (
                     self.beta * syn_inh - input_
                 )
-                # The residual of (mem - threshold) decays separately
-                self.mem_residual = reset * (mem - self.threshold) + (
-                    self.mem_residual / self.tau_srm
-                )
-                mem = self.tau_srm * (syn_exc + syn_inh) + self.mem_residual
+                #  #The residual of (mem - threshold) decays separately
+                # self.mem_residual = reset * (mem - self.threshold) + (
+                #     self.mem_residual / self.tau_srm
+                # )
+                mem = self.tau_srm * (syn_exc + syn_inh)  # + self.mem_residual
 
             # if neuron fires, reset membrane to zero
             elif self.reset_mechanism == "zero":
@@ -879,22 +896,24 @@ class Alpha(LIF):
                 )
                 mem = self.tau_srm * (syn_exc + syn_inh)
 
+            if self.inhibition:
+                spk = self.fire_inhibition(mem.size(0), mem)
+
+            else:
+                spk = self.fire(mem)
+
             return spk, syn_exc, syn_inh, mem
 
         # if hidden states and outputs are instance variables
-        if self.hidden_init:
+        if self.init_hidden and not mem:
 
-            if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
-
-            else:
-                self.spk, self.reset = self.fire(self.mem)
+            self.reset = self.mem_reset(self.mem)
 
             # if neuron fires, subtract threhsold from neuron
             if self.reset_mechanism == "subtract":
 
-                if self.mem_residual is False:
-                    self.mem_residual = torch.zeros_like(mem)
+                # if self.mem_residual is False:
+                #     self.mem_residual = torch.zeros_like(self.mem)
 
                 self.syn_exc = (self.alpha * self.syn_exc + input_) - self.reset * (
                     self.alpha * self.syn_exc + input_
@@ -902,13 +921,13 @@ class Alpha(LIF):
                 syn_inh = (self.beta * self.syn_inh - input_) - self.reset * (
                     self.beta * self.syn_inh - input_
                 )
-                # The residual of (mem - threshold) decays separately
-                self.mem_residual = self.reset * (self.mem - self.threshold) + (
-                    self.mem_residual / self.tau_srm
-                )
-                self.mem = (
-                    self.tau_srm * (self.syn_exc + self.syn_inh) + self.mem_residual
-                )
+                # # The residual of (mem - threshold) decays separately
+                # self.mem_residual = self.reset * (self.mem - self.threshold) + (
+                #     self.mem_residual / self.tau_srm
+                # )
+                self.mem = self.tau_srm * (
+                    self.syn_exc + self.syn_inh
+                )  # + self.mem_residual
 
             # if neuron fires, reset membrane to zero
             elif self.reset_mechanism == "zero":
@@ -921,7 +940,16 @@ class Alpha(LIF):
                 )
                 self.mem = self.tau_srm * (syn_exc + syn_inh)
 
-            return self.spk, self.syn_exc, self.syn_inh, self.mem
+            if self.inhibition:
+                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+
+            else:
+                self.spk = self.fire(self.mem)
+
+            if self.output:
+                return self.spk, self.syn_exc, self.syn_inh, self.mem
+            else:
+                return self.spk
 
     # cool forward function that resulted in burst firing - worth exploring
 
@@ -945,30 +973,25 @@ class Alpha(LIF):
         time where hidden state variables are instance variables."""
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Alpha):
-                cls.instances[layer].spk.detach_()
                 cls.instances[layer].syn_exc.detach_()
                 cls.instances[layer].syn_inh.detach_()
                 cls.instances[layer].mem.detach_()
 
     @classmethod
-    def zeros_hidden(cls):
+    def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables."""
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Alpha):
-                cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
-                cls.instances[layer].syn_exc = torch.zeros_like(
-                    cls.instances[layer].syn_exc
-                )
-                cls.instances[layer].syn_inh = torch.zeros_like(
-                    cls.instances[layer].syn_inh
-                )
-                cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
+                cls.instances[layer].syn_exc = _SpikeTensor(init_flag=False)
+                cls.instances[layer].syn_inh = _SpikeTensor(init_flag=False)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
 ####### Deprecated / Renamed
 class Stein(LIF):  # see: Synaptic(LIF)
     """
+    **Note: this neuron model has been deprecated. Please use `Synaptic(LIF) instead.
     Stein's model of the leaky integrate and fire neuron.
     The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.
     Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
@@ -1035,15 +1058,20 @@ class Stein(LIF):  # see: Synaptic(LIF)
         alpha,
         beta,
         threshold=1.0,
-        num_inputs=False,
         spike_grad=None,
-        batch_size=False,
-        hidden_init=False,
+        init_hidden=False,
         inhibition=False,
         reset_mechanism="subtract",
+        output=False,
     ):
         super(Stein, self).__init__(
-            beta, threshold, spike_grad, inhibition, reset_mechanism
+            beta,
+            threshold,
+            spike_grad,
+            init_hidden,
+            inhibition,
+            reset_mechanism,
+            output,
         )
 
         print(
@@ -1051,37 +1079,20 @@ class Stein(LIF):  # see: Synaptic(LIF)
         )
 
         self.alpha = alpha
-        self.num_inputs = num_inputs
-        self.batch_size = batch_size
-        self.hidden_init = hidden_init
 
-        if self.hidden_init:
-            if not self.num_inputs:
-                raise ValueError(
-                    "num_inputs must be specified to initialize hidden states as instance variables."
-                )
-            elif not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to initialize hidden states as instance variables."
-                )
-            elif hasattr(self.num_inputs, "__iter__"):
-                self.spk, self.syn, self.mem = self.init_stein(
-                    self.batch_size, *(self.num_inputs)
-                )  # need to automatically call batch_size
-            else:
-                self.spk, self.syn, self.mem = self.init_stein(
-                    self.batch_size, self.num_inputs
-                )
-        if self.inhibition:
-            if not self.batch_size:
-                raise ValueError(
-                    "batch_size must be specified to enable firing inhibition."
-                )
+        if self.init_hidden:
+            self.syn, self.mem = self.init_stein()
 
-    def forward(self, input_, syn, mem):
-        if not self.hidden_init:
+    def forward(self, input_, syn, mem=False):
+
+        if hasattr(syn, "init_flag") or hasattr(
+            mem, "init_flag"
+        ):  # only triggered on first-pass
+            syn, mem = _SpikeTorchConv(syn, mem, input_=input_)
+
+        if not self.init_hidden:
             if self.inhibition:
-                spk, reset = self.fire_inhibition(self.batch_size, mem)
+                spk, reset = self.fire_inhibition(mem.size(0), mem)
             else:
                 spk, reset = self.fire(mem)
             syn = self.alpha * syn + input_
@@ -1095,11 +1106,12 @@ class Stein(LIF):  # see: Synaptic(LIF)
             return spk, syn, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.hidden_init:
+        if self.init_hidden and not mem:
             if self.inhibition:
-                self.spk, self.reset = self.fire_inhibition(self.batch_size, self.mem)
+                self.spk, self.reset = self.fire_inhibition(self.mem.size(0), self.mem)
             else:
                 self.spk, self.reset = self.fire(self.mem)
+
             self.syn = self.alpha * self.syn + input_
 
             if self.reset_mechanism == "subtract":
@@ -1112,7 +1124,10 @@ class Stein(LIF):  # see: Synaptic(LIF)
                     - self.reset * (self.beta * self.mem + self.syn)
                 )
 
-            return self.spk, self.syn, self.mem
+            if self.output:  # read-out layer returns output+states
+                return self.spk, self.syn, self.mem
+            else:
+                return self.spk
 
     @classmethod
     def detach_hidden(cls):
@@ -1121,17 +1136,15 @@ class Stein(LIF):  # see: Synaptic(LIF)
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Stein):
-                cls.instances[layer].spk.detach_()
                 cls.instances[layer].syn.detach_()
                 cls.instances[layer].mem.detach_()
 
     @classmethod
-    def zeros_hidden(cls):
+    def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Stein):
-                cls.instances[layer].spk = torch.zeros_like(cls.instances[layer].spk)
-                cls.instances[layer].syn = torch.zeros_like(cls.instances[layer].syn)
-                cls.instances[layer].mem = torch.zeros_like(cls.instances[layer].mem)
+                cls.instances[layer].syn = _SpikeTensor(init_flag=False)
+                cls.instances[layer].mem = _SpikeTensor(init_flag=False)

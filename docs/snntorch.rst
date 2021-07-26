@@ -77,12 +77,12 @@ Example::
       output, mem_rec = net(data.view(batch_size, -1))
 
 In the above example, all hidden states, ``spk``, ``syn``, and ``mem`` must be manually initialized for each layer.
-This can be overcome by automatically instantiating neuron hidden states by invoking ``hidden_init=True``. 
+This can be overcome by automatically instantiating neuron hidden states by invoking ``init_hidden=True``. 
 
 In some cases (e.g., in real-time recurrent learning), it might be necessary to perform backward passes before all time steps have completed processing.
 This requires moving the time step for-loop out of the network and into the training-loop. 
 
-.. warning:: invoking ``hidden_init=True`` requires ``num_inputs`` and ``batch_size`` to also be passed as arguments to the neurons.
+.. warning:: invoking ``init_hidden=True`` requires ``num_inputs`` and ``batch_size`` to also be passed as arguments to the neurons.
 
 An example of this is shown below::
 
@@ -104,9 +104,9 @@ An example of this is shown below::
             # initialize layers
             snn.LIF.clear_instances() # boilerplate
             self.fc1 = nn.Linear(num_inputs, num_hidden)
-            self.lif1 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, hidden_init=True)
+            self.lif1 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_hidden, batch_size=batch_size, init_hidden=True)
             self.fc2 = nn.Linear(num_hidden, num_outputs)
-            self.lif2 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, hidden_init=True)
+            self.lif2 = snn.Synaptic(alpha=alpha, beta=beta, num_inputs=num_outputs, batch_size=batch_size, init_hidden=True)
 
 
          #  Remove time step loop

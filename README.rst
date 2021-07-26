@@ -43,6 +43,8 @@ snnTorch contains the following components:
      - a spiking neuron library like torch.nn, deeply integrated with autograd
    * - `snntorch.backprop <https://snntorch.readthedocs.io/en/latest/snntorch.backprop.html>`_
      - variations of backpropagation commonly used with SNNs
+   * - `snntorch.functional <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html>`_
+     - common arithmetic operations on spikes, e.g., loss, regularization etc.
    * - `snntorch.spikegen <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`_
      - a library for spike generation and data conversion
    * - `snntorch.spikeplot <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`_

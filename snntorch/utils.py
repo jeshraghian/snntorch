@@ -1,5 +1,6 @@
 # Note: need NumPy 1.17 or later for RNG functions
 import numpy as np
+import snntorch as snn
 
 
 def data_subset(dataset, subset, idx=0):
@@ -127,3 +128,84 @@ def valid_split(ds_train, ds_val, split, seed=0):
     ds_train.targets = tt
 
     return ds_train, ds_val
+
+
+def reset(net):
+    """Check for the types of LIF neurons contained in net.
+    Reset their hidden parameters to zero and detach them
+    from the current computation graph."""
+
+    global is_stein
+    global is_alpha
+    global is_leaky
+    global is_lapicque
+    global is_synaptic
+
+    is_stein = False
+    is_alpha = False
+    is_leaky = False
+    is_synaptic = False
+    is_lapicque = False
+
+    _layer_check(net=net)
+
+    _layer_reset()
+
+
+def _layer_check(net):
+    """Check for the types of LIF neurons contained in net."""
+
+    global is_leaky
+    global is_lapicque
+    global is_synaptic
+    global is_stein
+    global is_alpha
+
+    for idx in range(len(list(net._modules.values()))):
+        if isinstance(list(net._modules.values())[idx], snn.Lapicque):
+            is_lapicque = True
+        if isinstance(list(net._modules.values())[idx], snn.Synaptic):
+            is_synaptic = True
+        if isinstance(list(net._modules.values())[idx], snn.Leaky):
+            is_leaky = True
+        if isinstance(list(net._modules.values())[idx], snn.Stein):
+            is_stein = True
+        if isinstance(list(net._modules.values())[idx], snn.Alpha):
+            is_alpha = True
+
+
+def _layer_reset():
+    """Reset hidden parameters to zero and detach them from the current computation graph."""
+
+    if is_lapicque:
+        snn.Lapicque.reset_hidden()  # reset hidden state to 0's
+        snn.Lapicque.detach_hidden()
+    if is_synaptic:
+        snn.Synaptic.reset_hidden()  # reset hidden state to 0's
+        snn.Synaptic.detach_hidden()
+    if is_leaky:
+        snn.Leaky.reset_hidden()  # reset hidden state to 0's
+        snn.Leaky.detach_hidden()
+    if is_stein:
+        snn.Stein.reset_hidden()  # reset hidden state to 0's
+        snn.Stein.detach_hidden()
+    if is_alpha:
+        snn.Alpha.reset_hidden()  # reset hidden state to 0's
+        snn.Alpha.detach_hidden()
+
+
+def _final_layer_check(net):
+    """Check class of final layer and return the number of outputs."""
+
+    if isinstance(list(net._modules.values())[-1], snn.Lapicque):
+        return 2
+    if isinstance(list(net._modules.values())[-1], snn.Synaptic):
+        return 3
+    if isinstance(list(net._modules.values())[-1], snn.Leaky):
+        return 2
+    if isinstance(list(net._modules.values())[-1], snn.Stein):
+        return 3
+    if isinstance(list(net._modules.values())[-1], snn.Alpha):
+        return 4
+    else:  # if not from snn, assume from nn with 1 return
+        return 1
