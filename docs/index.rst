@@ -13,6 +13,7 @@ snnTorch Documentation
    usage
    snntorch
    snntorch.backprop
+   snntorch.functional
    snntorch.spikegen
    snntorch.spikeplot
    snntorch.spikevision

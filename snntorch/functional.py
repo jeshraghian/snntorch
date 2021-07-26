@@ -104,6 +104,13 @@ class ce_count_loss(LossFunctions):
         # if using population codes; e.g., 200 output neurons, 10 output classes --> 20 output neurons p/class
         loss_fn = ce_count_loss(population_code=True, num_classes=10)
         loss = loss_fn(spk_out, targets)
+
+    :param population_code: Specify if a population code is applied, i.e., the number of outputs is greater than the number of classes. Defaults to ``False``
+    :type population_code: bool, optional
+
+    :param num_classes: Number of output classes must be specified if ``population_code=True``. Must be a factor of the number of output neurons if population code is enabled. Defaults to ``False``
+    :type num_classes: int, optional
+
     """
 
     def __init__(self, population_code=False, num_classes=False):
@@ -179,6 +186,13 @@ class mse_count_loss(LossFunctions):
     :param incorrect_rate: Firing frequency of incorrect class(es) as a ratio, e.g., ``1`` promotes firing at every step; ``0.5`` promotes firing at 50% of steps, ``0`` discourages any firing, defaults to ``1``
     :type incorrect_rate: float, optional
 
+    :param population_code: Specify if a population code is applied, i.e., the number of outputs is greater than the number of classes. Defaults to ``False``
+    :type population_code: bool, optional
+
+    :param num_classes: Number of output classes must be specified if ``population_code=True``. Must be a factor of the number of output neurons if population code is enabled. Defaults to ``False``
+    :type num_classes: int, optional
+
+
     """
 
     def __init__(
@@ -247,6 +261,13 @@ class mse_membrane_loss(LossFunctions):
 
     :param time_var_targets: Specifies whether the targets are time-varying, defaults to ``False``
     :type correct_rate: bool, optional
+
+    :param on_target: Specify target membrane potential for correct class, defaults to ``1``
+    :type on_target: float, optional
+
+    :param off_target: Specify target membrane potential for incorrect class, defaults to ``0``
+    :type off_target: float, optional
+
 
     """
 
