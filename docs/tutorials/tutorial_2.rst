@@ -28,7 +28,7 @@ In this tutorial, you will:
   
   * Conductance based model (2nd order)
   
-  * Spike Response Model (a hacked version: the 'Alpha' model)
+  * Alpha model (a hacked version of the Spike Response model)
 
   * Implement a feedforward spiking neural network
 
@@ -1282,21 +1282,14 @@ First, initialize all layers.
   lif2 = snn.Synaptic(alpha=alpha, beta=beta)
 
 Next, initialize the hidden variables and outputs of each spiking neuron. 
-As your networks increase in size, this will become a tedious process. So we can call a static method :code:`init_synaptic` to take care of this. All neurons in snnTorch have their own initialization methods that follow this same syntax, e.g., :code:`init_lapicque`:
-
-* The input arguments should simply be the dimensions of the layer (without batch sizes or time steps)
-* E.g., a fully-connected layer will have one single number, as below (e.g., 1000)
-* E.g., a convolutional layer may have multiple arguments (e.g., 16 x 28 x 28)
+As your networks increase in size, this will become a tedious process. So we can call a static method :code:`init_synaptic()` to take care of this. All neurons in snnTorch have their own initialization methods that follow this same syntax, e.g., :code:`init_lapicque()`. 
+The shape of the hidden states are automatically initialized based on the input data dimensions during the first forward pass.
 
 ::
 
   # Initialize hidden states and outputs
-  syn1, mem1 = lif1.init_synaptic(num_hidden)
-  syn2, mem2 = lif2.init_synaptic(num_outputs)
-
-  # note: when using multiple batches of input data,
-  # the above samples are automatically duplicated
-  # to match the dimensions of the input
+  syn1, mem1 = lif1.init_synaptic()
+  syn2, mem2 = lif2.init_synaptic()
 
   # Lists to record output traces
   mem2_rec = []
@@ -1460,10 +1453,11 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
 ::
 
   # input spike: initial spike, and then period spiking 
-  spk_in = torch.cat((torch.zeros(10), torch.ones(1), torch.zeros(89), (torch.cat((torch.ones(1), torch.zeros(9)),0).repeat(10))), 0) * 0.85
+  spk_in = (torch.cat((torch.zeros(10), torch.ones(1), torch.zeros(89), (torch.cat((torch.ones(1), torch.zeros(9)),0).repeat(10))), 0) * 0.85).unsqueeze(1)
+  print(f"spk_in contains {spk_in.size(1)} sample of data across {spk_in.size(0)} time steps.")
 
   # initialize parameters - arg '1' is passed to indicate just one sample of data
-  syn_exc, syn_inh, mem = lif6.init_alpha(1)
+  syn_exc, syn_inh, mem = lif6.init_alpha()
   mem_rec = []
   spk_rec = []
 
@@ -1474,8 +1468,8 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
     mem_rec.append(mem.squeeze(0))
     spk_rec.append(spk_out.squeeze(0))
 
-  mem_rec = torch.stack(mem_rec).squeeze(1)
-  spk_rec = torch.stack(spk_rec).squeeze(1)
+  mem_rec = torch.stack(mem_rec)
+  spk_rec = torch.stack(spk_rec)
 
   # Generate Plots
   fig, ax = plt.subplots(3, figsize=(8,6), sharex=True, 
@@ -1488,7 +1482,7 @@ As with all other neuron models, these must be of type :code:`torch.Tensor`.
   ax[0].set_yticks([]) 
 
   # Plot membrane potential
-  ax[1].plot(mem_rec)
+  ax[1].plot(mem_rec.detach())
   ax[1].set_ylim([0, 0.6])
   ax[1].set_ylabel("Membrane Potential ($U_{mem}$)")
   ax[1].axhline(y=0.5, alpha=0.25, linestyle="dashed", c="black", linewidth=2)

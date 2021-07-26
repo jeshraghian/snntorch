@@ -227,8 +227,8 @@ If you have a basic understanding of PyTorch, the following code block should lo
       def forward(self, x):
 
           # Initialize hidden states and outputs at t=0
-          syn1, mem1 = self.lif1.init_synaptic(num_hidden, device=device)
-          syn2, mem2 = self.lif2.init_synaptic(num_outputs, device=device)
+          syn1, mem1 = self.lif1.init_synaptic()
+          syn2, mem2 = self.lif2.init_synaptic()
           
           # Record the final layer
           spk2_rec = []
