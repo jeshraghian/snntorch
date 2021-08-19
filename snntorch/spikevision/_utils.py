@@ -243,47 +243,48 @@ def legacy_aedat_to_events(filename, normalize_time=True):
 
 
 def aedat_to_events(filename):
-    '''
+    """
     Used for aedat 3.1
-    '''
-    label_filename = filename[:-6] +'_labels.csv'
-    labels = np.loadtxt(label_filename, skiprows=1, delimiter=',',dtype='uint32')
-    events=[]
-    with open(filename, 'rb') as f:
+    """
+    label_filename = filename[:-6] + "_labels.csv"
+    labels = np.loadtxt(label_filename, skiprows=1, delimiter=",", dtype="uint32")
+    events = []
+    with open(filename, "rb") as f:
         for i in range(5):
             f.readline()
         while True:
             data_ev_head = f.read(28)
-            if len(data_ev_head)==0: break
+            if len(data_ev_head) == 0:
+                break
 
-            eventtype = struct.unpack('H', data_ev_head[0:2])[0]
-            eventsource = struct.unpack('H', data_ev_head[2:4])[0]
-            eventsize = struct.unpack('I', data_ev_head[4:8])[0]
-            eventoffset = struct.unpack('I', data_ev_head[8:12])[0]
-            eventtsoverflow = struct.unpack('I', data_ev_head[12:16])[0]
-            eventcapacity = struct.unpack('I', data_ev_head[16:20])[0]
-            eventnumber = struct.unpack('I', data_ev_head[20:24])[0]
-            eventvalid = struct.unpack('I', data_ev_head[24:28])[0]
+            eventtype = struct.unpack("H", data_ev_head[0:2])[0]
+            eventsource = struct.unpack("H", data_ev_head[2:4])[0]
+            eventsize = struct.unpack("I", data_ev_head[4:8])[0]
+            eventoffset = struct.unpack("I", data_ev_head[8:12])[0]
+            eventtsoverflow = struct.unpack("I", data_ev_head[12:16])[0]
+            eventcapacity = struct.unpack("I", data_ev_head[16:20])[0]
+            eventnumber = struct.unpack("I", data_ev_head[20:24])[0]
+            eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
 
-            if(eventtype == 1):
-                event_bytes = np.frombuffer(f.read(eventnumber*eventsize), 'uint32')
-                event_bytes = event_bytes.reshape(-1,2)
+            if eventtype == 1:
+                event_bytes = np.frombuffer(f.read(eventnumber * eventsize), "uint32")
+                event_bytes = event_bytes.reshape(-1, 2)
 
-                x = (event_bytes[:,0] >> 17) & 0x00001FFF
-                y = (event_bytes[:,0] >> 2 ) & 0x00001FFF
-                p = (event_bytes[:,0] >> 1 ) & 0x00000001
-                t = event_bytes[:,1]
-                events.append([t,x,y,p])
+                x = (event_bytes[:, 0] >> 17) & 0x00001FFF
+                y = (event_bytes[:, 0] >> 2) & 0x00001FFF
+                p = (event_bytes[:, 0] >> 1) & 0x00000001
+                t = event_bytes[:, 1]
+                events.append([t, x, y, p])
 
             else:
-                f.read(eventnumber*eventsize)
+                f.read(eventnumber * eventsize)
     events = np.column_stack(events)
-    events = events.astype('uint32')
-    clipped_events = np.zeros([4,0],'uint32')
+    events = events.astype("uint32")
+    clipped_events = np.zeros([4, 0], "uint32")
     for l in labels:
-        start = np.searchsorted(events[0,:], l[1])
-        end = np.searchsorted(events[0,:], l[2])
-        clipped_events = np.column_stack([clipped_events,events[:,start:end]])
+        start = np.searchsorted(events[0, :], l[1])
+        end = np.searchsorted(events[0, :], l[2])
+        clipped_events = np.column_stack([clipped_events, events[:, start:end]])
     return clipped_events.T, labels
 
 

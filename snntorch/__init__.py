@@ -22,18 +22,28 @@ class LIF(nn.Module):
         spike_grad=None,
         init_hidden=False,
         inhibition=False,
+        learn_beta=False,
         reset_mechanism="subtract",
         output=False,
     ):
         super(LIF, self).__init__()
         LIF.instances.append(self)
 
-        self.beta = beta
         self.threshold = threshold
         self.init_hidden = init_hidden
         self.inhibition = inhibition
         self.reset_mechanism = reset_mechanism
         self.output = output
+
+        # TODO: this way, people can provide their own
+        # 1) shape (one constant per layer or one per neuron)
+        # 2) initial distribution
+        if not isinstance(beta, torch.Tensor):
+            beta = torch.as_tensor(beta)  # TODO: or .tensor() if no copy
+        if learn_beta:
+            self.beta = nn.Parameter(beta)
+        else:
+            self.register_buffer("beta", beta)
 
         if spike_grad is None:
             self.spike_grad = self.Heaviside.apply
@@ -282,6 +292,7 @@ class Leaky(LIF):
         spike_grad=None,
         init_hidden=False,
         inhibition=False,
+        learn_beta=False,
         reset_mechanism="subtract",
         output=False,
     ):
@@ -291,6 +302,7 @@ class Leaky(LIF):
             spike_grad,
             init_hidden,
             inhibition,
+            learn_beta,
             reset_mechanism,
             output,
         )
@@ -305,13 +317,17 @@ class Leaky(LIF):
         elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
             self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
+        # TODO: alternatively, we could do torch.exp(-1 / self.beta.clamp_min(0)),
+        # giving actual time constants instead of values in [0, 1] as initial beta
+        beta = self.beta.clamp(0, 1)
+
         if not self.init_hidden:
             reset = self.mem_reset(mem)
             if self.reset_mechanism == "subtract":
-                mem = self.beta * mem + input_ - reset * self.threshold
+                mem = beta * mem + input_ - reset * self.threshold
 
             elif self.reset_mechanism == "zero":
-                mem = self.beta * mem + input_ - reset * (self.beta * mem + input_)
+                mem = beta * mem + input_ - reset * (beta * mem + input_)
 
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
@@ -324,13 +340,11 @@ class Leaky(LIF):
         if self.init_hidden and not mem:
             self.reset = self.mem_reset(self.mem)
             if self.reset_mechanism == "subtract":
-                self.mem = self.beta * self.mem + input_ - self.reset * self.threshold
+                self.mem = beta * self.mem + input_ - self.reset * self.threshold
 
             elif self.reset_mechanism == "zero":
                 self.mem = (
-                    self.beta * self.mem
-                    + input_
-                    - self.reset * (self.beta * self.mem + input_)
+                    beta * self.mem + input_ - self.reset * (beta * self.mem + input_)
                 )
             if self.inhibition:
                 self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
@@ -432,6 +446,8 @@ class Synaptic(LIF):
         spike_grad=None,
         init_hidden=False,
         inhibition=False,
+        learn_alpha=False,
+        learn_beta=False,
         reset_mechanism="subtract",
         output=False,
     ):
@@ -441,11 +457,17 @@ class Synaptic(LIF):
             spike_grad,
             init_hidden,
             inhibition,
+            learn_beta,
             reset_mechanism,
             output,
         )
 
-        self.alpha = alpha
+        if not isinstance(alpha, torch.Tensor):
+            alpha = torch.as_tensor(alpha)
+        if learn_alpha:
+            self.alpha = nn.Parameter(alpha)
+        else:
+            self.register_buffer("alpha", alpha)
 
         if self.init_hidden:
             self.syn, self.mem = self.init_synaptic()
@@ -459,16 +481,19 @@ class Synaptic(LIF):
         elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
             self.syn, self.mem = _SpikeTorchConv(self.syn, self.mem, input_=input_)
 
+        alpha = self.alpha.clamp(0, 1)
+        beta = self.beta.clamp(0, 1)
+
         if not self.init_hidden:
             reset = self.mem_reset(mem)
 
-            syn = self.alpha * syn + input_
+            syn = alpha * syn + input_
 
             if self.reset_mechanism == "subtract":
-                mem = self.beta * mem + syn - reset * self.threshold
+                mem = beta * mem + syn - reset * self.threshold
 
             elif self.reset_mechanism == "zero":
-                mem = self.beta * mem + syn - reset * (self.beta * mem + syn)
+                mem = beta * mem + syn - reset * (beta * mem + syn)
 
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)
@@ -481,16 +506,16 @@ class Synaptic(LIF):
         if self.init_hidden and not mem and not syn:
             self.reset = self.mem_reset(self.mem)
 
-            self.syn = self.alpha * self.syn + input_
+            self.syn = alpha * self.syn + input_
 
             if self.reset_mechanism == "subtract":
-                self.mem = self.beta * self.mem + self.syn - self.reset * self.threshold
+                self.mem = beta * self.mem + self.syn - self.reset * self.threshold
 
             elif self.reset_mechanism == "zero":
                 self.mem = (
-                    self.beta * self.mem
+                    beta * self.mem
                     + self.syn
-                    - self.reset * (self.beta * self.mem + self.syn)
+                    - self.reset * (beta * self.mem + self.syn)
                 )
 
             if self.inhibition:
@@ -524,6 +549,8 @@ class Synaptic(LIF):
                 cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
+# TODO: this one is a bit of a mess when we want beta to be learnable,
+# any suggestions?
 class Lapicque(LIF):
     """
     An extension of Lapicque's experimental comparison between extracellular nerve fibers and an RC circuit.
@@ -557,7 +584,7 @@ class Lapicque(LIF):
             β = e^{-1/RC}
 
     * :math:`β` - Membrane potential decay rate
-    * :math:`R` - Parallel resistance of passive membrane (note: distinct from the reset $R$)
+    * :math:`R` - Parallel resistance of passive membrane (note: distinct from the reset :math:`R`)
     * :math:`C` - Parallel capacitance of passive membrane
 
     * If only β is defined, then R will default to 1, and C will be inferred.
@@ -596,7 +623,7 @@ class Lapicque(LIF):
 
     For further reading, see:
 
-    *L. Lapicque (1907) Recherches quantitatives sur l'excitation électrique des nerfs traitée comme une polarisation. J. Physiol. Pathol. Gen. 9, pp. 620-635. (French) *
+    *L. Lapicque (1907) Recherches quantitatives sur l'excitation électrique des nerfs traitée comme une polarisation. J. Physiol. Pathol. Gen. 9, pp. 620-635. (French)*
 
     *N. Brunel and M. C. Van Rossum (2007) Lapicque's 1907 paper: From frogs to integrate-and-fire. Biol. Cybern. 97, pp. 337-339. (English)*
 
@@ -612,6 +639,7 @@ class Lapicque(LIF):
         spike_grad=None,
         init_hidden=False,
         inhibition=False,
+        learn_beta=False,
         reset_mechanism="subtract",
         output=False,
     ):
@@ -621,6 +649,7 @@ class Lapicque(LIF):
             spike_grad,
             init_hidden,
             inhibition,
+            learn_beta,
             reset_mechanism,
             output,
         )
@@ -818,6 +847,8 @@ class Alpha(LIF):
         spike_grad=None,
         init_hidden=False,
         inhibition=False,
+        learn_alpha=False,
+        learn_beta=False,
         reset_mechanism="subtract",
         output=False,
     ):
@@ -827,27 +858,31 @@ class Alpha(LIF):
             spike_grad,
             init_hidden,
             inhibition,
+            learn_beta,
             reset_mechanism,
             output,
         )
 
-        self.alpha = alpha
+        if not isinstance(alpha, torch.Tensor):
+            alpha = torch.as_tensor(alpha)
+        if learn_alpha:
+            self.alpha = nn.Parameter(alpha)
+        else:
+            self.register_buffer("alpha", alpha)
 
         if self.init_hidden:
             self.syn_exc, self.syn_inh, self.mem = self.init_alpha()
 
-        if self.alpha <= self.beta:
+        if (self.alpha <= self.beta).any():
             raise ValueError("alpha must be greater than beta.")
 
-        if self.beta == 1:
+        if (self.beta == 1).any():
             raise ValueError(
                 "beta cannot be '1' otherwise ZeroDivisionError occurs: tau_srm = log(alpha)/log(beta) - log(alpha) + 1"
             )
 
         # if reset_mechanism == "subtract":
         #     self.mem_residual = False
-
-        self.tau_srm = np.log(self.alpha) / (np.log(self.beta) - np.log(self.alpha)) + 1
 
     def forward(self, input_, syn_exc=False, syn_inh=False, mem=False):
 
@@ -864,6 +899,10 @@ class Alpha(LIF):
                 self.syn_exc, self.syn_inh, self.mem, input_=input_
             )
 
+        alpha = self.alpha.clamp(0, 1)
+        beta = self.beta.clamp(0, 1)
+        tau_srm = torch.log(alpha) / (torch.log(beta) - torch.log(alpha)) + 1
+
         # if hidden states are passed externally
         if not self.init_hidden:
             reset = self.mem_reset(mem)
@@ -874,27 +913,23 @@ class Alpha(LIF):
                 # if self.mem_residual is False:
                 #     self.mem_residual = torch.zeros_like(mem)
 
-                syn_exc = (self.alpha * syn_exc + input_) - reset * (
-                    self.alpha * syn_exc + input_
+                syn_exc = (alpha * syn_exc + input_) - reset * (
+                    alpha * syn_exc + input_
                 )
-                syn_inh = (self.beta * syn_inh - input_) - reset * (
-                    self.beta * syn_inh - input_
-                )
+                syn_inh = (beta * syn_inh - input_) - reset * (beta * syn_inh - input_)
                 #  #The residual of (mem - threshold) decays separately
                 # self.mem_residual = reset * (mem - self.threshold) + (
                 #     self.mem_residual / self.tau_srm
                 # )
-                mem = self.tau_srm * (syn_exc + syn_inh)  # + self.mem_residual
+                mem = tau_srm * (syn_exc + syn_inh)  # + self.mem_residual
 
             # if neuron fires, reset membrane to zero
             elif self.reset_mechanism == "zero":
-                syn_exc = (self.alpha * syn_exc + input_) - reset * (
-                    self.alpha * syn_exc + input_
+                syn_exc = (alpha * syn_exc + input_) - reset * (
+                    alpha * syn_exc + input_
                 )
-                syn_inh = (self.beta * syn_inh - input_) - reset * (
-                    self.beta * syn_inh - input_
-                )
-                mem = self.tau_srm * (syn_exc + syn_inh)
+                syn_inh = (beta * syn_inh - input_) - reset * (beta * syn_inh - input_)
+                mem = tau_srm * (syn_exc + syn_inh)
 
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)
@@ -915,30 +950,30 @@ class Alpha(LIF):
                 # if self.mem_residual is False:
                 #     self.mem_residual = torch.zeros_like(self.mem)
 
-                self.syn_exc = (self.alpha * self.syn_exc + input_) - self.reset * (
-                    self.alpha * self.syn_exc + input_
+                self.syn_exc = (alpha * self.syn_exc + input_) - self.reset * (
+                    alpha * self.syn_exc + input_
                 )
-                syn_inh = (self.beta * self.syn_inh - input_) - self.reset * (
-                    self.beta * self.syn_inh - input_
+                syn_inh = (beta * self.syn_inh - input_) - self.reset * (
+                    beta * self.syn_inh - input_
                 )
                 # # The residual of (mem - threshold) decays separately
                 # self.mem_residual = self.reset * (self.mem - self.threshold) + (
                 #     self.mem_residual / self.tau_srm
                 # )
-                self.mem = self.tau_srm * (
+                self.mem = tau_srm * (
                     self.syn_exc + self.syn_inh
                 )  # + self.mem_residual
 
             # if neuron fires, reset membrane to zero
             elif self.reset_mechanism == "zero":
 
-                syn_exc = (self.alpha * syn_exc + input_) - self.reset * (
-                    self.alpha * syn_exc + input_
+                syn_exc = (alpha * syn_exc + input_) - self.reset * (
+                    alpha * syn_exc + input_
                 )
-                syn_inh = (self.beta * syn_inh - input_) - self.reset * (
-                    self.beta * syn_inh - input_
+                syn_inh = (beta * syn_inh - input_) - self.reset * (
+                    beta * syn_inh - input_
                 )
-                self.mem = self.tau_srm * (syn_exc + syn_inh)
+                self.mem = tau_srm * (syn_exc + syn_inh)
 
             if self.inhibition:
                 self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
@@ -1061,6 +1096,8 @@ class Stein(LIF):  # see: Synaptic(LIF)
         spike_grad=None,
         init_hidden=False,
         inhibition=False,
+        learn_alpha=False,
+        learn_beta=False,
         reset_mechanism="subtract",
         output=False,
     ):
@@ -1070,6 +1107,7 @@ class Stein(LIF):  # see: Synaptic(LIF)
             spike_grad,
             init_hidden,
             inhibition,
+            learn_beta,
             reset_mechanism,
             output,
         )
