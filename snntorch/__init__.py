@@ -29,7 +29,7 @@ class LIF(nn.Module):
         super(LIF, self).__init__()
         LIF.instances.append(self)
 
-        self.threshold = threshold
+        # self.threshold = threshold
         self.init_hidden = init_hidden
         self.inhibition = inhibition
         self.reset_mechanism = reset_mechanism
@@ -44,6 +44,10 @@ class LIF(nn.Module):
             self.beta = nn.Parameter(beta)
         else:
             self.register_buffer("beta", beta)
+
+        if not isinstance(threshold, torch.Tensor):
+            threshold = torch.as_tensor(threshold)  # TODO: or .tensor() if no copy
+        self.register_buffer("threshold", threshold)
 
         if spike_grad is None:
             self.spike_grad = self.Heaviside.apply
@@ -549,8 +553,6 @@ class Synaptic(LIF):
                 cls.instances[layer].mem = _SpikeTensor(init_flag=False)
 
 
-# TODO: this one is a bit of a mess when we want beta to be learnable,
-# any suggestions?
 class Lapicque(LIF):
     """
     An extension of Lapicque's experimental comparison between extracellular nerve fibers and an RC circuit.
@@ -590,6 +592,8 @@ class Lapicque(LIF):
     * If only β is defined, then R will default to 1, and C will be inferred.
     * If RC is defined, β will be automatically calculated.
     * If (β and R) or (β and C) are defined, the missing variable will be automatically calculated.
+
+    * Note that β, R and C are treated as `hard-wired' physically plausible parameters, and are therefore not learnable. For a single-state neuron with a learnable decay rate β, use `snn.Leaky` instead.
 
     Example::
 
@@ -654,37 +658,14 @@ class Lapicque(LIF):
             output,
         )
 
-        self.R = R
-        self.C = C
-        self.time_step = time_step
-
-        if not self.beta and not (self.R and self.C):
-            raise ValueError(
-                "Either beta or 2 of beta, R and C must be specified as an input argument."
-            )
-
-        elif not self.beta and (bool(self.R) ^ bool(self.C)):
-            raise ValueError(
-                "Either beta or 2 of beta, R and C must be specified as an input argument."
-            )
-
-        elif (self.R and self.C) and not self.beta:
-            self.beta = torch.exp(torch.ones(1) * (-self.time_step / (self.R * self.C)))
-
-        elif self.beta and not (self.R and self.C):
-            self.R = 1
-            self.C = self.time_step / (self.R * torch.log(torch.tensor(1 / self.beta)))
-
-        elif self.beta and self.R and not self.C:
-            self.C = self.time_step / (self.R * torch.log(torch.tensor(1 / self.beta)))
-
-        elif self.beta and self.C and not self.R:
-            self.R = self.time_step / (self.C * torch.log(torch.tensor(1 / self.beta)))
-
+        self._lapicque_cases(time_step, beta, R, C)
         if self.init_hidden:
             self.mem = self.init_lapicque()
 
     def forward(self, input_, mem=False):
+
+        R = self.R
+        C = self.C
 
         if hasattr(mem, "init_flag"):  # only triggered on first-pass
             mem = _SpikeTorchConv(mem, input_=input_)
@@ -696,20 +677,20 @@ class Lapicque(LIF):
 
             if self.reset_mechanism == "subtract":
                 mem = (
-                    input_ * self.R * (1 / (self.R * self.C)) * self.time_step
-                    + (1 - (self.time_step / (self.R * self.C))) * mem
+                    input_ * R * (1 / (R * C)) * self.time_step
+                    + (1 - (self.time_step / (R * C))) * mem
                     - reset * self.threshold
                 )
 
             elif self.reset_mechanism == "zero":
                 mem = (
-                    input_ * self.R * (1 / (self.R * self.C)) * self.time_step
-                    + (1 - (self.time_step / (self.R * self.C))) * mem
+                    input_ * R * (1 / (R * C)) * self.time_step
+                    + (1 - (self.time_step / (R * C))) * mem
                     - reset
                     * (
                         (
-                            input_ * self.R * (1 / (self.R * self.C)) * self.time_step
-                            + (1 - (self.time_step / (self.R * self.C))) * mem
+                            input_ * R * (1 / (R * C)) * self.time_step
+                            + (1 - (self.time_step / (R * C))) * mem
                         )
                     )
                 )
@@ -727,20 +708,20 @@ class Lapicque(LIF):
 
             if self.reset_mechanism == "subtract":
                 self.mem = (
-                    input_ * self.R * (1 / (self.R * self.C)) * self.time_step
-                    + (1 - (self.time_step / (self.R * self.C))) * self.mem
+                    input_ * R * (1 / (R * C)) * self.time_step
+                    + (1 - (self.time_step / (R * C))) * self.mem
                     - self.reset * self.threshold
                 )
 
             elif self.reset_mechanism == "zero":
                 self.mem = (
-                    input_ * self.R * (1 / (self.R * self.C)) * self.time_step
-                    + (1 - (self.time_step / (self.R * self.C))) * self.mem
+                    input_ * R * (1 / (R * C)) * self.time_step
+                    + (1 - (self.time_step / (R * C))) * self.mem
                     - self.reset
                     * (
                         (
-                            input_ * self.R * (1 / (self.R * self.C)) * self.time_step
-                            + (1 - (self.time_step / (self.R * self.C))) * self.mem
+                            input_ * R * (1 / (R * C)) * self.time_step
+                            + (1 - (self.time_step / (R * C))) * self.mem
                         )
                     )
                 )
@@ -754,6 +735,57 @@ class Lapicque(LIF):
                 return self.spk, self.mem
             else:
                 return self.spk
+
+    def _lapicque_cases(self, time_step, beta, R, C):
+        if not isinstance(time_step, torch.Tensor):
+            time_step = torch.as_tensor(time_step)
+        self.register_buffer("time_step", time_step)
+
+        if not self.beta and not (R and C):
+            raise ValueError(
+                "Either beta or 2 of beta, R and C must be specified as an input argument."
+            )
+
+        elif not self.beta and (bool(R) ^ bool(C)):
+            raise ValueError(
+                "Either beta or 2 of beta, R and C must be specified as an input argument."
+            )
+
+        elif (R and C) and not self.beta:
+            beta = torch.exp(torch.ones(1) * (-self.time_step / (R * C)))
+
+            self.register_buffer("beta", beta)
+
+            if not isinstance(R, torch.Tensor):
+                R = torch.as_tensor(R)
+            self.register_buffer("R", R)
+            if not isinstance(C, torch.Tensor):
+                C = torch.as_tensor(C)
+            self.register_buffer("C", C)
+
+        elif self.beta and not (R or C):
+            R = torch.as_tensor(1)
+            self.register_buffer("R", R)
+            C = self.time_step / (R * torch.log(1 / self.beta))
+            self.register_buffer("C", C)
+            if not isinstance(R, torch.Tensor):
+                self.register_buffer("beta", self.beta)
+
+        elif self.beta and R and not C:
+            C = self.time_step / (R * torch.log(1 / self.beta))
+            self.register_buffer("C", C)
+            if not isinstance(R, torch.Tensor):
+                R = torch.as_tensor(R)
+            self.register_buffer("R", R)
+            self.register_buffer("beta", self.beta)
+
+        elif self.beta and C and not R:
+            if not isinstance(C, torch.Tensor):
+                C = torch.as_tensor(C)
+            self.register_buffer("C", C)
+            self.register_buffer("beta", self.beta)
+            R = self.time_step / (C * torch.log(1 / self.beta))
+            self.register_buffer("R", R)
 
     @classmethod
     def detach_hidden(cls):

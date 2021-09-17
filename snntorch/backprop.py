@@ -48,7 +48,7 @@ def TBPTT(
         # train_loader is of type torch.utils.data.DataLoader
         # backprop is automatically applied every K=40 time steps
         for epoch in range(5):
-            loss, spk, mem = backprop.TBPTT(net, train_loader, num_steps=num_steps,
+            loss = backprop.TBPTT(net, train_loader, num_steps=num_steps,
             optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device, K=40)
 
 
@@ -82,11 +82,6 @@ def TBPTT(
     :return: return average loss for one epoch
     :rtype: torch.Tensor
 
-    :return: return output spikes over time
-    :rtype: torch.Tensor
-
-    :return: return output membrane potential trace over time
-    :rtype: torch.Tensor
     """
 
     if K > num_steps:
@@ -151,8 +146,6 @@ def TBPTT(
     loss_trunc = 0  # reset every K time steps
     loss_avg = 0
 
-    mem_rec = []
-    spk_rec = []
     mem_rec_trunc = []
     spk_rec_trunc = []
 
@@ -197,8 +190,8 @@ def TBPTT(
 
             step_trunc += 1
             if step_trunc == K:
-                spk_rec += spk_rec_trunc
-                mem_rec += mem_rec_trunc
+                # spk_rec += spk_rec_trunc # test
+                # mem_rec += mem_rec_trunc # test
 
                 spk_rec_trunc = torch.stack(spk_rec_trunc, dim=0)
                 mem_rec_trunc = torch.stack(mem_rec_trunc, dim=0)
@@ -250,8 +243,8 @@ def TBPTT(
                 mem_rec_trunc = []
 
         if (step == num_steps - 1) and (num_steps % K):
-            spk_rec += spk_rec_trunc
-            mem_rec += mem_rec_trunc
+            # spk_rec += spk_rec_trunc # test
+            # mem_rec += mem_rec_trunc  # test
 
             spk_rec_trunc = torch.stack(spk_rec_trunc, dim=0)
             mem_rec_trunc = torch.stack(mem_rec_trunc, dim=0)
@@ -296,7 +289,7 @@ def TBPTT(
                 if neuron:
                     neurons_dict[neuron].detach_hidden()
 
-    return loss_avg, spk_rec, mem_rec
+    return loss_avg  # , spk_rec, mem_rec
 
 
 def BPTT(
@@ -341,7 +334,7 @@ def BPTT(
         # train_loader is of type torch.utils.data.DataLoader
         # backprop is automatically applied every K=40 time steps
         for epoch in range(5):
-            loss, spk, mem = backprop.BPTT(net, train_loader, num_steps=num_steps,
+            loss = backprop.BPTT(net, train_loader, num_steps=num_steps,
             optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device)
 
 
@@ -370,12 +363,6 @@ def BPTT(
     :type device: string, optional
 
     :return: return average loss for one epoch
-    :rtype: torch.Tensor
-
-    :return: return output spikes over time
-    :rtype: torch.Tensor
-
-    :return: return output membrane potential trace over time
     :rtype: torch.Tensor
     """
 
@@ -436,7 +423,7 @@ def RTRL(
         # train_loader is of type torch.utils.data.DataLoader
         # backprop is automatically applied every K=40 time steps
         for epoch in range(5):
-            loss, spk, mem = backprop.RTRL(net, train_loader, num_steps=num_steps,
+            loss = backprop.RTRL(net, train_loader, num_steps=num_steps,
             optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device)
 
 
@@ -468,12 +455,6 @@ def RTRL(
     :type K: int, optional
 
     :return: return average loss for one epoch
-    :rtype: torch.Tensor
-
-    :return: return output spikes over time
-    :rtype: torch.Tensor
-
-    :return: return output membrane potential trace over time
     :rtype: torch.Tensor
     """
 
