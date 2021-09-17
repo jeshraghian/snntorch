@@ -471,111 +471,111 @@ def RTRL(
     )
 
 
-def BPTF(
-    net,
-    dataloader,
-    num_steps,  # must be specified in case data in is static
-    optimizer,
-    criterion,
-    time_var,  # specifies if data is time_varying
-    regularization=False,
-    device="cpu",
-    K=1,
-):
-    """Backpropagation to the future. LIF layers require parameter ``init_hidden = True``.
-    Forward and backward passes are performed at every time step. Gradients from previous time steps are propagated forward and scaled by the leaky rate.
+# def BPTF(
+#     net,
+#     dataloader,
+#     num_steps,  # must be specified in case data in is static
+#     optimizer,
+#     criterion,
+#     time_var,  # specifies if data is time_varying
+#     regularization=False,
+#     device="cpu",
+#     K=1,
+# ):
+#     """Backpropagation to the future. LIF layers require parameter ``init_hidden = True``.
+#     Forward and backward passes are performed at every time step. Gradients from previous time steps are propagated forward and scaled by the leaky rate.
 
-    Example::
+#     Example::
 
-        import snntorch as snn
-        import snntorch.functional as SF
-        from snntorch import utils
-        from snntorch import backprop
-        import torch
-        import torch.nn as nn
+#         import snntorch as snn
+#         import snntorch.functional as SF
+#         from snntorch import utils
+#         from snntorch import backprop
+#         import torch
+#         import torch.nn as nn
 
-        lif1 = snn.Leaky(beta=0.9, init_hidden=True)
-        lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
+#         lif1 = snn.Leaky(beta=0.9, init_hidden=True)
+#         lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
 
-        net = nn.Sequential(nn.Flatten(),
-                            nn.Linear(784,500),
-                            lif1,
-                            nn.Linear(500, 10),
-                            lif2).to(device)
+#         net = nn.Sequential(nn.Flatten(),
+#                             nn.Linear(784,500),
+#                             lif1,
+#                             nn.Linear(500, 10),
+#                             lif2).to(device)
 
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-        num_steps = 100
+#         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+#         num_steps = 100
 
-        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
-        loss_fn = SF.mse_count_loss()
-        reg_fn = SF.l1_rate_sparsity()
+#         optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
+#         loss_fn = SF.mse_count_loss()
+#         reg_fn = SF.l1_rate_sparsity()
 
-        # train_loader is of type torch.utils.data.DataLoader
-        # backprop is automatically applied every K=40 time steps
-        for epoch in range(5):
-            loss, spk, mem = backprop.BPTF(net, train_loader, num_steps=num_steps,
-            optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device)
-
-
-    :param net: Network model (either wrapped in Sequential container or as a class)
-    :type net: torch.nn.modules.container.Sequential
-
-    :param dataloader: DataLoader containing data and targets
-    :type dataloader: torch.utils.data.DataLoader
-
-    :param num_steps: Number of time steps
-    :type num_steps: int
-
-    :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
-    :type optimizer: torch.optim
-
-    :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
-    :type criterion: snn.functional.LossFunctions
-
-    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims].
-    :type time_var: Bool
-
-    :param regularization: Option to add a regularization term to the loss function
-    :type regularization: snn.functional regularization function, optional
-
-    :param device: Specify either "cuda" or "cpu", defaults to "cpu"
-    :type device: string, optional
-
-    :param K: Number of time steps to process per weight update, defaults to ``1``
-    :type K: int, optional
-
-    :return: return average loss for one epoch
-    :rtype: torch.Tensor
-
-    :return: return output spikes over time
-    :rtype: torch.Tensor
-
-    :return: return output membrane potential trace over time
-    :rtype: torch.Tensor
-    """
+#         # train_loader is of type torch.utils.data.DataLoader
+#         # backprop is automatically applied every K=40 time steps
+#         for epoch in range(5):
+#             loss, spk, mem = backprop.BPTF(net, train_loader, num_steps=num_steps,
+#             optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device)
 
 
-def _rec_trunc(
-    spk,
-    mem,
-    regularization,
-    loss_spk,
-    reg_spk=False,
-    spk_rec_trunc=False,
-    mem_rec_trunc=False,
-):
-    """Creates truncated mem and spk tensors where needed by criterion & regularization."""
+#     :param net: Network model (either wrapped in Sequential container or as a class)
+#     :type net: torch.nn.modules.container.Sequential
 
-    if regularization:
-        if loss_spk and reg_spk:
-            spk_rec_trunc.append(spk)
-        if loss_spk != reg_spk:
-            spk_rec_trunc.append(spk)
-            mem_rec_trunc.append(mem)
-        else:
-            mem_rec_trunc.append(mem)
-    else:
-        if loss_spk:  # risk: removing option for losses with both mem and spk
-            spk_rec_trunc.append(spk)
-        else:
-            mem_rec_trunc.append(mem)
+#     :param dataloader: DataLoader containing data and targets
+#     :type dataloader: torch.utils.data.DataLoader
+
+#     :param num_steps: Number of time steps
+#     :type num_steps: int
+
+#     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
+#     :type optimizer: torch.optim
+
+#     :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
+#     :type criterion: snn.functional.LossFunctions
+
+#     :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims].
+#     :type time_var: Bool
+
+#     :param regularization: Option to add a regularization term to the loss function
+#     :type regularization: snn.functional regularization function, optional
+
+#     :param device: Specify either "cuda" or "cpu", defaults to "cpu"
+#     :type device: string, optional
+
+#     :param K: Number of time steps to process per weight update, defaults to ``1``
+#     :type K: int, optional
+
+#     :return: return average loss for one epoch
+#     :rtype: torch.Tensor
+
+#     :return: return output spikes over time
+#     :rtype: torch.Tensor
+
+#     :return: return output membrane potential trace over time
+#     :rtype: torch.Tensor
+#     """
+
+
+# def _rec_trunc(
+#     spk,
+#     mem,
+#     regularization,
+#     loss_spk,
+#     reg_spk=False,
+#     spk_rec_trunc=False,
+#     mem_rec_trunc=False,
+# ):
+#     """Creates truncated mem and spk tensors where needed by criterion & regularization."""
+
+#     if regularization:
+#         if loss_spk and reg_spk:
+#             spk_rec_trunc.append(spk)
+#         if loss_spk != reg_spk:
+#             spk_rec_trunc.append(spk)
+#             mem_rec_trunc.append(mem)
+#         else:
+#             mem_rec_trunc.append(mem)
+#     else:
+#         if loss_spk:  # risk: removing option for losses with both mem and spk
+#             spk_rec_trunc.append(spk)
+#         else:
+#             mem_rec_trunc.append(mem)
