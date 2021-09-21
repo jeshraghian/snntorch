@@ -15,10 +15,10 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_1_spikegen.ipynb
 
    * - `Tutorial 2 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_2.html>`_
-     - Neuronal Dynamics with snnTorch
+     - The Leaky Integrate and Fire Neuron
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
-        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_2_neuronal_dynamics.ipynb
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_2_lif_neuron.ipynb
 
    * - `Tutorial 3 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_3.html>`_
      - Deep Learning with snnTorch
