@@ -1,5 +1,5 @@
 ================================================
-snnTorch - A Feedforward Spiking Neural Network
+Tutorial 3 - A Feedforward Spiking Neural Network
 ================================================
 
 Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.jasoneshraghian.com>`_)
