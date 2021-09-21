@@ -262,7 +262,7 @@ into the filter.
 
 
 2.1 Modelling the Alpha Neuron Model
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Formally, this process is represented by:
 
@@ -352,13 +352,13 @@ As with all other neuron models, these must be of type ``torch.Tensor``.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial4/_static/alpha.png?raw=true
         :align: center
-        :width: 550
+        :width: 500
 
 As with the Lapicque and Synaptic models, the Alpha model also has
 options to modify the threshold and reset mechanism.
 
 2.2 Practical Considerations
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As mentioned for the Synaptic neuron, the more complex a model, the more
 complex the backpropagation process during training. In my own
@@ -383,7 +383,7 @@ option for porting across SRM-based models over into snnTorch, although
 natively training them seems to not be too effective here.
 
 Conclusion
-==========
+------------
 
 We have covered all LIF neuron models available in snnTorch. As a quick
 summary:

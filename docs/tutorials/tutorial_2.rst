@@ -359,7 +359,7 @@ The membrane potential will decay over time in the absence of any input
 stimuli.
 
 3.2 Lapicque: Step Input
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now let’s apply a step current :math:`I_{\rm in}(t)` that switches on at
 :math:`t=t_0`. Given the linear first-order differential equation:
