@@ -31,11 +31,11 @@ In this tutorial, you will:
 
 Install the latest PyPi distribution of snnTorch:
 
-.. code:: ipython3
+::
 
-    !pip install snntorch
+    pip install snntorch
 
-.. code:: ipython3
+::
 
     import snntorch as snn
     from snntorch import spikeplot as splt
@@ -238,7 +238,7 @@ the following time step gives:
 
 Let’s write a function that represents this last equation below:
 
-.. code:: ipython3
+::
 
     def leaky_integrate_neuron(U, time_step=1e-3, I=0, R=5e7, C=1e-10):
       tau = R*C
@@ -255,7 +255,7 @@ there is no injected input current, :math:`I_{\rm in}=0 A`, and our
 simulation is performed with a millisecond precision
 :math:`\Delta t=1\times 10^{-3}`\ s.
 
-.. code:: ipython3
+::
 
     num_steps = 100
     U = 0.9
@@ -295,7 +295,7 @@ We can instantiate Lapicque’s neuron using the following line of code.
 Let’s change R & C to simpler values, while keeping the previous time
 constant of :math:`\tau=5\times10^{-3}`\ s.
 
-.. code:: ipython3
+::
 
     time_step = 1e-3
     R = 5
@@ -318,7 +318,7 @@ To use this neuron:
 
 These all need to be of type ``torch.Tensor``.
 
-.. code:: ipython3
+::
 
     # Initialize membrane, input, and output
     mem = torch.ones(1) * 0.9  # U=0.9 at t=0
@@ -329,7 +329,7 @@ These values are only for the initial time step :math:`t=0`. We’d like
 to watch the evolution of ``mem`` over time. The list ``mem_rec`` is
 initialized to record these values at every time step.
 
-.. code:: ipython3
+::
 
     # Initialize somewhere to store recordings of membrane potential
     mem_rec = [mem]
@@ -337,7 +337,7 @@ initialized to record these values at every time step.
 Now it’s time to run a simulation! At each time step, ``mem`` will be
 updated and recorded in ``mem_rec``:
 
-.. code:: ipython3
+::
 
     # pass updated value of mem and cur_in[step]=0 at every time step
     for step in range(num_steps):
@@ -380,7 +380,7 @@ Based on this explicit time-dependent form, we expect
 Let’s visualize what this looks like by triggering a current pulse of
 :math:`I_{in}=100mA` at :math:`t_0 = 10ms`.
 
-.. code:: ipython3
+::
 
     # Initialize input current pulse
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.1), 0)  # input current turns on at t=10
@@ -393,7 +393,7 @@ Let’s visualize what this looks like by triggering a current pulse of
 This time, the new values of ``cur_in`` will be passed to our the input
 of the neuron:
 
-.. code:: ipython3
+::
 
     num_steps = 200
     
@@ -414,7 +414,7 @@ of the neuron:
 As :math:`t\rightarrow \infty`, the membrane potential
 :math:`U_{\rm mem}` exponentially relaxes to :math:`I_{\rm in}R`:
 
-.. code:: ipython3
+::
 
     >>> print(f"The calculated value of input pulse [A] x resistance [Ω] is: {cur_in[11]*lif1.R} V")
     >>> print(f"The simulated value of steady-state membrane potential is: {mem_rec[200][0]} V")
@@ -429,7 +429,7 @@ Close enough!
 
 Now what if the step input was clipped at :math:`t=30ms`?
 
-.. code:: ipython3
+::
 
     # Initialize current pulse, membrane and outputs
     cur_in1 = torch.cat((torch.zeros(10), torch.ones(20)*(0.1), torch.zeros(170)), 0)  # input turns on at t=10, off at t=30
@@ -437,7 +437,7 @@ Now what if the step input was clipped at :math:`t=30ms`?
     spk_out = torch.zeros(1)
     mem_rec1 = [mem]
 
-.. code:: ipython3
+::
 
     # neuron simulation
     for step in range(num_steps):
@@ -461,7 +461,7 @@ Let’s deliver approximately the same amount of charge
 input current amplitude will need to be increased by a little, and the
 time window will be decreased.
 
-.. code:: ipython3
+::
 
     # Increase amplitude of current pulse; half the time.
     cur_in2 = torch.cat((torch.zeros(10), torch.ones(10)*0.111, torch.zeros(180)), 0)  # input turns on at t=10, off at t=20
@@ -486,7 +486,7 @@ time window will be decreased.
 Let’s do that again, but with an even faster input pulse and higher
 amplitude:
 
-.. code:: ipython3
+::
 
     # Increase amplitude of current pulse; quarter the time.
     cur_in3 = torch.cat((torch.zeros(10), torch.ones(5)*0.147, torch.zeros(185)), 0)  # input turns on at t=10, off at t=15
@@ -511,7 +511,7 @@ amplitude:
 Let’s compare all three experiments on the same plot:
 
 
-.. code:: ipython3
+::
 
     compare_plots(cur_in1, cur_in2, cur_in3, mem_rec1, mem_rec2, mem_rec3, 10, 15, 
                   20, 30, "Lapicque's Neuron Model With Input Pulse: Varying inputs")
@@ -525,7 +525,7 @@ membrane potential speeds up. In the limit of the input current pulse
 width becoming infinitesimally small, :math:`T_W \rightarrow 0s`, the
 membrane potential will jump straight up in virtually zero rise time:
 
-.. code:: ipython3
+::
 
     # Current spike input
     cur_in4 = torch.cat((torch.zeros(10), torch.ones(1)*0.5, torch.zeros(189)), 0)  # input only on for 1 time step
@@ -588,7 +588,7 @@ will be generated, external to the passive membrane model.
 Let’s modify our ``leaky_integrate_neuron`` function from before to add
 a spike response.
 
-.. code:: ipython3
+::
 
     # R=5.1, C=5e-3 for illustrative purposes
     def leaky_integrate_and_fire(mem, cur=0, threshold=1, time_step=1e-3, R=5.1, C=5e-3):
@@ -600,7 +600,7 @@ a spike response.
 Let’s set ``threshold=1``, and apply a step current to get this neuron
 spiking.
 
-.. code:: ipython3
+::
 
     # Small step current input
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.2), 0)
@@ -634,7 +634,7 @@ potential.
 
 Let’s implement this reset mechanism into our neuron:
 
-.. code:: ipython3
+::
 
     # LIF w/Reset mechanism
     def leaky_integrate_and_fire(mem, cur=0, threshold=1, time_step=1e-3, R=5.1, C=5e-3):
@@ -643,7 +643,7 @@ Let’s implement this reset mechanism into our neuron:
       mem = mem + (time_step/tau_mem)*(-mem + cur*R) - spk*threshold  # every time spk=1, subtract the threhsold
       return mem, spk
 
-.. code:: ipython3
+::
 
     # Small step current input
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.2), 0)
@@ -677,7 +677,7 @@ occur. Feel free to go back up, change the values, and test it out.
 We can condense the amount of code we write by again calling the
 built-in Lapicque neuron model from snnTorch:
 
-.. code:: ipython3
+::
 
     # Create the same neuron as before using snnTorch
     lif2 = snn.Lapicque(R=5.1, C=5e-3, time_step=1e-3)
@@ -685,7 +685,7 @@ built-in Lapicque neuron model from snnTorch:
     >>> print(f"Membrane potential time constant: {lif2.R * lif2.C:.3f}s")
     "Membrane potential time constant: 0.025s"
 
-.. code:: ipython3
+::
 
     # Initialize inputs and outputs
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.2), 0)
@@ -716,7 +716,7 @@ at which point it resets. We can roughly see this occurs between
 :math:`105ms < t_{\rm spk} < 115ms`. As a matter of curiousity, let’s
 see what the spike recording actually consists of:
 
-.. code:: ipython3
+::
 
     >>> print(spk_rec[105:115].view(-1))
     tensor([0., 0., 0., 0., 1., 0., 0., 0., 0., 0.])
@@ -734,7 +734,7 @@ process.
 If :math:`I_{\rm in}` is increased, then the membrane potential
 approaches the threshold :math:`U_{\rm thr}` faster:
 
-.. code:: ipython3
+::
 
     # Initialize inputs and outputs
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.3), 0)  # increased current
@@ -765,7 +765,7 @@ A similar increase in firing frequency can also be induced by decreasing
 the threshold. This requires initializing a new neuron model, but the
 rest of the code block is the exact same as above:
 
-.. code:: ipython3
+::
 
     # neuron with halved threshold
     lif3 = snn.Lapicque(R=5.1, C=5e-3, time_step=1e-3, threshold=0.5)
@@ -808,20 +808,20 @@ Let’s harness some of the skills we learnt in `Tutorial
 and use the ``snntorch.spikegen`` module to create some randomly
 generated input spikes.
 
-.. code:: ipython3
+::
 
     # Create a 1-D random spike train. Each element has a probability of 40% of firing.
     spk_in = spikegen.rate_conv(torch.ones((num_steps)) * 0.40)
 
 Run the following code block to see how many spikes have been generated.
 
-.. code:: ipython3
+::
 
     # Tell me the number of spikes
     >>> print(f"There are {int(sum(spk_in))} total spikes out of {len(spk_in)} time steps.")
     "There are 85 total spikes out of 200 time steps."
 
-.. code:: ipython3
+::
 
     # Now show me the spikes
     fig = plt.figure(facecolor="w", figsize=(8, 1))
@@ -837,7 +837,7 @@ Run the following code block to see how many spikes have been generated.
         :align: center
         :width: 400
 
-.. code:: ipython3
+::
 
     # Initialize inputs and outputs
     mem = torch.ones(1)*0.5
@@ -891,7 +891,7 @@ By default, snnTorch neuron models use ``reset_mechanism = "subtract"``.
 This can be explicitly overridden by passing the argument
 ``reset_mechanism =  "zero"``.
 
-.. code:: ipython3
+::
 
     # Neuron with reset_mechanism set to "zero"
     lif4 = snn.Lapicque(R=5.1, C=5e-3, time_step=1e-3, threshold=0.5, reset_mechanism="zero")

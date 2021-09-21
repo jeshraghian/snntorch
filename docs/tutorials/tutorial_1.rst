@@ -76,9 +76,9 @@ using a few different techniques. So let’s get started!
 
 Install the latest PyPi distribution of snnTorch:
 
-.. code:: ipython3
+::
 
-    !pip install snntorch
+    pip install snntorch
 
 1. Setting up the MNIST Dataset
 -------------------------------
@@ -86,12 +86,12 @@ Install the latest PyPi distribution of snnTorch:
 1.1. Import packages and setup environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+::
 
     import snntorch as snn
     import torch
 
-.. code:: ipython3
+::
 
     # Training Parameters
     batch_size=128
@@ -104,7 +104,7 @@ Install the latest PyPi distribution of snnTorch:
 1.2 Download Dataset
 ~~~~~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+::
 
     from torchvision import datasets, transforms
     
@@ -120,7 +120,7 @@ Install the latest PyPi distribution of snnTorch:
 If the above code blocks throws an error, e.g. the MNIST servers are
 down, then uncomment the following code instead.
 
-.. code:: ipython3
+::
 
     # # temporary dataloader if MNIST service is unavailable
     # !wget www.di.ens.fr/~lelarge/MNIST.tar.gz
@@ -135,7 +135,7 @@ modifying datasets. We can apply ``data_subset`` to reduce the dataset
 by the factor defined in ``subset``. E.g., for ``subset=10``, a
 training set of 60,000 will be reduced to 6,000.
 
-.. code:: ipython3
+::
 
     from snntorch import utils
     
@@ -144,7 +144,7 @@ training set of 60,000 will be reduced to 6,000.
 
 To verify, we can take a look at the length of each of our datasets:
 
-.. code:: ipython3
+::
 
     >>> print(f"The size of mnist_train is {len(mnist_train)}")
     The size of mnist_train is 6000
@@ -158,7 +158,7 @@ DataLoader will serve it up in batches. DataLoaders in PyTorch are a
 handy interface for passing data into a network. They return an iterator
 divided up into mini-batches of size ``batch_size``.
 
-.. code:: ipython3
+::
 
     from torch.utils.data import DataLoader
     
@@ -229,7 +229,7 @@ Explicitly, the probability a spike occurs is:
 Let’s create a vector filled with the value ‘0.5’ and encode it using
 the above technique:
 
-.. code:: ipython3
+::
 
     # Temporal Dynamics
     num_steps = 10
@@ -247,7 +247,7 @@ the above technique:
 
 Now try again, but increasing the length of ``raw_vector``:
 
-.. code:: ipython3
+::
 
     num_steps = 100
     
@@ -275,7 +275,7 @@ In a similar way, we can use ``spikegen.rate`` to generate a rate-coded
 sample of data. As each sample of MNIST is just an image, we can use
 ``num_steps`` to repeat it across time.
 
-.. code:: ipython3
+::
 
     from snntorch import spikegen
     
@@ -293,7 +293,7 @@ represents a probability.
 The structure of the input data is
 ``[num_steps x batch_size x input dimensions]``:
 
-.. code:: ipython3
+::
 
     >>> print(spike_data.size())
     torch.Size([100, 128, 1, 28, 28])
@@ -309,7 +309,7 @@ snnTorch contains a module
 that can simplify the process of visualizing, plotting, and animating
 spiking neurons.
 
-.. code:: ipython3
+::
 
     import matplotlib.pyplot as plt
     import snntorch.spikeplot as splt
@@ -318,7 +318,7 @@ spiking neurons.
 To plot one sample of data, we have to index into the batch (B)
 dimension of ``spike_data``, ``[T x B x 1 x 28 x 28]``:
 
-.. code:: ipython3
+::
 
     spike_data_sample = spike_data[:, 0, 0]
     >>> print(spike_data_sample.size())
@@ -328,7 +328,7 @@ dimension of ``spike_data``, ``[T x B x 1 x 28 x 28]``:
 if you are running the notebook locally on your desktop, please
 uncomment the line below and modify the path to your ffmpeg.exe
 
-.. code:: ipython3
+::
 
     fig, ax = plt.subplots()
     anim = splt.animator(spike_data_sample, fig, ax)
@@ -342,14 +342,14 @@ uncomment the line below and modify the path to your ffmpeg.exe
     <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/splt.animator.mp4?raw=true"></video>
   </center>
 
-.. code:: ipython3
+::
 
     # If you're feeling sentimental, you can save the animation: .gif, .mp4 etc.
     anim.save("spike_mnist_test.mp4")
 
 The associated target label can be indexed as follows:
 
-.. code:: ipython3
+::
 
     >>> print(f"The corresponding target is: {targets_it[0]}")
     The corresponding target is: 7
@@ -359,7 +359,7 @@ of spiking at every time step. So let’s do that again but reduce the
 spiking frequency. This can be easily achieved by setting the argument
 ``gain``. Here, we will reduce spiking frequency to 25%.
 
-.. code:: ipython3
+::
 
     spike_data = spikegen.rate(data_it, num_steps=num_steps, gain=0.25)
     
@@ -374,7 +374,7 @@ spiking frequency. This can be easily achieved by setting the argument
     <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/_static/splt.animator-25.mp4?raw=true"></video>
   </center>
 
-.. code:: ipython3
+::
 
     # Uncomment for optional save
     # anim.save("spike_mnist_test2.mp4")
@@ -382,7 +382,7 @@ spiking frequency. This can be easily achieved by setting the argument
 Now let’s average the spikes out over time and reconstruct the input
 images.
 
-.. code:: ipython3
+::
 
     plt.figure(facecolor="w")
     plt.subplot(1,2,1)
@@ -412,7 +412,7 @@ requires reshaping our sample into a 2-D tensor, where ‘time’ is the
 first dimension. We then pass this sample into the function
 ``spikeplot.raster``.
 
-.. code:: ipython3
+::
 
     # Reshape
     spike_data_sample2 = spike_data_sample2.reshape((num_steps, -1))
@@ -436,7 +436,7 @@ the 210th neuron. Depending on your input data, you may need to index
 into a few different neurons between 0 & 784 before finding one that
 spikes.
 
-.. code:: ipython3
+::
 
     fig = plt.figure(facecolor="w", figsize=(8, 1))
     ax = fig.add_subplot(111)
@@ -535,7 +535,7 @@ Starting with Kirchhoff's current law, :math:`I_{in} = I_R + I_C`, the rest of t
 Let’s write a function that converts a feature of intensity
 :math:`X_{ij}\in [0,1]` into a latency coded response :math:`L_{ij}`.
 
-.. code:: ipython3
+::
 
     def convert_to_time(data, tau=5, threshold=0.01):
       spike_time = tau * torch.log(data / (data - threshold))
@@ -544,7 +544,7 @@ Let’s write a function that converts a feature of intensity
 Now, let’s sweep across a variety of features in ``raw_input`` to see
 what time their corresponding spikes will occur:
 
-.. code:: ipython3
+::
 
     raw_input = torch.arange(0, 5, 0.05) # tensor from 0 to 5
     spike_times = convert_to_time(raw_input)
@@ -566,7 +566,7 @@ triggered, rather than a sparse tensor that contains the spikes
 themselves (1’s and 0’s). This whole process can be automated using
 ``spikegen.latency``:
 
-.. code:: ipython3
+::
 
     spike_data = spikegen.latency(data_it, num_steps=100, tau=5, threshold=0.01)
 
@@ -583,7 +583,7 @@ Some of the arguments include:
 
 We’ll start with a raster this time.
 
-.. code:: ipython3
+::
 
     fig = plt.figure(facecolor="w", figsize=(10, 5))
     ax = fig.add_subplot(111)
@@ -615,7 +615,7 @@ the start of the run, and the dark pixels at the end. We can increase
 ``tau`` to slow down our spike times, or we can linearize the data by
 setting the optional argument ``linear=True``.
 
-.. code:: ipython3
+::
 
     spike_data = spikegen.latency(data_it, num_steps=100, tau=5, threshold=0.01, linear=True)
     
@@ -647,7 +647,7 @@ increasing ``tau`` to slow down the time constant, or setting the
 optional argument ``normalize=True`` to span the full range of
 ``num_steps``.
 
-.. code:: ipython3
+::
 
     spike_data = spikegen.latency(data_it, num_steps=100, tau=5, threshold=0.01,
                                   normalize=True, linear=True)
@@ -676,7 +676,7 @@ sense, the background of the image holds no useful information to us.
 
 We can remove these redundant features by setting ``clip=True``.
 
-.. code:: ipython3
+::
 
     spike_data = spikegen.latency(data_it, num_steps=100, tau=5, threshold=0.01, 
                                   clip=True, normalize=True, linear=True)
@@ -701,13 +701,13 @@ That looks much better!
 
 We will run the exact same code block as before to create an animation.
 
-.. code:: ipython3
+::
 
     >>> spike_data_sample = spike_data[:, 0, 0]
     >>> print(spike_data_sample.size())
     torch.Size([100, 28, 28])
 
-.. code:: ipython3
+::
 
     fig, ax = plt.subplots()
     anim = splt.animator(spike_data_sample, fig, ax)
@@ -725,12 +725,12 @@ a keen eye will be able to catch a glimpse of the initial frame where
 most of the spikes occur. We can index into the corresponding target
 value to check what value it is.
 
-.. code:: ipython3
+::
 
     # Save output: .gif, .mp4 etc.
     # anim.save("mnist_latency.gif")
 
-.. code:: ipython3
+::
 
     >>> print(targets_it[0])
     tensor(4, device='cuda:0')
@@ -772,7 +772,7 @@ than the threshold :math:`V_{thr}`*, a spike is generated:
 To illustrate, let’s first come up with a contrived example where we
 create our own input tensor.
 
-.. code:: ipython3
+::
 
     # Create a tensor with some fake time-series data
     data = torch.Tensor([0, 1, 0, 2, 8, -20, 20, -5, 0, 1, 0])
@@ -792,7 +792,7 @@ create our own input tensor.
 Let’s pass the above tensor into the ``spikegen.delta`` function, with
 an arbitrarily selected ``threshold=4``:
 
-.. code:: ipython3
+::
 
     # Convert data
     spike_data = spikegen.delta(data, threshold=4)
@@ -823,7 +823,7 @@ The large dip to :math:`-20` has not been captured in our spikes. It
 might be that we care about negative swings as well, in which case we
 can enable the optional argument ``off_spike=True``.
 
-.. code:: ipython3
+::
 
     # Convert data
     spike_data = spikegen.delta(data, threshold=4, off_spike=True)
@@ -851,7 +851,7 @@ picture!
 If we print out the tensor, we will discover that we have actually
 generated “off-spikes”. These spikes take on a value of ``-1``.
 
-.. code:: ipython3
+::
 
     >>> print(spike_data)
     tensor([ 0.,  0.,  0.,  0.,  1., -1.,  1., -1.,  1.,  0.,  0.])
@@ -879,7 +879,7 @@ performs the spike conversion step.
 All we have to do is initialize a randomly generated ``torchTensor`` to
 pass in.
 
-.. code:: ipython3
+::
 
     # Create a random spike train
     spike_prob = torch.rand((num_steps, 28, 28), dtype=dtype) * 0.5
@@ -888,7 +888,7 @@ pass in.
 3.1 Animation
 ~~~~~~~~~~~~~
 
-.. code:: ipython3
+::
 
     fig, ax = plt.subplots()
     anim = splt.animator(spike_rand, fig, ax)
@@ -902,7 +902,7 @@ pass in.
   </center>
 
 
-.. code:: ipython3
+::
 
     # Save output: .gif, .mp4 etc.
     # anim.save("random_spikes.gif")
@@ -910,7 +910,7 @@ pass in.
 3.2 Raster
 ~~~~~~~~~~
 
-.. code:: ipython3
+::
 
     fig = plt.figure(facecolor="w", figsize=(10, 5))
     ax = fig.add_subplot(111)

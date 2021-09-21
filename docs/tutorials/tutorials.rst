@@ -21,10 +21,10 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_2_lif_neuron.ipynb
 
    * - `Tutorial 3 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_3.html>`_
-     - Deep Learning with snnTorch
+     -  A Feedforward Spiking Neural Network
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
-        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_3_FCN.ipynb
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_3_feedforward_snn.ipynb
 
 
    * - Tutorial 4
