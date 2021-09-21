@@ -25,6 +25,7 @@ Introduction
 -------------
 
 In this tutorial, you will: 
+
 * Learn how to simplify the leaky integrate-and-fire (LIF) neuron to make it deep learning-friendly 
 * Implement a feedforward spiking neural network (SNN)
 
@@ -226,7 +227,7 @@ response to a step voltage input:
     plot_cur_mem_spk(x*w, mem_rec, spk_rec, thr_line=1,ylim_max1=0.5,
                      title="LIF Neuron Model With Weighted Step Voltage")
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial4/_static/lif_step.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/_static/lif_step.png?raw=true
         :align: center
         :width: 400
 
@@ -285,7 +286,7 @@ back one time step without loss of generality.
 This model has the same optional input arguments of ``reset_mechanism``
 and ``threshold`` as described for Lapicque’s neuron model.
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial4/_static/snn.leaky_step.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/_static/snn.leaky_step.png?raw=true
         :align: center
         :width: 450
 
@@ -407,7 +408,7 @@ rather than manually setting :math:`W` ourselves.
     
     plot_snn_spikes(spk_in, spk1_rec, spk2_rec, "Fully Connected Spiking Neural Network")
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial4/_static/mlp_raster.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/_static/mlp_raster.png?raw=true
         :align: center
         :width: 450
 
@@ -458,7 +459,7 @@ traces to the neuron.
     fig = plt.gcf() 
     fig.set_size_inches(8, 6)
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial4/_static/traces.png?raw=true
+.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/_static/traces.png?raw=true
         :align: center
         :width: 450
 
