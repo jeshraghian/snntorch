@@ -799,5 +799,4 @@ layer types, including convolutions and skip connections. Armed with
 this knowledge, you should now be able to build many different types of
 SNNs. `In the next
 tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
-you will learn how to train a spiking convolutional network using a
-time-varying spiking dataset.
+you will learn how to train a spiking convolutional network, and simplify the amount of code required using the ``snn.backprop`` module.
