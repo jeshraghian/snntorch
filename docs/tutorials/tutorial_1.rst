@@ -65,7 +65,7 @@ suppression.
    and power-efficiency by blocking unchanging input, but it often
    allows for much faster processing speeds.
 
-   .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/fig1_p2.png?raw=true
+   .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/3s.png?raw=true
             :align: center
             :width: 800
 
