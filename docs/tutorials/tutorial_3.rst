@@ -10,7 +10,7 @@ Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.j
 
 The snnTorch tutorial series is based on the following paper. If you find these resources or code useful in your work, please consider citing the following source:
 
-    Jason K. Eshraghian, Max Ward, Xinxin Wang, Gregor Lenz, Girish
+    Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
     Spiking Neural Networks Using Lessons From Deep Learning”. arXiv,
     2021.
@@ -33,7 +33,7 @@ Install the latest PyPi distribution of snnTorch:
 
 ::
 
-    pip install snntorch
+    $ pip install snntorch
 
 ::
 

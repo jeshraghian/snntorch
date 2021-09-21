@@ -10,7 +10,7 @@ Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.j
 
 The snnTorch tutorial series is based on the following paper. If you find these resources or code useful in your work, please consider citing the following source:
 
-    Jason K. Eshraghian, Max Ward, Xinxin Wang, Gregor Lenz, Girish
+    Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
     Spiking Neural Networks Using Lessons From Deep Learning”. arXiv,
     2021.
@@ -29,12 +29,11 @@ In this tutorial, you will:
 
 * Learn about the more advanced leaky integrate-and-fire (LIF) neuron models available: ``Synaptic`` and ``Alpha``
 
-Install the latest PyPi distribution of snnTorch by clicking into the
-following cell and pressing ``Shift+Enter``.
+Install the latest PyPi distribution of snnTorch.
 
 ::
 
-    pip install snntorch
+    $ pip install snntorch
 
 ::
 
@@ -127,15 +126,17 @@ with Lapicque)
 Using this neuron is the exact same as previous LIF neurons, but now
 with the addition of synaptic current ``syn`` as an input and output:
 
-**Inputs** \* ``spk_in``: each weighted input voltage spike
-:math:`WX[t]` is sequentially passed in \* ``syn``: synaptic current
-:math:`I_{\rm syn}[t-1]` at the previous time step \* ``mem``: membrane
-potential :math:`U[t-1]` at the previous time step
+**Inputs** 
 
-**Outputs** \* ``spk_out``: output spike :math:`S[t]` (‘1’ if there is a
-spike; ‘0’ if there is no spike) \* ``syn``: synaptic current
-:math:`I_{\rm syn}[t]` at the present time step \* ``mem``: membrane
-potential :math:`U[t]` at the present time step
+* ``spk_in``: each weighted input voltage spike :math:`WX[t]` is sequentially passed in 
+* ``syn``: synaptic current :math:`I_{\rm syn}[t-1]` at the previous time step 
+* ``mem``: membrane potential :math:`U[t-1]` at the previous time step
+
+**Outputs** 
+
+* ``spk_out``: output spike :math:`S[t]` (‘1’ if there is a spike; ‘0’ if there is no spike) 
+* ``syn``: synaptic current :math:`I_{\rm syn}[t]` at the present time step 
+* ``mem``: membrane potential :math:`U[t]` at the present time step
 
 These all need to be of type ``torch.Tensor``. Note that the neuron
 model has been time-shifted back one step without loss of generality.
