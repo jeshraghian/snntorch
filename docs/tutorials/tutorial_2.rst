@@ -918,7 +918,7 @@ This can be explicitly overridden by passing the argument
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/comparison.png?raw=true
         :align: center
-        :width: 450
+        :width: 500
 
 Pay close attention to the evolution of the membrane potential,
 especially in the moments after it reaches the threshold. You may notice
@@ -937,7 +937,7 @@ experiment with.
 That covers the basics of a LIF neuron model!
 
 Conclusion
-==========
+---------------
 
 In practice, we probably wouldn’t use this neuron model to train a
 neural network. The Lapicque LIF model has added a lot of

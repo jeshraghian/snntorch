@@ -232,7 +232,7 @@ response to a step voltage input:
         :width: 400
 
 
-2. ``Leaky`` Neuron Model in snnTorch
+2. Leaky Neuron Model in snnTorch
 ---------------------------------------
 
 This same thing can be achieved by instantiating ``snn.Leaky``, in a

@@ -27,27 +27,33 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_3_feedforward_snn.ipynb
 
 
-   * - Tutorial 4
-     - **Under construction:** Convolutional SNNs 
+   * - `Tutorial 4 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_4.html>`_
+     -  2nd Order Spiking Neuron Models (Optional)
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_4_advanced_neurons.ipynb
 
   
-   * - Tutorial 5
-     - **Under construction:** Surrogate Gradients
+   * - `Tutorial 5 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_5.html>`_
+     -  Training Spiking Neural Networks with snnTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_5_FCN.ipynb
    
 
    * - Tutorial 6
-     - **Under construction:** Real-Time Recurrent Learning 
+     - **Under construction:** Convolutional SNNs with Neuromorphic Datasets
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
 
    * - Tutorial 7
-     - **Under construction:** End-to-End Neural Data Processing on an SNN 
+     - **Under construction:** Population Coding
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
 
+   * - Tutorial 7
+     - **Under construction:** Online Learning with SNNs
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
 
 Future tutorials on spiking neurons and training are under construction. 
