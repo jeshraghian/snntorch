@@ -225,9 +225,9 @@ condense this into one line of code using snnTorch in a moment:
 ::
 
     # Leaky neuron model, overriding the backward pass with a custom function
-    class Leaky_Surrogate(nn.Module):
+    class LeakySurrogate(nn.Module):
       def __init__(self, beta, threshold=1.0):
-          super(Leaky_Surrogate, self).__init__()
+          super(LeakySurrogate, self).__init__()
     
           # initialize decay rate beta and threshold
           self.beta = beta
@@ -237,7 +237,8 @@ condense this into one line of code using snnTorch in a moment:
       # the forward function is called each time we call Leaky
       def forward(self, input_, mem):
         spk = self.spike_op((mem-self.threshold))  # call the Heaviside function
-        mem = self.beta * mem + input_ - spk * self.threshold # Eq (1)
+        reset = (spk * self.threshold).detach()  # removes spike_op gradient from reset
+        mem = self.beta * mem + input_ - reset  # Eq (1)
         return spk, mem
     
       # Forward pass: Heaviside function
@@ -245,22 +246,24 @@ condense this into one line of code using snnTorch in a moment:
       @staticmethod
       class SpikeOperator(torch.autograd.Function):
           @staticmethod
-          def forward(ctx, input_):
-              out = (input_ > 0).float() # Heaviside on the forward pass: Eq(2)
-              ctx.save_for_backward(out)  # store the spike for use in the backward pass
-              return out
+          def forward(ctx, mem):
+              spk = (mem > 0).float() # Heaviside on the forward pass: Eq(2)
+              ctx.save_for_backward(spk)  # store the spike for use in the backward pass
+              return spk
     
           @staticmethod
           def backward(ctx, grad_output):
-              (out,) = ctx.saved_tensors  # retrieve the spike 
-              grad = grad_output * out # scale the gradient by the spike: 1/0
+              (spk,) = ctx.saved_tensors  # retrieve the spike 
+              grad = grad_output * spk # scale the gradient by the spike: 1/0
               return grad
+
+Note that we have detached the reset mechanism from the computational graph, as we only want to apply the surrogate gradient to $\partial S/\partial U$, and not $\partial U/\partial R$.
 
 Then we would instantiate the above neuron using:
 
 ::
 
-    lif1 = Leaky_Surrogate(beta=0.9)
+    lif1 = LeakySurrogate(beta=0.9)
 
 You can then use this neuron in a for-loop, just as in previous
 tutorials, while PyTorch’s automatic differentation (autodiff) mechanism
