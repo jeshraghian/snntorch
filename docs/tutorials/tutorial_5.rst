@@ -27,11 +27,8 @@ Introduction
 In this tutorial, you will: 
 
 * Learn how spiking neurons are implemented as a recurrent network 
-* Understand backpropagation through time, and the associated challenges in SNNs such as the non-differentiability of
-spikes 
+* Understand backpropagation through time, and the associated challenges in SNNs such as the non-differentiability of spikes 
 * Train a fully-connected network on the static MNIST dataset
-
-.. raw:: html
 
 
 ..

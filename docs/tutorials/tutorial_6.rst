@@ -30,7 +30,19 @@ In this tutorial, you will:
 * Learn how to use surrogate gradient descent to overcome the dead neuron problem 
 * Construct and train a convolutional spiking neural network 
 * Use a sequential container, ``nn.Sequential`` to simplify model construction 
-* Use the ``snn.backprop`` module to reduce the time it takes to design a neural network
+* Use the ``snn.backprop`` module to reduce the time it takes to design a neural 
+
+..
+
+   Part of this tutorial was inspired by Friedemann Zenke’s extensive
+   work on SNNs. Check out his repo on surrogate gradients
+   `here <https://github.coRm/fzenke/spytorch>`__, and a favourite paper
+   of mine: E. O. Neftci, H. Mostafa, F. Zenke, `Surrogate Gradient
+   Learning in Spiking Neural Networks: Bringing the Power of
+   Gradient-based optimization to spiking neural
+   networks. <https://ieeexplore.ieee.org/document/8891809>`__ IEEE
+   Signal Processing Magazine 36, 51–63.
+
 
 At the end of the tutorial, we will train a convolutional spiking neural
 network (CSNN) using the MNIST dataset to perform image classification.
@@ -158,7 +170,7 @@ Dirac-Delta gradient with a fast sigmoid in a Leaky Integrate-and-Fire
             return grad, None
 
 Better yet, all of that can be condensed by using the built-in module
-``snn.surrogate`` from snnTorch, where we :math:`k` from :math:`(4)` is
+``snn.surrogate`` from snnTorch, where :math:`k` from :math:`(4)` is
 denoted ``slope``. The surrogate gradient is passed into ``spike_grad``
 as an argument:
 
@@ -496,7 +508,7 @@ training run!
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial6/test_acc.png?raw=true
         :align: center
-        :width: 500
+        :width: 450
 
 4.2 Spike Counter
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -535,9 +547,9 @@ behaviour of a few different samples!
     # anim.save("spike_bar.mp4")
 
 
-  <center>
+<center>
     <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial6/_static/spike_bar.mp4?raw=true"></video>
-  </center>
+</center>
 
 ::
 
