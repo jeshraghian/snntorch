@@ -544,7 +544,7 @@ behaviour of a few different samples!
     The target label is: 3
 
 Conclusion
-==========
+------------
 
 You should now have a grasp of the basic features of snnTorch and should
 be able to start running your own tests and experiments. `In the next
