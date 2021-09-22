@@ -3,6 +3,8 @@ import torch.nn as nn
 from snntorch import spikegen
 import numpy as np
 
+#### Note: when adding new loss or regularization functions, be sure to update criterion_dict / reg_dict in backprop.py
+
 dtype = torch.float
 
 

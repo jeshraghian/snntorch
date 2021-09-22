@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from snntorch import utils
 
+#### Note: when adding new neurons, be sure to update neurons_dict in backprop.py
 
 # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 dtype = torch.float
