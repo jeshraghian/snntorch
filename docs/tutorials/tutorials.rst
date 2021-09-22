@@ -41,17 +41,25 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_5_FCN.ipynb
    
 
-   * - Tutorial 6
-     - **Under construction:** Convolutional SNNs with Neuromorphic Datasets
+   * - `Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_6.html>`_
+     - Surrogate Gradient Descent in a Convolutional SNN
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_6_CNN.ipynb
+
+
+   * - Tutorial 7
+     - **Under construction:** Neuromorphic Datasets with Tonic + snnTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
 
-   * - Tutorial 7
+
+   * - Tutorial 8
      - **Under construction:** Population Coding
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
 
-   * - Tutorial 7
+   * - Tutorial 9
      - **Under construction:** Online Learning with SNNs
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab

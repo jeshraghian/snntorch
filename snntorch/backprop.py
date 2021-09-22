@@ -145,6 +145,7 @@ def TBPTT(
     K_count = 0
     loss_trunc = 0  # reset every K time steps
     loss_avg = 0
+    iter_count = 0
 
     mem_rec_trunc = []
     spk_rec_trunc = []
@@ -153,6 +154,7 @@ def TBPTT(
 
     data_iterator = iter(dataloader)
     for data, targets in data_iterator:
+        iter_count += 1
         net.train()
         data = data.to(device)
         targets = targets.to(device)
@@ -289,7 +291,7 @@ def TBPTT(
                 if neuron:
                     neurons_dict[neuron].detach_hidden()
 
-    return loss_avg  # , spk_rec, mem_rec
+    return loss_avg / iter_count  # , spk_rec, mem_rec
 
 
 def BPTT(
