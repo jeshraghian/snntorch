@@ -540,10 +540,11 @@ behaviour of a few different samples!
 .. raw:: html
 
     <center>
-        <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial6/_static/spike_bar.mp4?raw=true"></video>
+        <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial6/spike_bar.mp4?raw=true"></video>
     </center>
 
 ::
+
     >>> print(f"The target label is: {targets[idx]}")
     The target label is: 3
 
