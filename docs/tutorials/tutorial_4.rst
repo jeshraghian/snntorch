@@ -37,6 +37,7 @@ Install the latest PyPi distribution of snnTorch.
 
 ::
 
+    # imports
     import snntorch as snn
     from snntorch import spikeplot as splt
     from snntorch import spikegen
@@ -49,7 +50,7 @@ Install the latest PyPi distribution of snnTorch.
 1. Synaptic Conductance-based LIF Neuron Model
 ------------------------------------------------
 
-The previous neuron models we have explored assume that an input voltage
+The neuron models explored in previous tutorials assume that an input voltage
 spike leads to an instantaneous jump in synaptic current, which then
 contributes to the membrane potential. In reality, a spike will result
 in the *gradual* release of neurotransmitters from the pre-synaptic
@@ -64,7 +65,7 @@ the axon of the neuron. It triggers the vesicles to release
 neurotransmitters into the synaptic cleft. These activate the
 post-synaptic receptors, which directly influence the effective current
 that flows into the post-synaptic neuron. Shown below are two types of
-excitatory receptors.
+excitatory receptors, AMPA and NMDA.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_6_synaptic.png?raw=true
         :align: center
@@ -84,14 +85,13 @@ subsequent terms (i.e., decay rate) of :math:`I_{\rm syn}(t)` is set to
 
 .. math::  \beta = e^{-\Delta t/\tau_{\rm mem}}
 
-where we will set the duration of a single time step
+where the duration of a single time step is normalized to
 :math:`\Delta t = 1` in future. :math:`\tau_{\rm syn}` models the time
 constant of the synaptic current in an analogous way to how
 :math:`\tau_{\rm mem}` models the time constant of the membrane
 potential. :math:`\beta` is derived in the exact same way as the
-previous tutorial, where if we were to follow a similar derivation for
-:math:`\alpha`, we would arrive at the following recursive
-representations of the synaptic neuron model:
+previous tutorial, with a similar approach to
+:math:`\alpha`:
 
 .. math:: I_{\rm syn}[t+1]=\underbrace{\alpha I_{\rm syn}[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input}
 
@@ -109,9 +109,10 @@ The same conditions for spiking as the previous LIF neurons still hold:
 
 The synaptic condutance-based neuron model combines the synaptic current
 dynamics with the passive membrane. It must be instantiated with two
-input arguments: \* :math:`\alpha`: the decay rate of the synaptic
-current \* :math:`\beta`: the decay rate of the membrane potential (as
-with Lapicque)
+input arguments: 
+
+* :math:`\alpha`: the decay rate of the synaptic current 
+* :math:`\beta`: the decay rate of the membrane potential (as with Lapicque)
 
 ::
 
@@ -181,8 +182,8 @@ This model also has the optional input arguments of ``reset_mechanism``
 and ``threshold`` as described for Lapicque’s neuron model. In summary,
 each spike contributes a shifted exponential decay to the synaptic
 current :math:`I_{\rm syn}`, which are all summed together. This current
-is then integrated by the passive membrane equation derived in the
-previous section, thus generating output spikes. An illustration of this
+is then integrated by the passive membrane equation derived in
+`Tutorial 2 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_, thus generating output spikes. An illustration of this
 process is provided below.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_7_stein.png?raw=true
@@ -199,15 +200,13 @@ intuition that might be useful.
 
 **When 2nd-order neurons are better** 
 
-* If the temporal relations of
-your input data occur across long time-scales, 
-* or if the input
-spiking pattern is sparse
+* If the temporal relations of your input data occur across long time-scales, 
+* or if the input spiking pattern is sparse
 
 By having two recurrent equations with two decay terms (:math:`\alpha`
 and :math:`\beta`), this neuron model is able to ‘sustain’ input spikes
 over a longer duration. This can be beneficial to retaining long-term
-relationships, or ‘hanging on’ to the effect of sparse spikes.
+relationships.
 
 An alternative use case might also be:
 
@@ -224,8 +223,7 @@ respect to the input spikes.
 
 **When 1st-order neurons are better** 
 
-* Any case that doesn’t fall into
-the above, and sometimes, the above cases.
+* Any case that doesn’t fall into the above, and sometimes, the above cases.
 
 By having one less equation in 1st-order neuron models (such as
 ``Leaky``), the backpropagation process is made a little simpler. Though
@@ -270,9 +268,9 @@ Formally, this process is represented by:
 
 where the incoming spikes :math:`S_{\rm in}` are convolved with a spike
 response kernel :math:`\epsilon( \cdot )`. The spike response is scaled
-by a synaptic weight, :math:`W`. In the figures above, the left kernel
+by a synaptic weight, :math:`W`. In top figure, the kernel
 is an exponentially decaying function and would be the equivalent of
-Lapicque’s 1st-order neuron model. On the right, the kernel is an alpha
+Lapicque’s 1st-order neuron model. On the bottom, the kernel is an alpha
 function:
 
 .. math:: \epsilon(t) = \frac{t}{\tau}e^{1-t/\tau}\Theta(t)
@@ -286,7 +284,7 @@ of a neuron.
 In snnTorch, the spike response model is not directly implemented as a
 filter. Instead, it is recast into a recursive form such that only the
 previous time step of values are required to calculate the next set of
-values. This significantly reduces the memory overhead during learning.
+values. This reduces the memory required.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_9_alpha.png?raw=true
         :align: center
@@ -380,7 +378,7 @@ paper:
 
 The Alpha neuron has been included with the intent of providing an
 option for porting across SRM-based models over into snnTorch, although
-natively training them seems to not be too effective here.
+natively training them seems to not be too effective in snnTorch. 
 
 Conclusion
 ------------
@@ -402,7 +400,7 @@ precise models, while ``Alpha`` is only intended to capture the
 behaviour of SRM neurons.
 
 Building a network using these slighty more advanced neurons follows the
-exact same procedure as in Tutorial 3.
+exact same procedure as in `Tutorial 3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_.
 
 For reference, the documentation `can be found
 here <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__.

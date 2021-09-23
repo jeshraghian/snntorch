@@ -37,6 +37,7 @@ Install the latest PyPi distribution of snnTorch:
 
 ::
 
+    # imports
     import snntorch as snn
     from snntorch import spikeplot as splt
     from snntorch import spikegen
@@ -58,9 +59,7 @@ deep learning.
 
 **Hodgkin-Huxley Neuron Models**\ :math:`-`\ While biophysical models
 can reproduce electrophysiological results with a high degree of
-accuracy, their complexity makes them difficult to use. We expect this
-to change as more rigorous theories of how neurons contribute to
-higher-order behaviors in the brain are uncovered.
+accuracy, their complexity makes them difficult to use at present.
 
 **Artificial Neuron Model**\ :math:`-`\ On the other end of the spectrum
 is the artificial neuron. The inputs are multiplied by their
@@ -95,8 +94,8 @@ use-cases. snnTorch currently supports four types of LIF neurons:
 * Synaptic Conductance-based neuron model: ``snntorch.Synaptic`` 
 * Alpha neuron Model: ``snntorch.Alpha``
 
-In this tutorial, we will focus on the first of these models. This will
-be used to build towards the other models in subsequent tutorials.
+This tutorial focuses on the first of these models. This will
+be used to build towards the other models in `subsequent tutorials <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_.
 
 2. The Leaky Integrate-and-Fire Neuron Model
 --------------------------------------------------
@@ -105,11 +104,10 @@ be used to build towards the other models in subsequent tutorials.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In our brains, a neuron might be connected to 1,000 :math:`-` 10,000
-other neurons. If one neuron spikes, all of these downhill neurons will
+other neurons. If one neuron spikes, all downhill neurons might
 feel it. But what determines whether a neuron spikes in the first place?
 The past century of experiments demonstrate that if a neuron experiences
-*sufficient* stimulus at its input, then we might expect it to become
-excited and fire its own spike.
+*sufficient* stimulus at its input, then it might become excited and fire its own spike. 
 
 Where does this stimulus come from? It could be from:
 
@@ -133,7 +131,7 @@ precise unison. This indicates the presence of temporal dynamics that
 Like all cells, a neuron is surrounded by a thin membrane. This membrane
 is a lipid bilayer that insulates the conductive saline solution within
 the neuron from the extracellular medium. Electrically, the two
-conductors separated by an insulator act as a capacitor.
+conductive solutions separated by an insulator act as a capacitor.
 
 Another function of this membrane is to control what goes in and out of
 this cell (e.g., ions such as Na\ :math:`^+`). The membrane is usually
@@ -186,8 +184,7 @@ The right hand side of the equation is of units
 **\[Voltage]**. On the left hand side of the equation, 
 the term :math:`\frac{dU_{\rm mem}(t)}{dt}` is of units 
 **\[Voltage/Time]**. To equate it to the left hand side (i.e., voltage), 
-:math:`RC` must be of unit **\[Time]**. We refer to :math:`\tau = RC`
- as the time constant of the circuit:
+:math:`RC` must be of unit **\[Time]**. We refer to :math:`\tau = RC` as the time constant of the circuit:
 
 .. math:: \tau \frac{dU_{\rm mem}(t)}{dt} = -U_{\rm mem}(t) + RI_{\rm in}(t)
 
@@ -213,13 +210,13 @@ The general solution is shown below.
 
 **Optional: Forward Euler Method to Solving the LIF Neuron Model**
 
-We managed to find the analytical solution to the LIF neuron, but it’s a
-little unclear how this might be useful in a neural network. This time,
+We managed to find the analytical solution to the LIF neuron, but it is 
+unclear how this might be useful in a neural network. This time,
 let’s instead use the forward Euler method to solve the previous linear
-ordinary differential equation (ODE). Taking this approach might seem
+ordinary differential equation (ODE). This approach might seem
 arduous, but it gives us a discrete, recurrent representation of the LIF
-neuron. Once we reach this solution, we can use it directly in a neural
-network. As before, we have the linear ODE describing the RC circuit:
+neuron. Once we reach this solution, it can be applied directly to a neural
+network. As before, the linear ODE describing the RC circuit is:
 
 .. math:: \tau \frac{dU(t)}{dt} = -U(t) + RI_{\rm in}(t)
 
@@ -236,7 +233,7 @@ the following time step gives:
 
 .. math:: U(t+\Delta t) = U(t) + \frac{\Delta t}{\tau}\big(-U(t) + RI_{\rm in}(t)\big)
 
-Let’s write a function that represents this last equation below:
+The following function represents this equation:
 
 ::
 
@@ -245,14 +242,14 @@ Let’s write a function that represents this last equation below:
       U = U + (time_step/tau)*(-U + I*R)
       return U
 
-We have set the default values of :math:`R=50 M\Omega` and
-:math:`C=100pF` (i.e., :math:`\tau=5ms`). These are generally quite
+The default values are set to :math:`R=50 M\Omega` and
+:math:`C=100pF` (i.e., :math:`\tau=5ms`). These are quite
 realistic with respect to biological neurons.
 
-Now let’s loop through this function, iterating one time step at a time.
-We have initialized the membrane potential at :math:`U=0.9 V`, assumed
-there is no injected input current, :math:`I_{\rm in}=0 A`, and our
-simulation is performed with a millisecond precision
+Now loop through this function, iterating one time step at a time.
+The membrane potential is initialized at :math:`U=0.9 V`, with the assumption that
+there is no injected input current, :math:`I_{\rm in}=0 A`.
+The simulation is performed with a millisecond precision
 :math:`\Delta t=1\times 10^{-3}`\ s.
 
 ::
@@ -280,19 +277,19 @@ This exponential decay seems to match what we expected!
 This similarity between nerve membranes and RC circuits was observed by
 `Louis Lapicque in
 1907 <https://core.ac.uk/download/pdf/21172797.pdf>`__. He stimulated
-the nerve fiber of a frog with a brief electrical pulse, and found that
+the nerve fiber of a frog with a brief electrical pulse, and found that neuron
 membranes could be approximated as a capacitor with a leakage. We pay
 homage to his findings by naming the basic LIF neuron model in snnTorch
 after him.
 
 Most of the concepts in Lapicque’s model carry forward to other LIF
-neuron models. Now let’s simulate this neuron using snnTorch.
+neuron models. Now it's time to simulate this neuron using snnTorch.
 
 3.1 Lapicque: Without Stimulus
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We can instantiate Lapicque’s neuron using the following line of code.
-Let’s change R & C to simpler values, while keeping the previous time
+Instantiate Lapicque’s neuron using the following line of code.
+R & C are modified to simpler values, while keeping the previous time
 constant of :math:`\tau=5\times10^{-3}`\ s.
 
 ::
@@ -304,11 +301,11 @@ constant of :math:`\tau=5\times10^{-3}`\ s.
     # leaky integrate and fire neuron, tau=5e-3
     lif1 = snn.Lapicque(R=R, C=C, time_step=time_step)
 
-To use this neuron:
+The neuron model is now stored in ``lif1``. To use this neuron:
 
 **Inputs** 
 
-* ``spk_in``: each element of :math:`I_{\rm in}` is sequentially passed as an input (all just 0 for now) 
+* ``spk_in``: each element of :math:`I_{\rm in}` is sequentially passed as an input (0 for now) 
 * ``mem``: the membrane potential, previously :math:`U[t]`, is also passed as input. Initialize it arbitrarily as :math:`U[0] = 0.9~V`.
 
 **Outputs** 
@@ -325,17 +322,16 @@ These all need to be of type ``torch.Tensor``.
     cur_in = torch.zeros(num_steps)  # I=0 for all t 
     spk_out = torch.zeros(1)  # initialize output spikes
 
-These values are only for the initial time step :math:`t=0`. We’d like
-to watch the evolution of ``mem`` over time. The list ``mem_rec`` is
-initialized to record these values at every time step.
+These values are only for the initial time step :math:`t=0`. 
+To analyze the evolution of ``mem`` over time, create a list ``mem_rec`` to record these values at every time step.
 
 ::
 
-    # Initialize somewhere to store recordings of membrane potential
+    # A list to store a recording of membrane potential
     mem_rec = [mem]
 
-Now it’s time to run a simulation! At each time step, ``mem`` will be
-updated and recorded in ``mem_rec``:
+Now it’s time to run a simulation! At each time step, ``mem`` is
+updated and stored in ``mem_rec``:
 
 ::
 
@@ -346,27 +342,28 @@ updated and recorded in ``mem_rec``:
       # Store recordings of membrane potential
       mem_rec.append(mem)
     
-    # crunch the list of tensors into one tensor
+    # convert the list of tensors into one tensor
     mem_rec = torch.stack(mem_rec)
     
+    # pre-defined plotting function
     plot_mem(mem_rec, "Lapicque's Neuron Model Without Stimulus")
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/lapicque.png?raw=true
         :align: center
         :width: 300
 
-The membrane potential will decay over time in the absence of any input
+The membrane potential decays over time in the absence of any input
 stimuli.
 
 3.2 Lapicque: Step Input
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now let’s apply a step current :math:`I_{\rm in}(t)` that switches on at
+Now apply a step current :math:`I_{\rm in}(t)` that switches on at
 :math:`t=t_0`. Given the linear first-order differential equation:
 
 .. math::  \tau \frac{dU_{\rm mem}}{dt} = -U_{\rm mem} + RI_{\rm in}(t),
 
-the general solution will be:
+the general solution is:
 
 .. math:: U_{\rm mem}=I_{\rm in}(t)R + [U_0 - I_{\rm in}(t)R]e^{-\frac{t}{\tau}}
 
@@ -390,8 +387,7 @@ Let’s visualize what this looks like by triggering a current pulse of
     spk_out = torch.zeros(1)  # neuron needs somewhere to sequentially dump its output spikes
     mem_rec = [mem]
 
-This time, the new values of ``cur_in`` will be passed to our the input
-of the neuron:
+This time, the new values of ``cur_in`` are passed to the neuron:
 
 ::
 
@@ -419,8 +415,8 @@ As :math:`t\rightarrow \infty`, the membrane potential
     >>> print(f"The calculated value of input pulse [A] x resistance [Ω] is: {cur_in[11]*lif1.R} V")
     >>> print(f"The simulated value of steady-state membrane potential is: {mem_rec[200][0]} V")
     
-    "The calculated value of input pulse [A] x resistance [Ω] is: 0.5 V"
-    "The simulated value of steady-state membrane potential is: 0.4999999403953552 V"
+    The calculated value of input pulse [A] x resistance [Ω] is: 0.5 V
+    The simulated value of steady-state membrane potential is: 0.4999999403953552 V
 
 Close enough!
 
@@ -457,9 +453,9 @@ Now what if the step input was clipped at :math:`t=30ms`?
 decays with a time constant of :math:`\tau` as in our first simulation.
 
 Let’s deliver approximately the same amount of charge
-:math:`Q = I \times t` to the circuit in half the time. This means our
-input current amplitude will need to be increased by a little, and the
-time window will be decreased.
+:math:`Q = I \times t` to the circuit in half the time. This means the
+input current amplitude must be increased by a little, and the
+time window must be decreased.
 
 ::
 
@@ -508,7 +504,7 @@ amplitude:
         :width: 450
 
 
-Let’s compare all three experiments on the same plot:
+Now compare all three experiments on the same plot:
 
 
 ::
@@ -575,7 +571,7 @@ rest, and integrates the input current. That covers the ‘leaky’ and
 
 So far, we have only seen how a neuron will react to spikes at the
 input. For a neuron to generate and emit its own spikes at the output,
-we need to combine the passive membrane model with a threshold.
+the passive membrane model must be combined with a threshold.
 
 If the membrane potential exceeds this threshold, then a voltage spike
 will be generated, external to the passive membrane model.
@@ -585,7 +581,7 @@ will be generated, external to the passive membrane model.
         :align: center
         :width: 400
 
-Let’s modify our ``leaky_integrate_neuron`` function from before to add
+Modify the ``leaky_integrate_neuron`` function from before to add
 a spike response.
 
 ::
@@ -597,7 +593,7 @@ a spike response.
       mem = mem + (time_step/tau_mem)*(-mem + cur*R)
       return mem, spk
 
-Let’s set ``threshold=1``, and apply a step current to get this neuron
+Set ``threshold=1``, and apply a step current to get this neuron
 spiking.
 
 ::
@@ -627,12 +623,12 @@ spiking.
         :width: 450
 
 
-Oops - the output spikes look like they’ve gone out of control! This is
+Oops - the output spikes have gone out of control! This is
 because we forgot to add a reset mechanism. In reality, each time a
 neuron fires, the membrane potential hyperpolarizes back to its resting
 potential.
 
-Let’s implement this reset mechanism into our neuron:
+Implementing this reset mechanism into our neuron:
 
 ::
 
@@ -674,8 +670,7 @@ Note that if :math:`I_{\rm in}=0.2 A` and :math:`R<5 \Omega`, then
 :math:`I\times R < 1 V`. If ``threshold=1``, then no spiking would
 occur. Feel free to go back up, change the values, and test it out.
 
-We can condense the amount of code we write by again calling the
-built-in Lapicque neuron model from snnTorch:
+As before, all of that code is condensed by calling the built-in Lapicque neuron model from snnTorch:
 
 ::
 
@@ -723,9 +718,7 @@ see what the spike recording actually consists of:
 
 The absence of a spike is represented by :math:`S_{\rm out}=0`, and the
 occurrence of a spike is :math:`S_{\rm out}=1`. Here, the spike occurs
-at :math:`S_{\rm out}[t=109]=1`.
-
-If you are wondering why each of these entries is stored as a tensor, it
+at :math:`S_{\rm out}[t=109]=1`. If you are wondering why each of these entries is stored as a tensor, it
 is because in future tutorials we will simulate large scale neural
 networks. Each entry will contain the spike responses of many neurons,
 and tensors can be loaded into GPU memory to speed up the training
@@ -817,13 +810,11 @@ Run the following code block to see how many spikes have been generated.
 
 ::
 
-    # Tell me the number of spikes
     >>> print(f"There are {int(sum(spk_in))} total spikes out of {len(spk_in)} time steps.")
-    "There are 85 total spikes out of 200 time steps."
+    There are 85 total spikes out of 200 time steps.
 
 ::
 
-    # Now show me the spikes
     fig = plt.figure(facecolor="w", figsize=(8, 1))
     ax = fig.add_subplot(111)
     
@@ -884,10 +875,8 @@ There are two ways to implement the reset mechanism:
         :align: center
         :width: 400
 
-Let’s instantiate another neuron model to demonstrate how to alternate
-between reset mechanisms.
-
-By default, snnTorch neuron models use ``reset_mechanism = "subtract"``.
+Instantiate another neuron model to demonstrate how to alternate
+between reset mechanisms. By default, snnTorch neuron models use ``reset_mechanism = "subtract"``.
 This can be explicitly overridden by passing the argument
 ``reset_mechanism =  "zero"``.
 
@@ -918,7 +907,7 @@ This can be explicitly overridden by passing the argument
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/comparison.png?raw=true
         :align: center
-        :width: 500
+        :width: 550
 
 Pay close attention to the evolution of the membrane potential,
 especially in the moments after it reaches the threshold. You may notice
@@ -943,7 +932,7 @@ In practice, we probably wouldn’t use this neuron model to train a
 neural network. The Lapicque LIF model has added a lot of
 hyperparameters to tune: :math:`R`, :math:`C`, :math:`\Delta t`,
 :math:`U_{\rm thr}`, and the choice of reset mechanism. It’s all a
-little bit daunting. So the next tutorial will eliminate most of these
+little bit daunting. So the `next tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ will eliminate most of these
 hyperparameters, and introduce a neuron model that is better suited for
 large-scale deep learning.
 

@@ -30,7 +30,7 @@ In this tutorial, you will:
 * Learn how to use surrogate gradient descent to overcome the dead neuron problem 
 * Construct and train a convolutional spiking neural network 
 * Use a sequential container, ``nn.Sequential`` to simplify model construction 
-* Use the ``snn.backprop`` module to reduce the time it takes to design a neural 
+* Use the ``snn.backprop`` module to reduce the time it takes to design a neural network
 
 ..
 
@@ -79,7 +79,7 @@ Install the latest PyPi distribution of snnTorch:
 1. Surrogate Gradient Descent
 --------------------------------
 
-In Tutorial 5, we learnt about the **dead neuron problem**. This arises
+`Tutorial 5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ raised the **dead neuron problem**. This arises
 because of the non-differentiability of spikes:
 
 .. math:: S[t] = \Theta(U[t] - U_{\rm thr}) \tag{1}
@@ -96,8 +96,8 @@ which correspondingly smooths out the gradient of the Heaviside
 function.
 
 Common smoothing functions include the sigmoid function, or the fast
-sigmoid function. We must also shift the sigmoidal functions such that
-they are centered at the threshold :math:`U_{\rm thr}`. Defining the
+sigmoid function. The sigmoidal functions must also be shifted such that
+they are centered at the threshold :math:`U_{\rm thr}.` Defining the
 overdrive of the membrane potential as :math:`U_{OD} = U - U_{\rm thr}`:
 
 .. math:: \tilde{S} = \frac{U_{OD}}{1+k|U_{OD}|} \tag{3}
@@ -128,8 +128,8 @@ To summarize:
 
    -  Pass :math:`U` into :math:`(4)` to calculate the derivative term
 
-As with the *Spike Operator* in Tutorial 5, we can override the
-Dirac-Delta gradient with a fast sigmoid in a Leaky Integrate-and-Fire
+In the same way the *Spike Operator* approach was used in `Tutorial 5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_, 
+the gradient of the fast sigmoid function can override the Dirac-Delta function in a Leaky Integrate-and-Fire
 (LIF) neuron model:
 
 ::
@@ -227,7 +227,7 @@ factor of 10 to speed up training.
 2.2 Define the Network
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The convolutional network architecture will be defined as:
+The convolutional network architecture to be used is:
 12C5-MP2-64C5-MP2-1024FC10
 
 -  12C5 is a 5 :math:`\times` 5 convolutional kernel with 12
@@ -282,11 +282,9 @@ The convolutional network architecture will be defined as:
     
             return torch.stack(spk3_rec), torch.stack(mem3_rec)
 
-In the previous tutorial, we wrapped our network as a class, similar to
-what is shown above. As network complexity increases, this will add a
-lot of boilerplate code that we might want to avoid. We can achieve the
-same result as above by using the ``nn.Sequential`` method instead, with
-far less code.
+In the previous tutorial, the network was wrapped inside of a class, as shown above. 
+With increasing network complexity, this adds a
+lot of boilerplate code that we might wish to avoid. Alternatively, the ``nn.Sequential`` method can be used instead:
 
 ::
 
@@ -302,16 +300,13 @@ far less code.
                         snn.Leaky(beta=beta, spike_grad=spike_grad, init_hidden=True, output=True)
                         ).to(device)
 
-The ``init_hidden`` argument in ``snn.Leaky`` initializes the hidden
-states of the neuron (here, membrane potential). This takes place in the
-background and is created as an instance variable. If ``init_hidden`` is
-activated, then the membrane potential will not be explicitly returned
-to the user, ensuring that only the output spikes are sequentially
-passed along the layers wrapped in ``nn.Sequential``.
+The ``init_hidden`` argument initializes the hidden states of the neuron 
+(here, membrane potential). This takes place in the background as an instance variable. 
+If ``init_hidden`` is activated, the membrane potential is not explicitly returned to 
+the user, ensuring only the output spikes are sequentially passed through the layers wrapped in ``nn.Sequential``. 
 
-To train a model using the final layer’s membrane potential, set the
-argument ``output=True`` which enables the final layer to return both
-the spike and membrane potential response of the neuron.
+To train a model using the final layer's membrane potential, set the argument ``output=True``. 
+This enables the final layer to return both the spike and membrane potential response of the neuron.
 
 2.3 Forward-Pass
 ~~~~~~~~~~~~~~~~~~~~
@@ -328,7 +323,7 @@ this:
     for step in range(num_steps):
         spk_out, mem_out = net(data)
 
-Let’s wrap that in a function and record the membrane potential and
+Wrap that in a function, recording the membrane potential and
 spike response over time:
 
 ::
@@ -355,24 +350,21 @@ spike response over time:
 3.1 Loss Using snn.Functional
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In the previous tutorial, we used the Cross Entropy Loss between the
-membrane potential of the output neurons and the target to train our
-network. This time, we will sum up the total number of spikes from each
-neuron and use that in our measure of Cross Entropy instead.
+In the previous tutorial, the Cross Entropy Loss between the membrane potential of the output neurons and the target was used to train the network. 
+This time, the total number of spikes from each neuron will be used to calculate the Cross Entropy instead.
 
-A variety of loss functions tailored specifically to rate and latency
-codes as applied to membrane potentials and spikes are included in the
-``snn.functional`` module, which is analogous to ``torch.nn.functional``
-in PyTorch. To find the cross entropy loss of the spike rate, the
-following function can be instantiated:
+A variety of loss functions are included in the ``snn.functional`` module, which is analogous to ``torch.nn.functional`` in PyTorch. 
+These implement a mix of cross entropy and mean square error losses, are applied to spikes and/or membrane potential, to train a rate or latency-coded network. 
+
+The approach below applies the cross entropy loss to the output spike count in order train a rate-coded network:
 
 ::
 
     # already imported snntorch.functional as SF 
     loss_fn = SF.ce_rate_loss()
 
-We can then pass in the recordings of the spike as the first argument to
-``loss_fn``, and the target neuron index as the second argument, to
+The recordings of the spike are passed as the first argument to
+``loss_fn``, and the target neuron index as the second argument to
 generate a loss. `The documentation provides further information and
 exmaples. <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html#snntorch.functional.ce_rate_loss>`__
 
@@ -390,8 +382,7 @@ exmaples. <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html#sn
 
 The ``SF.accuracy_rate()`` function works similarly, in that the
 predicted output spikes and actual targets are supplied as arguments.
-``accuracy_rate`` assumes a rate code is used to interpret the output,
-and check if the index of the neuron with the highest spike count
+``accuracy_rate`` assumes a rate code is used to interpret the output by checking if the index of the neuron with the highest spike count
 matches the target index.
 
 ::
@@ -404,8 +395,8 @@ matches the target index.
     The accuracy of a single batch using an untrained network is 10.938%
 
 As the above function only returns the accuracy of a single batch of
-data, let’s write a function that returns the accuracy on the entire
-dataset:
+data, the following function returns the accuracy on the entire
+DataLoader object:
 
 ::
 
@@ -439,12 +430,12 @@ dataset:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Training SNNs can become arduous even with simple networks, so the
-``snn.backprop`` module is here to ease some of this pain.
+``snn.backprop`` module is here to reduce some of this effort.
 
-The ``backprop.BPTT`` function automatically performs a single epoch of
-training, where you need only provide your training parameters,
-dataloader, and several other arguments. It will then return the average
-loss across iterations. The argument ``time_var`` indicates whether the
+The ``backprop.BPTT`` function automatically performs a single epoch of training, 
+where you need only provide the training parameters, dataloader, and several other arguments. 
+The average loss across iterations is returned. 
+The argument ``time_var`` indicates whether the
 input data is time-varying. As we are using the MNIST dataset, we
 explicitly specify ``time_var=False``.
 
@@ -520,7 +511,7 @@ readings.
 
     spk_rec, mem_rec = forward_pass(net, num_steps, data)
 
-If you change ``idx``, you can index into various samples from the
+Changing ``idx`` allows you to index into various samples from the
 simulated minibatch. Use ``splt.spike_count`` to explore the spiking
 behaviour of a few different samples!
 
@@ -535,7 +526,6 @@ behaviour of a few different samples!
     
     fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
     labels=['0', '1', '2', '3', '4', '5', '6', '7', '8','9']
-    print(f"The target label is: {targets[idx]}")
     
     # plt.rcParams['animation.ffmpeg_path'] = 'C:\\path\\to\\your\\ffmpeg.exe'
     
@@ -547,18 +537,20 @@ behaviour of a few different samples!
     # anim.save("spike_bar.mp4")
 
 
-<center>
-    <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial6/_static/spike_bar.mp4?raw=true"></video>
-</center>
+.. raw:: html
+
+    <center>
+        <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial6/_static/spike_bar.mp4?raw=true"></video>
+    </center>
 
 ::
-
+    >>> print(f"The target label is: {targets[idx]}")
     The target label is: 3
 
 Conclusion
 ------------
 
-You should now have a grasp of the basic features of snnTorch and should
-be able to start running your own tests and experiments. `In the next
+You should now have a grasp of the basic features of snnTorch and
+be able to start running your own experiments. `In the next
 tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
-we will attempt to train a network using a neuromorphic dataset.
+we will train a network using a neuromorphic dataset.

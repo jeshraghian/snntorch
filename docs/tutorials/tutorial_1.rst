@@ -117,7 +117,7 @@ Install the latest PyPi distribution of snnTorch:
     
     mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
 
-If the above code blocks throws an error, e.g. the MNIST servers are
+If the above code block throws an error, e.g. the MNIST servers are
 down, then uncomment the following code instead.
 
 ::
@@ -129,9 +129,8 @@ down, then uncomment the following code instead.
     # mnist_train = datasets.MNIST(root = './', train=True, download=True, transform=transform)
 
 Until we actually start training a network, we won’t need large
-datasets. So let’s make life simpler by reducing the size of the MNIST
-dataset. ``snntorch.utils`` contains a few useful functions for
-modifying datasets. We can apply ``data_subset`` to reduce the dataset
+datasets. ``snntorch.utils`` contains a few useful functions for
+modifying datasets. Apply ``data_subset`` to reduce the dataset
 by the factor defined in ``subset``. E.g., for ``subset=10``, a
 training set of 60,000 will be reduced to 6,000.
 
@@ -142,8 +141,6 @@ training set of 60,000 will be reduced to 6,000.
     subset = 10
     mnist_train = utils.data_subset(mnist_train, subset)
 
-To verify, we can take a look at the length of each of our datasets:
-
 ::
 
     >>> print(f"The size of mnist_train is {len(mnist_train)}")
@@ -153,7 +150,7 @@ To verify, we can take a look at the length of each of our datasets:
 1.3 Create DataLoaders
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The Dataset objects we created above load data into memory, and the
+The Dataset objects created above load data into memory, and the
 DataLoader will serve it up in batches. DataLoaders in PyTorch are a
 handy interface for passing data into a network. They return an iterator
 divided up into mini-batches of size ``batch_size``.
@@ -168,14 +165,14 @@ divided up into mini-batches of size ``batch_size``.
 -----------------
 
 Spiking Neural Networks (SNNs) are made to exploit time-varying data.
-And yet, MNIST is not a time-varying dataset. This means that we have
-one of two options for passing input data into an SNN:
+And yet, MNIST is not a time-varying dataset. There are two options for using MNIST with an SNN:
 
 1. Repeatedly pass the same training sample
    :math:`\mathbf{X}\in\mathbb{R}^{m\times n}` to the network at each
-   time step. Each element of :math:`\mathbf{X}` can take a high
+   time step. This is like converting MNIST into a static, unchanging video.
+   Each element of :math:`\mathbf{X}` can take a high
    precision value normalized between 0 and 1: :math:`X_{ij}\in [0, 1]`.
-   This is like converting MNIST into a static, unchanging video.
+   
 
    .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/1_2_1_static.png?raw=true
             :align: center
@@ -183,16 +180,14 @@ one of two options for passing input data into an SNN:
 
 2. Convert the input into a spike train of sequence length
    ``num_steps``, where each feature/pixel takes on a discrete value
-   :math:`X_{i,j} \in \{0, 1\}`. In this case, MNIST would become a
-   time-varying sequence of spikes that are somehow related to the
-   original image.
+   :math:`X_{i,j} \in \{0, 1\}`. In this case, MNIST is converted into a time-varying sequence of spikes that features a relation to the original image.
 
     .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/1_2_2_spikeinput.png?raw=true
               :align: center
               :width: 800
 
 The first method is quite straightforward, and does not fully exploit
-the temporal dynamics of SNNs. So let’s consider (2) in more detail.
+the temporal dynamics of SNNs. So let’s consider data-to-spike conversion (encoding) from (2) in more detail.
 
 The module ``snntorch.spikegen`` (i.e., spike generation) contains a
 series of functions that simplify the conversion of data into spikes.
@@ -226,7 +221,7 @@ Explicitly, the probability a spike occurs is:
 
 .. math:: {\rm P}(R_{ij}=1) = X_{ij} = 1 - {\rm P}(R_{ij} = 0)
 
-Let’s create a vector filled with the value ‘0.5’ and encode it using
+Create a vector filled with the value ‘0.5’ and encode it using
 the above technique:
 
 ::
@@ -239,9 +234,11 @@ the above technique:
     
     # pass each sample through a Bernoulli trial
     rate_coded_vector = torch.bernoulli(raw_vector)
-    
+
+::
     >>> print(f"Converted vector: {rate_coded_vector}")
     Converted vector: tensor([1., 1., 1., 0., 0., 1., 1., 0., 1., 0.])
+    
     >>> print(f"The output is spiking {rate_coded_vector.sum()*100/len(rate_coded_vector):.2f}% of the time.")
     The output is spiking 60.00% of the time.
 
@@ -265,13 +262,13 @@ approaches the original raw value.
 For an MNIST image, this probability of spiking corresponds to the pixel
 value. A white pixel corresponds to a 100% probability of spiking, and a
 black pixel will never generate a spike. Take a look at the ‘Rate
-Coding’ column below for some intuition.
+Coding’ column below for further intuition.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/1_2_3_spikeconv.png?raw=true
         :align: center
         :width: 1000
 
-In a similar way, we can use ``spikegen.rate`` to generate a rate-coded
+In a similar way, ``spikegen.rate`` can be used to generate a rate-coded
 sample of data. As each sample of MNIST is just an image, we can use
 ``num_steps`` to repeat it across time.
 
@@ -306,7 +303,7 @@ The structure of the input data is
 
 snnTorch contains a module
 `snntorch.spikeplot <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`__
-that can simplify the process of visualizing, plotting, and animating
+that simplifies the process of visualizing, plotting, and animating
 spiking neurons.
 
 ::
@@ -315,8 +312,8 @@ spiking neurons.
     import snntorch.spikeplot as splt
     from IPython.display import HTML
 
-To plot one sample of data, we have to index into the batch (B)
-dimension of ``spike_data``, ``[T x B x 1 x 28 x 28]``:
+To plot one sample of data, index into a single sample from the batch (B) dimension 
+of ``spike_data``, ``[T x B x 1 x 28 x 28]``:
 
 ::
 
@@ -356,7 +353,7 @@ The associated target label can be indexed as follows:
 
 MNIST features a greyscale image, and the white text guarantees a 100%
 of spiking at every time step. So let’s do that again but reduce the
-spiking frequency. This can be easily achieved by setting the argument
+spiking frequency. This can be achieved by setting the argument
 ``gain``. Here, we will reduce spiking frequency to 25%.
 
 ::
@@ -379,7 +376,7 @@ spiking frequency. This can be easily achieved by setting the argument
     # Uncomment for optional save
     # anim.save("spike_mnist_test2.mp4")
 
-Now let’s average the spikes out over time and reconstruct the input
+Now average the spikes out over time and reconstruct the input
 images.
 
 ::
@@ -408,8 +405,8 @@ spiking probability has been reduced by a factor of :math:`\times 4`.
 ^^^^^^^^^^^^^^^^^^
 
 Alternatively, we can generate a raster plot of an input sample. This
-requires reshaping our sample into a 2-D tensor, where ‘time’ is the
-first dimension. We then pass this sample into the function
+requires reshaping the sample into a 2-D tensor, where ‘time’ is the
+first dimension. Pass this sample into the function
 ``spikeplot.raster``.
 
 ::
@@ -431,17 +428,18 @@ first dimension. We then pass this sample into the function
         :align: center
         :width: 600
 
-We can also index into one single neuron. Below, we are indexing into
-the 210th neuron. Depending on your input data, you may need to index
-into a few different neurons between 0 & 784 before finding one that
+The following code snippet shows how to index into one single neuron. 
+Depending on the input data, you may need to try
+a few different neurons between 0 & 784 before finding one that
 spikes.
 
 ::
+    idx = 210  # index into 210th neuron
 
     fig = plt.figure(facecolor="w", figsize=(8, 1))
     ax = fig.add_subplot(111)
     
-    splt.raster(spike_data_sample.reshape(num_steps, -1)[:,210].unsqueeze(1), ax, s=100, c="black", marker="|")
+    splt.raster(spike_data_sample.reshape(num_steps, -1)[:, idx].unsqueeze(1), ax, s=100, c="black", marker="|")
     
     plt.title("Input Neuron")
     plt.xlabel("Time step")
@@ -485,15 +483,14 @@ plenty more where they came from.
 
 Additionally, you may have heard of the `Hebbian mantra of “neurons that
 fire together, wire together” <https://doi.org/10.2307/1418888>`__. If
-there is plenty of spiking, this should suggest there is plenty of
+there is plenty of spiking, this may suggest there is plenty of
 learning. In some cases where training SNNs proves to be challenging,
-encouraging more firing via a rate code is a possible solution.
+encouraging more firing via a rate code is one possible solution.
 
 Rate coding is almost certainly working in conjunction with other
-encoding schemes in the brain. We’ll consider these other encoding
-mechanisms in the following sections.
-
-This covers the ``spikegen.rate`` function. Further information `can be
+encoding schemes in the brain. We will consider these other encoding
+mechanisms in the following sections. This covers the ``spikegen.rate`` function. 
+Further information `can be
 found in the documentation
 here <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__.
 
@@ -532,7 +529,7 @@ Starting with Kirchhoff's current law, :math:`I_{in} = I_R + I_C`, the rest of t
 
 ------------------------
 
-Let’s write a function that converts a feature of intensity
+The following function uses the above result to convert a feature of intensity
 :math:`X_{ij}\in [0,1]` into a latency coded response :math:`L_{ij}`.
 
 ::
@@ -541,8 +538,7 @@ Let’s write a function that converts a feature of intensity
       spike_time = tau * torch.log(data / (data - threshold))
       return spike_time 
 
-Now, let’s sweep across a variety of features in ``raw_input`` to see
-what time their corresponding spikes will occur:
+Now, use the above function to visualize the relationship between input feature intensity and its corresponding spike time.
 
 ::
 
@@ -561,10 +557,9 @@ what time their corresponding spikes will occur:
 The smaller the value, the later the spike occurs with exponential
 dependence.
 
-The vector ``spike_times`` contains the time at which spikes are
-triggered, rather than a sparse tensor that contains the spikes
-themselves (1’s and 0’s). This whole process can be automated using
-``spikegen.latency``:
+The vector ``spike_times`` contains the time at which spikes are triggered, rather than a sparse tensor that contains the spikes themselves (1's and 0's). 
+When running an SNN simulation, we need the 1/0 representation to obtain all of the advantages of using spikes.
+This whole process can be automated using ``spikegen.latency``, where we pass a minibatch from the MNIST dataset in `data_it`:
 
 ::
 
@@ -572,16 +567,12 @@ themselves (1’s and 0’s). This whole process can be automated using
 
 Some of the arguments include:
 
--  ``tau``: by default, the input features are treated as a constant
-   current injected into an RC circuit. ``tau`` is the RC time constant
-   of the circuit. A higher ``tau`` will induce slower firing.
--  ``threshold``: the membrane potential the RC circuit must charge to
-   before it can fire. All features below the threshold are clipped to fire at the final possible spike time.
+-  ``tau``: the RC time constant of the circuit. By default, the input features are treated as a constant
+   current injected into an RC circuit. A higher ``tau`` will induce slower firing.
+-  ``threshold``: the membrane potential firing threshold. Input values below this threshold do not have a closed-form solution, as the input current is insufficient to drive the membrane up to the threshold. All values below the threshold are clipped and assigned to the final time step.
 
 2.3.1 Raster plot
 ^^^^^^^^^^^^^^^^^
-
-We’ll start with a raster this time.
 
 ::
 
@@ -601,7 +592,7 @@ We’ll start with a raster this time.
         :align: center
         :width: 600
 
-To make sense of your raster plot, you’ll notice that high intensity
+To make sense of the raster plot, note that high intensity
 features fire first, whereas low intensity features fire last:
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/1_2_5_latencyraster.png?raw=true
@@ -611,9 +602,7 @@ features fire first, whereas low intensity features fire last:
 The logarithmic code coupled with the lack of diverse input values
 (i.e., the lack of midtone/grayscale features) causes significant
 clustering in two areas of the plot. The bright pixels induce firing at
-the start of the run, and the dark pixels at the end. We can increase
-``tau`` to slow down our spike times, or we can linearize the data by
-setting the optional argument ``linear=True``.
+the start of the run, and the dark pixels at the end. We can increase ``tau`` to slow down the spike times, or linearize the spike times by setting the optional argument ``linear=True``.
 
 ::
 
@@ -632,16 +621,16 @@ setting the optional argument ``linear=True``.
         :width: 600
 
 The spread of firing times is much more evenly distributed now. This is
-achieved by simply linearizing the logarithmic equation according to the
-rules shown below. Unlike the RC model, there’s no physical basis for
+achieved by linearizing the logarithmic equation according to the
+rules shown below. Unlike the RC model, there is no physical basis for
 the model. It’s just simpler.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/1_2_6_latencylinear.png?raw=true
         :align: center
         :width: 600
 
-But notice all firing occurs within the first ~5 time steps, whereas the
-simulation range is 100 time steps. This indicates that we have a lot of
+But note how all firing occurs within the first ~5 time steps, whereas the
+simulation range is 100 time steps. This indicates there are many
 redundant time steps doing nothing. This can be solved by either
 increasing ``tau`` to slow down the time constant, or setting the
 optional argument ``normalize=True`` to span the full range of
@@ -665,14 +654,14 @@ optional argument ``normalize=True`` to span the full range of
         :align: center
         :width: 600
 
-One major advantage of latency coding over rate coding is the increased
-sparsity of spikes. If neurons are constrained to firing a maximum of
+One major advantage of latency coding over rate coding is
+sparsity. If neurons are constrained to firing a maximum of
 once over the time course of interest, then this promotes low-power
 operation.
 
 In the scenario shown above, a majority of the spikes occur at the final
 time step, where the input features fall below the threshold. In a
-sense, the background of the image holds no useful information to us.
+sense, the dark background of the MNIST sample holds no useful information.
 
 We can remove these redundant features by setting ``clip=True``.
 
@@ -722,8 +711,8 @@ We will run the exact same code block as before to create an animation.
 
 This animation is obviously much tougher to make out in video form, but
 a keen eye will be able to catch a glimpse of the initial frame where
-most of the spikes occur. We can index into the corresponding target
-value to check what value it is.
+most of the spikes occur. Index into the corresponding target
+value to check its value.
 
 ::
 
@@ -745,10 +734,10 @@ here <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__.
 
 There are theories that the retina is adaptive: it will only process
 information when there is something new to process. If there is no
-change in your field of view, then your photoreceptor cells will be much
-lesss prone to firing.
+change in your field of view, then your photoreceptor cells are
+less prone to firing.
 
-That is to say: **biology is event-driven**. Our neurons thrive on
+That is to say: **biology is event-driven**. Neurons thrive on
 change.
 
 As a nifty example, a few researchers have dedicated their lives to
@@ -763,7 +752,7 @@ Delta modulation is based on event-driven spiking. The
 ``snntorch.delta`` function accepts a time-series tensor as input. It
 takes the difference between each subsequent feature across all time
 steps. By default, if the difference is both *positive* and *greater
-than the threshold :math:`V_{thr}`*, a spike is generated:
+than the threshold* :math:`V_{thr}`, a spike is generated:
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/1_2_7_delta.png?raw=true
         :align: center
@@ -789,7 +778,7 @@ create our own input tensor.
       :align: center
       :width: 300
 
-Let’s pass the above tensor into the ``spikegen.delta`` function, with
+Pass the above tensor into the ``spikegen.delta`` function, with
 an arbitrarily selected ``threshold=4``:
 
 ::
@@ -818,6 +807,9 @@ an arbitrarily selected ``threshold=4``:
 There are three time steps where the difference between :math:`data[T]`
 and :math:`data[T+1]` is greater than or equal to :math:`V_{thr}=4`.
 This means there are three *on-spikes*.
+
+The large dip to :math:`-20` has not been captured above. 
+If negative swings have importance in your data, you can enable the optional argument ``off_spike=True``.
 
 The large dip to :math:`-20` has not been captured in our spikes. It
 might be that we care about negative swings as well, in which case we
@@ -848,17 +840,15 @@ can enable the optional argument ``off_spike=True``.
 We’ve generated additional spikes, but this isn’t actually the full
 picture!
 
-If we print out the tensor, we will discover that we have actually
-generated “off-spikes”. These spikes take on a value of ``-1``.
+Printing out the tensor will show that the presence of “off-spikes”. These spikes take on a value of ``-1``.
 
 ::
 
     >>> print(spike_data)
     tensor([ 0.,  0.,  0.,  0.,  1., -1.,  1., -1.,  1.,  0.,  0.])
 
-Although we have only shown ``spikegen.delta`` on a fake sample of data,
-the true intention is to pass in time-series data and only generate an
-output when there has been a sufficiently large event.
+While ``spikegen.delta`` has only been demonstrated on a fake sample of data, 
+its true use is to compress time-series data by only generating spikes for sufficiently large changes/events. 
 
 That wraps up the three main spike conversion functions! There are still
 additional features to each of the three conversion techniques that have
@@ -936,6 +926,6 @@ here <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__
 and for `spikeplot,
 here <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`__.
 
-In the next tutorial, you will learn the basics of spiking neurons and
-how to use them. Following that, you will be equipped with the tools to
-train your own spiking neural network in tutorial 3.
+`In the next
+tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__, 
+you will learn the basics of spiking neurons and how to use them.

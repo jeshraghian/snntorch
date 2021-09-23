@@ -37,6 +37,7 @@ Install the latest PyPi distribution of snnTorch:
 
 ::
 
+    # imports
     import snntorch as snn
     from snntorch import spikeplot as splt
     from snntorch import spikegen
@@ -49,18 +50,17 @@ Install the latest PyPi distribution of snnTorch:
 1. Simplifying the Leaky Integrate-and-Fire Neuron Model
 ----------------------------------------------------------
 
-In the previous tutorial, we designed our own LIF neuron model. But we
-found that it was quite complex, and it added an array of
+In the previous tutorial, we designed our own LIF neuron model. But it was quite complex, and added an array of
 hyperparameters to tune, including :math:`R`, :math:`C`,
 :math:`\Delta t`, :math:`U_{\rm thr}`, and the choice of reset
-mechanism. This is a lot to keep track of, and will grow more cumbersome
-when we scale this up to a large-scale SNN. So let’s make a few
+mechanism. This is a lot to keep track of, and only grows more cumbersome
+when scaled up to full-blown SNN. So let’s make a few
 simplfications.
 
 1.1 The Decay Rate: beta
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In the previous tutorial, we used the Euler method to derive the
+In the previous tutorial, the Euler method was used to derive the
 following solution to the passive membrane model:
 
 .. math:: U(t+\Delta t) = (1-\frac{\Delta t}{\tau})U(t) + \frac{R}{\tau} I_{\rm in}(t) \tag{1}
@@ -85,15 +85,14 @@ For reasonable accuracy, :math:`\Delta t << \tau`.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If we assume :math:`t` represents time-steps in a sequence rather than
-continuous time, then we can set :math:`\Delta t \leftarrow 1`. To
+continuous time, then we can set :math:`\Delta t = 1`. To
 further reduce the number of hyperparameters, assume :math:`R=1`. From
-:math:`(4)`, our assumptions lead us to:
+:math:`(4)`, these assumptions lead to:
 
 .. math:: \beta = (1-\frac{1}{C}) \implies (1-\beta)I_{\rm in} = \frac{R}{\tau}I_{\rm in} \tag{5}
 
-The input current is weighted by :math:`(1-\beta)`. This lands us at the
-following equation, where we assume there is no time-lag between the
-input current altering the membrane potential:
+The input current is weighted by :math:`(1-\beta)`. 
+By additionally assuming input current instantaneously contributes to the membrane potential:
 
 .. math:: U[t+1] = \beta U[t] + (1-\beta)I_{\rm in}[t+1] \tag{6}
 
@@ -116,10 +115,13 @@ the following result:
 
 .. math:: U[t+1] = \beta U[t] + WX[t+1] \tag{8}
 
+In future simulations, the effects of :math:`W` and :math:`\beta` are decoupled.
+:math:`W` is a learnable parameter that is updated independently of :math:`\beta`.
+
 1.3 Spiking and Reset
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Finally, we introduce the spiking and reset mechanisms. Recall that if
+We now introduce the spiking and reset mechanisms. Recall that if
 the membrane exceeds the threshold, then the neuron emits an output
 spike:
 
@@ -132,7 +134,7 @@ spike:
    
    \tag{9}
 
-If a spike is triggered, we wish to reset the membrane potential. The
+If a spike is triggered, the membrane potential should be reset. The
 *reset-by-subtraction* mechanism is modeled by:
 
 .. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{S[t]U_{\rm thr}}_\text{reset} \tag{10}
@@ -142,7 +144,9 @@ just set to :math:`1` (though can be tuned), this leaves the decay rate
 :math:`\beta` as the only hyperparameter left to be specified. This
 completes the painful part of this tutorial.
 
-   Note: some implementations might make slightly different assumptions.
+.. note::
+
+   Some implementations might make slightly different assumptions.
    E.g., :math:`S[t] \rightarrow S[t+1]` in :math:`(9)`, or
    :math:`X[t] \rightarrow X[t+1]` in :math:`(10)`. This above
    derivation is what is used in snnTorch as we find it maps intuitively
@@ -152,7 +156,7 @@ completes the painful part of this tutorial.
 1.4 Code Implementation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Let’s code this neuron together:
+Implementing this neuron in Python looks like this:
 
 ::
 
@@ -163,12 +167,11 @@ Let’s code this neuron together:
 
 To set :math:`\beta`, we have the option of either using Equation
 :math:`(3)` to define it, or hard-coding it directly. Here, we will use
-:math:`(3)`, but future tutorials will just hard-code :math:`\beta`; we
-are more focused on something that works rather than something that
-precisely emulates biology.
+:math:`(3)` for the sake of a demonstration, but in future, it will just be hard-coded as we
+are more focused on something that works rather than biological precision.
 
 Equation :math:`(3)` tells us that :math:`\beta` is the ratio of
-membrane potential across two subsequent time steps. Let’s calculate
+membrane potential across two subsequent time steps. Solve
 this using the continuous time-dependent form of the equation (assuming
 no current injection), which was derived in `Tutorial
 2 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__:
@@ -196,7 +199,7 @@ of membrane potential between subsequent steps using:
     >>> print(f"The decay rate is: {beta:.3f}")
     The decay rate is: 0.819
 
-Let’s run a quick simulation to check the neuron behaves correctly in
+Run a quick simulation to check the neuron behaves correctly in
 response to a step voltage input:
 
 ::
@@ -236,13 +239,13 @@ response to a step voltage input:
 ---------------------------------------
 
 This same thing can be achieved by instantiating ``snn.Leaky``, in a
-similar way to how we used ``snn.Lapicque`` in the previous tutotiral:
+similar way to how we used ``snn.Lapicque`` in the previous tutorial, but with less hyperparameters:
 
 ::
 
     lif1 = snn.Leaky(beta=0.8)
 
-To use this neuron:
+The neuron model is now stored in ``lif1``. To use this neuron:
 
 **Inputs** 
 
@@ -256,9 +259,9 @@ To use this neuron:
 
 These all need to be of type ``torch.Tensor``. Note that here, we assume
 the input current has already been weighted before passing into the
-``snn.Leaky`` neuron. This will be made clear when we construct a
-network-scale model. Also, we have time-shifted equation :math:`(10)`
-back one time step without loss of generality.
+``snn.Leaky`` neuron. This will make more sense when we construct a
+network-scale model. Also, equation :math:`(10)` has been time-shifted
+back one step without loss of generality.
 
 ::
 
@@ -296,10 +299,8 @@ and ``threshold`` as described for Lapicque’s neuron model.
 
 So far, we have only considered how a single neuron responds to input
 stimulus. snnTorch makes it straightforward to scale this up to a deep
-neural network. Here, we will create a 3-layer fully-connected neural
-network of dimensions 784-1000-10.
-
-Compared to our simulations so far, each neuron will now integrate over
+neural network. In this section, we will create a 3-layer fully-connected neural
+network of dimensions 784-1000-10. Compared to our simulations so far, each neuron will now integrate over
 many more incoming input spikes.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_8_fcn.png?raw=true
@@ -308,9 +309,8 @@ many more incoming input spikes.
 
 
 
-We will use PyTorch to form the connections between neurons, and
-snnTorch to create the neurons. First, we must initialize all of our
-layers.
+PyTorch is used to form the connections between neurons, and
+snnTorch to create the neurons. First, initialize all layers.
 
 ::
 
@@ -327,8 +327,8 @@ layers.
     lif2 = snn.Leaky(beta=beta)
 
 Next, initialize the hidden variables and outputs of each spiking
-neuron. As your networks increase in size, this will become a tedious
-process. So we can call a static method ``init_leaky()`` to take care of
+neuron. As networks increase in size, this becomes more tedious.
+The static method ``init_leaky()`` can be used to take care of
 this. All neurons in snnTorch have their own initialization methods that
 follow this same syntax, e.g., ``init_lapicque()``. The shape of the
 hidden states are automatically initialized based on the input data
@@ -347,14 +347,12 @@ dimensions during the first forward pass.
 
 Create an input spike train to pass to the network. There are 200 time
 steps to simulate across 784 input neurons, i.e., the input originally
-has dimensions of :math:`200 \times 784`.
-
-However, neural nets typically process data in minibatches. In snnTorch,
-we use time-first dimensionality:
+has dimensions of :math:`200 \times 784`. However, neural nets typically process data in minibatches. 
+snnTorch, uses time-first dimensionality:
 
 [:math:`time \times batch\_size \times feature\_dimensions`]
 
-So ‘unsqueeze’ the input along ``dim=1`` to indicate we have ‘one batch’
+So ‘unsqueeze’ the input along ``dim=1`` to indicate ‘one batch’
 of data. The dimensions of this input tensor must be 200 :math:`\times`
 1 :math:`\times` 784:
 
@@ -372,7 +370,7 @@ can be treated like time-varying activation functions.
 
 Here is a sequential account of what’s going on:
 
--  The :math:`i^{th}` input to the :math:`j^{th}` neuron from ``spk_in``
+-  The :math:`i^{th}` input from ``spk_in`` to the :math:`j^{th}` neuron 
    is weighted by the parameters initialized in ``nn.Linear``:
    :math:`X_{i} \times W_{ij}`
 -  This generates the input current term from Equation :math:`(10)`,
@@ -415,11 +413,11 @@ rather than manually setting :math:`W` ourselves.
 At this stage, the spikes don’t have any real meaning. The inputs and
 weights are all randomly initialized, and no training has taken place.
 But the spikes should appear to be propagating from the first layer
-through to the output! If you’re seeing no spikes, then you might have
-just been unlucky in the weight initialization lottery - you might want
+through to the output. If you are not seeing any spikes, then you might have
+ been unlucky in the weight initialization lottery - you might want
 to try re-running the last four code-blocks.
 
-We can also use ``spikeplot.spike_count`` to generate a spike counter of
+``spikeplot.spike_count`` can create a spike counter of
 the output layer. The following animation will take some time to
 generate.
 
@@ -447,10 +445,8 @@ generate.
     <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/_static/spike_bar.mp4?raw=true"></video>
   </center>
 
-We can also visualize the membrane potential traces with
-``spikeplot.traces``. We’ll plot 9 out of 10 output neurons. Compare it
-to the animation and raster plot above to see if you can match the
-traces to the neuron.
+``spikeplot.traces`` lets you visualize the membrane potential traces. We will plot 9 out of 10 output neurons. 
+Compare it to the animation and raster plot above to see if you can match the traces to the neuron.
 
 ::
 
@@ -471,14 +467,14 @@ Conclusion
 -----------
 
 That covers how to simplify the leaky integrate-and-fire neuron model,
-and then to use it to build a spiking neural network. In practice, we
+and then using it to build a spiking neural network. In practice, we
 will almost always prefer to use ``snn.Leaky`` over ``snn.Lapicque`` for
 training networks, as there is a smaller hyperparameter search space.
 
 `Tutorial
 4 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__
-goes into detail on the 2nd-order ``snn.Synaptic`` and ``snn.Alpha``
-models, though are not necessary to training. If you wish to go straight
+goes into detail with the 2nd-order ``snn.Synaptic`` and ``snn.Alpha``
+models. This next tutorial is not necessary for training a network, so if you wish to go straight
 to deep learning with snnTorch, then skip ahead to `Tutorial
 5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__.
 

@@ -72,15 +72,15 @@ Install the latest PyPi distribution of snnTorch:
 1. A Recurrent Representation of SNNs
 ----------------------------------------
 
-In Tutorial 3, we derived a recursive representation of a leaky
+In `Tutorial 3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_, we derived a recursive representation of a leaky
 integrate-and-fire (LIF) neuron:
 
 .. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{R[t]}_\text{reset} \tag{1}
 
-Note that we interpret the input synaptic current as
-:math:`I_{\rm in}[t] = WX[t]`, where :math:`X[t]` may be some arbitrary
+where input synaptic current is interpreted as
+:math:`I_{\rm in}[t] = WX[t]`, and :math:`X[t]` may be some arbitrary
 input of spikes, a step/time-varying voltage, or unweighted
-step/time-varying current. We represented spiking with the following
+step/time-varying current. Spiking is represented with the following
 equation, where if the membrane potential exceeds the threshold, a spike
 is emitted:
 
@@ -98,23 +98,24 @@ training recurrent neural networks (RNNs) and sequence-based models.
 This is illustrated using an *implicit* recurrent connection for the
 decay of the membrane potential, and is distinguished from *explicit*
 recurrence where the output spike :math:`S_{\rm out}` is fed back to the
-input.
+input. In the figure below, the connection weighted by :math:`-U_{\rm thr}` 
+represents the reset mechanism :math:`R[t]`.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial5/unrolled_2.png?raw=true
         :align: center
         :width: 600
 
-The benefit of an unrolled graph is that we now have an explicit
+The benefit of an unrolled graph is that it provides an explicit
 description of how computations are performed. The process of unfolding
 illustrates the flow of information forward in time (from left to right)
 to compute outputs and losses, and backward in time to compute
 gradients. The more time steps that are simulated, the deeper the graph
 becomes.
 
-Conventional RNNs would treat :math:`\beta` as a learnable parameter.
+Conventional RNNs treat :math:`\beta` as a learnable parameter.
 This is also possible for SNNs, though by default, they are treated as
 hyperparameters. This replaces the vanishing and exploding gradient
-problems with a parameter search. A future tutorial will describe how to
+problems with a hyperparameter search. A future tutorial will describe how to
 make :math:`\beta` a learnable parameter.
 
 2. The Non-Differentiability of Spikes
@@ -134,9 +135,8 @@ where :math:`\Theta(\cdot)` is the Heaviside step function:
         :align: center
         :width: 600
 
-When we try to train our network, we will run into some serious
-challenges. Consider a single, isolated time step of the computational
-graph from the earlier figure *Recurrent representation of spiking neurons*, as
+Training a network in this form poses some serious challenges. Consider a single, isolated time step of the computational
+graph from the previous figure titled *"Recurrent representation of spiking neurons"*, as
 shown in the *forward pass* below:
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial5/non-diff.png?raw=true
@@ -156,16 +156,16 @@ rule:
    \frac{\partial U}{\partial I}\
    \frac{\partial I}{\partial W}\ \tag{4}
 
-From :math:`(1)`, we know :math:`\partial I/\partial W=X`, and likewise
-:math:`\partial U/\partial I=1`. While we have not yet defined a loss
-function, we can assume :math:`\partial \mathcal{L}/\partial S` has an
+From :math:`(1)`,  :math:`\partial I/\partial W=X`, and
+:math:`\partial U/\partial I=1`. While a loss function is yet to be defined, 
+we can assume :math:`\partial \mathcal{L}/\partial S` has an
 analytical solution, in a similar form to the cross-entropy or
 mean-square error loss (more on that shortly).
 
 However, the term that we are going to grapple with is
-:math:`\partial S/\partial U`. If we take the derivative of the
-Heaviside step function from :math:`(3)`, we obtain the Dirac Delta
-function which evaluates to 0 everywhere, except at the threshold
+:math:`\partial S/\partial U`. The derivative of the
+Heaviside step function from :math:`(3)` is the Dirac Delta
+function, which evaluates to :math:`0` everywhere, except at the threshold
 :math:`U_{\rm thr} = \theta`, where it tends to infinity. This means the
 gradient will almost always be nulled to zero (or saturated if :math:`U`
 sits precisely at the threshold), and no learning can take place. This
@@ -184,12 +184,12 @@ approximations. This is commonly known as the *surrogate gradient*
 approach.
 
 A variety of options exist to using surrogate gradients, and we will
-dive into more detail on these methods in future tutorials. For now,
-let’s just use a very simple approximation, where we set
-:math:`\partial \tilde{S}/\partial U` to :math:`S` itself.
+dive into more detail on these methods in `Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_. For now,
+a simple approximation is applied where
+:math:`\partial \tilde{S}/\partial U` is set to :math:`S` itself.
 
-If :math:`S` does not spike, then the spike-gradient term is zero. If
-:math:`S` spikes, then the gradient term is 1. This simply looks like
+If :math:`S` does not spike, then the spike-gradient term is :math:`0`. If
+:math:`S` spikes, then the gradient term is :math:`1`. This simply looks like
 the gradient of a ReLU function shifted to the threshold. This method is
 known as the *Spike-Operator* approach and is described in more detail
 in the following paper:
@@ -214,10 +214,10 @@ This is summarized as follows:
 
 where the left arrow denotes substitution.
 
-We have taken the same neuron model described in :math:`(1)-(2)` (a.k.a.,
-``snn.Leaky`` neuron from Tutorial 3), and implemented it in PyTorch below.
-Don’t worry if you don’t understand this. We will
-condense this into one line of code using snnTorch in a moment:
+The same neuron model described in :math:`(1)-(2)` (a.k.a.,
+``snn.Leaky`` neuron from Tutorial 3) is implemented in PyTorch below.
+Don’t worry if you don’t understand this. This will be
+condensed into one line of code using snnTorch in a moment:
 
 ::
 
@@ -254,19 +254,19 @@ condense this into one line of code using snnTorch in a moment:
               grad = grad_output * spk # scale the gradient by the spike: 1/0
               return grad
 
-Note that we have detached the reset mechanism from the computational graph, as we only want to apply the surrogate gradient to $\partial S/\partial U$, and not $\partial U/\partial R$.
+Note that the reset mechanism is detached from the computational graph, as the surrogate gradient should only be applied to :math:`\partial S/\partial U`, and not :math:`\partial R/\partial U`.
 
-Then we would instantiate the above neuron using:
+The above neuron is instantiated using:
 
 ::
 
     lif1 = LeakySurrogate(beta=0.9)
 
-You can then use this neuron in a for-loop, just as in previous
+This neuron can be simulated using a for-loop, just as in previous
 tutorials, while PyTorch’s automatic differentation (autodiff) mechanism
 keeps track of the gradient in the background.
 
-Alternatively, we can accomplish the exact same thing by simply calling
+The same thing can be accomplished by calling
 the ``snn.Leaky`` neuron. In fact, every time you call any neuron model
 from snnTorch, the *Spike Operator* surrogate gradient is applied to it
 by default:
@@ -310,7 +310,7 @@ Therefore, a change in :math:`W[s]` will have the same effect on all
    \frac{\partial \mathcal{L}}{\partial W}=
    \sum_t \sum_{s\leq t} \frac{\partial\mathcal{L}[t]}{\partial W[s]} \tag{6} 
 
-Let’s isolate the prior influence from :math:`s = t-1` *only*; this
+As an example, isolate the prior influence due to :math:`s = t-1` *only*; this
 means the backward pass must track back in time by one step. The
 influence of :math:`W[t-1]` on the loss can be written as:
 
@@ -342,11 +342,10 @@ us.
 -------------------------------------------
 
 In a conventional, non-spiking neural network, a supervised, multi-class
-classification problem would take the neuron with the highest activation
-and treat that as the predicted class.
+classification problem takes the neuron with the highest activation
+and treats that as the predicted class.
 
-In a spiking neural net, we have a few options, where the most common
-approaches are: 
+In a spiking neural net, there are several options to interpreting the output spikes. The most common approaches are:
 
 * **Rate coding:** Take the neuron with the highest firing rate (or spike count) as the predicted class 
 * **Latency coding:** Take the neuron that fires *first* as the predicted class
@@ -356,10 +355,10 @@ encoding <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__.
 The difference is that, here, we are interpreting (decoding) the output
 spikes, rather than encoding/converting raw input data into spikes.
 
-Let’s focus on a rate code. When we pass input data to the network, we
+Let’s focus on a rate code. When input data is passed to the network, we
 want the correct neuron class to emit the most spikes over the course of
-the simulation run (which then corresponds to the highest average firing
-frequency). One way to achieve this is to increase the membrane
+the simulation run. This corresponds to the highest average firing
+frequency. One way to achieve this is to increase the membrane
 potential of the correct class to :math:`U>U_{\rm thr}`, and that of
 incorrect classes to :math:`U<U_{\rm thr}`. Applying the target to
 :math:`U` serves as a proxy for modulating spiking behavior from
@@ -377,11 +376,10 @@ using:
 .. math:: \mathcal{L}_{CE}[t] = \sum_{i=0}^Cy_i{\rm log}(p_i[t]) \tag{9}
 
 The practical effect is that the membrane potential of the correct class
-is encouraged to increase while those of incorrect classes are reduced
-to zero. In effect, this means the correct class is encouraged to fire
+is encouraged to increase while those of incorrect classes are reduced. In effect, this means the correct class is encouraged to fire
 at all time steps, while incorrect classes are suppressed at all steps.
-This is certainly not the most efficient implementation of an SNN, but
-it is among the easiest to implement.
+This may not be the most efficient implementation of an SNN, but
+it is among the simplest.
 
 This target is applied at every time step of the simulation, thus also
 generating a loss at every step. These losses are then summed together
@@ -394,7 +392,7 @@ spiking neural network. A variety of approaches are available to use in
 snnTorch (in the module ``snn.functional``), and will be the subject of
 a future tutorial.
 
-That’s all the background taken care of now. Let’s finally dive into
+With all of the background theory having been taken care of, let’s finally dive into
 training a fully-connected spiking neural net.
 
 5. Setting up the Static MNIST Dataset
@@ -420,18 +418,6 @@ training a fully-connected spiking neural net.
     
     mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
     mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
-
-If the above code blocks throws an error, e.g. the MNIST servers are
-down, then uncomment the following code instead.
-
-::
-
-    # # temporary dataloader if MNIST service is unavailable
-    # !wget www.di.ens.fr/~lelarge/MNIST.tar.gz
-    # !tar -zxvf MNIST.tar.gz
-    
-    # mnist_train = datasets.MNIST(root = './', train=True, download=True, transform=transform)
-    # mnist_test = datasets.MNIST(root = './', train=False, download=True, transform=transform)
 
 ::
 
@@ -478,7 +464,7 @@ down, then uncomment the following code instead.
     
             for step in range(num_steps):
                 cur1 = self.fc1(x)
-                spk1,mem1 = self.lif1(cur1,mem1)
+                spk1, mem1 = self.lif1(cur1, mem1)
                 cur2 = self.fc2(spk1)
                 spk2, mem2 = self.lif2(cur2, mem2)
                 spk2_rec.append(spk2)
@@ -507,7 +493,7 @@ input argument ``x`` is explicitly passed into ``net``.
 7.1 Accuracy Metric
 ~~~~~~~~~~~~~~~~~~~~~
 
-Below, we have a function that takes a batch of data, counts up all the
+Below is a function that takes a batch of data, counts up all the
 spikes from each neuron (i.e., a rate code over the simulation time),
 and compares the index of the highest count with the actual target. If
 they match, then the network correctly predicted the target.
@@ -568,7 +554,7 @@ Take the first batch of data and load it onto CUDA if available.
     data = data.to(device)
     targets = targets.to(device)
 
-Flatten your input data to a vector of size :math:`784` and pass it into
+Flatten the input data to a vector of size :math:`784` and pass it into
 the network.
 
 ::
@@ -580,7 +566,7 @@ the network.
     >>> print(mem_rec.size())
     torch.Size([25, 128, 10])
 
-Our recording of the membrane potential should be taken across: 
+The recording of the membrane potential is taken across: 
 
 * 25 time steps 
 * 128 samples of data 
@@ -603,8 +589,8 @@ together, as per Equation :math:`(10)`:
     >>> print(f"Training loss: {loss_val.item():.3f}")
     Training loss: 60.488
 
-The loss is quite large, because we have summed it up over 25 time
-steps. The accuracy is also bad (should be roughly around 10%) as the
+The loss is quite large, because it is summed over 25 time
+steps. The accuracy is also bad (it should be roughly around 10%) as the
 network is untrained:
 
 ::
@@ -612,7 +598,7 @@ network is untrained:
     >>> print_batch_accuracy(data, targets, train=True)
     Train set accuracy for a single minibatch: 10.16%
 
-We can apply a single weight update to the network as follows:
+A single weight update is applied to the network as follows:
 
 ::
 
@@ -625,7 +611,7 @@ We can apply a single weight update to the network as follows:
       # weight update
       optimizer.step()
 
-Now, let’s re-run the loss calculation and accuracy after a single
+Now, re-run the loss calculation and accuracy after a single
 iteration:
 
 ::
@@ -641,21 +627,20 @@ iteration:
       loss_val += loss(mem_rec[step], targets)
 
 ::
+
     >>> print(f"Training loss: {loss_val.item():.3f}")
     >>> print_batch_accuracy(data, targets, train=True)
     Training loss: 47.384
     Train set accuracy for a single minibatch: 33.59%
 
 After only one iteration, the loss should have decreased and accuracy
-should have increased.
-
-Note how we use the membrane potential to calculate the cross entropy
-loss, and spike count as the measure of accuracy.
+should have increased. Note how membrane potential is used to calculate the cross entropy
+loss, and spike count is used for the measure of accuracy. It is also possible to use the spike count in the loss (`see Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_)
 
 7.5 Training Loop
 ~~~~~~~~~~~~~~~~~~
 
-Let’s combine everything we have put together above into a training
+Let’s combine everything into a training
 loop. We will train for one epoch (though feel free to increase
 ``num_epochs``), exposing our network to each sample of data once.
 
@@ -748,8 +733,7 @@ The terminal will iteratively print out something like this every 50 iterations:
         :align: center
         :width: 550
 
-The loss curves are noisy because we are tracking the loss at every
-iteration, rather than averaging across multiple iterations.
+The loss curves are noisy because the losses are tracked at every iteration, rather than averaging across multiple iterations. 
 
 8.2 Test Set Accuracy
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -794,7 +778,7 @@ Conclusion
 ------------
 
 Now you know how to construct and train a fully-connected network on a
-static dataset. The spiking neurons can actually be adapted to other
+static dataset. The spiking neurons can also be adapted to other
 layer types, including convolutions and skip connections. Armed with
 this knowledge, you should now be able to build many different types of
 SNNs. `In the next
