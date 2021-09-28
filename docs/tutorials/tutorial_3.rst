@@ -9,11 +9,11 @@ Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.j
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_3_feedforward_snn.ipynb
 
 The snnTorch tutorial series is based on the following paper. If you find these resources or code useful in your work, please consider citing the following source:
-
-    Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
+   
+    `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
-    Spiking Neural Networks Using Lessons From Deep Learning”. arXiv,
-    2021.
+    Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
+    September 2021. <https://arxiv.org/abs/2109.12894>`_
 
 .. note::
   This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
@@ -63,7 +63,7 @@ simplfications.
 In the previous tutorial, the Euler method was used to derive the
 following solution to the passive membrane model:
 
-.. math:: U(t+\Delta t) = (1-\frac{\Delta t}{\tau})U(t) + \frac{R}{\tau} I_{\rm in}(t) \tag{1}
+.. math:: U(t+\Delta t) = (1-\frac{\Delta t}{\tau})U(t) + \frac{\Delta t}{\tau} I_{\rm in}(t)T \tag{1}
 
 Now assume there is no input current, :math:`I_{\rm in}(t)=0 A`:
 
@@ -89,7 +89,7 @@ continuous time, then we can set :math:`\Delta t = 1`. To
 further reduce the number of hyperparameters, assume :math:`R=1`. From
 :math:`(4)`, these assumptions lead to:
 
-.. math:: \beta = (1-\frac{1}{C}) \implies (1-\beta)I_{\rm in} = \frac{R}{\tau}I_{\rm in} \tag{5}
+.. math:: \beta = (1-\frac{1}{C}) \implies (1-\beta)I_{\rm in} = \frac{1}{\tau}I_{\rm in} \tag{5}
 
 The input current is weighted by :math:`(1-\beta)`. 
 By additionally assuming input current instantaneously contributes to the membrane potential:
