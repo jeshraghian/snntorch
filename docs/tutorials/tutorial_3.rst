@@ -484,6 +484,7 @@ here <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__.
 Further Reading
 ---------------
 
+-  `Check out the snnTorch GitHub project here. <https://github.com/jeshraghian/snntorch>`__
 -  `snnTorch
    documentation <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__
    of the Lapicque, Leaky, Synaptic, and Alpha models

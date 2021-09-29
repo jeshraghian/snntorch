@@ -784,3 +784,9 @@ this knowledge, you should now be able to build many different types of
 SNNs. `In the next
 tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
 you will learn how to train a spiking convolutional network, and simplify the amount of code required using the ``snn.backprop`` module.
+
+
+Additional Resources 
+---------------------
+
+- `Check out the snnTorch GitHub project here. <https://github.com/jeshraghian/snntorch>`__

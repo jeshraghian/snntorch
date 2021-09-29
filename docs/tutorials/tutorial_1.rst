@@ -929,3 +929,8 @@ here <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`__.
 `In the next
 tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__, 
 you will learn the basics of spiking neurons and how to use them.
+
+Additional Resources 
+---------------------
+
+* `Check out the snnTorch GitHub project here. <https://github.com/jeshraghian/snntorch>`__
