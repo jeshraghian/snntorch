@@ -358,6 +358,29 @@ improvement, and after 50 iterations, managed to crack ~60% accuracy.
             if i == num_iters:
               break
 
+The output should look something like this:
+
+::
+
+    Epoch 0, Iteration 0 
+    Train Loss: 31.00
+    Accuracy: 10.16%
+
+    Epoch 0, Iteration 1 
+    Train Loss: 30.58
+    Accuracy: 13.28%
+
+And after some more time:
+
+    Epoch 0, Iteration 49 
+    Train Loss: 8.78
+    Accuracy: 47.66%
+
+    Epoch 0, Iteration 50 
+    Train Loss: 8.43
+    Accuracy: 56.25%
+
+
 3. Results
 -------------
 
@@ -418,6 +441,9 @@ will take some time.
     HTML(anim.to_html5_video())
     # anim.save("spike_bar.mp4")
 
+::
+    
+    The target label is: 8
 
 .. raw:: html
 

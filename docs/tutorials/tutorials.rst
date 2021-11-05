@@ -48,10 +48,11 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_6_CNN.ipynb
 
 
-   * - Tutorial 7
-     - **Under construction:** Neuromorphic Datasets with Tonic + snnTorch
+   * - `Tutorial 7 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_7.html>`_
+     - Neuromorphic Datasets with Tonic + snnTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_7_neuromorphic_datasets.ipynb
 
 
    * - Tutorial 8
