@@ -2,8 +2,8 @@
 
 import numpy as np
 import pandas as pd
-import torch, bisect
-from torchvision.transforms import Compose, ToTensor, Normalize, Lambda
+import torch
+import bisect
 
 
 def find_first(a, tgt):

@@ -1,16 +1,12 @@
 import os
 import torch
 import torch.utils.data as data
-from torchvision.datasets.utils import (
-    verify_str_arg,
-    check_integrity,
-    gen_bar_updater,
-)
 from ._transforms import Compose
 from tqdm import tqdm
 import tarfile
 import zipfile
 import gzip
+import hashlib
 
 
 # Adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
@@ -337,3 +333,35 @@ class DownloadProgressBar(tqdm):
         if tsize is not None:
             self.total = tsize
         self.update(b * bsize - self.n)
+
+
+def check_integrity(fpath, md5=None) -> bool:
+    if not os.path.isfile(fpath):
+        return False
+    if md5 is None:
+        return True
+    return check_md5(fpath, md5)
+
+
+def calculate_md5(fpath, chunk_size=1024 * 1024):
+    md5 = hashlib.md5()
+    with open(fpath, "rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
+            md5.update(chunk)
+    return md5.hexdigest()
+
+
+def check_md5(fpath, md5, **kwargs):
+    return md5 == calculate_md5(fpath, **kwargs)
+
+
+def gen_bar_updater():
+    pbar = tqdm(total=None)
+
+    def bar_update(count, block_size, total_size):
+        if pbar.total is None and total_size:
+            pbar.total = total_size
+        progress_bytes = count * block_size
+        pbar.update(progress_bytes - pbar.n)
+
+    return bar_update
