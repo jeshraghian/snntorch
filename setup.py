@@ -15,7 +15,7 @@ __version__ = '0.4.8'
 # fmt: on
 
 requirements = [
-    "torch>=1.2.0",
+    "torch>=1.1.0",
     "pandas",
     "matplotlib",
     "numpy>=1.17",
