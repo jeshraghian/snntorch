@@ -395,7 +395,7 @@ And after some more time:
     fig = plt.figure(facecolor="w")
     plt.plot(acc_hist)
     plt.title("Train Set Accuracy")
-    plt.xlabel("Iterationspk_rec, mem_rec = forward_pass(net, num_steps, data)")
+    plt.xlabel("Iteration")
     plt.ylabel("Accuracy")
     plt.show()
 
