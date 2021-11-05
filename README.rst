@@ -88,14 +88,10 @@ Requirements
 The following packages need to be installed to use snnTorch:
 
 * torch >= 1.2.0
-* torchvision >= 0.9.1
 * numpy >= 1.17
-* h5py >= 3.0.0
-* tqdm
 * pandas
 * matplotlib
 * math
-* celluloid
 
 They are automatically installed if snnTorch is installed using the pip command. Ensure the correct versions of torch and torchvision are installed for your system to enable CUDA compatibility. 
 
