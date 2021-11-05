@@ -240,21 +240,19 @@ We will use snnTorch + PyTorch to construct a CSNN, just as in the
 previous tutorial. The convolutional network architecture to be used is:
 12C5-MP2-32C5-MP2-800FC10
 
--  12C5 is a 5$:raw-latex:`\times`$5 convolutional kernel with 12
+-  12C5 is a 5 :math:`\times` 5 convolutional kernel with 12
    filters
--  MP2 is a 2$:raw-latex:`\times`$2 max-pooling function
+-  MP2 is a 2 :math:`\times` 2 max-pooling function
 -  800FC10 is a fully-connected layer that maps 800 neurons to 10
    outputs
+
 
 ::
 
     import snntorch as snn
     from snntorch import surrogate
     from snntorch import functional as SF
-    from snntorch import utils
     from snntorch import spikeplot as splt
-    
-    import torch
     import torch.nn as nn
 
 ::
