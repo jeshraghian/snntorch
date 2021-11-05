@@ -29,7 +29,7 @@ In this tutorial, you will:
 
 * Learn how to load neuromorphic datasets using `Tonic <https://github.com/neuromorphs/tonic>`__ 
 * Make use of caching to speed up dataloading 
-* Train a CSNN with the `Neuromorphic-MNIST <https://tonic.readthedocs.io/en/latest/datasets.html#n-mnist>`__Dataset
+* Train a CSNN with the `Neuromorphic-MNIST <https://tonic.readthedocs.io/en/latest/datasets.html#n-mnist>`__ Dataset
 
 Install the latest PyPi distribution of snnTorch:
 
@@ -61,7 +61,7 @@ working with.
 ::
 
     >>> print(events)
-    [(10, 30,    937, 1) (33, 20,   1030, 1) (12, 27,   1052, 1) ...
+    [(10, 30, 937, 1) (33, 20, 1030, 1) (12, 27, 1052, 1) ...
     ( 7, 15, 302706, 1) (26, 11, 303852, 1) (11, 17, 305341, 1)]
 
 Each row corresponds to a single event, which consists of four
@@ -80,7 +80,7 @@ images, it looks like this:
 
 ::
 
-    tonic.utils.plot_event_grid(events)
+    >>> tonic.utils.plot_event_grid(events)
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial7/tonic_event_grid.png?raw=true
         :align: center
@@ -187,7 +187,7 @@ dimensions.
 
 ::
 
-    %timeit -o -r 10 load_sample_batched()
+    >>> %timeit -o -r 10 load_sample_batched()
     100 loops, best of 10: 18.1 ms per loop
 
 By using disk caching and a PyTorch dataloader with multithreading and
@@ -228,7 +228,7 @@ padded with zeros to match it.
 
 ::
 
-    event_tensor, target = next(iter(trainloader))
+    >>> event_tensor, target = next(iter(trainloader))
     >>> print(event_tensor.shape)
     torch.Size([311, 128, 2, 34, 34])
 
@@ -372,6 +372,8 @@ The output should look something like this:
 
 And after some more time:
 
+::
+
     Epoch 0, Iteration 49 
     Train Loss: 8.78
     Accuracy: 47.66%
@@ -443,7 +445,7 @@ will take some time.
 
 ::
     
-    The target label is: 8
+    The target label is: 3
 
 .. raw:: html
 
