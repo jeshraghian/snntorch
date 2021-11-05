@@ -253,6 +253,7 @@ previous tutorial. The convolutional network architecture to be used is:
     from snntorch import surrogate
     from snntorch import functional as SF
     from snntorch import spikeplot as splt
+    from snntorch import utils
     import torch.nn as nn
 
 ::
@@ -323,7 +324,7 @@ improvement, and after 50 iterations, managed to crack ~60% accuracy.
    a coffee, or ten.
 
 ::
-
+    num_epochs = 1
     num_iters = 50
     
     loss_hist = []
@@ -352,7 +353,8 @@ improvement, and after 50 iterations, managed to crack ~60% accuracy.
             acc = SF.accuracy_rate(spk_rec, targets) 
             acc_hist.append(acc)
             print(f"Accuracy: {acc * 100:.2f}%\n")
-    
+
+            # training loop breaks after 50 iterations
             if i == num_iters:
               break
 
