@@ -87,7 +87,7 @@ images, it looks like this:
         :width: 450
 
 1.1 Transformations
--------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 However, neural nets don’t take lists of events as input. The raw data
 must be converted into a suitable representation, such as a tensor. We
