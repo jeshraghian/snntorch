@@ -63,6 +63,7 @@ At present, the neuron models are represented by recursive functions which remov
 The lean requirements of snnTorch enable small and large networks to be viably trained on CPU, where needed. 
 Provided that the network models and tensors are loaded onto CUDA, snnTorch takes advantage of GPU acceleration in the same way as PyTorch. 
 
+
 Citation 
 ^^^^^^^^^^^^^^^^^^^^^^^^
 If you find snnTorch useful in your work, please consider citing the following source:
@@ -93,7 +94,7 @@ The following packages need to be installed to use snnTorch:
 * matplotlib
 * math
 
-They are automatically installed if snnTorch is installed using the pip command. Ensure the correct versions of torch and torchvision are installed for your system to enable CUDA compatibility. 
+They are automatically installed if snnTorch is installed using the pip command. Ensure the correct version of torch is installed for your system to enable CUDA compatibility. 
 
 Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -115,9 +116,12 @@ A complete API is available `here`_. Examples, tutorials and Colab notebooks are
 
 .. _here: https://snntorch.readthedocs.io/
 
-Getting Started
+
+Quickstart 
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Here are a few ways you can get started with snnTorch:
+
+* `Quickstart Notebooks`_
 
 * `The API Reference`_ 
 
@@ -125,10 +129,66 @@ Here are a few ways you can get started with snnTorch:
 
 * `Tutorials`_
 
+.. _Quickstart Notebooks: TO BE ADDED
 .. _The API Reference: https://snntorch.readthedocs.io/
 .. _Examples: https://snntorch.readthedocs.io/en/latest/examples.html
 .. _Tutorials: https://snntorch.readthedocs.io/en/latest/tutorials/index.html
 
+For a quick example to run snnTorch, see the following snippet::
+
+  import torch, torch.nn as nn
+  import snntorch as snn
+  from snntorch import surrogate
+
+  num_steps = 25 # number of time steps
+  batch_size = 1 
+  beta = 0.5  # neuron decay rate 
+  spike_grad = surrogate.fast_sigmoid()
+
+  net = nn.Sequential(
+        nn.Conv2d(1, 8, 5),
+        nn.MaxPool2d(2),
+        snn.Leaky(beta=beta, init_hidden=True, 
+                  spike_grad=spike_grad),
+        nn.Conv2d(8, 16, 5),
+        nn.MaxPool2d(2),
+        snn.Leaky(beta=beta, init_hidden=True, 
+                  spike_grad=spike_grad),
+        nn.Flatten(),
+        nn.Linear(16 * 4 * 4, 10),
+        snn.Leaky(beta=beta, init_hidden=True, 
+                  spike_grad=spike_grad, output=True)
+        )
+
+  # random input data
+  data_in = torch.rand(num_steps, batch_size, 1, 28, 28)
+
+  spike_recording = []
+
+  for step in range(num_steps):
+      spike, state = net(data_in[step])
+      spike_recording.append(spike)
+
+
+If you're feeling lazy and want the training process to be taken care of::
+    
+    import snntorch.functional as SF
+    from snntorch import backprop
+
+    # correct class should fire 80% of the time
+    loss_fn = SF.mse_count_loss(correct_rate=0.8, incorrect_rate=0.2)
+    optimizer = torch.optim.Adam(net.parameters(), lr=1e-3, betas=(0.9, 0.999))
+
+    # train for one epoch using the backprop through time algorithm
+    # assume train_loader is a DataLoader with time-varying input
+    avg_loss = backprop.BPTT(net, train_loader, num_steps=num_steps,
+                            optimizer=optimizer, criterion=loss_fn)  
+
+Check here for some quickstart notebooks.
+
+
+A Deep Dive into SNNs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you wish to learn all the fundamentals of training spiking neural networks, from neuron models, to the neural code, up to backpropagation, the snnTorch tutorial series is a great place to begin.
 It consists of interactive notebooks with complete explanations that can get you up to speed.
 
