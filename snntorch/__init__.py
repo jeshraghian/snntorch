@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from snntorch import utils
+from ._version import __version__
 
 #### Note: when adding new neurons, be sure to update neurons_dict in backprop.py
 
