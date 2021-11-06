@@ -86,14 +86,13 @@ class ce_rate_loss(LossFunctions):
 
 class ce_count_loss(LossFunctions):
     """Cross Entropy Spike Count Loss.
-    When called, pass the output spikes of shape [num_steps x batch_size x num_outputs] and the target tensor of labels.
-    The membrane potential and target are then applied to a Mean Square Error Loss Function.
 
-    The spikes at each time step are accumulated and then passed through the Cross Entropy Loss function.
+    The spikes at each time step [num_steps x batch_size x num_outputs] are accumulated and then passed through the Cross Entropy Loss function.
     This criterion combines log_softmax and NLLLoss in a single function.
     The Cross Entropy Loss encourages the correct class to fire at all time steps, and aims to suppress incorrect classes from firing.
 
-    The Cross Entropy Count Loss accumulates spikes first, and applies Cross Entropy Loss only once. In contrast, the Cross Entropy Rate Loss applies the Cross Entropy function at every time step.
+    The Cross Entropy Count Loss accumulates spikes first, and applies Cross Entropy Loss only once.
+    In contrast, the Cross Entropy Rate Loss applies the Cross Entropy function at every time step.
 
     Example::
 
