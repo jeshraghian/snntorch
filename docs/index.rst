@@ -19,6 +19,7 @@ snnTorch Documentation
    snntorch.spikevision
    snntorch.surrogate
    snntorch.utils
+   quickstart
    examples
    tutorials/index
    contributing
