@@ -121,7 +121,7 @@ Quickstart
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Here are a few ways you can get started with snnTorch:
 
-* `Quickstart Notebooks`_
+* `Quickstart Notebook (Opens in Colab)`_
 
 * `The API Reference`_ 
 
@@ -129,12 +129,17 @@ Here are a few ways you can get started with snnTorch:
 
 * `Tutorials`_
 
-.. _Quickstart Notebooks: TO BE ADDED
+.. _Quickstart Notebook (Opens in Colab): https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
 .. _The API Reference: https://snntorch.readthedocs.io/
 .. _Examples: https://snntorch.readthedocs.io/en/latest/examples.html
 .. _Tutorials: https://snntorch.readthedocs.io/en/latest/tutorials/index.html
 
-For a quick example to run snnTorch, see the following snippet::
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
+
+For a quick example to run snnTorch, see the following snippet, or test the quickstart notebook above::
 
   import torch, torch.nn as nn
   import snntorch as snn
@@ -148,16 +153,13 @@ For a quick example to run snnTorch, see the following snippet::
   net = nn.Sequential(
         nn.Conv2d(1, 8, 5),
         nn.MaxPool2d(2),
-        snn.Leaky(beta=beta, init_hidden=True, 
-                  spike_grad=spike_grad),
+        snn.Leaky(beta=beta, init_hidden=True, spike_grad=spike_grad),
         nn.Conv2d(8, 16, 5),
         nn.MaxPool2d(2),
-        snn.Leaky(beta=beta, init_hidden=True, 
-                  spike_grad=spike_grad),
+        snn.Leaky(beta=beta, init_hidden=True, spike_grad=spike_grad),
         nn.Flatten(),
         nn.Linear(16 * 4 * 4, 10),
-        snn.Leaky(beta=beta, init_hidden=True, 
-                  spike_grad=spike_grad, output=True)
+        snn.Leaky(beta=beta, init_hidden=True, spike_grad=spike_grad, output=True)
         )
 
   # random input data
@@ -183,8 +185,6 @@ If you're feeling lazy and want the training process to be taken care of::
     # assume train_loader is a DataLoader with time-varying input
     avg_loss = backprop.BPTT(net, train_loader, num_steps=num_steps,
                             optimizer=optimizer, criterion=loss_fn)  
-
-Check here for some quickstart notebooks.
 
 
 A Deep Dive into SNNs
