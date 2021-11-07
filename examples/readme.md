@@ -1,4 +1,4 @@
-Tutorials 1-6 have been finalized.
+Tutorials 1-7 have been finalized.
 
 We recommend viewing the tutorials at the following link: https://snntorch.readthedocs.io/en/latest/tutorials/index.html
 
