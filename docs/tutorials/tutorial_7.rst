@@ -324,6 +324,7 @@ improvement, and after 50 iterations, managed to crack ~60% accuracy.
    a coffee, or ten.
 
 ::
+
     num_epochs = 1
     num_iters = 50
     
