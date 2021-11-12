@@ -1,6 +1,12 @@
 snntorch.spikevision
 ======================
 
+.. warning::
+    The spikevision module has been deprecated.
+    To load neuromorphic datasets, we recommend using the `Tonic project <https://github.com/neuromorphs/tonic>`_.
+    For examples on how to use snnTorch together with Tonic, please refer to `Tutorial 7 in the snnTorch Tutorial Series <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_7.html>`_.
+
+
 The :code:`spikevision` module consists of neuromorphic datasets and common image transformations.
 It is the neuromorphic analog to `torchvision <https://pytorch.org/vision/stable/index.html>`_. 
 
@@ -37,6 +43,3 @@ It is the neuromorphic analog to `torchvision <https://pytorch.org/vision/stable
     :glob:
 
     snntorch.spikevision.spikedata
-
-
-Model architectures and additional datasets are planned to be released.

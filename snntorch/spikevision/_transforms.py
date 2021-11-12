@@ -5,6 +5,8 @@ import pandas as pd
 import torch
 import bisect
 
+from torchvision.transforms import Compose, Normalize, Lambda
+
 
 def find_first(a, tgt):
     return bisect.bisect_left(a, tgt)
