@@ -119,6 +119,12 @@ To install snnTorch from source instead::
   $ cd snnTorch
   $ python setup.py install
 
+
+To install snntorch with conda::
+
+    $ conda install -c conda-forge snntorch
+    
+
 API & Examples 
 ^^^^^^^^^^^^^^^^^^^^^^^^
 A complete API is available `here`_. Examples, tutorials and Colab notebooks are provided.
