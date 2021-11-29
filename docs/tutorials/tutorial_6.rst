@@ -36,7 +36,7 @@ In this tutorial, you will:
 
    Part of this tutorial was inspired by Friedemann Zenke’s extensive
    work on SNNs. Check out his repo on surrogate gradients
-   `here <https://github.coRm/fzenke/spytorch>`__, and a favourite paper
+   `here <https://github.com/fzenke/spytorch>`__, and a favourite paper
    of mine: E. O. Neftci, H. Mostafa, F. Zenke, `Surrogate Gradient
    Learning in Spiking Neural Networks: Bringing the Power of
    Gradient-based optimization to spiking neural
