@@ -135,11 +135,14 @@ Here are a few ways you can get started with snnTorch:
 .. _Tutorials: https://snntorch.readthedocs.io/en/latest/tutorials/index.html
 
 
+For a quick example to run snnTorch, see the following snippet, or test the quickstart notebook:
+
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
 
-For a quick example to run snnTorch, see the following snippet, or test the quickstart notebook above::
+
+::
 
   import torch, torch.nn as nn
   import snntorch as snn
@@ -183,8 +186,8 @@ If you're feeling lazy and want the training process to be taken care of::
 
     # train for one epoch using the backprop through time algorithm
     # assume train_loader is a DataLoader with time-varying input
-    avg_loss = backprop.BPTT(net, train_loader, num_steps=num_steps,
-                            optimizer=optimizer, criterion=loss_fn)  
+    avg_loss = backprop.BPTT(net, train_loader, optimizer=optimizer, 
+                            num_steps=num_steps, criterion=loss_fn)  
 
 
 A Deep Dive into SNNs

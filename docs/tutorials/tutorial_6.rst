@@ -451,8 +451,8 @@ connected to GPU, then consider reducing ``num_epochs``.
     # training loop
     for epoch in range(num_epochs):
     
-        avg_loss = backprop.BPTT(net, train_loader, num_steps=num_steps,
-                              optimizer=optimizer, criterion=loss_fn, time_var=False, device=device)
+        avg_loss = backprop.BPTT(net, train_loader, optimizer=optimizer, criterion=loss_fn, 
+                                num_steps=num_steps, time_var=False, device=device)
         
         print(f"Epoch {epoch}, Train Loss: {avg_loss.item():.2f}")
     
