@@ -9,10 +9,10 @@ from snntorch import functional as SF
 def TBPTT(
     net,
     dataloader,
-    num_steps,  # must be specified in case data in is static
     optimizer,
     criterion,
-    time_var,  # specifies if data is time_varying
+    num_steps=False,  # only specified if time-static
+    time_var=True,  # specifies if data is time_varying
     regularization=False,
     device="cpu",
     K=1,
@@ -46,10 +46,14 @@ def TBPTT(
         reg_fn = SF.l1_rate_sparsity()
 
         # train_loader is of type torch.utils.data.DataLoader
+        # if input data is time-static, set time_var=False, and specify num_steps.
+        # if input data is time-varying, set time_var=True and do not specify num_steps.
         # backprop is automatically applied every K=40 time steps
+
         for epoch in range(5):
-            loss = backprop.TBPTT(net, train_loader, num_steps=num_steps,
-            optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device, K=40)
+            loss = backprop.RTRL(net, train_loader, optimizer=optimizer,
+            criterion=loss_fn, num_steps=num_steps, time_var=False,
+            regularization=reg_fn, device=device, K=40)
 
 
     :param net: Network model (either wrapped in Sequential container or as a class)
@@ -58,17 +62,17 @@ def TBPTT(
     :param dataloader: DataLoader containing data and targets
     :type dataloader: torch.utils.data.DataLoader
 
-    :param num_steps: Number of time steps
-    :type num_steps: int
-
     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
     :type optimizer: torch.optim
 
     :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
     :type criterion: snn.functional.LossFunctions
 
-    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims].
-    :type time_var: Bool
+    :param num_steps: Number of time steps. Does not need to be specified if ``time_var=True``.
+    :type num_steps: int, optional
+
+    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims], defaults to ``True``
+    :type time_var: Bool, optional
 
     :param regularization: Option to add a regularization term to the loss function
     :type regularization: snn.functional regularization function, optional
@@ -84,8 +88,18 @@ def TBPTT(
 
     """
 
-    if K > num_steps:
-        raise ValueError("K must be less than or equal to num_steps.")
+    if num_steps and time_var:
+        raise ValueError(
+            "``num_steps`` should not be specified if time_var is ``True``. When using time-varying input data, the size of the time-first dimension of each batch is automatically used as ``num_steps``."
+        )
+
+    if num_steps is False and time_var is False:
+        raise ValueError(
+            "``num_steps`` must be specified if ``time_var`` is ``False``. When using time-static input data, ``num_steps`` must be passed in."
+        )
+
+    if num_steps and K > num_steps:
+        raise ValueError("``K`` must be less than or equal to ``num_steps``.")
 
     # triggers global variables is_lapicque etc for neurons_dict
     # redo reset in training loop
@@ -101,7 +115,6 @@ def TBPTT(
 
     # element 1: if true: spk, if false, mem
     # element 2: if true: time_varying_targets
-
     criterion_dict = {
         "mse_membrane_loss": [
             False,
@@ -159,6 +172,9 @@ def TBPTT(
         net.train()
         data = data.to(device)
         targets = targets.to(device)
+
+        if time_var:
+            num_steps = data.size(0)
 
         utils.reset(net)
 
@@ -298,10 +314,10 @@ def TBPTT(
 def BPTT(
     net,
     dataloader,
-    num_steps,  # must be specified in case data in is static
     optimizer,
     criterion,
-    time_var,  # add to doc_strings - specifies if data is time_varying
+    num_steps=False,
+    time_var=True,
     regularization=False,
     device="cpu",
 ):
@@ -334,11 +350,15 @@ def BPTT(
         loss_fn = SF.mse_count_loss()
         reg_fn = SF.l1_rate_sparsity()
 
+
         # train_loader is of type torch.utils.data.DataLoader
-        # backprop is automatically applied every K=40 time steps
+        # if input data is time-static, set time_var=False, and specify num_steps.
+        # if input data is time-varying, set time_var=True and do not specify num_steps.
+
         for epoch in range(5):
-            loss = backprop.BPTT(net, train_loader, num_steps=num_steps,
-            optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device)
+            loss = backprop.RTRL(net, train_loader, optimizer=optimizer,
+            criterion=loss_fn, num_steps=num_steps, time_var=False,
+            regularization=reg_fn, device=device)
 
 
     :param net: Network model (either wrapped in Sequential container or as a class)
@@ -347,17 +367,17 @@ def BPTT(
     :param dataloader: DataLoader containing data and targets
     :type dataloader: torch.utils.data.DataLoader
 
-    :param num_steps: Number of time steps
-    :type num_steps: int
-
     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
     :type optimizer: torch.optim
 
     :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
     :type criterion: snn.functional.LossFunctions
 
-    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims].
-    :type time_var: Bool
+    :param num_steps: Number of time steps. Does not need to be specified if ``time_var=True``.
+    :type num_steps: int, optional
+
+    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims], defaults to ``True``
+    :type time_var: Bool, optional
 
     :param regularization: Option to add a regularization term to the loss function
     :type regularization: snn.functional regularization function, optional
@@ -373,9 +393,9 @@ def BPTT(
     return TBPTT(
         net,
         dataloader,
-        num_steps,
         optimizer,
         criterion,
+        num_steps,
         time_var,
         regularization,
         device,
@@ -386,10 +406,10 @@ def BPTT(
 def RTRL(
     net,
     dataloader,
-    num_steps,  # must be specified in case data in is static
     optimizer,
     criterion,
-    time_var,  # specifies if data is time_varying
+    num_steps=False,  # must be specified in case data in is static
+    time_var=True,  # specifies if data is time_varying
     regularization=False,
     device="cpu",
 ):
@@ -424,10 +444,12 @@ def RTRL(
         reg_fn = SF.l1_rate_sparsity()
 
         # train_loader is of type torch.utils.data.DataLoader
-        # backprop is automatically applied every K=40 time steps
+        # if input data is time-static, set time_var=False, and specify num_steps.
+
         for epoch in range(5):
-            loss = backprop.RTRL(net, train_loader, num_steps=num_steps,
-            optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device)
+            loss = backprop.RTRL(net, train_loader, optimizer=optimizer,
+            criterion=loss_fn, num_steps=num_steps, time_var=False,
+            regularization=reg_fn, device=device)
 
 
     :param net: Network model (either wrapped in Sequential container or as a class)
@@ -436,17 +458,17 @@ def RTRL(
     :param dataloader: DataLoader containing data and targets
     :type dataloader: torch.utils.data.DataLoader
 
-    :param num_steps: Number of time steps
-    :type num_steps: int
-
     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
     :type optimizer: torch.optim
 
     :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
     :type criterion: snn.functional.LossFunctions
 
-    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims].
-    :type time_var: Bool
+    :param num_steps: Number of time steps. Does not need to be specified if ``time_var=True``.
+    :type num_steps: int, optional
+
+    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims], defaults to ``True``
+    :type time_var: Bool, optional
 
     :param regularization: Option to add a regularization term to the loss function
     :type regularization: snn.functional regularization function, optional
@@ -464,9 +486,9 @@ def RTRL(
     return TBPTT(
         net,
         dataloader,
-        num_steps,
         optimizer,
         criterion,
+        num_steps,
         time_var,
         regularization,
         device,
