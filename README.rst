@@ -73,7 +73,7 @@ Provided that the network models and tensors are loaded onto CUDA, snnTorch take
 
 Citation 
 ^^^^^^^^^^^^^^^^^^^^^^^^
-If you find snnTorch useful in your work, please consider citing the following source:
+If you find snnTorch useful in your work, please cite the following source:
 
 `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
 Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu “Training
@@ -90,6 +90,8 @@ September 2021. <https://arxiv.org/abs/2109.12894>`_
   journal={arXiv preprint arXiv:1906.09395},  
   year={2021}
   }
+
+Let us know if you are using snnTorch in any interesting work, research or blogs, as we would love to hear more about it! Reach out at snntorch@gmail.com.
 
 Requirements 
 ^^^^^^^^^^^^^^^^^^^^^^^^
