@@ -10,7 +10,6 @@ snnTorch Documentation
 
    readme
    installation
-   usage
    snntorch
    snntorch.backprop
    snntorch.functional
