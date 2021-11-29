@@ -175,11 +175,11 @@ def TBPTT(
 
         if time_var:
             num_steps = data.size(0)
+
             if K is False:
                 K_flag = K
             if K_flag is False:
                 K = num_steps
-            # need to set K to num_steps if it is false
 
         utils.reset(net)
 

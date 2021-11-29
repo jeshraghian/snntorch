@@ -13,7 +13,10 @@ Introduction
         :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-        
+.. image:: https://img.shields.io/conda/vn/conda-forge/snntorch.svg
+        :target: https://anaconda.org/conda-forge/snntorch
+
+
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/snntorch_alpha_scaled.png?raw=true
         :align: center
         :width: 700
