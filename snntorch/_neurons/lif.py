@@ -124,13 +124,6 @@ class LIF(nn.Module):
         return syn, mem
 
     @staticmethod
-    def init_stein():
-        """Used to initialize syn and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
-        """
-        return LIF.init_synaptic()
-
-    @staticmethod
     def init_lapicque():
         """
         Used to initialize mem as an empty SpikeTensor.
