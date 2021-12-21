@@ -36,6 +36,10 @@ computation and applying it to networks of spiking neurons. Pre-designed spiking
         :align: center
         :width: 800
 
+If you like this project, please consider starring ⭐ this repo as it is the easiest and best way to support it.
+
+If you have issues, comments, or are looking for advice on training spiking neural networks, you can open an issue, a discussion, or chat in our `discord <https://discord.gg/cdZb5brajb>`_ channel.
+
 snnTorch Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^
 snnTorch contains the following components: 
@@ -134,7 +138,14 @@ A complete API is available `here`_. Examples, tutorials and Colab notebooks are
 
 Quickstart 
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
+
+
 Here are a few ways you can get started with snnTorch:
+
 
 * `Quickstart Notebook (Opens in Colab)`_
 
@@ -151,11 +162,6 @@ Here are a few ways you can get started with snnTorch:
 
 
 For a quick example to run snnTorch, see the following snippet, or test the quickstart notebook:
-
-.. image:: https://colab.research.google.com/assets/colab-badge.svg
-        :alt: Open In Colab
-        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
-
 
 ::
 

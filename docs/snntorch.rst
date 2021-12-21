@@ -169,8 +169,27 @@ This can be invoked by setting ``inhibition=True`` when instantiating the neuron
 .. warning:: invoking ``inhibition=True`` requires ``batch_size`` to also be passed as an argument to the neuron.
 
 
+.. automodule:: snntorch._neurons.lif
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-.. automodule:: snntorch
+.. automodule:: snntorch._neurons.alpha
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: snntorch._neurons.lapicque
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: snntorch._neurons.leaky
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: snntorch._neurons.synaptic
    :members:
    :undoc-members:
    :show-inheritance:
