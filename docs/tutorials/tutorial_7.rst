@@ -464,6 +464,8 @@ tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
 we will learn more advanced techniques, such as introducing long-term
 temporal dynamics into our SNNs.
 
+If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+
 Additional Resources
 ------------------------
 

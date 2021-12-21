@@ -785,6 +785,8 @@ SNNs. `In the next
 tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
 you will learn how to train a spiking convolutional network, and simplify the amount of code required using the ``snn.backprop`` module.
 
+If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+
 
 Additional Resources 
 ---------------------
