@@ -1,3 +1,8 @@
+###############################################################
+# When adding new neurons, update neurons_dict in backprop.py #
+#              and also update __neuron__ below               #
+###############################################################
+
 __neuron__ = ["alpha", "lapicque", "leaky", "synaptic"]
 
 from .lif import LIF
