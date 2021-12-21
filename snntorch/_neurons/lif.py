@@ -1,10 +1,6 @@
 import torch
 import torch.nn as nn
 
-###############################################################
-# When adding new neurons, update neurons_dict in backprop.py #
-#           and also update __all__ in __init__.py            #
-###############################################################
 
 __all__ = [
     "LIF",
@@ -30,6 +26,7 @@ class LIF(nn.Module):
         init_hidden=False,
         inhibition=False,
         learn_beta=False,
+        learn_threshold=False,
         reset_mechanism="subtract",
         output=False,
     ):
@@ -53,8 +50,11 @@ class LIF(nn.Module):
             self.register_buffer("beta", beta)
 
         if not isinstance(threshold, torch.Tensor):
-            threshold = torch.as_tensor(threshold)  # TODO: or .tensor() if no copy
-        self.register_buffer("threshold", threshold)
+            threshold = torch.as_tensor(threshold)
+        if learn_threshold:
+            self.threshold = nn.Parameter(threshold)
+        else:
+            self.register_buffer("threshold", threshold)
 
         if spike_grad is None:
             self.spike_grad = self.Heaviside.apply
