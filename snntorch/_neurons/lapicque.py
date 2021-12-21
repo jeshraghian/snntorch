@@ -93,6 +93,7 @@ class Lapicque(LIF):
         init_hidden=False,
         inhibition=False,
         learn_beta=False,
+        learn_threshold=False,
         reset_mechanism="subtract",
         output=False,
     ):
@@ -103,6 +104,7 @@ class Lapicque(LIF):
             init_hidden,
             inhibition,
             learn_beta,
+            learn_threshold,
             reset_mechanism,
             output,
         )

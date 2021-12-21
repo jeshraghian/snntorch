@@ -76,6 +76,7 @@ class Synaptic(LIF):
         inhibition=False,
         learn_alpha=False,
         learn_beta=False,
+        learn_threshold=False,
         reset_mechanism="subtract",
         output=False,
     ):
@@ -86,6 +87,7 @@ class Synaptic(LIF):
             init_hidden,
             inhibition,
             learn_beta,
+            learn_threshold,
             reset_mechanism,
             output,
         )
