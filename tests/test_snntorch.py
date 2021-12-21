@@ -47,11 +47,6 @@ def synaptic_instance():
 
 
 @pytest.fixture(scope="module")
-def stein_instance():
-    return snn.Stein(alpha=0.5, beta=0.5)
-
-
-@pytest.fixture(scope="module")
 def alpha_instance():
     return snn.Alpha(alpha=0.6, beta=0.5)
 
@@ -164,42 +159,6 @@ class TestLapicque:
     #     assert lapicque.mem == 0
 
 
-# class TestStein:
-#     def test_stein(self, stein_instance, input_):
-#         syn, mem = stein_instance.init_stein()
-#         # assert len(syn) == 1
-#         # assert len(mem) == 1
-
-#         syn_rec = []
-#         mem_rec = []
-#         spk_rec = []
-
-#         for i in range(2):
-#             spk, syn, mem = stein_instance(input_[i], syn, mem)
-#             syn_rec.append(syn)
-#             mem_rec.append(mem)
-#             spk_rec.append(spk)
-
-#         assert syn_rec[0] == 2 * syn_rec[1]
-#         assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1]
-#         assert spk_rec[0] == spk_rec[1]
-
-# def test_stein_init_hidden(self):
-
-#     with pytest.raises(ValueError):
-#         snn.Stein(alpha=0.5, beta=0.5, init_hidden=True)
-#         snn.Stein(alpha=0.5, beta=0.5, num_inputs=1, init_hidden=True)
-#         snn.Stein(alpha=0.5, beta=0.5, batch_size=1, init_hidden=True)
-
-#     stein = snn.Stein(
-#         alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
-#     )
-
-#     assert stein.spk == 0
-#     assert stein.syn == 0
-#     assert stein.mem == 0
-
-
 class TestAlpha:
 
     with pytest.raises(ValueError):
@@ -249,13 +208,13 @@ class TestAlpha:
 
 
 def test_fire():
-    stein = snn.Stein(alpha=0.5, beta=0.5)
-    input_large = torch.Tensor([stein.threshold * 10])
-    assert stein.fire(input_large)[0] == 1
+    synaptic = snn.Synaptic(alpha=0.5, beta=0.5)
+    input_large = torch.Tensor([synaptic.threshold * 10])
+    assert synaptic.fire(input_large)[0] == 1
 
 
 def test_instances():
     snn.LIF.instances = []
-    snn.Stein(alpha=0.5, beta=0.5)
+    snn.Synaptic(alpha=0.5, beta=0.5)
     snn.Alpha(alpha=0.5, beta=0.4)
     assert len(snn.LIF.instances) == 2
