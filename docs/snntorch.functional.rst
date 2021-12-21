@@ -26,7 +26,26 @@ Example::
       optimizer.step()
 
 
-.. automodule:: snntorch.functional
+Accuracy Functions
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: snntorch.functional.acc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Loss Functions
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: snntorch.functional.loss
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Regularization Functions
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: snntorch.functional.reg
    :members:
    :undoc-members:
    :show-inheritance:
