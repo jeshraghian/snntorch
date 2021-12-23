@@ -171,7 +171,7 @@ class Alpha(LIF):
         return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
 
     def base_state_reset_sub_function(self, input_, syn_inh):
-        syn_exc_reset = self.threshold
+        syn_exc_reset = (self.beta * syn_inh - input_) + self.threshold
         syn_inh_reset = self.beta * syn_inh - input_
         mem_reset = 0
         return syn_exc_reset, syn_inh_reset, mem_reset
@@ -218,7 +218,7 @@ class Alpha(LIF):
         return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
 
     def base_state_reset_sub_function_hidden(self, input_):
-        syn_exc_reset = self.threshold
+        syn_exc_reset = (self.beta.clamp(0, 1) * self.syn_inh - input_) + self.threshold
         syn_inh_reset = self.beta.clamp(0, 1) * self.syn_inh - input_
         mem_reset = 0
         return syn_exc_reset, syn_inh_reset, mem_reset
