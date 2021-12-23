@@ -50,8 +50,6 @@ class LIF(nn.Module):
         )
         self._reset_mechanism = reset_mechanism
 
-        # TO-DO: create state function based on the numerical reset condition
-
         # TO-DO: Heaviside --> STE; needs a tutorial change too?
         if spike_grad is None:
             self.spike_grad = self.Heaviside.apply

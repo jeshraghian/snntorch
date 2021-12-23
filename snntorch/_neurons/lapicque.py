@@ -167,7 +167,7 @@ class Lapicque(LIF):
             state_fn = self.base_state_function(
                 input_, mem
             ) - self.reset * self.base_state_function(input_, mem)
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration baby
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
             state_fn = self.base_state_function(input_, mem)
         return state_fn
 
@@ -187,7 +187,7 @@ class Lapicque(LIF):
             state_fn = self.base_state_function_hidden(
                 input_
             ) - self.reset * self.base_state_function_hidden(input_)
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration baby
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
             state_fn = self.base_state_function_hidden(input_)
         return state_fn
 

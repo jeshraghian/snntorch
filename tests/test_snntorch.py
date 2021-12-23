@@ -99,7 +99,7 @@ def synaptic_hidden_reset_none_instance():
 
 @pytest.fixture(scope="module")
 def alpha_instance():
-    return snn.Alpha(alpha=0.6, beta=0.5)
+    return snn.Alpha(alpha=0.6, beta=0.5, reset_mechanism="subtract")
 
 
 @pytest.fixture(scope="module")

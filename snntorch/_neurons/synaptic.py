@@ -121,7 +121,7 @@ class Synaptic(LIF):
             return spk, syn, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.init_hidden:  # user passed in too many vars
+        if self.init_hidden:
             self._synaptic_forward_cases(mem, syn)
             self.reset = self.mem_reset(self.mem)
             self.syn, self.mem = self.state_fn(input_)
@@ -146,7 +146,6 @@ class Synaptic(LIF):
         base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
         return 0, base_fn_mem
 
-    # TO-DO add test for reset_mechanism_val ==1 and ==2
     def build_state_function(self, input_, syn, mem):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = tuple(
@@ -178,7 +177,6 @@ class Synaptic(LIF):
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return 0, base_fn_mem
 
-    # TO-DO add test for hidden cases
     def build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = tuple(

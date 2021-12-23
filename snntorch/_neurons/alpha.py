@@ -80,7 +80,7 @@ class Alpha(LIF):
         learn_alpha=False,
         learn_beta=False,
         learn_threshold=False,
-        reset_mechanism="subtract",
+        reset_mechanism="zero",
         output=False,
     ):
         super(Alpha, self).__init__(
@@ -154,33 +154,24 @@ class Alpha(LIF):
                 return self.spk
 
     def base_state_function(self, input_, syn_exc, syn_inh, mem):
-        base_fn_syn_exc = (
-            self.alpha.clamp(0, 1) * syn_exc + input_
-        )  # - self.reset * (self.alpha * syn_exc + input_)
-        base_fn_syn_inh = (
-            self.beta.clamp(0, 1) * syn_inh - input_
-        )  # - self.reset * (self.beta * syn_inh - input_)
+        base_fn_syn_exc = self.alpha.clamp(0, 1) * syn_exc + input_
+        base_fn_syn_inh = self.beta.clamp(0, 1) * syn_inh - input_
         tau_alpha = (
             torch.log(self.alpha.clamp(0, 1))
             / (torch.log(self.beta.clamp(0, 1)) - torch.log(self.alpha.clamp(0, 1)))
             + 1
         )
-        base_fn_mem = tau_alpha * (
-            base_fn_syn_exc + base_fn_syn_inh
-        )  # + self.mem_residual
+        base_fn_mem = tau_alpha * (base_fn_syn_exc + base_fn_syn_inh)
         return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
 
     def base_state_reset_sub_function(self, input_, syn_inh):
-        syn_exc_reset = (self.beta * syn_inh - input_) + self.threshold
-        syn_inh_reset = self.beta * syn_inh - input_
+        syn_exc_reset = self.threshold
+        syn_inh_reset = self.beta.clamp(0, 1) * syn_inh - input_
         mem_reset = 0
         return syn_exc_reset, syn_inh_reset, mem_reset
 
-    # TO-DO add test for reset_mechanism_val ==1 and ==2
     def build_state_function(self, input_, syn_exc, syn_inh, mem):
-        if (
-            self.reset_mechanism_val == 0
-        ):  # reset by subtraction  ----- ERROR: move the self.reset
+        if self.reset_mechanism_val == 0:
             state_fn = tuple(
                 map(
                     lambda x, y: x - self.reset * y,
@@ -201,30 +192,22 @@ class Alpha(LIF):
         return state_fn
 
     def base_state_function_hidden(self, input_):
-        base_fn_syn_exc = (
-            self.alpha.clamp(0, 1) * self.syn_exc + input_
-        )  # - self.reset * (self.alpha * syn_exc + input_)
-        base_fn_syn_inh = (
-            self.beta.clamp(0, 1) * self.syn_inh - input_
-        )  # - self.reset * (self.beta * syn_inh - input_)
+        base_fn_syn_exc = self.alpha.clamp(0, 1) * self.syn_exc + input_
+        base_fn_syn_inh = self.beta.clamp(0, 1) * self.syn_inh - input_
         tau_alpha = (
             torch.log(self.alpha.clamp(0, 1))
             / (torch.log(self.beta.clamp(0, 1)) - torch.log(self.alpha.clamp(0, 1)))
             + 1
         )
-        base_fn_mem = tau_alpha * (
-            base_fn_syn_exc + base_fn_syn_inh
-        )  # + self.mem_residual
+        base_fn_mem = tau_alpha * (base_fn_syn_exc + base_fn_syn_inh)
         return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
 
     def base_state_reset_sub_function_hidden(self, input_):
-        # syn_exc_reset = (self.beta.clamp(0, 1) * self.syn_inh - input_) + self.threshold
-        syn_exc_reset = self.threshold  # - self.syn_inh
+        syn_exc_reset = self.threshold
         syn_inh_reset = self.beta.clamp(0, 1) * self.syn_inh - input_
         mem_reset = -self.syn_inh
         return syn_exc_reset, syn_inh_reset, mem_reset
 
-    # TO-DO add test for hidden cases
     def build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = tuple(
