@@ -82,6 +82,9 @@ class Leaky(LIF):
 
         if self.init_hidden:
             self.mem = self.init_leaky()
+            self.state_fn = self.build_state_function_hidden
+        else:
+            self.state_fn = self.build_state_function
 
     def forward(self, input_, mem=False):
 
@@ -90,17 +93,13 @@ class Leaky(LIF):
         elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
             self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
-        # TODO: alternatively, we could do torch.exp(-1 / self.beta.clamp_min(0)),
+        # TO-DO: alternatively, we could do torch.exp(-1 / self.beta.clamp_min(0)),
         # giving actual time constants instead of values in [0, 1] as initial beta
-        beta = self.beta.clamp(0, 1)
+        # beta = self.beta.clamp(0, 1)
 
         if not self.init_hidden:
-            reset = self.mem_reset(mem)
-            if self.reset_mechanism == "subtract":
-                mem = beta * mem + input_ - reset * self.threshold
-
-            elif self.reset_mechanism == "zero":
-                mem = beta * mem + input_ - reset * (beta * mem + input_)
+            self.reset = self.mem_reset(mem)
+            mem = self.state_fn(input_, mem)
 
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
@@ -110,15 +109,11 @@ class Leaky(LIF):
             return spk, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.init_hidden and not mem:
+        if self.init_hidden:
+            self._leaky_forward_cases(mem)
             self.reset = self.mem_reset(self.mem)
-            if self.reset_mechanism == "subtract":
-                self.mem = beta * self.mem + input_ - self.reset * self.threshold
+            self.mem = self.state_fn(input_)
 
-            elif self.reset_mechanism == "zero":
-                self.mem = (
-                    beta * self.mem + input_ - self.reset * (beta * self.mem + input_)
-                )
             if self.inhibition:
                 self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
             else:
@@ -128,6 +123,44 @@ class Leaky(LIF):
                 return self.spk, self.mem
             else:  # hidden layer e.g., in nn.Sequential, only returns output
                 return self.spk
+
+    def base_state_function(self, input_, mem):
+        base_fn = self.beta.clamp(0, 1) * mem + input_
+        return base_fn
+
+    def build_state_function(self, input_, mem):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            state_fn = (
+                self.base_state_function(input_, mem) - self.reset * self.threshold
+            )
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            state_fn = self.base_state_function(
+                input_, mem
+            ) - self.reset * self.base_state_function(input_, mem)
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration baby
+            state_fn = self.base_state_function(input_, mem)
+        return state_fn
+
+    def base_state_function_hidden(self, input_):
+        base_fn = self.beta.clamp(0, 1) * self.mem + input_
+        return base_fn
+
+    def build_state_function_hidden(self, input_):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            state_fn = (
+                self.base_state_function_hidden(input_) - self.reset * self.threshold
+            )
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            state_fn = self.base_state_function_hidden(
+                input_
+            ) - self.reset * self.base_state_function_hidden(input_)
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration baby
+            state_fn = self.base_state_function_hidden(input_)
+        return state_fn
+
+    def _leaky_forward_cases(self, mem):
+        if mem is not False:
+            raise TypeError("When `init_hidden=True`, Leaky expects 1 input argument.")
 
     @classmethod
     def detach_hidden(cls):

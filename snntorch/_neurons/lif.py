@@ -1,3 +1,4 @@
+from warnings import warn
 import torch
 import torch.nn as nn
 
@@ -18,6 +19,12 @@ class LIF(nn.Module):
     """Each :mod:`snntorch.LIF` neuron (e.g., :mod:`snntorch.Synaptic`) will populate the :mod:`snntorch.LIF.instances` list with a new entry.
     The list is used to initialize and clear neuron states when the argument `init_hidden=True`."""
 
+    reset_dict = {
+        "subtract": 0,
+        "zero": 1,
+        "none": 2,
+    }
+
     def __init__(
         self,
         beta,
@@ -33,38 +40,23 @@ class LIF(nn.Module):
         super(LIF, self).__init__()
         LIF.instances.append(self)
 
-        # self.threshold = threshold
         self.init_hidden = init_hidden
         self.inhibition = inhibition
-        self.reset_mechanism = reset_mechanism
         self.output = output
 
-        # TODO: this way, people can provide their own
-        # 1) shape (one constant per layer or one per neuron)
-        # 2) initial distribution
-        if not isinstance(beta, torch.Tensor):
-            beta = torch.as_tensor(beta)  # TODO: or .tensor() if no copy
-        if learn_beta:
-            self.beta = nn.Parameter(beta)
-        else:
-            self.register_buffer("beta", beta)
+        self._lif_cases(reset_mechanism, inhibition)
+        self._lif_register_buffer(
+            beta, threshold, learn_beta, learn_threshold, reset_mechanism
+        )
+        self._reset_mechanism = reset_mechanism
 
-        if not isinstance(threshold, torch.Tensor):
-            threshold = torch.as_tensor(threshold)
-        if learn_threshold:
-            self.threshold = nn.Parameter(threshold)
-        else:
-            self.register_buffer("threshold", threshold)
+        # TO-DO: create state function based on the numerical reset condition
 
+        # TO-DO: Heaviside --> STE; needs a tutorial change too?
         if spike_grad is None:
             self.spike_grad = self.Heaviside.apply
         else:
             self.spike_grad = spike_grad
-
-        if reset_mechanism != "subtract" and reset_mechanism != "zero":
-            raise ValueError(
-                "reset_mechanism must be set to either 'subtract' or 'zero'."
-            )
 
     def fire(self, mem):
         """Generates spike if mem > threshold.
@@ -96,6 +88,76 @@ class LIF(nn.Module):
 
         return reset
 
+    def _lif_cases(self, reset_mechanism, inhibition):
+        self._reset_cases(reset_mechanism)
+
+        if inhibition:
+            warn(
+                "Inhibition is an unstable feature that has only been tested for dense (fully-connected) layers. Use with caution!",
+                UserWarning,
+            )
+
+    def _reset_cases(self, reset_mechanism):
+        if (
+            reset_mechanism != "subtract"
+            and reset_mechanism != "zero"
+            and reset_mechanism != "none"
+        ):
+            raise ValueError(
+                "reset_mechanism must be set to either 'subtract', 'zero', or 'none'."
+            )
+
+    def _lif_register_buffer(
+        self, beta, threshold, learn_beta, learn_threshold, reset_mechanism
+    ):
+        """Set variables as learnable parameters else register them in the buffer."""
+
+        self._beta_buffer(beta, learn_beta)
+        self._threshold_buffer(threshold, learn_threshold)
+
+        # reset buffer
+        try:
+            # if reset_mechanism_val is loaded from .pt, override reset_mechanism
+            if torch.is_tensor(self.reset_mechanism_val):
+                self.reset_mechanism = list(LIF.reset_dict)[self.reset_mechanism_val]
+        except AttributeError:
+            # reset_mechanism_val has not yet been created, create it
+            self._reset_mechanism_buffer(reset_mechanism)
+
+    def _beta_buffer(self, beta, learn_beta):
+        if not isinstance(beta, torch.Tensor):
+            beta = torch.as_tensor(beta)  # TODO: or .tensor() if no copy
+        if learn_beta:
+            self.beta = nn.Parameter(beta)
+        else:
+            self.register_buffer("beta", beta)
+
+    def _threshold_buffer(self, threshold, learn_threshold):
+        if not isinstance(threshold, torch.Tensor):
+            threshold = torch.as_tensor(threshold)
+        if learn_threshold:
+            self.threshold = nn.Parameter(threshold)
+        else:
+            self.register_buffer("threshold", threshold)
+
+    def _reset_mechanism_buffer(self, reset_mechanism):
+        """Assign mapping to each reset mechanism state.
+        Must be of type tensor to store in register buffer. See reset_dict for mapping."""
+        reset_mechanism_val = torch.as_tensor(LIF.reset_dict[reset_mechanism])
+        self.register_buffer("reset_mechanism_val", reset_mechanism_val)
+
+    @property
+    def reset_mechanism(self):
+        """If reset_mechanism is modified, reset_mechanism_val is triggered to update.
+        0: subtract, 1: zero, 2: none."""
+        return self._reset_mechanism
+
+    @reset_mechanism.setter
+    def reset_mechanism(self, new_reset_mechanism):
+        self._reset_cases(new_reset_mechanism)
+        self.reset_mechanism_val = torch.as_tensor(LIF.reset_dict[new_reset_mechanism])
+        self._reset_mechanism = new_reset_mechanism
+
     @classmethod
     def init(cls):
         """Removes all items from :mod:`snntorch.LIF.instances` when called."""
@@ -107,7 +169,6 @@ class LIF(nn.Module):
         Used to initialize mem as an empty SpikeTensor.
         ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
         """
-        # print(f"init_leaky executing")
         mem = _SpikeTensor(init_flag=False)
 
         return mem

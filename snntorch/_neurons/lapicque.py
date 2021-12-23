@@ -110,13 +110,14 @@ class Lapicque(LIF):
         )
 
         self._lapicque_cases(time_step, beta, R, C)
+
         if self.init_hidden:
             self.mem = self.init_lapicque()
+            self.state_fn = self.build_state_function_hidden
+        else:
+            self.state_fn = self.build_state_function
 
     def forward(self, input_, mem=False):
-
-        R = self.R
-        C = self.C
 
         if hasattr(mem, "init_flag"):  # only triggered on first-pass
             mem = _SpikeTorchConv(mem, input_=input_)
@@ -124,27 +125,8 @@ class Lapicque(LIF):
             self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
         if not self.init_hidden:
-            reset = self.mem_reset(mem)
-
-            if self.reset_mechanism == "subtract":
-                mem = (
-                    input_ * R * (1 / (R * C)) * self.time_step
-                    + (1 - (self.time_step / (R * C))) * mem
-                    - reset * self.threshold
-                )
-
-            elif self.reset_mechanism == "zero":
-                mem = (
-                    input_ * R * (1 / (R * C)) * self.time_step
-                    + (1 - (self.time_step / (R * C))) * mem
-                    - reset
-                    * (
-                        (
-                            input_ * R * (1 / (R * C)) * self.time_step
-                            + (1 - (self.time_step / (R * C))) * mem
-                        )
-                    )
-                )
+            self.reset = self.mem_reset(mem)
+            mem = self.state_fn(input_, mem)
 
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)
@@ -154,28 +136,10 @@ class Lapicque(LIF):
             return spk, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.init_hidden and not mem:
+        if self.init_hidden:
+            self._lapicque_forward_cases(mem)
             self.reset = self.mem_reset(self.mem)
-
-            if self.reset_mechanism == "subtract":
-                self.mem = (
-                    input_ * R * (1 / (R * C)) * self.time_step
-                    + (1 - (self.time_step / (R * C))) * self.mem
-                    - self.reset * self.threshold
-                )
-
-            elif self.reset_mechanism == "zero":
-                self.mem = (
-                    input_ * R * (1 / (R * C)) * self.time_step
-                    + (1 - (self.time_step / (R * C))) * self.mem
-                    - self.reset
-                    * (
-                        (
-                            input_ * R * (1 / (R * C)) * self.time_step
-                            + (1 - (self.time_step / (R * C))) * self.mem
-                        )
-                    )
-                )
+            self.mem = self.state_fn(input_)
 
             if self.inhibition:
                 self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
@@ -186,6 +150,46 @@ class Lapicque(LIF):
                 return self.spk, self.mem
             else:
                 return self.spk
+
+    def base_state_function(self, input_, mem):
+        base_fn = (
+            input_ * self.R * (1 / (self.R * self.C)) * self.time_step
+            + (1 - (self.time_step / (self.R * self.C))) * mem
+        )
+        return base_fn
+
+    def build_state_function(self, input_, mem):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            state_fn = (
+                self.base_state_function(input_, mem) - self.reset * self.threshold
+            )
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            state_fn = self.base_state_function(
+                input_, mem
+            ) - self.reset * self.base_state_function(input_, mem)
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration baby
+            state_fn = self.base_state_function(input_, mem)
+        return state_fn
+
+    def base_state_function_hidden(self, input_):
+        base_fn = (
+            input_ * self.R * (1 / (self.R * self.C)) * self.time_step
+            + (1 - (self.time_step / (self.R * self.C))) * self.mem
+        )
+        return base_fn
+
+    def build_state_function_hidden(self, input_):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            state_fn = (
+                self.base_state_function_hidden(input_) - self.reset * self.threshold
+            )
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            state_fn = self.base_state_function_hidden(
+                input_
+            ) - self.reset * self.base_state_function_hidden(input_)
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration baby
+            state_fn = self.base_state_function_hidden(input_)
+        return state_fn
 
     def _lapicque_cases(self, time_step, beta, R, C):
         if not isinstance(time_step, torch.Tensor):
@@ -237,6 +241,12 @@ class Lapicque(LIF):
             self.register_buffer("beta", self.beta)
             R = self.time_step / (C * torch.log(1 / self.beta))
             self.register_buffer("R", R)
+
+    def _lapicque_forward_cases(self, mem):
+        if mem is not False:
+            raise TypeError(
+                "When `init_hidden=True`, Lapicque expects 1 input argument."
+            )
 
     @classmethod
     def detach_hidden(cls):

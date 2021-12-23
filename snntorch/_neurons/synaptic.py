@@ -92,15 +92,13 @@ class Synaptic(LIF):
             output,
         )
 
-        if not isinstance(alpha, torch.Tensor):
-            alpha = torch.as_tensor(alpha)
-        if learn_alpha:
-            self.alpha = nn.Parameter(alpha)
-        else:
-            self.register_buffer("alpha", alpha)
+        self._alpha_register_buffer(alpha, learn_alpha)
 
         if self.init_hidden:
             self.syn, self.mem = self.init_synaptic()
+            self.state_fn = self.build_state_function_hidden
+        else:
+            self.state_fn = self.build_state_function
 
     def forward(self, input_, syn=False, mem=False):
 
@@ -111,19 +109,9 @@ class Synaptic(LIF):
         elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
             self.syn, self.mem = _SpikeTorchConv(self.syn, self.mem, input_=input_)
 
-        alpha = self.alpha.clamp(0, 1)
-        beta = self.beta.clamp(0, 1)
-
         if not self.init_hidden:
-            reset = self.mem_reset(mem)
-
-            syn = alpha * syn + input_
-
-            if self.reset_mechanism == "subtract":
-                mem = beta * mem + syn - reset * self.threshold
-
-            elif self.reset_mechanism == "zero":
-                mem = beta * mem + syn - reset * (beta * mem + syn)
+            self.reset = self.mem_reset(mem)
+            syn, mem = self.state_fn(input_, syn, mem)
 
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)
@@ -133,20 +121,10 @@ class Synaptic(LIF):
             return spk, syn, mem
 
         # intended for truncated-BPTT where instance variables are hidden states
-        if self.init_hidden and not mem and not syn:
+        if self.init_hidden:  # user passed in too many vars
+            self._synaptic_forward_cases(mem, syn)
             self.reset = self.mem_reset(self.mem)
-
-            self.syn = alpha * self.syn + input_
-
-            if self.reset_mechanism == "subtract":
-                self.mem = beta * self.mem + self.syn - self.reset * self.threshold
-
-            elif self.reset_mechanism == "zero":
-                self.mem = (
-                    beta * self.mem
-                    + self.syn
-                    - self.reset * (beta * self.mem + self.syn)
-                )
+            self.syn, self.mem = self.state_fn(input_)
 
             if self.inhibition:
                 self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
@@ -157,6 +135,84 @@ class Synaptic(LIF):
                 return self.spk, self.syn, self.mem
             else:
                 return self.spk
+
+    def base_state_function(self, input_, syn, mem):
+        base_fn_syn = self.alpha.clamp(0, 1) * syn + input_
+        base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
+        return base_fn_syn, base_fn_mem
+
+    def base_state_reset_zero(self, input_, syn, mem):
+        base_fn_syn = self.alpha.clamp(0, 1) * syn + input_
+        base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
+        return 0, base_fn_mem
+
+    # TO-DO add test for reset_mechanism_val ==1 and ==2
+    def build_state_function(self, input_, syn, mem):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            state_fn = tuple(
+                map(
+                    lambda x, y: x - y,
+                    self.base_state_function(input_, syn, mem),
+                    (0, self.reset * self.threshold),
+                )
+            )
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            state_fn = tuple(
+                map(
+                    lambda x, y: x - self.reset * y,
+                    self.base_state_function(input_, syn, mem),
+                    self.base_state_reset_zero(input_, syn, mem),
+                )
+            )
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            state_fn = self.base_state_function(input_, syn, mem)
+        return state_fn
+
+    def base_state_function_hidden(self, input_):
+        base_fn_syn = self.alpha.clamp(0, 1) * self.syn + input_
+        base_fn_mem = self.beta.clamp(0, 1) * self.mem + input_
+        return base_fn_syn, base_fn_mem
+
+    def base_state_reset_zero_hidden(self, input_):
+        base_fn_syn = self.alpha.clamp(0, 1) * self.syn + input_
+        base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
+        return 0, base_fn_mem
+
+    # TO-DO add test for hidden cases
+    def build_state_function_hidden(self, input_):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            state_fn = tuple(
+                map(
+                    lambda x, y: x - y,
+                    self.base_state_function_hidden(input_),
+                    (0, self.reset * self.threshold),
+                )
+            )
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            state_fn = tuple(
+                map(
+                    lambda x, y: x - self.reset * y,
+                    self.base_state_function_hidden(input_),
+                    self.base_state_function_hidden(input_),
+                )
+            )
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            state_fn = self.base_state_function_hidden(input_)
+        return state_fn
+
+    def _alpha_register_buffer(self, alpha, learn_alpha):
+        if not isinstance(alpha, torch.Tensor):
+            alpha = torch.as_tensor(alpha)
+        if learn_alpha:
+            self.alpha = nn.Parameter(alpha)
+        else:
+            self.register_buffer("alpha", alpha)
+
+    def _synaptic_forward_cases(self, mem, syn):
+        if mem is not False or syn is not False:
+            raise TypeError(
+                "When `init_hidden=True`, Synaptic expects 1 input argument."
+            )
 
     @classmethod
     def detach_hidden(cls):

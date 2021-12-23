@@ -95,23 +95,14 @@ class Alpha(LIF):
             output,
         )
 
-        if not isinstance(alpha, torch.Tensor):
-            alpha = torch.as_tensor(alpha)
-        if learn_alpha:
-            self.alpha = nn.Parameter(alpha)
-        else:
-            self.register_buffer("alpha", alpha)
+        self._alpha_register_buffer(alpha, learn_alpha)
+        self._alpha_cases()
 
         if self.init_hidden:
             self.syn_exc, self.syn_inh, self.mem = self.init_alpha()
-
-        if (self.alpha <= self.beta).any():
-            raise ValueError("alpha must be greater than beta.")
-
-        if (self.beta == 1).any():
-            raise ValueError(
-                "beta cannot be '1' otherwise ZeroDivisionError occurs: tau_srm = log(alpha)/log(beta) - log(alpha) + 1"
-            )
+            self.state_fn = self.build_state_function_hidden
+        else:
+            self.state_fn = self.build_state_function
 
         # if reset_mechanism == "subtract":
         #     self.mem_residual = False
@@ -131,37 +122,10 @@ class Alpha(LIF):
                 self.syn_exc, self.syn_inh, self.mem, input_=input_
             )
 
-        alpha = self.alpha.clamp(0, 1)
-        beta = self.beta.clamp(0, 1)
-        tau_srm = torch.log(alpha) / (torch.log(beta) - torch.log(alpha)) + 1
-
         # if hidden states are passed externally
         if not self.init_hidden:
-            reset = self.mem_reset(mem)
-
-            # if neuron fires, subtract threhsold from neuron
-            if self.reset_mechanism == "subtract":
-
-                # if self.mem_residual is False:
-                #     self.mem_residual = torch.zeros_like(mem)
-
-                syn_exc = (alpha * syn_exc + input_) - reset * (
-                    alpha * syn_exc + input_
-                )
-                syn_inh = (beta * syn_inh - input_) - reset * (beta * syn_inh - input_)
-                #  #The residual of (mem - threshold) decays separately
-                # self.mem_residual = reset * (mem - self.threshold) + (
-                #     self.mem_residual / self.tau_srm
-                # )
-                mem = tau_srm * (syn_exc + syn_inh)  # + self.mem_residual
-
-            # if neuron fires, reset membrane to zero
-            elif self.reset_mechanism == "zero":
-                syn_exc = (alpha * syn_exc + input_) - reset * (
-                    alpha * syn_exc + input_
-                )
-                syn_inh = (beta * syn_inh - input_) - reset * (beta * syn_inh - input_)
-                mem = tau_srm * (syn_exc + syn_inh)
+            self.reset = self.mem_reset(mem)
+            syn_exc, syn_inh, mem = self.state_fn(input_, syn_exc, syn_inh, mem)
 
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)
@@ -172,40 +136,11 @@ class Alpha(LIF):
             return spk, syn_exc, syn_inh, mem
 
         # if hidden states and outputs are instance variables
-        if self.init_hidden and not mem:
+        if self.init_hidden:
+            self._alpha_forward_cases(mem, syn_exc, syn_inh)
 
             self.reset = self.mem_reset(self.mem)
-
-            # if neuron fires, subtract threhsold from neuron
-            if self.reset_mechanism == "subtract":
-
-                # if self.mem_residual is False:
-                #     self.mem_residual = torch.zeros_like(self.mem)
-
-                self.syn_exc = (alpha * self.syn_exc + input_) - self.reset * (
-                    alpha * self.syn_exc + input_
-                )
-                syn_inh = (beta * self.syn_inh - input_) - self.reset * (
-                    beta * self.syn_inh - input_
-                )
-                # # The residual of (mem - threshold) decays separately
-                # self.mem_residual = self.reset * (self.mem - self.threshold) + (
-                #     self.mem_residual / self.tau_srm
-                # )
-                self.mem = tau_srm * (
-                    self.syn_exc + self.syn_inh
-                )  # + self.mem_residual
-
-            # if neuron fires, reset membrane to zero
-            elif self.reset_mechanism == "zero":
-
-                syn_exc = (alpha * syn_exc + input_) - self.reset * (
-                    alpha * syn_exc + input_
-                )
-                syn_inh = (beta * syn_inh - input_) - self.reset * (
-                    beta * syn_inh - input_
-                )
-                self.mem = tau_srm * (syn_exc + syn_inh)
+            self.syn_exc, self.syn_inh, self.mem = self.state_fn(input_)
 
             if self.inhibition:
                 self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
@@ -217,6 +152,123 @@ class Alpha(LIF):
                 return self.spk, self.syn_exc, self.syn_inh, self.mem
             else:
                 return self.spk
+
+    def base_state_function(self, input_, syn_exc, syn_inh, mem):
+        base_fn_syn_exc = (
+            self.alpha.clamp(0, 1) * syn_exc + input_
+        )  # - self.reset * (self.alpha * syn_exc + input_)
+        base_fn_syn_inh = (
+            self.beta.clamp(0, 1) * syn_inh - input_
+        )  # - self.reset * (self.beta * syn_inh - input_)
+        tau_alpha = (
+            torch.log(self.alpha.clamp(0, 1))
+            / (torch.log(self.beta.clamp(0, 1)) - torch.log(self.alpha.clamp(0, 1)))
+            + 1
+        )
+        base_fn_mem = tau_alpha * (
+            base_fn_syn_exc + base_fn_syn_inh
+        )  # + self.mem_residual
+        return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
+
+    def base_state_reset_sub_function(self, input_, syn_inh):
+        syn_exc_reset = -(self.beta * syn_inh - input_) + self.threshold
+        syn_inh_reset = self.beta * syn_inh - input_
+        mem_reset = 0
+        return syn_exc_reset, syn_inh_reset, mem_reset
+
+    # TO-DO add test for reset_mechanism_val ==1 and ==2
+    def build_state_function(self, input_, syn_exc, syn_inh, mem):
+        if (
+            self.reset_mechanism_val == 0
+        ):  # reset by subtraction  ----- ERROR: move the self.reset
+            state_fn = tuple(
+                map(
+                    lambda x, y: x - self.reset * y,
+                    self.base_state_function(input_, syn_exc, syn_inh, mem),
+                    self.base_state_reset_sub_function(input_, syn_inh),
+                )
+            )
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            state_fn = tuple(
+                map(
+                    lambda x, y: x - self.reset * y,
+                    self.base_state_function(input_, syn_exc, syn_inh, mem),
+                    self.base_state_function(input_, syn_exc, syn_inh, mem),
+                )
+            )
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            state_fn = self.base_state_function(input_, syn_exc, syn_inh, mem)
+        return state_fn
+
+    def base_state_function_hidden(self, input_):
+        base_fn_syn_exc = (
+            self.alpha.clamp(0, 1) * self.syn_exc + input_
+        )  # - self.reset * (self.alpha * syn_exc + input_)
+        base_fn_syn_inh = (
+            self.beta.clamp(0, 1) * self.syn_inh - input_
+        )  # - self.reset * (self.beta * syn_inh - input_)
+        tau_alpha = (
+            torch.log(self.alpha.clamp(0, 1))
+            / (torch.log(self.beta.clamp(0, 1)) - torch.log(self.alpha.clamp(0, 1)))
+            + 1
+        )
+        base_fn_mem = tau_alpha * (
+            base_fn_syn_exc + base_fn_syn_inh
+        )  # + self.mem_residual
+        return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
+
+    def base_state_reset_sub_function_hidden(self, input_):
+        syn_exc_reset = (
+            -(self.beta.clamp(0, 1) * self.syn_inh - input_) + self.threshold
+        )
+        syn_inh_reset = self.beta.clamp(0, 1) * self.syn_inh - input_
+        mem_reset = 0
+        return syn_exc_reset, syn_inh_reset, mem_reset
+
+    # TO-DO add test for hidden cases
+    def build_state_function_hidden(self, input_):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            state_fn = tuple(
+                map(
+                    lambda x, y: x - self.reset * y,
+                    self.base_state_function_hidden(input_),
+                    self.base_state_reset_sub_function_hidden(input_),
+                )
+            )
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            state_fn = tuple(
+                map(
+                    lambda x, y: x - self.reset * y,
+                    self.base_state_function_hidden(input_),
+                    self.base_state_function_hidden(input_),
+                )
+            )
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            state_fn = self.base_state_function_hidden(input_)
+        return state_fn
+
+    def _alpha_register_buffer(self, alpha, learn_alpha):
+        if not isinstance(alpha, torch.Tensor):
+            alpha = torch.as_tensor(alpha)
+        if learn_alpha:
+            self.alpha = nn.Parameter(alpha)
+        else:
+            self.register_buffer("alpha", alpha)
+
+        self.alpha = self.alpha.clamp(0, 1)
+
+    def _alpha_cases(self):
+        if (self.alpha <= self.beta).any():
+            raise ValueError("alpha must be greater than beta.")
+
+        if (self.beta == 1).any():
+            raise ValueError(
+                "beta cannot be '1' otherwise ZeroDivisionError occurs: tau_srm = log(alpha)/log(beta) - log(alpha) + 1"
+            )
+
+    def _alpha_forward_cases(self, mem, syn_exc, syn_inh):
+        if mem is not False or syn_exc is not False or syn_inh is not False:
+            raise TypeError("When `init_hidden=True`, Alpha expects 1 input argument.")
 
     @classmethod
     def detach_hidden(cls):

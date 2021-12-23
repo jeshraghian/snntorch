@@ -3,32 +3,8 @@
 """Tests for `snntorch` package."""
 
 import pytest
-
-# from click.testing import CliRunner
-
 import snntorch as snn
 import torch
-
-# from snntorch import cli
-
-
-# @pytest.fixture
-# def response():
-#     """Sample pytest fixture.
-
-#     See more at: http://doc.pytest.org/en/latest/fixture.html
-#     """
-
-
-# def test_command_line_interface():
-#     """Test the CLI."""
-#     runner = CliRunner()
-#     result = runner.invoke(cli.main)
-#     assert result.exit_code == 0
-#     assert "snntorch.cli.main" in result.output
-#     help_result = runner.invoke(cli.main, ["--help"])
-#     assert help_result.exit_code == 0
-#     assert "--help  Show this message and exit." in help_result.output
 
 
 @pytest.fixture(scope="module")
@@ -37,8 +13,58 @@ def leaky_instance():
 
 
 @pytest.fixture(scope="module")
+def leaky_reset_zero_instance():
+    return snn.Leaky(beta=0.5, reset_mechanism="zero")
+
+
+@pytest.fixture(scope="module")
+def leaky_reset_none_instance():
+    return snn.Leaky(beta=0.5, reset_mechanism="none")
+
+
+@pytest.fixture(scope="module")
+def leaky_hidden_instance():
+    return snn.Leaky(beta=0.5, init_hidden=True)
+
+
+@pytest.fixture(scope="module")
+def leaky_hidden_reset_zero_instance():
+    return snn.Leaky(beta=0.5, init_hidden=True, reset_mechanism="zero")
+
+
+@pytest.fixture(scope="module")
+def leaky_hidden_reset_none_instance():
+    return snn.Leaky(beta=0.5, init_hidden=True, reset_mechanism="none")
+
+
+@pytest.fixture(scope="module")
 def lapicque_instance():
     return snn.Lapicque(beta=0.5)
+
+
+@pytest.fixture(scope="module")
+def lapicque_reset_zero_instance():
+    return snn.Lapicque(beta=0.5, reset_mechanism="zero")
+
+
+@pytest.fixture(scope="module")
+def lapicque_reset_none_instance():
+    return snn.Lapicque(beta=0.5, reset_mechanism="none")
+
+
+@pytest.fixture(scope="module")
+def lapicque_hidden_instance():
+    return snn.Lapicque(beta=0.5, init_hidden=True)
+
+
+@pytest.fixture(scope="module")
+def lapicque_hidden_reset_zero_instance():
+    return snn.Lapicque(beta=0.5, init_hidden=True, reset_mechanism="zero")
+
+
+@pytest.fixture(scope="module")
+def lapicque_hidden_reset_none_instance():
+    return snn.Lapicque(beta=0.5, init_hidden=True, reset_mechanism="none")
 
 
 @pytest.fixture(scope="module")
@@ -47,8 +73,58 @@ def synaptic_instance():
 
 
 @pytest.fixture(scope="module")
+def synaptic_reset_zero_instance():
+    return snn.Synaptic(alpha=0.5, beta=0.5, reset_mechanism="zero")
+
+
+@pytest.fixture(scope="module")
+def synaptic_reset_none_instance():
+    return snn.Synaptic(alpha=0.5, beta=0.5, reset_mechanism="none")
+
+
+@pytest.fixture(scope="module")
+def synaptic_hidden_instance():
+    return snn.Synaptic(alpha=0.5, beta=0.5, init_hidden=True)
+
+
+@pytest.fixture(scope="module")
+def synaptic_hidden_reset_zero_instance():
+    return snn.Synaptic(alpha=0.5, beta=0.5, init_hidden=True, reset_mechanism="zero")
+
+
+@pytest.fixture(scope="module")
+def synaptic_hidden_reset_none_instance():
+    return snn.Synaptic(alpha=0.5, beta=0.5, init_hidden=True, reset_mechanism="none")
+
+
+@pytest.fixture(scope="module")
 def alpha_instance():
     return snn.Alpha(alpha=0.6, beta=0.5)
+
+
+@pytest.fixture(scope="module")
+def alpha_reset_zero_instance():
+    return snn.Alpha(alpha=0.6, beta=0.5, reset_mechanism="zero")
+
+
+@pytest.fixture(scope="module")
+def alpha_reset_none_instance():
+    return snn.Alpha(alpha=0.6, beta=0.5, reset_mechanism="none")
+
+
+@pytest.fixture(scope="module")
+def alpha_hidden_instance():
+    return snn.Alpha(alpha=0.6, beta=0.5, init_hidden=True)
+
+
+@pytest.fixture(scope="module")
+def alpha_hidden_reset_zero_instance():
+    return snn.Alpha(alpha=0.6, beta=0.5, init_hidden=True, reset_mechanism="zero")
+
+
+@pytest.fixture(scope="module")
+def alpha_hidden_reset_none_instance():
+    return snn.Alpha(alpha=0.6, beta=0.5, init_hidden=True, reset_mechanism="none")
 
 
 @pytest.fixture(scope="module")
@@ -59,7 +135,6 @@ def input_():
 class TestLeaky:
     def test_leaky(self, leaky_instance, input_):
         mem = leaky_instance.init_leaky()
-        # assert len(mem) == 1
 
         mem_rec = []
         spk_rec = []
@@ -73,24 +148,67 @@ class TestLeaky:
         assert mem_rec[1] == mem_rec[0] * 0.5 + input_[1]
         assert spk_rec[0] == spk_rec[1]
 
-    # def test_leaky_init_hidden(self):
+    def test_leaky_reset(
+        self, leaky_instance, leaky_reset_zero_instance, leaky_reset_none_instance
+    ):
+        lif1 = leaky_instance
+        lif2 = leaky_reset_zero_instance
+        lif3 = leaky_reset_none_instance
 
-    #     with pytest.raises(ValueError):
-    #         snn.Leaky(beta=0.5, init_hidden=True)
-    #         snn.Leaky(beta=0.5, num_inputs=1, init_hidden=True)
-    #         snn.Leaky(beta=0.5, batch_size=1, init_hidden=True)
+        assert lif1.reset_mechanism_val == 0
+        assert lif2.reset_mechanism_val == 1
+        assert lif3.reset_mechanism_val == 2
 
-    #     lif1 = snn.Leaky(beta=0.5, num_inputs=1, batch_size=1, init_hidden=True)
+        lif1.reset_mechanism = "zero"
+        lif2.reset_mechanism = "none"
+        lif3.reset_mechanism = "subtract"
 
-    #     assert lif1.spk == 0
-    #     assert lif1.mem == 0
+        assert lif1.reset_mechanism_val == 1
+        assert lif2.reset_mechanism_val == 2
+        assert lif3.reset_mechanism_val == 0
+
+    def test_leaky_init_hidden(self, leaky_hidden_instance, input_):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = leaky_hidden_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_leaky_init_hidden_reset_zero(
+        self, leaky_hidden_reset_zero_instance, input_
+    ):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = leaky_hidden_reset_zero_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_leaky_init_hidden_reset_none(
+        self, leaky_hidden_reset_none_instance, input_
+    ):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = leaky_hidden_reset_none_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_leaky_cases(self, leaky_hidden_instance, input_):
+        with pytest.raises(TypeError):
+            leaky_hidden_instance(input_, input_)
 
 
 class TestSynaptic:
     def test_synaptic(self, synaptic_instance, input_):
         syn, mem = synaptic_instance.init_synaptic()
-        # assert len(syn) == 1
-        # assert len(mem) == 1
 
         syn_rec = []
         mem_rec = []
@@ -106,20 +224,65 @@ class TestSynaptic:
         assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1]
         assert spk_rec[0] == spk_rec[1]
 
-    # def test_synaptic_init_hidden(self):
+    def test_synaptic_reset(
+        self,
+        synaptic_instance,
+        synaptic_reset_zero_instance,
+        synaptic_reset_none_instance,
+    ):
+        lif1 = synaptic_instance
+        lif2 = synaptic_reset_zero_instance
+        lif3 = synaptic_reset_none_instance
 
-    #     with pytest.raises(ValueError):
-    #         snn.Synaptic(alpha=0.5, beta=0.5, init_hidden=True)
-    #         snn.Synaptic(alpha=0.5, beta=0.5, num_inputs=1, init_hidden=True)
-    #         snn.Synaptic(alpha=0.5, beta=0.5, batch_size=1, init_hidden=True)
+        assert lif1.reset_mechanism_val == 0
+        assert lif2.reset_mechanism_val == 1
+        assert lif3.reset_mechanism_val == 2
 
-    #     lif2 = snn.Synaptic(
-    #         alpha=0.5, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
-    #     )
+        lif1.reset_mechanism = "zero"
+        lif2.reset_mechanism = "none"
+        lif3.reset_mechanism = "subtract"
 
-    #     assert lif2.spk == 0
-    #     assert lif2.syn == 0
-    #     assert lif2.mem == 0
+        assert lif1.reset_mechanism_val == 1
+        assert lif2.reset_mechanism_val == 2
+        assert lif3.reset_mechanism_val == 0
+
+    def test_synaptic_init_hidden(self, synaptic_hidden_instance, input_):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = synaptic_hidden_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_synaptic_init_hidden_reset_zero(
+        self, synaptic_hidden_reset_zero_instance, input_
+    ):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = synaptic_hidden_reset_zero_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_synaptic_init_hidden_reset_none(
+        self, synaptic_hidden_reset_none_instance, input_
+    ):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = synaptic_hidden_reset_none_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_synaptic_cases(self, synaptic_hidden_instance, input_):
+        with pytest.raises(TypeError):
+            synaptic_hidden_instance(input_, input_)
 
 
 class TestLapicque:
@@ -146,17 +309,65 @@ class TestLapicque:
         )
         assert spk_rec[0] == spk_rec[1]
 
-    # def test_lapicque_init_hidden(self):
+    def test_lapicque_reset(
+        self,
+        lapicque_instance,
+        lapicque_reset_zero_instance,
+        lapicque_reset_none_instance,
+    ):
+        lif1 = lapicque_instance
+        lif2 = lapicque_reset_zero_instance
+        lif3 = lapicque_reset_none_instance
 
-    #     with pytest.raises(ValueError):
-    #         snn.Lapicque(beta=0.5, init_hidden=True)
-    #         snn.Lapicque(beta=0.5, num_inputs=1, init_hidden=True)
-    #         snn.Lapicque(beta=0.5, batch_size=1, init_hidden=True)
+        assert lif1.reset_mechanism_val == 0
+        assert lif2.reset_mechanism_val == 1
+        assert lif3.reset_mechanism_val == 2
 
-    #     lapicque = snn.Lapicque(beta=0.5, num_inputs=1, batch_size=1, init_hidden=True)
+        lif1.reset_mechanism = "zero"
+        lif2.reset_mechanism = "none"
+        lif3.reset_mechanism = "subtract"
 
-    #     assert lapicque.spk == 0
-    #     assert lapicque.mem == 0
+        assert lif1.reset_mechanism_val == 1
+        assert lif2.reset_mechanism_val == 2
+        assert lif3.reset_mechanism_val == 0
+
+    def test_lapicque_init_hidden(self, lapicque_hidden_instance, input_):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = lapicque_hidden_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_lapicque_init_hidden_reset_zero(
+        self, lapicque_hidden_reset_zero_instance, input_
+    ):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = lapicque_hidden_reset_zero_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_lapicque_init_hidden_reset_none(
+        self, lapicque_hidden_reset_none_instance, input_
+    ):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = lapicque_hidden_reset_none_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_lapicque_cases(self, lapicque_hidden_instance, input_):
+        with pytest.raises(TypeError):
+            lapicque_hidden_instance(input_, input_)
 
 
 class TestAlpha:
@@ -166,10 +377,6 @@ class TestAlpha:
 
     def test_alpha(self, alpha_instance, input_):
         syn_exc, syn_inh, mem = alpha_instance.init_alpha()
-
-        # assert len(syn_exc) == 1
-        # assert len(syn_inh) == 1
-        # assert len(mem) == 1
 
         syn_exc_rec = []
         syn_inh_rec = []
@@ -187,24 +394,69 @@ class TestAlpha:
             spk_rec.append(spk)
 
         assert spk_rec[0] == spk_rec[1]
+        print(spk_rec)
+        print(syn_exc_rec)
+        print(syn_inh_rec)
         assert syn_exc_rec[0] + syn_inh_rec[0] == 0
         assert syn_exc_rec[1] + syn_inh_rec[1] > 0
         assert mem_rec[0] < mem_rec[1]
 
-    # def test_alpha_init_hidden(self):
-    #     with pytest.raises(ValueError):
-    #         snn.Alpha(alpha=0.6, beta=0.5, init_hidden=True)
-    #         snn.Alpha(alpha=0.6, beta=0.5, num_inputs=1, init_hidden=True)
-    #         snn.Alpha(alpha=0.6, beta=0.5, batch_size=1, init_hidden=True)
+    def test_alpha_reset(
+        self, alpha_instance, alpha_reset_zero_instance, alpha_reset_none_instance
+    ):
+        lif1 = alpha_instance
+        lif2 = alpha_reset_zero_instance
+        lif3 = alpha_reset_none_instance
 
-    #     alpha_response = snn.Alpha(
-    #         alpha=0.6, beta=0.5, num_inputs=1, batch_size=1, init_hidden=True
-    #     )
+        assert lif1.reset_mechanism_val == 0
+        assert lif2.reset_mechanism_val == 1
+        assert lif3.reset_mechanism_val == 2
 
-    #     assert alpha_response.spk == 0
-    #     assert alpha_response.syn_exc == 0
-    #     assert alpha_response.syn_inh == 0
-    #     assert alpha_response.mem == 0
+        lif1.reset_mechanism = "zero"
+        lif2.reset_mechanism = "none"
+        lif3.reset_mechanism = "subtract"
+
+        assert lif1.reset_mechanism_val == 1
+        assert lif2.reset_mechanism_val == 2
+        assert lif3.reset_mechanism_val == 0
+
+    def test_alpha_init_hidden(self, alpha_hidden_instance, input_):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = alpha_hidden_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_alpha_init_hidden_reset_zero(
+        self, alpha_hidden_reset_zero_instance, input_
+    ):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = alpha_hidden_reset_zero_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_alpha_init_hidden_reset_none(
+        self, alpha_hidden_reset_none_instance, input_
+    ):
+
+        spk_rec = []
+
+        for i in range(2):
+            spk = alpha_hidden_reset_none_instance(input_[i])
+            spk_rec.append(spk)
+
+        assert spk_rec[0] == spk_rec[1]
+
+    def test_alpha_cases(self, alpha_hidden_instance, input_):
+        with pytest.raises(TypeError):
+            alpha_hidden_instance(input_, input_)
 
 
 def test_fire():

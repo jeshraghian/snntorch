@@ -1,6 +1,8 @@
 ###############################################################
-# When adding new neurons, update neurons_dict in backprop.py #
-#              and also update __neuron__ below               #
+# When adding new neurons, update the following:              #
+# i) neurons_dict in backprop.py,                             #
+# ii) init_neuron function in __init__.py                     #
+# iii) update __neuron__ & import below                       #
 ###############################################################
 
 __neuron__ = ["alpha", "lapicque", "leaky", "synaptic"]
