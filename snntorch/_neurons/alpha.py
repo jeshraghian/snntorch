@@ -221,7 +221,7 @@ class Alpha(LIF):
         # syn_exc_reset = (self.beta.clamp(0, 1) * self.syn_inh - input_) + self.threshold
         syn_exc_reset = self.threshold  # - self.syn_inh
         syn_inh_reset = self.beta.clamp(0, 1) * self.syn_inh - input_
-        mem_reset = 0
+        mem_reset = -self.syn_inh
         return syn_exc_reset, syn_inh_reset, mem_reset
 
     # TO-DO add test for hidden cases
