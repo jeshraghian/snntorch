@@ -19,7 +19,7 @@ class Alpha(LIF):
 
             I_{\\rm exc}[t+1] = (αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) \\\\
             I_{\\rm inh}[t+1] = (βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) \\\\
-            U[t+1] = τ_{\\rm SRM}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1])
+            U[t+1] = τ_{\\rm α}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1])
 
     If `reset_mechanism = "zero"`, then :math:`I_{\\rm exc}, I_{\\rm inh}` will both be set to `0` whenever the neuron emits a spike:
 
@@ -27,7 +27,7 @@ class Alpha(LIF):
 
             I_{\\rm exc}[t+1] = (αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) \\\\
             I_{\\rm inh}[t+1] = (βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) \\\\
-            U[t+1] = τ_{\\rm SRM}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1])
+            U[t+1] = τ_{\\rm α}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1])
 
     * :math:`I_{\\rm exc}` - Excitatory current
     * :math:`I_{\\rm inh}` - Inhibitory current
@@ -37,7 +37,7 @@ class Alpha(LIF):
     * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise :math:`R = 0`
     * :math:`α` - Excitatory current decay rate
     * :math:`β` - Inhibitory current decay rate
-    * :math:`τ_{\\rm SRM} = \\frac{log(α)}{log(β)} - log(α) + 1`
+    * :math:`τ_{\\rm α} = \\frac{log(α)}{log(β)} - log(α) + 1`
 
     Example::
 
@@ -171,7 +171,7 @@ class Alpha(LIF):
         return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
 
     def base_state_reset_sub_function(self, input_, syn_inh):
-        syn_exc_reset = -(self.beta * syn_inh - input_) + self.threshold
+        syn_exc_reset = self.threshold
         syn_inh_reset = self.beta * syn_inh - input_
         mem_reset = 0
         return syn_exc_reset, syn_inh_reset, mem_reset
@@ -218,9 +218,7 @@ class Alpha(LIF):
         return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
 
     def base_state_reset_sub_function_hidden(self, input_):
-        syn_exc_reset = (
-            -(self.beta.clamp(0, 1) * self.syn_inh - input_) + self.threshold
-        )
+        syn_exc_reset = self.threshold
         syn_inh_reset = self.beta.clamp(0, 1) * self.syn_inh - input_
         mem_reset = 0
         return syn_exc_reset, syn_inh_reset, mem_reset
@@ -263,7 +261,7 @@ class Alpha(LIF):
 
         if (self.beta == 1).any():
             raise ValueError(
-                "beta cannot be '1' otherwise ZeroDivisionError occurs: tau_srm = log(alpha)/log(beta) - log(alpha) + 1"
+                "beta cannot be '1' otherwise ZeroDivisionError occurs: tau_alpha = log(alpha)/log(beta) - log(alpha) + 1"
             )
 
     def _alpha_forward_cases(self, mem, syn_exc, syn_inh):
