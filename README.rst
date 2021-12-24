@@ -3,9 +3,6 @@ Introduction
 ================
 
 
-.. image:: https://img.shields.io/pypi/v/snntorch.svg
-        :target: https://pypi.python.org/pypi/snntorch
-
 .. image:: https://github.com/jeshraghian/snntorch/actions/workflows/build.yml/badge.svg
         :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
 
@@ -13,17 +10,22 @@ Introduction
         :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://img.shields.io/conda/vn/conda-forge/snntorch.svg
-        :target: https://anaconda.org/conda-forge/snntorch
-
 .. image:: https://img.shields.io/discord/906036932725841941
         :target: https://discord.gg/cdZb5brajb
         :alt: Discord
 
+.. image:: https://img.shields.io/pypi/v/snntorch.svg
+         :target: https://pypi.python.org/pypi/snntorch
+
+.. image:: https://img.shields.io/conda/vn/conda-forge/snntorch.svg
+        :target: https://anaconda.org/conda-forge/snntorch
+
+.. image:: https://static.pepy.tech/personalized-badge/snntorch?period=total&units=international_system&left_color=grey&right_color=orange&left_text=Downloads
+        :target: https://pepy.tech/project/snntorch
+
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/snntorch_alpha_scaled.png?raw=true
         :align: center
         :width: 700
-
 
 
 The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
@@ -35,6 +37,10 @@ computation and applying it to networks of spiking neurons. Pre-designed spiking
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/spike_excite_alpha_ps2.gif?raw=true
         :align: center
         :width: 800
+
+If you like this project, please consider starring ⭐ this repo as it is the easiest and best way to support it.
+
+If you have issues, comments, or are looking for advice on training spiking neural networks, you can open an issue, a discussion, or chat in our `discord <https://discord.gg/cdZb5brajb>`_ channel.
 
 snnTorch Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -134,7 +140,14 @@ A complete API is available `here`_. Examples, tutorials and Colab notebooks are
 
 Quickstart 
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
+
+
 Here are a few ways you can get started with snnTorch:
+
 
 * `Quickstart Notebook (Opens in Colab)`_
 
@@ -151,11 +164,6 @@ Here are a few ways you can get started with snnTorch:
 
 
 For a quick example to run snnTorch, see the following snippet, or test the quickstart notebook:
-
-.. image:: https://colab.research.google.com/assets/colab-badge.svg
-        :alt: Open In Colab
-        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
-
 
 ::
 

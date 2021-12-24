@@ -135,16 +135,18 @@ def reset(net):
     Reset their hidden parameters to zero and detach them
     from the current computation graph."""
 
-    global is_stein
     global is_alpha
     global is_leaky
     global is_lapicque
+    global is_rleaky
     global is_synaptic
+    global is_rsynaptic
 
-    is_stein = False
     is_alpha = False
     is_leaky = False
+    is_rleaky = False
     is_synaptic = False
+    is_rsynaptic = False
     is_lapicque = False
 
     _layer_check(net=net)
@@ -158,8 +160,9 @@ def _layer_check(net):
     global is_leaky
     global is_lapicque
     global is_synaptic
-    global is_stein
     global is_alpha
+    global is_rleaky
+    global is_rsynaptic
 
     for idx in range(len(list(net._modules.values()))):
         if isinstance(list(net._modules.values())[idx], snn.Lapicque):
@@ -168,10 +171,12 @@ def _layer_check(net):
             is_synaptic = True
         if isinstance(list(net._modules.values())[idx], snn.Leaky):
             is_leaky = True
-        if isinstance(list(net._modules.values())[idx], snn.Stein):
-            is_stein = True
         if isinstance(list(net._modules.values())[idx], snn.Alpha):
             is_alpha = True
+        if isinstance(list(net._modules.values())[idx], snn.RLeaky):
+            is_rleaky = True
+        if isinstance(list(net._modules.values())[idx], snn.RSynaptic):
+            is_rsynaptic = True
 
 
 def _layer_reset():
@@ -186,12 +191,15 @@ def _layer_reset():
     if is_leaky:
         snn.Leaky.reset_hidden()  # reset hidden state to 0's
         snn.Leaky.detach_hidden()
-    if is_stein:
-        snn.Stein.reset_hidden()  # reset hidden state to 0's
-        snn.Stein.detach_hidden()
     if is_alpha:
         snn.Alpha.reset_hidden()  # reset hidden state to 0's
         snn.Alpha.detach_hidden()
+    if is_rleaky:
+        snn.RLeaky.reset_hidden()  # reset hidden state to 0's
+        snn.RLeaky.detach_hidden()
+    if is_rsynaptic:
+        snn.RSynaptic.reset_hidden()  # reset hidden state to 0's
+        snn.RSynaptic.detach_hidden()
 
 
 def _final_layer_check(net):
@@ -201,10 +209,12 @@ def _final_layer_check(net):
         return 2
     if isinstance(list(net._modules.values())[-1], snn.Synaptic):
         return 3
+    if isinstance(list(net._modules.values())[-1], snn.RSynaptic):
+        return 3
     if isinstance(list(net._modules.values())[-1], snn.Leaky):
         return 2
-    if isinstance(list(net._modules.values())[-1], snn.Stein):
-        return 3
+    if isinstance(list(net._modules.values())[-1], snn.RLeaky):
+        return 2
     if isinstance(list(net._modules.values())[-1], snn.Alpha):
         return 4
     else:  # if not from snn, assume from nn with 1 return

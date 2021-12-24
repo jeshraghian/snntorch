@@ -110,7 +110,8 @@ def TBPTT(
         utils.is_leaky: snn.Leaky,
         utils.is_synaptic: snn.Synaptic,
         utils.is_alpha: snn.Alpha,
-        utils.is_stein: snn.Stein,
+        utils.is_rleaky: snn.RLeaky,
+        utils.is_rsynaptic: snn.RSynaptic,
     }
 
     # element 1: if true: spk, if false, mem
@@ -267,9 +268,6 @@ def TBPTT(
                 mem_rec_trunc = []
 
         if (step == num_steps - 1) and (num_steps % K):
-            # spk_rec += spk_rec_trunc # test
-            # mem_rec += mem_rec_trunc  # test
-
             spk_rec_trunc = torch.stack(spk_rec_trunc, dim=0)
             mem_rec_trunc = torch.stack(mem_rec_trunc, dim=0)
 

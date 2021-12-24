@@ -556,6 +556,8 @@ be able to start running your own experiments. `In the next
 tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
 we will train a network using a neuromorphic dataset.
 
+If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+
 Additional Resources 
 ---------------------
 

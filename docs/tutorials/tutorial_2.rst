@@ -936,6 +936,8 @@ little bit daunting. So the `next tutorial <https://snntorch.readthedocs.io/en/l
 hyperparameters, and introduce a neuron model that is better suited for
 large-scale deep learning.
 
+If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+
 For reference, the documentation `can be found
 here <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__.
 

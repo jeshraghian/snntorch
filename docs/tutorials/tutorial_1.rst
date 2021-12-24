@@ -921,6 +921,8 @@ Conclusion
 That’s it for spike conversion and generation. This approach generalizes
 beyond images, to single-dimensional and multi-dimensional tensors.
 
+If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+
 For reference, the documentation for `spikegen can be found
 here <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__
 and for `spikeplot,

@@ -402,6 +402,8 @@ behaviour of SRM neurons.
 Building a network using these slighty more advanced neurons follows the
 exact same procedure as in `Tutorial 3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_.
 
+If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+
 For reference, the documentation `can be found
 here <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__.
 
