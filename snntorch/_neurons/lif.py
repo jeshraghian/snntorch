@@ -144,6 +144,14 @@ class LIF(nn.Module):
         reset_mechanism_val = torch.as_tensor(LIF.reset_dict[reset_mechanism])
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
 
+    def _V_register_buffer(self, V, learn_V):
+        if not isinstance(V, torch.Tensor):
+            V = torch.as_tensor(V)
+        if learn_V:
+            self.V = nn.Parameter(V)
+        else:
+            self.register_buffer("V", V)
+
     @property
     def reset_mechanism(self):
         """If reset_mechanism is modified, reset_mechanism_val is triggered to update.
@@ -172,6 +180,17 @@ class LIF(nn.Module):
         return mem
 
     @staticmethod
+    def init_rleaky():
+        """
+        Used to initialize spk and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        """
+        spk = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
+
+        return spk, mem
+
+    @staticmethod
     def init_synaptic():
         """Used to initialize syn and mem as an empty SpikeTensor.
         ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
@@ -181,6 +200,18 @@ class LIF(nn.Module):
         mem = _SpikeTensor(init_flag=False)
 
         return syn, mem
+
+    @staticmethod
+    def init_rsynaptic():
+        """
+        Used to initialize spk, syn and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        """
+        spk = _SpikeTensor(init_flag=False)
+        syn = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
+
+        return spk, syn, mem
 
     @staticmethod
     def init_lapicque():
@@ -283,6 +314,8 @@ def _SpikeTorchConv(*args, input_):
     ):  # if only one hidden state, make it iterable
         args = (args,)
     for arg in args:
+        if arg.is_cuda:
+            arg = arg.to("cpu")
         arg = torch.Tensor(arg)  # wash away the SpikeTensor class
         arg = torch.zeros_like(input_, requires_grad=True)
         states.append(arg)
