@@ -21,7 +21,9 @@ The discrete nature of spikes makes it difficult for ``torch.autograd`` to calcu
 At present, the neurons available in :mod:`snntorch` are variants of the Leaky Integrate-and-Fire neuron model:
 
 * **Leaky** - 1st-Order Leaky Integrate-and-Fire Neuron
+* **RLeaky** - As above, with recurrent connections for output spikes
 * **Synaptic** - 2nd-Order Integrate-and-Fire Neuron (including synaptic conductance)
+* **RSynaptic** - As above, with recurrent connections for output spikes
 * **Lapicque** - Lapicque's RC Neuron Model
 * **Alpha** - Alpha Membrane Model
 
@@ -163,6 +165,8 @@ In the event you wish to have a learnable decay rate for each neuron rather than
          spk_out, mem_out = net(data.view(batch_size, -1))
 
 
+The same approach as above can be used for implementing learnable thresholds, using ``learn_threshold=True``. 
+
 Each neuron has the option to inhibit other neurons within the same layer from firing. 
 This can be invoked by setting ``inhibition=True`` when instantiating the neuron layer.
 
@@ -189,7 +193,17 @@ This can be invoked by setting ``inhibition=True`` when instantiating the neuron
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: snntorch._neurons.rleaky
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: snntorch._neurons.synaptic
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: snntorch._neurons.rsynaptic
    :members:
    :undoc-members:
    :show-inheritance:

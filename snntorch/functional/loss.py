@@ -303,6 +303,348 @@ class mse_membrane_loss(LossFunctions):
         return loss / num_steps
 
 
+# Uses a sign estimator - approximates leaky as gradient is undefined.
+# for neurons with defined gradients, this leads to an approximation.
+
+# Use labels by default unless target_is_time = True
+class SpikeTime(nn.Module):
+    def __init__(
+        self,
+        target_is_time=False,
+        on_target=0,
+        off_target=-1,
+        tolerance=0,
+        multi_spike=False,
+    ):
+        super(SpikeTime, self).__init__()
+
+        # TO-DO: define self.mse_temporal_loss in seperate function
+        # self.loss_fn = nn.MSELoss()  # (x-y)^2 where y is target
+        self.target_is_time = target_is_time
+        self.tolerance = tolerance
+        self.tolerance_fn = self.Tolerance.apply
+        self.multi_spike = multi_spike
+
+        if not self.target_is_time:
+            self.on_target = on_target
+            self.off_target = off_target  # override this with final step
+
+        # function used to extract the first F spike times. If multi_spike=False, F=1.
+        if self.multi_spike:
+            self.first_spike_fn = self.MultiSpike.apply
+        else:
+            self.first_spike_fn = self.FirstSpike.apply
+
+    # spiking output from final layer is a recording: T x B x N
+    # targets can either be labels or spike times
+    def forward(self, spk_out, targets):
+        self.device, num_steps, num_outputs = self._prediction_check(spk_out)
+
+        # convert labels to spike times
+        if not self.target_is_time:
+            targets = self.labels_to_spike_times(targets, num_outputs)
+
+        # convert negative spike times to time steps: -1 --> ( num_steps+ (-1) )
+        targets[targets < 0] = spk_out.size(0) + targets[targets < 0]
+
+        # now operating in the spike-time domain rather than with labels
+        # Consider merging multi-spike and single-spike?
+        # single-spike is faster, so keep them separate for now.
+        if self.multi_spike:
+            self.spike_count = targets.size(0)
+            spk_time_final = self.first_spike_fn(
+                spk_out, self.spike_count, self.device
+            )  # spk_time_final here means the first spike time
+        else:
+            spk_time_final = self.first_spike_fn(spk_out, self.device)
+
+        # next need to check how tolerance copes with multi-spikes
+        if self.tolerance:
+            spk_time_final = self.tolerance_fn(spk_time_final, targets, self.tolerance)
+
+        return spk_time_final, targets
+
+    def _prediction_check(self, spk_out):
+        device = "cpu"
+        if spk_out.is_cuda:
+            device = "cuda"
+
+        num_steps = spk_out.size(0)
+        num_outputs = spk_out.size(-1)
+
+        return device, num_steps, num_outputs
+
+    @staticmethod
+    class FirstSpike(torch.autograd.Function):
+        """Convert spk_rec of 1/0s [TxBxN] --> first spike time [BxN].
+        Linearize df/dS=-1 if spike, 0 if no spike."""
+
+        @staticmethod
+        def forward(ctx, spk_rec, device="cpu"):
+            """Convert spk_rec of 1/0s [TxBxN] --> spk_time [TxBxN].
+            0's indicate no spike --> +1 is first time step.
+            Transpose accounts for broadcasting along final dimension (i.e., multiply along T)."""
+            spk_time = (
+                spk_rec.transpose(0, -1)
+                * (torch.arange(0, spk_rec.size(0)).detach().to(device) + 1)
+            ).transpose(0, -1)
+
+            """extact first spike time. Will be used to pass into loss function."""
+            first_spike_time = torch.zeros_like(spk_time[0])
+            for step in range(spk_time.size(0)):
+                first_spike_time += (
+                    spk_time[step] * ~first_spike_time.bool()
+                )  # mask out subsequent spikes
+
+            """override element 0 (no spike) with shadow spike @ final time step, then offset by -1
+            s.t. first_spike is at t=0."""
+            first_spike_time += ~first_spike_time.bool() * (spk_time.size(0))
+            first_spike_time -= 1  # fix offset
+            ctx.save_for_backward(first_spike_time, spk_rec)
+            return first_spike_time
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            (first_spike_time, spk_rec) = ctx.saved_tensors
+            spk_time_grad = torch.zeros_like(spk_rec)  # T x B x N
+
+            """spike extraction step/indexing @ each step is non-differentiable.
+            Apply sign estimator by substituting gradient for -1 ONLY at first spike time."""
+            for i in range(first_spike_time.size(0)):
+                for j in range(first_spike_time.size(1)):
+                    spk_time_grad[first_spike_time[i, j].long(), i, j] = 1.0
+            grad = -grad_output * spk_time_grad
+            return grad, None
+
+    @staticmethod
+    class MultiSpike(torch.autograd.Function):
+        """Convert spk_rec of 1/0s [TxBxN] --> first F spike times [FxBxN].
+        Linearize df/dS=-1 if spike, 0 if no spike."""
+
+        @staticmethod
+        def forward(ctx, spk_rec, spk_count, device="cpu"):
+            spk_rec_tmp = spk_rec.clone()
+            spk_time_rec = []
+
+            for step in range(spk_count):
+                """Convert spk_rec of 1/0s [TxBxN] --> spk_time [TxBxN].
+                0's indicate no spike --> +1 is first time step.
+                Transpose accounts for broadcasting along final dimension (i.e., multiply along T)."""
+                spk_time = (
+                    spk_rec_tmp.transpose(0, -1)
+                    * (torch.arange(0, spk_rec_tmp.size(0)).detach().to(device) + 1)
+                ).transpose(0, -1)
+
+                """extact n-th spike time (n=step) up to F."""
+                nth_spike_time = torch.zeros_like(spk_time[0])
+                for step in range(spk_time.size(0)):
+                    nth_spike_time += (
+                        spk_time[step] * ~nth_spike_time.bool()
+                    )  # mask out subsequent spikes
+
+                """override element 0 (no spike) with shadow spike @ final time step, then offset by -1
+                s.t. first_spike is at t=0."""
+                nth_spike_time += ~nth_spike_time.bool() * (
+                    spk_time.size(0)
+                )  # populate non-spiking with total size
+                nth_spike_time -= 1  # fix offset
+                spk_time_rec.append(nth_spike_time)
+
+                """before looping, eliminate n-th spike. this avoids double counting spikes."""
+                spk_rec_tmp[nth_spike_time.long()] = 0
+
+            """Pass this into loss function."""
+            spk_time_rec = torch.stack(spk_time_rec)
+
+            ctx.save_for_backward(spk_time_rec, spk_rec)
+
+            return spk_time_rec
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            (spk_time_final, spk_rec) = ctx.saved_tensors
+            spk_time_grad = torch.zeros_like(spk_rec)  # T x B x N
+
+            """spike extraction step/indexing @ each step is non-differentiable.
+            Apply sign estimator by substituting gradient for -1 ONLY at F-th spike time."""
+            for i in range(spk_time_final.size(0)):
+                for j in range(spk_time_final.size(1)):
+                    for k in range(spk_time_final.size(2)):
+                        spk_time_grad[
+                            spk_time_final[i, j, k].long(), j, k
+                        ] = -grad_output[i, j, k]
+            grad = spk_time_grad
+            return grad, None, None
+
+    @staticmethod
+    class Tolerance(torch.autograd.Function):
+        """If spike time is 'close enough' to target spike within tolerance, set the time to target for loss calc only."""
+
+        # TO-DO: remove ctx?
+        @staticmethod
+        def forward(ctx, spk_time, target, tolerance):
+            spk_time_clone = (
+                spk_time.clone()
+            )  # spk_time_clone: BxN (FxBxN for multi-spike); target: TxBxN
+            spk_time_clone[torch.abs(spk_time - target) < tolerance] = (
+                torch.ones_like(spk_time) * target
+            )[torch.abs(spk_time - target) < tolerance]
+            return spk_time_clone
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            grad = grad_output
+            return grad, None, None
+
+    def labels_to_spike_times(self, targets, num_outputs):
+        """Convert index labels [B] into spike times."""
+
+        if not self.multi_spike:
+            targets = self.label_to_single_spike(targets, num_outputs)
+
+        # pass in labels --> output multiple spikes
+        # assumes on_target & off_target are iterable
+        else:
+            targets = self.label_to_multi_spike(targets, num_outputs)
+
+        return targets
+
+    def label_to_single_spike(self, targets, num_outputs):
+        """Convert labels from neuron index (dim: B) to first spike time (dim: B x N)."""
+
+        # guess: i designed this code with on_target >> off_target in mind
+        targets = spikegen.targets_convert(
+            targets,
+            num_classes=num_outputs,
+            on_target=self.on_target,
+            off_target=self.off_target,
+        )
+
+        return targets
+
+    def label_to_multi_spike(self, targets, num_outputs):
+        """Convert labels from neuron index (dim: B) to multiple spike times (dim: F x B x N).
+        F is the number of spikes per neuron. Assumes target is iterable along F."""
+
+        num_spikes_on = len(self.on_target)
+        num_spikes_off = len(self.off_target)
+
+        # TO-DO place this into cases
+        # ensure on_target and off_target are of equal length
+        if num_spikes_on != num_spikes_off:
+            raise IndexError(
+                f"`on_target` (length: {num_spikes_on}) must have the same length as `off_target` (length: {num_spikes_off}."
+            )
+
+        # iterate through each spike
+        targets_rec = []
+        for step in range(num_spikes_on):
+            target_step = spikegen.targets_convert(
+                targets,
+                num_classes=num_outputs,
+                on_target=self.on_target[step],
+                off_target=self.off_target[step],
+            )
+            targets_rec.append(target_step)
+        targets_rec = torch.stack(targets_rec)
+
+        return targets_rec
+
+
+# TO-DO: dont think i'm inheriting SpikeTime correctly
+# TO-DO: add this to BPTT loss_dict
+class mse_temporal_loss:
+    """Mean Square Error Temporal Loss.
+
+    The first spike time of each output neuron [batch_size x num_outputs] is measured against the desired spike time with the Mean Square Error Loss Function.
+    Note that the derivative of each spike time with respect to the spike df/dU is non-differentiable for most neuron classes, and is set to a sign estimator of -1.
+    I.e., increasing membrane potential causes a proportionately earlier firing time.
+
+    The Mean Square Error Temporal Loss can account for multiple spikes by setting ``multi_spike=True``.
+    If the actual spike time is close enough to the target spike time within a given tolerance, e.g., ``tolerance = 5`` time steps, then it does not contribute to the loss.
+
+    Index labels are passed as the target by default.
+    To enable passing in the spike time(s) for output neuron(s), set ``target_is_time=True``.
+
+    Note: After spike times with specified targets, no penalty is applied for subsequent spiking.
+    To eliminate later spikes, an additional target should be applied.
+
+    Example::
+
+        import torch
+        import snntorch.functional as SF
+
+        # default takes in idx labels as targets
+        # correct classes aimed to fire by default at t=0, incorrect at t=-1 (final time step)
+        loss_fn = mse_temporal_loss()
+        loss = loss_fn(spk_out, targets)
+
+        # as above, but correct class fire @ t=5, incorrect at t=100 with a tolerance of 2 steps
+        loss_fn = mse_temporal_loss(on_target=5, off_target=100, tolerance=2)
+        loss = loss_fn(spk_out, targets)
+
+        # as above with multiple spike time targets
+        on_target = torch.tensor(5, 10)
+        off_target = torch.tensor(100, 105)
+        loss_fn = mse_temporal_loss(on_target=on_target, off_target=off_target, tolerance=2)
+        loss = loss_fn(spk_out, targets)
+
+        # specify first spike time for 5 neurons individually, zero tolerance
+        target = torch.tensor(5, 10, 15, 20, 25)
+        loss_fn = mse_temporal_loss(target_is_time=True)
+        loss = loss_fn(spk_out, target)
+
+
+    :param target_is_time: Specify if target is specified as spike times (True) or as neuron indexes (False). Defaults to ``False``
+    :type target_is_time: bool, optional
+
+    :param on_target: Spike time for correct classes (only if target_is_time=False). Defaults to ``0``
+    :type on_target: int (or interable over multiple int if ``multi_spike=True``), optional
+
+    :param off_target: Spike time for incorrect classes (only if target_is_time=False). Defaults to ``-1``, i.e., final time step
+    :type off_target: int (or interable over multiple int if ``multi_spike=True``), optional
+
+    :param tolerance: If the distance between the spike time and target is less than the specified tolerance, then it does not contribute to the loss. Defaults to ``0``.
+    :type tolerance: int, optional
+
+    :param multi_spike: Specify if multiple spikes in target. Defaults to ``False``
+    :type multi_spike: bool, optional
+    """
+
+    def __init__(
+        self,
+        target_is_time=False,
+        on_target=0,
+        off_target=-1,
+        tolerance=0,
+        multi_spike=False,
+    ):
+        super(mse_temporal_loss, self).__init__()
+
+        self.loss_fn = nn.MSELoss()
+        self.spk_time_fn = SpikeTime(
+            target_is_time, on_target, off_target, tolerance, multi_spike
+        )
+        self.__name__ = "mse_temporal_loss"
+
+    def __call__(self, spk_rec, targets):
+        spk_time, targets = self.spk_time_fn(spk_rec, targets)  # return encoded targets
+        loss = self.loss_fn(
+            spk_time / spk_rec.size(0), targets / spk_rec.size(0)
+        )  # spk_time_final: num_spikes x B x Nc. # Same with targets.
+
+        return loss
+
+
+# only accepts labels
+# enable option for -ve or inverse of spk_time
+class ce_spike_time(SpikeTime):
+    def __init__(self):
+        super(ce_spike_time, self).__init__()
+        self.loss_fn = nn.CrossEntropyLoss()
+        self.__name__ = "ce_temporal_loss"
+
+
 # assumes that spikes already exist
 # def ce_temporal_loss(spk_out, targets):
 #     """Cross Entropy Temporal Loss.
