@@ -322,6 +322,8 @@ class mse_membrane_loss(LossFunctions):
 
 # Use labels by default unless target_is_time = True
 class SpikeTime(nn.Module):
+    """Used by ce_temporal_loss and mse_temporal_loss to convert spike outputs into spike times."""
+
     def __init__(
         self,
         target_is_time=False,
