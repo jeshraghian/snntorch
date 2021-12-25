@@ -13,14 +13,6 @@ class Alpha(LIF):
 
     .. warning:: For a positive input current to induce a positive membrane response, ensure :math:`α > β`.
 
-    If `reset_mechanism = "subtract"`, then :math:`I_{\\rm exc}, I_{\\rm inh}` will both have `threshold` subtracted from them whenever the neuron emits a spike:
-
-    .. math::
-
-            I_{\\rm exc}[t+1] = (αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) \\\\
-            I_{\\rm inh}[t+1] = (βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) \\\\
-            U[t+1] = τ_{\\rm α}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1])
-
     If `reset_mechanism = "zero"`, then :math:`I_{\\rm exc}, I_{\\rm inh}` will both be set to `0` whenever the neuron emits a spike:
 
     .. math::
@@ -65,6 +57,16 @@ class Alpha(LIF):
                 cur2 = self.fc2(spk1)
                 spk2, syn_exc2, syn_inh2, mem2 = self.lif2(cur2, syn_exc2, syn_inh2, mem2)
                 return syn_exc1, syn_inh1, mem1, spk1, syn_exc2, syn_inh2, mem2, spk2
+
+        # Too many state variables which becomes cumbersome, so the following is also an option:
+
+        alpha = 0.9
+        beta = 0.8
+
+        net = nn.Sequential(nn.Linear(num_inputs, num_hidden),
+                            snn.Alpha(alpha=alpha, beta=beta, init_hidden=True),
+                            nn.Linear(num_hidden, num_outputs),
+                            snn.Alpha(alpha=alpha, beta=beta, init_hidden=True, output=True))
 
 
     """

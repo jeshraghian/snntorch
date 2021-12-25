@@ -839,7 +839,15 @@ def targets_rate(
     # return a non time-varying tensor
     if correct_rate == 1 and incorrect_rate == 0:
         if first_spike_time == 0:
-            return torch.clamp(to_one_hot(targets, num_classes) * on_target, off_target)
+            if on_target > off_target:
+                return torch.clamp(
+                    to_one_hot(targets, num_classes) * on_target, off_target
+                )
+            else:
+                return (
+                    to_one_hot(targets, num_classes) * on_target
+                    + ~(to_one_hot(targets, num_classes)).bool() * off_target
+                )
 
         # return time-varying tensor: off up to first_spike_time, then correct classes are on after
         if first_spike_time > 0:
