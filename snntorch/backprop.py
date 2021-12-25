@@ -127,6 +127,7 @@ def TBPTT(
         "mse_count_loss": [True, False],
         "ce_latency_loss": [True, False],
         "mse_temporal_loss": [True, False],
+        "ce_temporal_loss": [True, False],
     }  # note: when using mse_count_loss, the target spike-count should be for a truncated time, not for the full time
 
     reg_dict = {"l1_rate_sparsity": True}

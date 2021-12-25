@@ -1,4 +1,5 @@
 import torch
+from torch._C import Value
 import torch.nn as nn
 from snntorch import spikegen
 
@@ -68,6 +69,9 @@ class ce_rate_loss(LossFunctions):
         loss_fn = SF.ce_rate_loss()
         loss = loss_fn(outputs, targets)
 
+    :return: Loss
+    :rtype: torch.Tensor (single element)
+
     """
 
     def __init__(self):
@@ -115,6 +119,9 @@ class ce_count_loss(LossFunctions):
     :param num_classes: Number of output classes must be specified if ``population_code=True``. Must be a factor of the number of output neurons if population code is enabled. Defaults to ``False``
     :type num_classes: int, optional
 
+    :return: Loss
+    :rtype: torch.Tensor (single element)
+
     """
 
     def __init__(self, population_code=False, num_classes=False):
@@ -151,6 +158,9 @@ class ce_max_membrane_loss(LossFunctions):
 
         loss_fn = SF.ce_max_membrane_loss()
         loss = loss_fn(outputs, targets)
+
+    :return: Loss
+    :rtype: torch.Tensor (single element)
 
     """
 
@@ -196,6 +206,8 @@ class mse_count_loss(LossFunctions):
     :param num_classes: Number of output classes must be specified if ``population_code=True``. Must be a factor of the number of output neurons if population code is enabled. Defaults to ``False``
     :type num_classes: int, optional
 
+    :return: Loss
+    :rtype: torch.Tensor (single element)
 
     """
 
@@ -272,6 +284,8 @@ class mse_membrane_loss(LossFunctions):
     :param off_target: Specify target membrane potential for incorrect class, defaults to ``0``
     :type off_target: float, optional
 
+    :return: Loss
+    :rtype: torch.Tensor (single element)
 
     """
 
@@ -318,8 +332,6 @@ class SpikeTime(nn.Module):
     ):
         super(SpikeTime, self).__init__()
 
-        # TO-DO: define self.mse_temporal_loss in seperate function
-        # self.loss_fn = nn.MSELoss()  # (x-y)^2 where y is target
         self.target_is_time = target_is_time
         self.tolerance = tolerance
         self.tolerance_fn = self.Tolerance.apply
@@ -529,8 +541,6 @@ class SpikeTime(nn.Module):
         num_spikes_on = len(self.on_target)
         num_spikes_off = len(self.off_target)
 
-        # TO-DO place this into cases
-        # ensure on_target and off_target are of equal length
         if num_spikes_on != num_spikes_off:
             raise IndexError(
                 f"`on_target` (length: {num_spikes_on}) must have the same length as `off_target` (length: {num_spikes_off}."
@@ -551,8 +561,6 @@ class SpikeTime(nn.Module):
         return targets_rec
 
 
-# TO-DO: dont think i'm inheriting SpikeTime correctly
-# TO-DO: add this to BPTT loss_dict
 class mse_temporal_loss:
     """Mean Square Error Temporal Loss.
 
@@ -609,6 +617,9 @@ class mse_temporal_loss:
 
     :param multi_spike: Specify if multiple spikes in target. Defaults to ``False``
     :type multi_spike: bool, optional
+
+    :return: Loss
+    :rtype: torch.Tensor (single element)
     """
 
     def __init__(
@@ -636,40 +647,68 @@ class mse_temporal_loss:
         return loss
 
 
-# only accepts labels
-# enable option for -ve or inverse of spk_time
-class ce_spike_time(SpikeTime):
-    def __init__(self):
-        super(ce_spike_time, self).__init__()
+class ce_temporal_loss:
+    """Cross Entropy Temporal Loss.
+
+    The cross entropy loss of an 'inverted' first spike time of each output neuron [batch_size x num_outputs] is calculated.
+    The 'inversion' is applied such that maximizing the value of the correct class decreases the first spike time (i.e., earlier spike).
+
+    Options for inversion include: ``inverse='negate'`` which applies (-1 * output), or ``inverse='reciprocal'`` which takes (1/output).
+
+    Note that the derivative of each spike time with respect to the spike df/dU is non-differentiable for most neuron classes, and is set to a sign estimator of -1.
+    I.e., increasing membrane potential causes a proportionately earlier firing time.
+
+    Index labels are passed as the target. To specify the exact spike time, use ``mse_temporal_loss`` instead.
+
+    Note: After spike times with specified targets, no penalty is applied for subsequent spiking.
+
+    Example::
+
+        import torch
+        import snntorch.functional as SF
+
+        # correct classes aimed to fire by default at t=0, incorrect at final step
+        loss_fn = ce_temporal_loss()
+        loss = loss_fn(spk_out, targets)
+
+    :param inverse: Specify how to invert output before taking cross enrtopy. Either scale by (-1 * x) with ``inverse='negate'`` or take the reciprocal (1/x) with ``inverse='reciprocal'``. Defaults to ``negate``
+    :type inverse: str, optional
+
+    :return: Loss
+    :rtype: torch.Tensor (single element)
+
+
+    """
+
+    def __init__(self, inverse="negate"):
+        super(ce_temporal_loss, self).__init__()
+
         self.loss_fn = nn.CrossEntropyLoss()
+        self.spk_time_fn = SpikeTime(target_is_time=False)
+        self.inverse = inverse
+        self._ce_temporal_cases()
+
         self.__name__ = "ce_temporal_loss"
 
+    def __call__(self, spk_rec, targets):
+        spk_time, _ = self.spk_time_fn(spk_rec, targets)  # return encoded targets
+        if self.inverse == "negate":
+            spk_time = -spk_time
+        if self.inverse == "reciprocal":
+            spk_time = 1 / (spk_time + 1)
 
-# assumes that spikes already exist
-# def ce_temporal_loss(spk_out, targets):
-#     """Cross Entropy Temporal Loss.
-#     The first spike time for each neuron is sampled from and the reciprocal is taken (i.e., 5-->1/5).
-#     The cross entropy loss encourages the correct class to fire first (i.e., increasing the reciprocal spike time = reducing the spike time).
-#     This function assumes at least one spike has occurred for correct and incorrect neurons.
+        # loss = self.loss_fn(
+        #     spk_time / spk_rec.size(0), targets / spk_rec.size(0)
+        # )  # spk_time_final: num_spikes x B x Nc. # Same with targets.
 
-#     :param spk_out: Output spikes of shape [num_steps x batch_size x num_outputs]
-#     :type spk_out: torch.Tensor
+        loss = self.loss_fn(
+            spk_time, targets
+        )  # spk_time_final: num_spikes x B x Nc. # Same with targets.
 
-#     :param targets: Target tensor (without one-hot-encoding) of shape [batch_size]
-#     :type targets: torch.Tensor
+        return loss
 
-#     :return: cross entropy temporal loss
-#     :rtype: torch.Tensor
-#     """
-
-#     device, _, _ = _prediction_check(spk_out)
-
-#     log_softmax_fn = nn.LogSoftmax(dim=-1)
-#     loss_fn = nn.NLLLoss()
-
-#     _, first_spike_time = torch.max(spk_out, dim=0) # B x C
-#     first_spike_time = first_spike_time.to(device)
-#     log_p_y = log_softmax_fn(1/first_spike_time)
-#     loss = loss_fn(log_p_y, targets)
-
-#     return loss
+    def _ce_temporal_cases(self):
+        if self.inverse != "negate" and self.inverse != "reciprocal":
+            raise ValueError(
+                '`inverse` must be of type string containing either "negate" or "reciprocal".'
+            )
