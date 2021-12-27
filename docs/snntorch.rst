@@ -197,42 +197,21 @@ Each neuron has the option to inhibit other neurons within the same dense layer 
 This can be invoked by setting ``inhibition=True`` when instantiating the neuron layer. It has not yet been implemented for networks other than fully-connected layers, so use with caution.
 
 
+Neuron List
+---------------------
+
+.. toctree::
+    :maxdepth: 2
+    :titlesonly:
+    :glob:
+
+    snn.neurons_*
+
+
+Neuron Parent Classes
+---------------------
+
 .. automodule:: snntorch._neurons.neurons 
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: snntorch._neurons.alpha
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: snntorch._neurons.lapicque
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: snntorch._neurons.leaky
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: snntorch._neurons.rleaky
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: snntorch._neurons.synaptic
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: snntorch._neurons.rsynaptic
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: snntorch._neurons.sconvlstm
    :members:
    :undoc-members:
    :show-inheritance:
