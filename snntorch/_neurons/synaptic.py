@@ -96,9 +96,9 @@ class Synaptic(LIF):
 
         if self.init_hidden:
             self.syn, self.mem = self.init_synaptic()
-            self.state_fn = self.build_state_function_hidden
+            self.state_fn = self._build_state_function_hidden
         else:
-            self.state_fn = self.build_state_function
+            self.state_fn = self._build_state_function
 
     def forward(self, input_, syn=False, mem=False):
 
@@ -136,22 +136,22 @@ class Synaptic(LIF):
             else:
                 return self.spk
 
-    def base_state_function(self, input_, syn, mem):
+    def _base_state_function(self, input_, syn, mem):
         base_fn_syn = self.alpha.clamp(0, 1) * syn + input_
         base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
         return base_fn_syn, base_fn_mem
 
-    def base_state_reset_zero(self, input_, syn, mem):
+    def _base_state_reset_zero(self, input_, syn, mem):
         base_fn_syn = self.alpha.clamp(0, 1) * syn + input_
         base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
         return 0, base_fn_mem
 
-    def build_state_function(self, input_, syn, mem):
+    def _build_state_function(self, input_, syn, mem):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = tuple(
                 map(
                     lambda x, y: x - y,
-                    self.base_state_function(input_, syn, mem),
+                    self._base_state_function(input_, syn, mem),
                     (0, self.reset * self.threshold),
                 )
             )
@@ -159,30 +159,30 @@ class Synaptic(LIF):
             state_fn = tuple(
                 map(
                     lambda x, y: x - self.reset * y,
-                    self.base_state_function(input_, syn, mem),
-                    self.base_state_reset_zero(input_, syn, mem),
+                    self._base_state_function(input_, syn, mem),
+                    self._base_state_reset_zero(input_, syn, mem),
                 )
             )
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function(input_, syn, mem)
+            state_fn = self._base_state_function(input_, syn, mem)
         return state_fn
 
-    def base_state_function_hidden(self, input_):
+    def _base_state_function_hidden(self, input_):
         base_fn_syn = self.alpha.clamp(0, 1) * self.syn + input_
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + input_
         return base_fn_syn, base_fn_mem
 
-    def base_state_reset_zero_hidden(self, input_):
+    def _base_state_reset_zero_hidden(self, input_):
         base_fn_syn = self.alpha.clamp(0, 1) * self.syn + input_
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return 0, base_fn_mem
 
-    def build_state_function_hidden(self, input_):
+    def _build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = tuple(
                 map(
                     lambda x, y: x - y,
-                    self.base_state_function_hidden(input_),
+                    self._base_state_function_hidden(input_),
                     (0, self.reset * self.threshold),
                 )
             )
@@ -190,12 +190,12 @@ class Synaptic(LIF):
             state_fn = tuple(
                 map(
                     lambda x, y: x - self.reset * y,
-                    self.base_state_function_hidden(input_),
-                    self.base_state_reset_zero_hidden(input_),
+                    self._base_state_function_hidden(input_),
+                    self._base_state_reset_zero_hidden(input_),
                 )
             )
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function_hidden(input_)
+            state_fn = self._base_state_function_hidden(input_)
         return state_fn
 
     def _alpha_register_buffer(self, alpha, learn_alpha):

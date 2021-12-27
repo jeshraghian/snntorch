@@ -81,9 +81,9 @@ class Leaky(LIF):
 
         if self.init_hidden:
             self.mem = self.init_leaky()
-            self.state_fn = self.build_state_function_hidden
+            self.state_fn = self._build_state_function_hidden
         else:
-            self.state_fn = self.build_state_function
+            self.state_fn = self._build_state_function
 
     def forward(self, input_, mem=False):
 
@@ -123,38 +123,38 @@ class Leaky(LIF):
             else:  # hidden layer e.g., in nn.Sequential, only returns output
                 return self.spk
 
-    def base_state_function(self, input_, mem):
+    def _base_state_function(self, input_, mem):
         base_fn = self.beta.clamp(0, 1) * mem + input_
         return base_fn
 
-    def build_state_function(self, input_, mem):
+    def _build_state_function(self, input_, mem):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = (
-                self.base_state_function(input_, mem) - self.reset * self.threshold
+                self._base_state_function(input_, mem) - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self.base_state_function(
+            state_fn = self._base_state_function(
                 input_, mem
-            ) - self.reset * self.base_state_function(input_, mem)
+            ) - self.reset * self._base_state_function(input_, mem)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function(input_, mem)
+            state_fn = self._base_state_function(input_, mem)
         return state_fn
 
-    def base_state_function_hidden(self, input_):
+    def _base_state_function_hidden(self, input_):
         base_fn = self.beta.clamp(0, 1) * self.mem + input_
         return base_fn
 
-    def build_state_function_hidden(self, input_):
+    def _build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = (
-                self.base_state_function_hidden(input_) - self.reset * self.threshold
+                self._base_state_function_hidden(input_) - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self.base_state_function_hidden(
+            state_fn = self._base_state_function_hidden(
                 input_
-            ) - self.reset * self.base_state_function_hidden(input_)
+            ) - self.reset * self._base_state_function_hidden(input_)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function_hidden(input_)
+            state_fn = self._base_state_function_hidden(input_)
         return state_fn
 
     def _leaky_forward_cases(self, mem):

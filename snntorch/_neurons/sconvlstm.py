@@ -152,9 +152,9 @@ class SConvLSTM(SpikingNeuron):
 
         if self.init_hidden:
             self.c, self.h = self.init_sconvlstm()
-            self.state_fn = self.build_state_function_hidden
+            self.state_fn = self._build_state_function_hidden
         else:
-            self.state_fn = self.build_state_function
+            self.state_fn = self._build_state_function
 
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -220,7 +220,7 @@ class SConvLSTM(SpikingNeuron):
             else:
                 return self.spk
 
-    def base_state_function(self, input_, c, h):
+    def _base_state_function(self, input_, c, h):
 
         combined = torch.cat(
             [input_, h], dim=1
@@ -237,7 +237,7 @@ class SConvLSTM(SpikingNeuron):
 
         return base_fn_c, base_fn_h
 
-    def base_state_reset_zero(self, input_, c, h):
+    def _base_state_reset_zero(self, input_, c, h):
         combined = torch.cat([input_, h], dim=1)  # concatenate along channel axis
         combined_conv = self.conv(combined)
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
@@ -251,12 +251,12 @@ class SConvLSTM(SpikingNeuron):
 
         return 0, base_fn_h
 
-    def build_state_function(self, input_, c, h):
+    def _build_state_function(self, input_, c, h):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = tuple(
                 map(
                     lambda x, y: x - y,
-                    self.base_state_function(input_, c, h),
+                    self._base_state_function(input_, c, h),
                     (0, self.reset * self.threshold),
                 )
             )
@@ -264,15 +264,15 @@ class SConvLSTM(SpikingNeuron):
             state_fn = tuple(
                 map(
                     lambda x, y: x - self.reset * y,
-                    self.base_state_function(input_, c, h),
-                    self.base_state_reset_zero(input_, c, h),
+                    self._base_state_function(input_, c, h),
+                    self._base_state_reset_zero(input_, c, h),
                 )
             )
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function(input_, c, h)
+            state_fn = self._base_state_function(input_, c, h)
         return state_fn
 
-    def base_state_function_hidden(self, input_):
+    def _base_state_function_hidden(self, input_):
         combined = torch.cat([input_, self.h], dim=1)  # concatenate along channel axis
         combined_conv = self.conv(combined)
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
@@ -286,7 +286,7 @@ class SConvLSTM(SpikingNeuron):
 
         return base_fn_c, base_fn_h
 
-    def base_state_reset_zero_hidden(self, input_):
+    def _base_state_reset_zero_hidden(self, input_):
         combined = torch.cat([input_, self.h], dim=1)  # concatenate along channel axis
         combined_conv = self.conv(combined)
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
@@ -300,12 +300,12 @@ class SConvLSTM(SpikingNeuron):
 
         return 0, base_fn_h
 
-    def build_state_function_hidden(self, input_):
+    def _build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = tuple(
                 map(
                     lambda x, y: x - y,
-                    self.base_state_function_hidden(input_),
+                    self._base_state_function_hidden(input_),
                     (0, self.reset * self.threshold),
                 )
             )
@@ -313,12 +313,12 @@ class SConvLSTM(SpikingNeuron):
             state_fn = tuple(
                 map(
                     lambda x, y: x - self.reset * y,
-                    self.base_state_function_hidden(input_),
-                    self.base_state_reset_zero_hidden(input_),
+                    self._base_state_function_hidden(input_),
+                    self._base_state_reset_zero_hidden(input_),
                 )
             )
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function_hidden(input_)
+            state_fn = self._base_state_function_hidden(input_)
         return state_fn
 
     @staticmethod
