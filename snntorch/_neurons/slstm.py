@@ -46,7 +46,6 @@ class SLSTM(SpikingNeuron):
                 num_hidden2 = 10
 
                 spike_grad_lstm = surrogate.straight_through_estimator()
-                spike_grad_fc = surrogate.fast_sigmoid(slope=5)
 
                 # initialize layers
                 self.slstm1 = snn.SLSTM(num_inputs, num_hidden1, spike_grad=spike_grad_lstm)

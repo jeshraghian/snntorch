@@ -151,7 +151,7 @@ def reset(net):
     is_rsynaptic = False
     is_lapicque = False
     is_sconvlstm = False
-    is_lstm = False
+    is_slstm = False
 
     _layer_check(net=net)
 
