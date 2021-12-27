@@ -16,7 +16,7 @@ How to use surrogate
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 The surrogate gradient must be passed as the ``spike_grad`` argument to the neuron model. 
-If ``spike_grad`` is left unspecified, it defaults to :mod:`snntorch.LIF.Heaviside`.
+If ``spike_grad`` is left unspecified, it defaults to :mod:`snntorch.neurons.Heaviside`.
 In the following example, we apply the fast sigmoid surrogate to :mod:`snntorch.Synaptic`.
 
 Example::

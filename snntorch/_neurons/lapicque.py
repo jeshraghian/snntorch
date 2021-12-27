@@ -1,5 +1,5 @@
 import torch
-from .lif import *
+from .neurons import *
 
 
 class Lapicque(LIF):

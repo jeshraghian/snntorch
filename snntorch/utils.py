@@ -141,6 +141,7 @@ def reset(net):
     global is_rleaky
     global is_synaptic
     global is_rsynaptic
+    global is_sconvlstm
 
     is_alpha = False
     is_leaky = False
@@ -148,6 +149,7 @@ def reset(net):
     is_synaptic = False
     is_rsynaptic = False
     is_lapicque = False
+    is_sconvlstm = False
 
     _layer_check(net=net)
 
@@ -163,6 +165,7 @@ def _layer_check(net):
     global is_alpha
     global is_rleaky
     global is_rsynaptic
+    global is_sconvlstm
 
     for idx in range(len(list(net._modules.values()))):
         if isinstance(list(net._modules.values())[idx], snn.Lapicque):
@@ -177,6 +180,8 @@ def _layer_check(net):
             is_rleaky = True
         if isinstance(list(net._modules.values())[idx], snn.RSynaptic):
             is_rsynaptic = True
+        if isinstance(list(net._modules.values())[idx], snn.SConvLSTM):
+            is_sconvlstm = True
 
 
 def _layer_reset():
@@ -200,6 +205,9 @@ def _layer_reset():
     if is_rsynaptic:
         snn.RSynaptic.reset_hidden()  # reset hidden state to 0's
         snn.RSynaptic.detach_hidden()
+    if is_sconvlstm:
+        snn.SConvLSTM.reset_hidden()  # reset hidden state to 0's
+        snn.SConvLSTM.detach_hidden()
 
 
 def _final_layer_check(net):
@@ -215,6 +223,8 @@ def _final_layer_check(net):
         return 2
     if isinstance(list(net._modules.values())[-1], snn.RLeaky):
         return 2
+    if isinstance(list(net._modules.values())[-1], snn.SConvLSTM):
+        return 3
     if isinstance(list(net._modules.values())[-1], snn.Alpha):
         return 4
     else:  # if not from snn, assume from nn with 1 return

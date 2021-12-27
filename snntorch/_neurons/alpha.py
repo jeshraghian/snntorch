@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from .lif import *
+from .neurons import *
 
 
 class Alpha(LIF):

@@ -6,6 +6,47 @@ import torch
 # """``snntorch.surrogate.slope`` parameterizes the transition rate of the surrogate gradients."""
 
 
+class StraightThroughEstimator(torch.autograd.Function):
+    """
+    Straight Through Estimator.
+
+    **Forward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Gradient of fast sigmoid function.
+
+        .. math::
+
+                \\frac{∂S}{∂U}&=1
+
+
+    """
+
+    @staticmethod
+    def forward(ctx, input_):
+        out = (input_ > 0).float()
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_input = grad_output.clone()
+        return grad_input
+
+
+def straight_through_estimator():
+    """Straight Through Estimator surrogate gradient enclosed with a parameterized slope."""
+
+    def inner(x):
+        return StraightThroughEstimator.apply(x)
+
+    return inner
+
+
 class FastSigmoid(torch.autograd.Function):
     """
     Surrogate gradient of the Heaviside step function.

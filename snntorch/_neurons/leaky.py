@@ -1,4 +1,4 @@
-from .lif import *
+from .neurons import *
 
 
 class Leaky(LIF):

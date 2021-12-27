@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .lif import *
+from .neurons import *
 
 
 class Synaptic(LIF):
@@ -191,7 +191,7 @@ class Synaptic(LIF):
                 map(
                     lambda x, y: x - self.reset * y,
                     self.base_state_function_hidden(input_),
-                    self.base_state_function_hidden(input_),
+                    self.base_state_reset_zero_hidden(input_),
                 )
             )
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
