@@ -113,6 +113,7 @@ def TBPTT(
         utils.is_rleaky: snn.RLeaky,
         utils.is_rsynaptic: snn.RSynaptic,
         utils.is_sconvlstm: snn.SConvLSTM,
+        utils.is_slstm: snn.SLSTM,
     }
 
     # element 1: if true: spk, if false, mem
