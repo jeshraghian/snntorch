@@ -4,6 +4,7 @@ import torch.nn as nn
 
 
 __all__ = [
+    "SpikingNeuron",
     "LIF",
     "_SpikeTensor",
     "_SpikeTorchConv",
@@ -12,11 +13,11 @@ __all__ = [
 dtype = torch.float
 
 
-class LIF(nn.Module):
-    """Parent class for leaky integrate and fire neuron models."""
+class SpikingNeuron(nn.Module):
+    """Parent class for spiking neuron models."""
 
     instances = []
-    """Each :mod:`snntorch.LIF` neuron (e.g., :mod:`snntorch.Synaptic`) will populate the :mod:`snntorch.LIF.instances` list with a new entry.
+    """Each :mod:`snntorch.SpikingNeuron` neuron (e.g., :mod:`snntorch.Synaptic`) will populate the :mod:`snntorch.SpikingNeuron.instances` list with a new entry.
     The list is used to initialize and clear neuron states when the argument `init_hidden=True`."""
 
     reset_dict = {
@@ -27,27 +28,23 @@ class LIF(nn.Module):
 
     def __init__(
         self,
-        beta,
         threshold=1.0,
         spike_grad=None,
         init_hidden=False,
         inhibition=False,
-        learn_beta=False,
         learn_threshold=False,
         reset_mechanism="subtract",
         output=False,
     ):
-        super(LIF, self).__init__()
-        LIF.instances.append(self)
+        super(SpikingNeuron, self).__init__()
 
+        SpikingNeuron.instances.append(self)
         self.init_hidden = init_hidden
         self.inhibition = inhibition
         self.output = output
 
-        self._lif_cases(reset_mechanism, inhibition)
-        self._lif_register_buffer(
-            beta, threshold, learn_beta, learn_threshold, reset_mechanism
-        )
+        self._snn_cases(reset_mechanism, inhibition)
+        self._snn_register_buffer(threshold, learn_threshold, reset_mechanism)
         self._reset_mechanism = reset_mechanism
 
         # TO-DO: Heaviside --> STE; needs a tutorial change too?
@@ -86,7 +83,7 @@ class LIF(nn.Module):
 
         return reset
 
-    def _lif_cases(self, reset_mechanism, inhibition):
+    def _snn_cases(self, reset_mechanism, inhibition):
         self._reset_cases(reset_mechanism)
 
         if inhibition:
@@ -105,30 +102,21 @@ class LIF(nn.Module):
                 "reset_mechanism must be set to either 'subtract', 'zero', or 'none'."
             )
 
-    def _lif_register_buffer(
-        self, beta, threshold, learn_beta, learn_threshold, reset_mechanism
-    ):
+    def _snn_register_buffer(self, threshold, learn_threshold, reset_mechanism):
         """Set variables as learnable parameters else register them in the buffer."""
 
-        self._beta_buffer(beta, learn_beta)
         self._threshold_buffer(threshold, learn_threshold)
 
         # reset buffer
         try:
             # if reset_mechanism_val is loaded from .pt, override reset_mechanism
             if torch.is_tensor(self.reset_mechanism_val):
-                self.reset_mechanism = list(LIF.reset_dict)[self.reset_mechanism_val]
+                self.reset_mechanism = list(SpikingNeuron.reset_dict)[
+                    self.reset_mechanism_val
+                ]
         except AttributeError:
             # reset_mechanism_val has not yet been created, create it
             self._reset_mechanism_buffer(reset_mechanism)
-
-    def _beta_buffer(self, beta, learn_beta):
-        if not isinstance(beta, torch.Tensor):
-            beta = torch.as_tensor(beta)  # TODO: or .tensor() if no copy
-        if learn_beta:
-            self.beta = nn.Parameter(beta)
-        else:
-            self.register_buffer("beta", beta)
 
     def _threshold_buffer(self, threshold, learn_threshold):
         if not isinstance(threshold, torch.Tensor):
@@ -141,7 +129,7 @@ class LIF(nn.Module):
     def _reset_mechanism_buffer(self, reset_mechanism):
         """Assign mapping to each reset mechanism state.
         Must be of type tensor to store in register buffer. See reset_dict for mapping."""
-        reset_mechanism_val = torch.as_tensor(LIF.reset_dict[reset_mechanism])
+        reset_mechanism_val = torch.as_tensor(SpikingNeuron.reset_dict[reset_mechanism])
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
 
     def _V_register_buffer(self, V, learn_V):
@@ -161,13 +149,125 @@ class LIF(nn.Module):
     @reset_mechanism.setter
     def reset_mechanism(self, new_reset_mechanism):
         self._reset_cases(new_reset_mechanism)
-        self.reset_mechanism_val = torch.as_tensor(LIF.reset_dict[new_reset_mechanism])
+        self.reset_mechanism_val = torch.as_tensor(
+            SpikingNeuron.reset_dict[new_reset_mechanism]
+        )
         self._reset_mechanism = new_reset_mechanism
 
     @classmethod
     def init(cls):
-        """Removes all items from :mod:`snntorch.LIF.instances` when called."""
+        """Removes all items from :mod:`snntorch.SpikingNeuron.instances` when called."""
         cls.instances = []
+
+    @staticmethod
+    def detach(*args):
+        """Used to detach input arguments from the current graph.
+        Intended for use in truncated backpropagation through time where hidden state variables are global variables."""
+        for state in args:
+            state.detach_()
+
+    @staticmethod
+    def zeros(*args):
+        """Used to clear hidden state variables to zero.
+        Intended for use where hidden state variables are global variables."""
+        for state in args:
+            state = torch.zeros_like(state)
+
+    @staticmethod
+    class Heaviside(torch.autograd.Function):
+        """Default spiking function for neuron.
+
+        **Forward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+        **Backward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            \\frac{∂S}{∂U}=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+        Although the backward pass is clearly not the analytical solution of the forward pass, this assumption holds true on the basis that a reset necessarily occurs after a spike is generated when :math:`U ≥ U_{\\rm thr}`."""
+
+        @staticmethod
+        def forward(ctx, input_):
+            out = (input_ > 0).float()
+            ctx.save_for_backward(out)
+            return out
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            (out,) = ctx.saved_tensors
+            grad = grad_output * out
+            return grad
+
+
+class LIF(SpikingNeuron):
+    """Parent class for leaky integrate and fire neuron models."""
+
+    def __init__(
+        self,
+        beta,
+        threshold=1.0,
+        spike_grad=None,
+        init_hidden=False,
+        inhibition=False,
+        learn_beta=False,
+        learn_threshold=False,
+        reset_mechanism="subtract",
+        output=False,
+    ):
+        super().__init__(
+            threshold,
+            spike_grad,
+            init_hidden,
+            inhibition,
+            learn_threshold,
+            reset_mechanism,
+            output,
+        )
+
+        self._lif_register_buffer(
+            beta,
+            learn_beta,
+        )
+        self._reset_mechanism = reset_mechanism
+
+        # TO-DO: Heaviside --> STE; needs a tutorial change too?
+        if spike_grad is None:
+            self.spike_grad = self.Heaviside.apply
+        else:
+            self.spike_grad = spike_grad
+
+    def _lif_register_buffer(
+        self,
+        beta,
+        learn_beta,
+    ):
+        """Set variables as learnable parameters else register them in the buffer."""
+        self._beta_buffer(beta, learn_beta)
+
+    def _beta_buffer(self, beta, learn_beta):
+        if not isinstance(beta, torch.Tensor):
+            beta = torch.as_tensor(beta)  # TODO: or .tensor() if no copy
+        if learn_beta:
+            self.beta = nn.Parameter(beta)
+        else:
+            self.register_buffer("beta", beta)
+
+    def _V_register_buffer(self, V, learn_V):
+        if not isinstance(V, torch.Tensor):
+            V = torch.as_tensor(V)
+        if learn_V:
+            self.V = nn.Parameter(V)
+        else:
+            self.register_buffer("V", V)
 
     @staticmethod
     def init_leaky():
@@ -232,54 +332,6 @@ class LIF(nn.Module):
         mem = _SpikeTensor(init_flag=False)
 
         return syn_exc, syn_inh, mem
-
-    @staticmethod
-    def detach(*args):
-        """Used to detach input arguments from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are global variables."""
-        for state in args:
-            state.detach_()
-
-    @staticmethod
-    def zeros(*args):
-        """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are global variables."""
-        for state in args:
-            state = torch.zeros_like(state)
-
-    @staticmethod
-    class Heaviside(torch.autograd.Function):
-        """Default spiking function for neuron.
-
-        **Forward pass:** Heaviside step function shifted.
-
-        .. math::
-
-            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-            0 & \\text{if U < U$_{\\rm thr}$}
-            \\end{cases}
-
-        **Backward pass:** Heaviside step function shifted.
-
-        .. math::
-
-            \\frac{∂S}{∂U}=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-            0 & \\text{if U < U$_{\\rm thr}$}
-            \\end{cases}
-
-        Although the backward pass is clearly not the analytical solution of the forward pass, this assumption holds true on the basis that a reset necessarily occurs after a spike is generated when :math:`U ≥ U_{\\rm thr}`."""
-
-        @staticmethod
-        def forward(ctx, input_):
-            out = (input_ > 0).float()
-            ctx.save_for_backward(out)
-            return out
-
-        @staticmethod
-        def backward(ctx, grad_output):
-            (out,) = ctx.saved_tensors
-            grad = grad_output * out
-            return grad
 
 
 class _SpikeTensor(torch.Tensor):

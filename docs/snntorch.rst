@@ -14,7 +14,7 @@ The lean requirements of :mod:`snntorch` enable small and large networks to be v
 Being deeply integrated with ``torch.autograd``, :mod:`snntorch` is able to take advantage of GPU acceleration in the same way as PyTorch.
 
 By default, PyTorch's autodifferentiation mechanism in ``torch.autograd`` nulls the gradient signal of the spiking neuron graph due to non-differentiable spiking threshold functions.
-:mod:`snntorch` overrides the default gradient by using :mod:`snntorch.LIF.Heaviside`. Alternative options exist in :mod:`snntorch.surrogate`.
+:mod:`snntorch` overrides the default gradient by using :mod:`snntorch.neurons.Heaviside`. Alternative options exist in :mod:`snntorch.surrogate`.
 
 At present, the neurons available in :mod:`snntorch` are variants of the Leaky Integrate-and-Fire neuron model:
 
@@ -25,6 +25,11 @@ At present, the neurons available in :mod:`snntorch` are variants of the Leaky I
 * **Lapicque** - Lapicque's RC Neuron Model
 * **Alpha** - Alpha Membrane Model
 
+Additional models include spiking-LSTMs and spiking-ConvLSTMs:
+
+* **SLSTM** - Spiking long short-term memory cell with state-thresholding 
+* **SConvLSTM** - Spiking 2d convolutional short-term memory cell with state thresholding
+
 
 
 How to use snnTorch's neuron models
@@ -32,7 +37,6 @@ How to use snnTorch's neuron models
 
 The following arguments are common across all neuron models:
 
-* **beta** - decay rate of membrane potential, clipped between 0 and 1 during the forward-pass. Can be a single-value tensor (same decay for all neurons in a layer), or can be multi-valued (individual weights p/neuron in a layer. More complex neurons include additional parameters, such as **alpha**.
 * **threshold** - firing threshold of the neuron
 * **spike_grad** - surrogate gradient function (see :mod:`snntorch.surrogate`)
 * **init_hidden** - setting to ``True`` hides all neuron states as instance variables to reduce code complexity
@@ -41,6 +45,10 @@ The following arguments are common across all neuron models:
 * **learn_threshold** - setting to ``True`` enables the threshold to be a learnable parameter 
 * **reset_mechanism** - options include ``subtract`` (reset-by-subtraction), ``zero`` (reset-to-zero), and ``none`` (no reset mechanism: i.e., leaky integrator neuron)
 * **output** - if ``init_hidden=True``, the spiking neuron will only return the output spikes. Setting ``output=True`` enables the hidden state(s) to be returned as well. Useful when using ``torch.nn.sequential``. 
+
+Leaky integrate-and-fire neuron models also include:
+
+* **beta** - decay rate of membrane potential, clipped between 0 and 1 during the forward-pass. Can be a single-value tensor (same decay for all neurons in a layer), or can be multi-valued (individual weights p/neuron in a layer. More complex neurons include additional parameters, such as **alpha**.
 
 Recurrent spiking neuron models, such as :mod:`snntorch.RLeaky` and :mod:`snntorch.RSynaptic` explicitly pass the output spike back to the input. 
 Such neurons include additional arguments:
@@ -189,37 +197,21 @@ Each neuron has the option to inhibit other neurons within the same dense layer 
 This can be invoked by setting ``inhibition=True`` when instantiating the neuron layer. It has not yet been implemented for networks other than fully-connected layers, so use with caution.
 
 
-.. automodule:: snntorch._neurons.lif
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Neuron List
+---------------------
 
-.. automodule:: snntorch._neurons.alpha
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. toctree::
+    :maxdepth: 2
+    :titlesonly:
+    :glob:
 
-.. automodule:: snntorch._neurons.lapicque
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    snn.neurons_*
 
-.. automodule:: snntorch._neurons.leaky
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
-.. automodule:: snntorch._neurons.rleaky
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Neuron Parent Classes
+---------------------
 
-.. automodule:: snntorch._neurons.synaptic
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: snntorch._neurons.rsynaptic
+.. automodule:: snntorch._neurons.neurons 
    :members:
    :undoc-members:
    :show-inheritance:

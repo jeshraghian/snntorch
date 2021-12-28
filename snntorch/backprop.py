@@ -105,13 +105,15 @@ def TBPTT(
     # redo reset in training loop
     utils.reset(net=net)
 
-    neurons_dict = {  # confirm this is even useful
+    neurons_dict = {
         utils.is_lapicque: snn.Lapicque,
         utils.is_leaky: snn.Leaky,
         utils.is_synaptic: snn.Synaptic,
         utils.is_alpha: snn.Alpha,
         utils.is_rleaky: snn.RLeaky,
         utils.is_rsynaptic: snn.RSynaptic,
+        utils.is_sconvlstm: snn.SConvLSTM,
+        utils.is_slstm: snn.SLSTM,
     }
 
     # element 1: if true: spk, if false, mem

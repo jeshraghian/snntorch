@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from .lif import *
+from .neurons import *
 
 
 class Alpha(LIF):
@@ -102,9 +102,9 @@ class Alpha(LIF):
 
         if self.init_hidden:
             self.syn_exc, self.syn_inh, self.mem = self.init_alpha()
-            self.state_fn = self.build_state_function_hidden
+            self.state_fn = self._build_state_function_hidden
         else:
-            self.state_fn = self.build_state_function
+            self.state_fn = self._build_state_function
 
         # if reset_mechanism == "subtract":
         #     self.mem_residual = False
@@ -155,7 +155,7 @@ class Alpha(LIF):
             else:
                 return self.spk
 
-    def base_state_function(self, input_, syn_exc, syn_inh, mem):
+    def _base_state_function(self, input_, syn_exc, syn_inh, mem):
         base_fn_syn_exc = self.alpha.clamp(0, 1) * syn_exc + input_
         base_fn_syn_inh = self.beta.clamp(0, 1) * syn_inh - input_
         tau_alpha = (
@@ -166,34 +166,34 @@ class Alpha(LIF):
         base_fn_mem = tau_alpha * (base_fn_syn_exc + base_fn_syn_inh)
         return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
 
-    def base_state_reset_sub_function(self, input_, syn_inh):
+    def _base_state_reset_sub_function(self, input_, syn_inh):
         syn_exc_reset = self.threshold
         syn_inh_reset = self.beta.clamp(0, 1) * syn_inh - input_
         mem_reset = 0
         return syn_exc_reset, syn_inh_reset, mem_reset
 
-    def build_state_function(self, input_, syn_exc, syn_inh, mem):
+    def _build_state_function(self, input_, syn_exc, syn_inh, mem):
         if self.reset_mechanism_val == 0:
             state_fn = tuple(
                 map(
                     lambda x, y: x - self.reset * y,
-                    self.base_state_function(input_, syn_exc, syn_inh, mem),
-                    self.base_state_reset_sub_function(input_, syn_inh),
+                    self._base_state_function(input_, syn_exc, syn_inh, mem),
+                    self._base_state_reset_sub_function(input_, syn_inh),
                 )
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
             state_fn = tuple(
                 map(
                     lambda x, y: x - self.reset * y,
-                    self.base_state_function(input_, syn_exc, syn_inh, mem),
-                    self.base_state_function(input_, syn_exc, syn_inh, mem),
+                    self._base_state_function(input_, syn_exc, syn_inh, mem),
+                    self._base_state_function(input_, syn_exc, syn_inh, mem),
                 )
             )
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function(input_, syn_exc, syn_inh, mem)
+            state_fn = self._base_state_function(input_, syn_exc, syn_inh, mem)
         return state_fn
 
-    def base_state_function_hidden(self, input_):
+    def _base_state_function_hidden(self, input_):
         base_fn_syn_exc = self.alpha.clamp(0, 1) * self.syn_exc + input_
         base_fn_syn_inh = self.beta.clamp(0, 1) * self.syn_inh - input_
         tau_alpha = (
@@ -204,31 +204,31 @@ class Alpha(LIF):
         base_fn_mem = tau_alpha * (base_fn_syn_exc + base_fn_syn_inh)
         return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
 
-    def base_state_reset_sub_function_hidden(self, input_):
+    def _base_state_reset_sub_function_hidden(self, input_):
         syn_exc_reset = self.threshold
         syn_inh_reset = self.beta.clamp(0, 1) * self.syn_inh - input_
         mem_reset = -self.syn_inh
         return syn_exc_reset, syn_inh_reset, mem_reset
 
-    def build_state_function_hidden(self, input_):
+    def _build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = tuple(
                 map(
                     lambda x, y: x - self.reset * y,
-                    self.base_state_function_hidden(input_),
-                    self.base_state_reset_sub_function_hidden(input_),
+                    self._base_state_function_hidden(input_),
+                    self._base_state_reset_sub_function_hidden(input_),
                 )
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
             state_fn = tuple(
                 map(
                     lambda x, y: x - self.reset * y,
-                    self.base_state_function_hidden(input_),
-                    self.base_state_function_hidden(input_),
+                    self._base_state_function_hidden(input_),
+                    self._base_state_function_hidden(input_),
                 )
             )
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function_hidden(input_)
+            state_fn = self._base_state_function_hidden(input_)
         return state_fn
 
     def _alpha_register_buffer(self, alpha, learn_alpha):

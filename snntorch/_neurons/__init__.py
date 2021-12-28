@@ -8,9 +8,19 @@
 # vi) update docs: snntorch.rst                               #
 ###############################################################
 
-__neuron__ = ["alpha", "lapicque", "leaky", "rleaky", "synaptic", "rsynaptic"]
+__neuron__ = [
+    "alpha",
+    "lapicque",
+    "leaky",
+    "rleaky",
+    "rsynaptic",
+    "synaptic",
+    "sconvlstm",
+    "slstm",
+]
 
-from .lif import LIF
+from .neurons import SpikingNeuron
+from .neurons import LIF
 from .alpha import Alpha
 from .lapicque import Lapicque
 from .leaky import Leaky
@@ -18,3 +28,8 @@ from .synaptic import Synaptic
 
 from .rleaky import RLeaky
 from .rsynaptic import RSynaptic
+
+from .sconvlstm import SConvLSTM
+from .slstm import SLSTM
+
+# from .slstm import SLSTM

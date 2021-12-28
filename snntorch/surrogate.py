@@ -6,6 +6,96 @@ import torch
 # """``snntorch.surrogate.slope`` parameterizes the transition rate of the surrogate gradients."""
 
 
+class StraightThroughEstimator(torch.autograd.Function):
+    """
+    Straight Through Estimator.
+
+    **Forward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Gradient of fast sigmoid function.
+
+        .. math::
+
+                \\frac{∂S}{∂U}&=1
+
+
+    """
+
+    @staticmethod
+    def forward(ctx, input_):
+        out = (input_ > 0).float()
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_input = grad_output.clone()
+        return grad_input
+
+
+def straight_through_estimator():
+    """Straight Through Estimator surrogate gradient enclosed with a parameterized slope."""
+
+    def inner(x):
+        return StraightThroughEstimator.apply(x)
+
+    return inner
+
+
+class Triangular(torch.autograd.Function):
+    """
+    Triangular Surrogate Gradient.
+
+    **Forward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Gradient of the triangular function.
+
+        .. math::
+
+                \\frac{∂S}{∂U}=\\begin{cases} U$_{\\rm thr}$ & \\text{if U < U$_{\\rm thr}$} \\\\
+                -U$_{\\rm thr}$  & \\text{if U ≥ U$_{\\rm thr}$}
+
+
+    """
+
+    @staticmethod
+    def forward(ctx, input_, threshold=1):
+        ctx.save_for_backward(input_)
+        ctx.threshold = threshold
+        out = (input_ > 0).float()
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        (input_,) = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        if input_ < 0:
+            grad = grad_input * ctx.threshold
+        else:
+            grad = -grad_input * ctx.threshold
+        return grad, None
+
+
+def triangular():
+    """Triangular surrogate gradient enclosed with a parameterized threshold."""
+
+    def inner(x):
+        return Triangular.apply(x)
+
+    return inner
+
+
 class FastSigmoid(torch.autograd.Function):
     """
     Surrogate gradient of the Heaviside step function.

@@ -19,7 +19,7 @@ def test_fire():
 
 
 def test_instances():
-    snn.LIF.instances = []
+    snn.SpikingNeuron.instances = []
     snn.Synaptic(alpha=0.5, beta=0.5)
     snn.Alpha(alpha=0.5, beta=0.4)
-    assert len(snn.LIF.instances) == 2
+    assert len(snn.SpikingNeuron.instances) == 2

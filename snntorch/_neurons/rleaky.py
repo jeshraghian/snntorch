@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .lif import *
+from .neurons import *
 
 
 class RLeaky(LIF):
@@ -62,6 +62,53 @@ class RLeaky(LIF):
                 spk2, mem2 = self.lif2(cur2, spk2, mem2)
                 return mem1, spk1, mem2, spk2
 
+    :param beta: membrane potential decay rate. Clipped between 0 and 1 during the forward-pass. May be a single-valued tensor (i.e., equal decay rate for all neurons in a layer), or multi-valued (one weight per neuron).
+    :type beta: float or torch.tensor
+
+    :param V: Recurrent weights to scale output spikes.
+    :type V: float or torch.tensor
+
+    :param threshold: Threshold for :math:`mem` to reach in order to generate a spike `S=1`. Defaults to 1
+    :type threshold: float, optional
+
+    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to None (corresponds to Heaviside surrogate gradient. See `snntorch.surrogate` for more options)
+    :type spike_grad: surrogate gradient function from snntorch.surrogate, optional
+
+    :param init_hidden: Instantiates state variables as instance variables. Defaults to False
+    :type init_hidden: bool, optional
+
+    :param inhibition: If `True`, suppresses all spiking other than the neuron with the highest state. Defaults to False
+    :type inhibition: bool, optional
+
+    :param learn_beta: Option to enable learnable beta. Defaults to False
+    :type learn_beta: bool, optional
+
+    :param learn_V: Option to enable learnable V. Defaults to True
+    :type learn_V: bool, optional
+
+    :param learn_threshold: Option to enable learnable threshold. Defaults to False
+    :type learn_threshold: bool, optional
+
+    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "subtract"
+    :type reset_mechanism: str, optional
+
+    :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
+    :type output: bool, optional
+
+
+    Inputs: \\input_, spk_0, mem_0
+        - **input_** of shape `(batch, input_size)`: tensor containing input features
+        - **spk_0** of shape `(batch, input_size)`: tensor containing output spike features
+        - **mem_0** of shape `(batch, input_size)`: tensor containing the initial membrane potential for each element in the batch.
+
+    Outputs: spk_1, mem_1
+        - **spk_1** of shape `(batch, input_size)`: tensor containing the output spikes.
+        - **mem_1** of shape `(batch, input_size)`: tensor containing the next membrane potential for each element in the batch
+
+    Learnable Parameters:
+        - **RLeaky.beta** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
+        - **RLeaky.V** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
+        - **RLeaky.threshold** (torch.Tensor) - optional learnable thresholds must be manually passed in, of shape `1` or`` (input_size).
 
     """
 
@@ -93,9 +140,9 @@ class RLeaky(LIF):
 
         if self.init_hidden:
             self.spk, self.mem = self.init_rleaky()
-            self.state_fn = self.build_state_function_hidden
+            self.state_fn = self._build_state_function_hidden
         else:
-            self.state_fn = self.build_state_function
+            self.state_fn = self._build_state_function
 
         self._V_register_buffer(V, learn_V)
 
@@ -138,38 +185,39 @@ class RLeaky(LIF):
             else:  # hidden layer e.g., in nn.Sequential, only returns output
                 return self.spk
 
-    def base_state_function(self, input_, spk, mem):
+    def _base_state_function(self, input_, spk, mem):
         base_fn = self.beta.clamp(0, 1) * mem + input_ + self.V * spk
         return base_fn
 
-    def build_state_function(self, input_, spk, mem):
+    def _build_state_function(self, input_, spk, mem):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = (
-                self.base_state_function(input_, spk, mem) - self.reset * self.threshold
+                self._base_state_function(input_, spk, mem)
+                - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self.base_state_function(
+            state_fn = self._base_state_function(
                 input_, mem
-            ) - self.reset * self.base_state_function(input_, spk, mem)
+            ) - self.reset * self._base_state_function(input_, spk, mem)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function(input_, spk, mem)
+            state_fn = self._base_state_function(input_, spk, mem)
         return state_fn
 
-    def base_state_function_hidden(self, input_):
+    def _base_state_function_hidden(self, input_):
         base_fn = self.beta.clamp(0, 1) * self.mem + input_ + self.V * self.spk
         return base_fn
 
-    def build_state_function_hidden(self, input_):
+    def _build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = (
-                self.base_state_function_hidden(input_) - self.reset * self.threshold
+                self._base_state_function_hidden(input_) - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self.base_state_function_hidden(
+            state_fn = self._base_state_function_hidden(
                 input_
-            ) - self.reset * self.base_state_function_hidden(input_)
+            ) - self.reset * self._base_state_function_hidden(input_)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self.base_state_function_hidden(input_)
+            state_fn = self._base_state_function_hidden(input_)
         return state_fn
 
     def _rleaky_forward_cases(self, spk, mem):
