@@ -80,7 +80,60 @@ class Lapicque(LIF):
 
     *N. Brunel and M. C. Van Rossum (2007) Lapicque's 1907 paper: From frogs to integrate-and-fire. Biol. Cybern. 97, pp. 337-339. (English)*
 
-    Although Lapicque did not formally introduce this as an integrate-and-fire neuron model, we pay homage to his discovery of an RC circuit mimicking the dynamics of synaptic current."""
+    Although Lapicque did not formally introduce this as an integrate-and-fire neuron model, we pay homage to his discovery of an RC circuit mimicking the dynamics of synaptic current.
+
+
+
+    :param beta: RC potential decay rate. Clipped between 0 and 1 during the forward-pass. May be a single-valued tensor (i.e., equal decay rate for all neurons in a layer), or multi-valued (one weight per neuron).
+    :type beta: float or torch.tensor, Optional
+
+    :param R: Resistance of RC circuit
+    :type R: int or torch.tensor, Optional
+
+    :param C: Capacitance of RC circuit
+    :type C: int or torch.tensor, Optional
+
+    :param time_step: time step precision. Defaults to 1
+    :type time_step: float, Optional
+
+    :param threshold: Threshold for :math:`mem` to reach in order to generate a spike `S=1`. Defaults to 1
+    :type threshold: float, optional
+
+    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to None (corresponds to Heaviside surrogate gradient. See `snntorch.surrogate` for more options)
+    :type spike_grad: surrogate gradient function from snntorch.surrogate, optional
+
+    :param init_hidden: Instantiates state variables as instance variables. Defaults to False
+    :type init_hidden: bool, optional
+
+    :param inhibition: If `True`, suppresses all spiking other than the neuron with the highest state. Defaults to False
+    :type inhibition: bool, optional
+
+    :param learn_beta: Option to enable learnable beta. Defaults to False
+    :type learn_beta: bool, optional
+
+    :param learn_threshold: Option to enable learnable threshold. Defaults to False
+    :type learn_threshold: bool, optional
+
+    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
+    :type reset_mechanism: str, optional
+
+    :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
+    :type output: bool, optional
+
+
+    Inputs: \\input_, mem_0
+        - **input_** of shape `(batch, input_size)`: tensor containing input features
+        - **mem_0** of shape `(batch, input_size)`: tensor containing the initial membrane potential for each element in the batch.
+
+    Outputs: spk, mem_1
+        - **spk** of shape `(batch, input_size)`: tensor containing the output spikes.
+        - **mem_1** of shape `(batch, input_size)`: tensor containing the next membrane potential for each element in the batch
+
+    Learnable Parameters:
+        - **Lapcique.beta** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
+        - **Lapcique.threshold** (torch.Tensor) - optional learnable thresholds must be manually passed in, of shape `1` or`` (input_size).
+
+    """
 
     def __init__(
         self,
