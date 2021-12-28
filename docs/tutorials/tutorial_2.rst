@@ -87,13 +87,16 @@ sweet spot between biological plausibility and practicality.
         :width: 1000
 
 The different versions of the LIF model each have their own dynamics and
-use-cases. snnTorch currently supports four types of LIF neurons: 
+use-cases. snnTorch currently supports the following LIF neurons: 
 
 * Lapicque’s RC model: ``snntorch.Lapicque`` 
-* Non-physical 1st order model: ``snntorch.Leaky`` 
-* Synaptic Conductance-based neuron model: ``snntorch.Synaptic`` 
-* Alpha neuron Model: ``snntorch.Alpha``
+* 1st-order model: ``snntorch.Leaky`` 
+* Synaptic Conductance-based neuron model: ``snntorch.Synaptic``
+* Recurrent 1st-order model: ``snntorch.RLeaky``
+* Recurrent Synaptic Conductance-based neuron model: ``snntorch.RSynaptic``
+* Alpha neuron model: ``snntorch.Alpha``
 
+Several other non-LIF spiking neurons are also available. 
 This tutorial focuses on the first of these models. This will
 be used to build towards the other models in `subsequent tutorials <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_.
 
@@ -870,6 +873,7 @@ There are two ways to implement the reset mechanism:
    from the membrane potential each time a spike is generated;
 2. *reset to zero* :math:`-` force the membrane potential to zero each
    time a spike is generated.
+3. *no reset* :math:`-` do nothing, and let the firing go potentially uncontrolled.
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_5_reset.png?raw=true
         :align: center
