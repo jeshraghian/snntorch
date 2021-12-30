@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from .neurons import *
 
 
-class SConvLSTM(SpikingNeuron):
+class SConv2dLSTM(SpikingNeuron):
 
     """
     A spiking 2d convolutional long short-term memory cell.
@@ -32,6 +32,8 @@ class SConvLSTM(SpikingNeuron):
     Options to apply max-pooling or average-pooling to the state :math:`mem_t` are also enabled. Note that it is preferable to apply pooling to the state rather than the spike, as it does not make sense to apply pooling to activations of 1's and 0's which may lead to random tie-breaking.
 
     Padding is automatically applied to ensure consistent sizes for hidden states from one time step to the next.
+
+    At the moment, stride != 1 is not supported.
 
     Example::
 
@@ -60,15 +62,15 @@ class SConvLSTM(SpikingNeuron):
                 spike_grad_fc = surrogate.fast_sigmoid(slope=5)
 
                 # initialize layers
-                self.sclstm1 = snn.SConvLSTM(in_channels, out_channels, kernel_size, max_pool=max_pool, spike_grad=spike_grad_lstm)
-                self.sclstm2 = snn.SConvLSTM(out_channels, out_channels, kernel_size, avg_pool=avg_pool, spike_grad=spike_grad_lstm)
+                self.sclstm1 = snn.SConv2dLSTM(in_channels, out_channels, kernel_size, max_pool=max_pool, spike_grad=spike_grad_lstm)
+                self.sclstm2 = snn.SConv2dLSTM(out_channels, out_channels, kernel_size, avg_pool=avg_pool, spike_grad=spike_grad_lstm)
                 self.fc2 = nn.Linear(flattened_input, num_outputs)
                 self.lif2 = snn.Leaky(beta=beta, spike_grad=spike_grad_fc)
 
             def forward(self, x, mem1, spk1, mem2):
                 # Initialize hidden states and outputs at t=0
-                syn1, mem1 = self.lif1.init_sconvlstm()
-                syn2, mem2 = self.lif2.init_sconvlstm()
+                syn1, mem1 = self.lif1.init_sconv2dlstm()
+                syn2, mem2 = self.lif2.init_sconv2dlstm()
                 mem3 = self.lif3.init_leaky()
 
                 # Record the final layer
@@ -136,7 +138,7 @@ class SConvLSTM(SpikingNeuron):
         - **mem_1** of shape `(batch, out_channels, H, W)`: tensor containing the next membrane potential (or hidden state) for each element in the batch
 
     Learnable Parameters:
-        - **SConvLSTM.conv.weight** (torch.Tensor) - the learnable weights, of shape ((in_channels + out_channels), 4*out_channels, kernel_size).
+        - **SConv2dLSTM.conv.weight** (torch.Tensor) - the learnable weights, of shape ((in_channels + out_channels), 4*out_channels, kernel_size).
 
     """
 
@@ -168,7 +170,7 @@ class SConvLSTM(SpikingNeuron):
         )
 
         if self.init_hidden:
-            self.syn, self.mem = self.init_sconvlstm()
+            self.syn, self.mem = self.init_sconv2dlstm()
             self.state_fn = self._build_state_function_hidden
         else:
             self.state_fn = self._build_state_function
@@ -179,7 +181,7 @@ class SConvLSTM(SpikingNeuron):
         self.max_pool = max_pool
         self.avg_pool = avg_pool
         self.bias = bias
-        self._sconvlstm_cases()
+        self._sconv2dlstm_cases()
 
         # padding is essential to keep same shape for next step
         if type(self.kernel_size) is int:
@@ -215,13 +217,13 @@ class SConvLSTM(SpikingNeuron):
             if self.max_pool:
                 spk = self.fire(F.max_pool2d(mem, self.max_pool))
             elif self.avg_pool:
-                spk = self.fire(F.avg_pool2d(mem, self.max_pool))
+                spk = self.fire(F.avg_pool2d(mem, self.avg_pool))
             else:
                 spk = self.fire(mem)
             return spk, syn, mem
 
         if self.init_hidden:
-            # self._sconvlstm_forward_cases(mem, c)
+            # self._sconv2dlstm_forward_cases(mem, c)
             self.reset = self.mem_reset(self.mem)
             self.syn, self.mem = self.state_fn(input_)
 
@@ -343,7 +345,7 @@ class SConvLSTM(SpikingNeuron):
         return state_fn
 
     @staticmethod
-    def init_sconvlstm():
+    def init_sconv2dlstm():
         """
         Used to initialize h and c as an empty SpikeTensor.
         ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
@@ -361,7 +363,7 @@ class SConvLSTM(SpikingNeuron):
         b, _, h, w = input_.size()
         return torch.zeros(b, self.out_channels, h, w).to(device)
 
-    def _sconvlstm_cases(self):
+    def _sconv2dlstm_cases(self):
         if self.max_pool and self.avg_pool:
             raise ValueError(
                 "Only one of either `max_pool` or `avg_pool` may be specified, not both."
@@ -373,7 +375,7 @@ class SConvLSTM(SpikingNeuron):
         Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], SConvLSTM):
+            if isinstance(cls.instances[layer], SConv2dLSTM):
                 cls.instances[layer].syn.detach_()
                 cls.instances[layer].mem.detach_()
 
@@ -383,6 +385,6 @@ class SConvLSTM(SpikingNeuron):
         Intended for use where hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], SConvLSTM):
+            if isinstance(cls.instances[layer], SConv2dLSTM):
                 cls.instances[layer].syn = _SpikeTensor(init_flag=False)
                 cls.instances[layer].mem = _SpikeTensor(init_flag=False)

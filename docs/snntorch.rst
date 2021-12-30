@@ -28,7 +28,7 @@ At present, the neurons available in :mod:`snntorch` are variants of the Leaky I
 Additional models include spiking-LSTMs and spiking-ConvLSTMs:
 
 * **SLSTM** - Spiking long short-term memory cell with state-thresholding 
-* **SConvLSTM** - Spiking 2d convolutional short-term memory cell with state thresholding
+* **SConv2dLSTM** - Spiking 2d convolutional short-term memory cell with state thresholding
 
 
 
