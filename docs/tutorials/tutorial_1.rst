@@ -808,9 +808,6 @@ There are three time steps where the difference between :math:`data[T]`
 and :math:`data[T+1]` is greater than or equal to :math:`V_{thr}=4`.
 This means there are three *on-spikes*.
 
-The large dip to :math:`-20` has not been captured above. 
-If negative swings have importance in your data, you can enable the optional argument ``off_spike=True``.
-
 The large dip to :math:`-20` has not been captured in our spikes. It
 might be that we care about negative swings as well, in which case we
 can enable the optional argument ``off_spike=True``.
