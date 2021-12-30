@@ -837,7 +837,7 @@ can enable the optional argument ``off_spike=True``.
 We’ve generated additional spikes, but this isn’t actually the full
 picture!
 
-Printing out the tensor will show that the presence of “off-spikes”. These spikes take on a value of ``-1``.
+Printing out the tensor will show the presence of “off-spikes” which take on a value of ``-1``.
 
 ::
 
