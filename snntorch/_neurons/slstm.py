@@ -54,16 +54,16 @@ class SLSTM(SpikingNeuron):
 
             def forward(self, x):
                 # Initialize hidden states and outputs at t=0
-                syn1, mem1 = self.lif1.init_slstm()
-                syn2, mem2 = self.lif2.init_slstm()
+                syn1, mem1 = self.slstm1.init_slstm()
+                syn2, mem2 = self.slstm2.init_slstm()
 
                 # Record the final layer
                 spk2_rec = []
                 mem2_rec = []
 
                 for step in range(num_steps):
-                    spk1, syn1, mem1 = self.lif1(x.flatten(1), syn1, mem1)
-                    spk2, syn2, mem2 = self.lif2(spk1, syn2, mem2)
+                    spk1, syn1, mem1 = self.slstm1(x.flatten(1), syn1, mem1)
+                    spk2, syn2, mem2 = self.slstm2(spk1, syn2, mem2)
 
                     spk2_rec.append(spk2)
                     mem2_rec.append(mem2)
