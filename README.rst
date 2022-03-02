@@ -122,7 +122,7 @@ Run the following to install::
 To install snnTorch from source instead::
 
   $ git clone https://github.com/jeshraghian/snnTorch
-  $ cd snnTorch
+  $ cd snntorch
   $ python setup.py install
 
 
