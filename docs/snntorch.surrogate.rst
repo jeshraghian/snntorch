@@ -8,6 +8,17 @@ The discrete nature of spikes makes it difficult for ``torch.autograd`` to calcu
 Alternative gradients are also available in the :mod:`snntorch.surrogate` module. 
 These represent either approximations of the backward pass or probabilistic models of firing as a function of the membrane potential.
 
+
+At present, the surrogate gradient functions available include:
+
+* `Sigmoid <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.Sigmoid>`_
+* `Fast Sigmoid <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.FastSigmoid>`_
+* `Straight Through Estimator <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.StraightThroughEstimator>`_
+* `Triangular <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.Triangular>`_
+* `SpikeRateEscape <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.SpikeRateEscape>`_
+
+amongst several other options. 
+
 For further reading, see:
 
     *E. O. Neftci, H. Mostafa, F. Zenke (2019) Surrogate Gradient Learning in Spiking Neural Networks: Bringing the Power of Gradient-Based Optimization to Spiking Neural Networks. IEEE Signal Processing Magazine, pp. 51-63.*

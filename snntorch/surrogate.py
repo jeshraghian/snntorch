@@ -22,7 +22,7 @@ class StraightThroughEstimator(torch.autograd.Function):
 
         .. math::
 
-                \\frac{∂S}{∂U}&=1
+                \\frac{∂S}{∂U}=1
 
 
     """
@@ -63,8 +63,9 @@ class Triangular(torch.autograd.Function):
 
         .. math::
 
-                \\frac{∂S}{∂U}=\\begin{cases} U$_{\\rm thr}$ & \\text{if U < U$_{\\rm thr}$} \\\\
-                -U$_{\\rm thr}$  & \\text{if U ≥ U$_{\\rm thr}$}
+                \\frac{∂S}{∂U}=\\begin{cases} U_{\\rm thr} & \\text{if U < U$_{\\rm thr}$} \\\\
+                -U_{\\rm thr}  & \\text{if U ≥ U$_{\\rm thr}$}
+                \\end{cases}
 
 
     """
