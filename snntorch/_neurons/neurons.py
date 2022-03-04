@@ -34,6 +34,7 @@ class SpikingNeuron(nn.Module):
         inhibition=False,
         learn_threshold=False,
         reset_mechanism="subtract",
+        state_quant=False,
         output=False,
     ):
         super(SpikingNeuron, self).__init__()
@@ -53,9 +54,16 @@ class SpikingNeuron(nn.Module):
         else:
             self.spike_grad = spike_grad
 
+        if state_quant:
+            self.state_quant = state_quant
+
     def fire(self, mem):
         """Generates spike if mem > threshold.
         Returns spk."""
+
+        if self.state_quant:
+            mem = self.state_quant(mem)
+
         mem_shift = mem - self.threshold
         spk = self.spike_grad(mem_shift)
 
@@ -221,6 +229,7 @@ class LIF(SpikingNeuron):
         learn_beta=False,
         learn_threshold=False,
         reset_mechanism="subtract",
+        state_quant=False,
         output=False,
     ):
         super().__init__(
@@ -230,6 +239,7 @@ class LIF(SpikingNeuron):
             inhibition,
             learn_threshold,
             reset_mechanism,
+            state_quant,
             output,
         )
 

@@ -123,6 +123,9 @@ class SConv2dLSTM(SpikingNeuron):
     :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
     :type reset_mechanism: str, optional
 
+    :param state_quant: If specified, hidden states :math:`mem` and :math:`syn` are quantized to a valid state for the forward pass. Defaults to False
+    :type state_quant: quantization function from snntorch.quant, optional
+
     :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
     :type output: bool, optional
 
@@ -156,6 +159,7 @@ class SConv2dLSTM(SpikingNeuron):
         inhibition=False,
         learn_threshold=False,
         reset_mechanism="none",
+        state_quant=False,
         output=False,
     ):
 
@@ -166,6 +170,7 @@ class SConv2dLSTM(SpikingNeuron):
             inhibition,
             learn_threshold,
             reset_mechanism,
+            state_quant,
             output,
         )
 
@@ -214,6 +219,11 @@ class SConv2dLSTM(SpikingNeuron):
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
             syn, mem = self.state_fn(input_, syn, mem)
+
+            if self.state_quant:
+                syn = self.state_quant(syn)
+                mem = self.state_quant(mem)
+
             if self.max_pool:
                 spk = self.fire(F.max_pool2d(mem, self.max_pool))
             elif self.avg_pool:
@@ -226,6 +236,10 @@ class SConv2dLSTM(SpikingNeuron):
             # self._sconv2dlstm_forward_cases(mem, c)
             self.reset = self.mem_reset(self.mem)
             self.syn, self.mem = self.state_fn(input_)
+
+            if self.state_quant:
+                self.syn = self.state_quant(self.syn)
+                self.mem = self.state_quant(self.mem)
 
             if self.max_pool:
                 self.spk = self.fire(F.max_pool2d(self.mem, self.max_pool))
