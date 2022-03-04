@@ -13,6 +13,7 @@ def TBPTT(
     criterion,
     num_steps=False,  # only specified if time-static
     time_var=True,  # specifies if data is time_varying
+    time_first=True,
     regularization=False,
     device="cpu",
     K=1,
@@ -74,6 +75,9 @@ def TBPTT(
     :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims], defaults to ``True``
     :type time_var: Bool, optional
 
+    :param time_first: Set to ``False`` if first dimension of data is not time [B x T x dims] AND must also be permuted to [T x B x dims], defaults to ``True``
+    :type time_first: Bool, optional
+
     :param regularization: Option to add a regularization term to the loss function
     :type regularization: snn.functional regularization function, optional
 
@@ -100,6 +104,11 @@ def TBPTT(
 
     if num_steps and K > num_steps:
         raise ValueError("``K`` must be less than or equal to ``num_steps``.")
+
+    if time_var is False and time_first is False:
+        raise ValueError(
+            "``time_first`` should not be specified if data is not time-varying, i.e., ``time_var`` is ``False``."
+        )
 
     # triggers global variables is_lapicque etc for neurons_dict
     # redo reset in training loop
@@ -179,7 +188,10 @@ def TBPTT(
         targets = targets.to(device)
 
         if time_var:
-            num_steps = data.size(0)
+            if time_first:
+                num_steps = data.size(0)
+            else:
+                num_steps = data.size(1)
 
             if K is False:
                 K_flag = K
@@ -191,19 +203,28 @@ def TBPTT(
         for step in range(num_steps):
             if num_return == 2:
                 if time_var:
-                    spk, mem = net(data[step])
+                    if time_first:
+                        spk, mem = net(data[step])
+                    else:
+                        spk, mem = net(data.transpose(1, 0)[step])
                 else:
                     spk, mem = net(data)
 
             elif num_return == 3:
                 if time_var:
-                    spk, _, mem = net(data[step])
+                    if time_first:
+                        spk, _, mem = net(data[step])
+                    else:
+                        spk, _, mem = net(data.transpose(1, 0)[step])
                 else:
                     spk, _, mem = net(data)
 
             elif num_return == 4:
                 if time_var:
-                    spk, _, _, mem = net(data[step])
+                    if time_first:
+                        spk, _, _, mem = net(data[step])
+                    else:
+                        spk, _, _, mem = net(data.transpose(1, 0)[step])
                 else:
                     spk, _, _, mem = net(data)
 
@@ -325,6 +346,7 @@ def BPTT(
     criterion,
     num_steps=False,
     time_var=True,
+    time_first=True,
     regularization=False,
     device="cpu",
 ):
@@ -386,6 +408,9 @@ def BPTT(
     :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims], defaults to ``True``
     :type time_var: Bool, optional
 
+    :param time_first: Set to ``False`` if first dimension of data is not time [B x T x dims] AND must also be permuted to [T x B x dims], defaults to ``True``
+    :type time_first: Bool, optional
+
     :param regularization: Option to add a regularization term to the loss function
     :type regularization: snn.functional regularization function, optional
 
@@ -404,6 +429,7 @@ def BPTT(
         criterion,
         num_steps,
         time_var,
+        time_first,
         regularization,
         device,
         K=num_steps,
@@ -417,6 +443,7 @@ def RTRL(
     criterion,
     num_steps=False,  # must be specified in case data in is static
     time_var=True,  # specifies if data is time_varying
+    time_first=True,
     regularization=False,
     device="cpu",
 ):
@@ -477,6 +504,9 @@ def RTRL(
     :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims], defaults to ``True``
     :type time_var: Bool, optional
 
+    :param time_first: Set to ``False`` if first dimension of data is not time [B x T x dims] AND must also be permuted to [T x B x dims], defaults to ``True``
+    :type time_first: Bool, optional
+
     :param regularization: Option to add a regularization term to the loss function
     :type regularization: snn.functional regularization function, optional
 
@@ -497,6 +527,7 @@ def RTRL(
         criterion,
         num_steps,
         time_var,
+        time_first,
         regularization,
         device,
         K=1,
