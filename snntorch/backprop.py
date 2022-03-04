@@ -105,6 +105,11 @@ def TBPTT(
     if num_steps and K > num_steps:
         raise ValueError("``K`` must be less than or equal to ``num_steps``.")
 
+    if time_var is False and time_first is False:
+        raise ValueError(
+            "``time_first`` should not be specified if data is not time-varying, i.e., ``time_var`` is ``False``."
+        )
+
     # triggers global variables is_lapicque etc for neurons_dict
     # redo reset in training loop
     utils.reset(net=net)
