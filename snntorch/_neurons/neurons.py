@@ -54,8 +54,7 @@ class SpikingNeuron(nn.Module):
         else:
             self.spike_grad = spike_grad
 
-        if state_quant:
-            self.state_quant = state_quant
+        self.state_quant = state_quant
 
     def fire(self, mem):
         """Generates spike if mem > threshold.

@@ -165,7 +165,8 @@ Here are a few ways you can get started with snnTorch:
 
 For a quick example to run snnTorch, see the following snippet, or test the quickstart notebook:
 
-::
+
+.. code-block:: python
 
   import torch, torch.nn as nn
   import snntorch as snn
