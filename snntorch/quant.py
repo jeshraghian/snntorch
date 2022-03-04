@@ -53,11 +53,11 @@ def state_quant(
 
         beta = 0.5
 
-        quant_mem = quant.state_quant(num_bits=4, uniform=True)
+        # set the quantization parameters
+        q_lif = quant.state_quant(num_bits=4, uniform=True)
 
-        # mem will now be quantized. By default, uniform quantization is applied between -(thr + thr*lower_limit) and (thr + thr*upper_limit)
-        # This can be changed to non-uniform by setting `uniform=False`
-        lif = snn.Leaky(beta=beta, state_quant=quant_mem)
+        # specifying state_quant applies state-quantization to the hidden state(s) automatically
+        lif = snn.Leaky(beta=beta, state_quant=q_lif)
 
         rand_input = torch.rand(1)
         mem = lif.init_leaky()
@@ -65,7 +65,30 @@ def state_quant(
         # forward-pass for one step
         spk, mem = lif(rand_input, mem)
 
+
+    :param num_bits: Number of bits to quantize state variables to, defaults to ``8``
+    :type num_bits: int, optional
+
+    :param uniform: Applies uniform quantization if specified, non-uniform if unspecified, defaults to ``True``
+    :type uniform: Bool, optional
+
+    :param uniform: For non-uniform quantization, specifies if valid states should be centered (densely clustered) around the threshold rather than at 0, defaults to ``True``
+    :type uniform: Bool, optional
+
+    :param threshold: Specifies the threshold, defaults to ``1``
+    :type threshold: float, optional
+
+    :param lower_limit: Specifies how far below (-threshold) the lowest valid state can be, i.e., (-threshold - threshold*lower_limit), defaults to ``0``
+    :type lower_limit: float, optional
+
+    :param upper_limit: Specifies how far above (threshold) the highest valid state can be, i.e., (threshold + threshold*upper_limit), defaults to ``0.2``
+    :type upper_limit: float, optional
+
+    :param multiplier: For non-uniform distributions, specify the base of the exponential. If ``None``, an appropriate value is set internally based on ``num_bits``, defaults to ``None``
+    :type multiplier: float, optional
+
     """
+
     num_levels = 2 << num_bits - 1
 
     # linear / uniform quantization - ignores thr_centered
