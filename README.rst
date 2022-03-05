@@ -86,7 +86,7 @@ Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu “Training
 Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
 September 2021. <https://arxiv.org/abs/2109.12894>`_
 
-.. code-block:: none
+.. code-block:: TeX
 
   @article{eshraghian2021training,
   title={Training spiking neural networks using lessons from deep learning},
