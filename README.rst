@@ -114,7 +114,9 @@ They are automatically installed if snnTorch is installed using the pip command.
 Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run the following to install::
+Run the following to install:
+
+.. code-block:: bash
 
   $ python
   $ pip install snntorch
