@@ -86,15 +86,15 @@ Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu “Training
 Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
 September 2021. <https://arxiv.org/abs/2109.12894>`_
 
-.. code-block:: tex
+.. code-block:: python
 
   @article{eshraghian2021training,
-    title     = {Training spiking neural networks using lessons from deep learning},
-    author    = {Eshraghian, Jason K and Ward, Max and Neftci, Emre and Wang, Xinxin 
-                and Lenz, Gregor and Dwivedi, Girish and Bennamoun, Mohammed and Jeong, Doo Seok 
-                and Lu, Wei D},
-    journal   = {arXiv preprint arXiv:2109.12894},
-    year      = {2021}
+          title   =  {Training spiking neural networks using lessons from deep learning},
+          author  =  {Eshraghian, Jason K and Ward, Max and Neftci, Emre and Wang, Xinxin 
+                      and Lenz, Gregor and Dwivedi, Girish and Bennamoun, Mohammed and 
+                     Jeong, Doo Seok and Lu, Wei D},
+          journal = {arXiv preprint arXiv:2109.12894},
+          year    = {2021}
   }
 
 Let us know if you are using snnTorch in any interesting work, research or blogs, as we would love to hear more about it! Reach out at snntorch@gmail.com.
