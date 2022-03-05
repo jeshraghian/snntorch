@@ -199,7 +199,9 @@ For a quick example to run snnTorch, see the following snippet, or test the quic
       spike_recording.append(spike)
 
 
-If you're feeling lazy and want the training process to be taken care of::
+If you're feeling lazy and want the training process to be taken care of:
+
+.. code-block:: python
     
     import snntorch.functional as SF
     from snntorch import backprop
