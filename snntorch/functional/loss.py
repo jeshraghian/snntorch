@@ -23,7 +23,7 @@ class LossFunctions:
 
         return device, num_steps, num_outputs
 
-    def _population_code(spk_out, num_classes, num_outputs):
+    def _population_code(self, spk_out, num_classes, num_outputs):
         """Count up spikes sequentially from output classes."""
         if not num_classes:
             raise Exception(
