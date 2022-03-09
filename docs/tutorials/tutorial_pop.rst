@@ -45,11 +45,11 @@ In this tutorial, you will:
     * Learn how to train a population coded network. Instead of assigning one neuron per class, we will extend this to multiple neurons per class, and aggregate their spikes together.
 
 
-.. code:: ipython3
+::
 
     !pip install snntorch
 
-.. code:: ipython3
+::
 
     import torch, torch.nn as nn
     import snntorch as snn
@@ -59,7 +59,7 @@ DataLoading
 
 Define variables for dataloading.
 
-.. code:: ipython3
+::
 
     batch_size = 128
     data_path='/data/fmnist'
@@ -67,7 +67,7 @@ Define variables for dataloading.
 
 Load FashionMNIST dataset.
 
-.. code:: ipython3
+::
 
     from torch.utils.data import DataLoader
     from torchvision import datasets, transforms
@@ -92,7 +92,7 @@ Define Network
 Let’s compare the performance of a pair of networks both with and
 without population coding, and train them for *one single time step.*
 
-.. code:: ipython3
+::
 
     from snntorch import surrogate
     
@@ -111,7 +111,7 @@ Without population coding
 
 Let’s just use a simple 2-layer dense spiking network.
 
-.. code:: ipython3
+::
 
     net = nn.Sequential(nn.Flatten(),
                         nn.Linear(num_inputs, num_hidden),
@@ -127,7 +127,7 @@ Instead of 10 output neurons corresponding to 10 output classes, we will
 use 500 output neurons. This means each output class has 50 neurons
 randomly assigned to it.
 
-.. code:: ipython3
+::
 
     pop_outputs = 500
     
@@ -151,7 +151,7 @@ simulation run.
 The correct class has a target firing probability of 100%, and incorrect
 classes are set to 0%.
 
-.. code:: ipython3
+::
 
     import snntorch.functional as SF
     
@@ -161,7 +161,7 @@ classes are set to 0%.
 We will also define a simple test accuracy function that predicts the
 correct class based on the neuron with the highest spike count.
 
-.. code:: ipython3
+::
 
     from snntorch import utils
     
@@ -192,7 +192,7 @@ Let’s run the training loop. Note that we are only training for
 once. As a result, we might not expect the network to perform too well
 here.
 
-.. code:: ipython3
+::
 
     from snntorch import backprop
     
@@ -225,12 +225,12 @@ be enabled. We must also specify the number of classes. This means that
 there will be a total of
 :math:`50~neurons~per~class~=~500~neurons~/~10~classes`.
 
-.. code:: ipython3
+::
 
     loss_fn = SF.mse_count_loss(correct_rate=1.0, incorrect_rate=0.0, population_code=True, num_classes=10)
     optimizer = torch.optim.Adam(net_pop.parameters(), lr=2e-3, betas=(0.9, 0.999))
 
-.. code:: ipython3
+::
 
     num_epochs = 5
     
