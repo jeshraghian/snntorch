@@ -1,6 +1,6 @@
 snntorch.functional
 ------------------------
-:mod:`snntorch.functional` implements common arithmetic operations applied to spiking neurons, such as loss and regularization functions etc.
+:mod:`snntorch.functional` implements common arithmetic operations applied to spiking neurons, such as loss and regularization functions, and state quantization etc.
 
 
 How to use functional
@@ -46,6 +46,14 @@ Regularization Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: snntorch.functional.reg
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+State Quantization
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: snntorch.functional.quant
    :members:
    :undoc-members:
    :show-inheritance:

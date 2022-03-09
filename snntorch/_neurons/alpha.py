@@ -83,6 +83,7 @@ class Alpha(LIF):
         learn_beta=False,
         learn_threshold=False,
         reset_mechanism="zero",
+        state_quant=False,
         output=False,
     ):
         super(Alpha, self).__init__(
@@ -94,6 +95,7 @@ class Alpha(LIF):
             learn_beta,
             learn_threshold,
             reset_mechanism,
+            state_quant,
             output,
         )
 
@@ -129,6 +131,11 @@ class Alpha(LIF):
             self.reset = self.mem_reset(mem)
             syn_exc, syn_inh, mem = self.state_fn(input_, syn_exc, syn_inh, mem)
 
+            if self.state_quant:
+                syn_exc = self.state_quant(syn_exc)
+                syn_inh = self.state_quant(syn_inh)
+                mem = self.state_quant(mem)
+
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)
 
@@ -143,6 +150,11 @@ class Alpha(LIF):
 
             self.reset = self.mem_reset(self.mem)
             self.syn_exc, self.syn_inh, self.mem = self.state_fn(input_)
+
+            if self.state_quant:
+                self.syn_exc = self.state_quant(self.syn_exc)
+                self.syn_inh = self.state_quant(self.syn_inh)
+                self.mem = self.state_quant(self.mem)
 
             if self.inhibition:
                 self.spk = self.fire_inhibition(self.mem.size(0), self.mem)

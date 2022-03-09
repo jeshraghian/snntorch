@@ -77,6 +77,9 @@ class Leaky(LIF):
     :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
+    :param state_quant: If specified, hidden state :math:`mem` is quantized to a valid state for the forward pass. Defaults to False
+    :type state_quant: quantization function from snntorch.quant, optional
+
     :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
     :type output: bool, optional
 
@@ -105,6 +108,7 @@ class Leaky(LIF):
         learn_beta=False,
         learn_threshold=False,
         reset_mechanism="subtract",
+        state_quant=False,
         output=False,
     ):
         super(Leaky, self).__init__(
@@ -116,6 +120,7 @@ class Leaky(LIF):
             learn_beta,
             learn_threshold,
             reset_mechanism,
+            state_quant,
             output,
         )
 
@@ -140,6 +145,9 @@ class Leaky(LIF):
             self.reset = self.mem_reset(mem)
             mem = self.state_fn(input_, mem)
 
+            if self.state_quant:
+                mem = self.state_quant(mem)
+
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
             else:
@@ -152,6 +160,9 @@ class Leaky(LIF):
             self._leaky_forward_cases(mem)
             self.reset = self.mem_reset(self.mem)
             self.mem = self.state_fn(input_)
+
+            if self.state_quant:
+                self.mem = self.state_quant(self.mem)
 
             if self.inhibition:
                 self.spk = self.fire_inhibition(self.mem.size(0), self.mem)

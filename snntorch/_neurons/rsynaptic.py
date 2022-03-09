@@ -104,6 +104,9 @@ class RSynaptic(LIF):
     :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
+    :param state_quant: If specified, hidden states :math:`mem` and :math:`syn` are quantized to a valid state for the forward pass. Defaults to False
+    :type state_quant: quantization function from snntorch.quant, optional
+
     :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
     :type output: bool, optional
 
@@ -141,6 +144,7 @@ class RSynaptic(LIF):
         learn_threshold=False,
         learn_V=True,
         reset_mechanism="subtract",
+        state_quant=False,
         output=False,
     ):
         super(RSynaptic, self).__init__(
@@ -152,6 +156,7 @@ class RSynaptic(LIF):
             learn_beta,
             learn_threshold,
             reset_mechanism,
+            state_quant,
             output,
         )
 
@@ -181,6 +186,10 @@ class RSynaptic(LIF):
             self.reset = self.mem_reset(mem)
             syn, mem = self.state_fn(input_, spk, syn, mem)
 
+            if self.state_quant:
+                syn = self.state_quant(syn)
+                mem = self.state_quant(mem)
+
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)
             else:
@@ -193,6 +202,10 @@ class RSynaptic(LIF):
             self._rsynaptic_forward_cases(spk, mem, syn)
             self.reset = self.mem_reset(self.mem)
             self.syn, self.mem = self.state_fn(input_)
+
+            if self.state_quant:
+                self.syn = self.state_quant(self.syn)
+                self.mem = self.state_quant(self.mem)
 
             if self.inhibition:
                 self.spk = self.fire_inhibition(self.mem.size(0), self.mem)

@@ -86,15 +86,15 @@ Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu “Training
 Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
 September 2021. <https://arxiv.org/abs/2109.12894>`_
 
-.. code-block:: none
+.. code-block:: bash
 
   @article{eshraghian2021training,
-  title={Training spiking neural networks using lessons from deep learning},
-  author={Eshraghian, Jason K and Ward, Max and Neftci, Emre and Wang, Xinxin 
-  and Lenz, Gregor and Dwivedi, Girish and Bennamoun, Mohammed and Jeong, Doo Seok 
-  and Lu, Wei D},
-  journal={arXiv preprint arXiv:2109.12894},
-  year={2021}
+          title   =  {Training spiking neural networks using lessons from deep learning},
+          author  =  {Eshraghian, Jason K and Ward, Max and Neftci, Emre and Wang, Xinxin 
+                      and Lenz, Gregor and Dwivedi, Girish and Bennamoun, Mohammed and 
+                     Jeong, Doo Seok and Lu, Wei D},
+          journal = {arXiv preprint arXiv:2109.12894},
+          year    = {2021}
   }
 
 Let us know if you are using snnTorch in any interesting work, research or blogs, as we would love to hear more about it! Reach out at snntorch@gmail.com.
@@ -114,7 +114,9 @@ They are automatically installed if snnTorch is installed using the pip command.
 Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run the following to install::
+Run the following to install:
+
+.. code-block:: bash
 
   $ python
   $ pip install snntorch
@@ -165,7 +167,8 @@ Here are a few ways you can get started with snnTorch:
 
 For a quick example to run snnTorch, see the following snippet, or test the quickstart notebook:
 
-::
+
+.. code-block:: python
 
   import torch, torch.nn as nn
   import snntorch as snn
@@ -198,7 +201,9 @@ For a quick example to run snnTorch, see the following snippet, or test the quic
       spike_recording.append(spike)
 
 
-If you're feeling lazy and want the training process to be taken care of::
+If you're feeling lazy and want the training process to be taken care of:
+
+.. code-block:: python
     
     import snntorch.functional as SF
     from snntorch import backprop
