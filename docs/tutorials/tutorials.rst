@@ -55,14 +55,17 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_7_neuromorphic_datasets.ipynb
 
 
-   * - Tutorial 8
-     - **Under construction:** Population Coding
-     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
-        :alt: Open In Colab
+.. list-table::
+   :widths: 70 40
+   :header-rows: 1
 
-   * - Tutorial 9
-     - **Under construction:** Online Learning with SNNs
+   * - Advanced Tutorials
+     - Colab Link
+
+   * - `Population Coding <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_pop.html>`_
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_pop.ipynb
+
 
 Future tutorials on spiking neurons and training are under construction. 
