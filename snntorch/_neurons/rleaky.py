@@ -203,8 +203,7 @@ class RLeaky(LIF):
     def _build_state_function(self, input_, spk, mem):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = (
-                self._base_state_function(input_, spk, mem)
-                - self.reset * self.threshold
+                self._base_state_function(input_, spk, mem - self.reset * self.threshold)
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
             state_fn = self._base_state_function(
