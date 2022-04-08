@@ -63,7 +63,7 @@ simplfications.
 In the previous tutorial, the Euler method was used to derive the
 following solution to the passive membrane model:
 
-.. math:: U(t+\Delta t) = (1-\frac{\Delta t}{\tau})U(t) + \frac{\Delta t}{\tau} I_{\rm in}(t)T \tag{1}
+.. math:: U(t+\Delta t) = (1-\frac{\Delta t}{\tau})U(t) + \frac{\Delta t}{\tau} I_{\rm in}(t)R \tag{1}
 
 Now assume there is no input current, :math:`I_{\rm in}(t)=0 A`:
 
