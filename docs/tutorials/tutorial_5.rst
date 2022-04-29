@@ -321,7 +321,7 @@ influence of :math:`W[t-1]` on the loss can be written as:
    \underbrace{\frac{\partial \tilde{S}[t]}{\partial U[t]}}_{S[t]}
    \underbrace{\frac{\partial U[t]}{\partial U[t-1]}}_\beta
    \underbrace{\frac{\partial U[t-1]}{\partial I[t-1]}}_1
-   \underbrace{\frac{\partial I[t-1]}{\partial W[t-1]}}_{X[t]} \tag{7}
+   \underbrace{\frac{\partial I[t-1]}{\partial W[t-1]}}_{X[t-1]} \tag{7}
 
 We have already dealt with all of these terms from :math:`(4)`, except
 for :math:`\partial U[t]/\partial U[t-1]`. From :math:`(1)`, this
@@ -784,6 +784,8 @@ this knowledge, you should now be able to build many different types of
 SNNs. `In the next
 tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
 you will learn how to train a spiking convolutional network, and simplify the amount of code required using the ``snn.backprop`` module.
+
+Also, a special thanks to Bugra Kaytanli for providing valuable feedback on the tutorial.
 
 If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
 
