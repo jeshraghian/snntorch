@@ -242,6 +242,8 @@ class RLeaky(LIF):
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], RLeaky):
                 cls.instances[layer].mem.detach_()
+                cls.instances[layer].spk.detach_()
+
 
     @classmethod
     def reset_hidden(cls):
@@ -250,4 +252,5 @@ class RLeaky(LIF):
         Assumes hidden states have a batch dimension already."""
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], RLeaky):
-                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
+                cls.instances[layer].spk, cls.instances[layer].mem = cls.instances[layer].init_rleaky()
+
