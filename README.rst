@@ -292,6 +292,10 @@ It consists of interactive notebooks with complete explanations that can get you
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_pop.ipynb
 
+
+   * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
+     -       —
+
 IPU Acceleration
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -314,7 +318,8 @@ Additional requirements include:
 
 Refer to `Graphcore's documentation <https://github.com/graphcore/poptorch>`_ for installation instructions of poptorch and the Poplar SDK.
 
-The homepage for the snnTorch IPU project can be found `here <https://github.com/vinniesun/snntorch-ipu>`_
+The homepage for the snnTorch IPU project can be found `here <https://github.com/vinniesun/snntorch-ipu>`_.
+A tutorial for training SNNs is provided `here <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_.
 
 
 Contributing
