@@ -146,6 +146,29 @@ def fast_sigmoid(slope=25):
 
     return inner
 
+class ATan(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input_, alpha=2.0):
+        ctx.save_for_backward(input_)
+        ctx.alpha = alpha
+        out = (input_ > 0).float()
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        (input_,) = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        grad = ctx.alpha / 2 / (1 + (math.pi / 2 * ctx.alpha * input_).pow_(2)) * grad_input
+        return grad, None
+
+def atan(alpha = 2.0):
+    alpha = alpha
+
+    def inner(x):
+        return ATan.apply(x, alpha)
+
+    return inner
+
 
 class Sigmoid(torch.autograd.Function):
     """
