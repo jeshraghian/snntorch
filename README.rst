@@ -139,9 +139,8 @@ To install for an Intelligent Processing Units (IPU) based build using Graphcore
 
 API & Examples 
 ^^^^^^^^^^^^^^^^^^^^^^^^
-A complete API is available `here`_. Examples, tutorials and Colab notebooks are provided.
+A complete API is available `here <https://snntorch.readthedocs.io/>`_. Examples, tutorials and Colab notebooks are provided.
 
-.. _here: https://snntorch.readthedocs.io/
 
 
 Quickstart 
