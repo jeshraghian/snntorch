@@ -327,7 +327,7 @@ Acknowledgments
 ^^^^^^^^^^^^^^^^^^^^^^^^
 snnTorch was initially developed by `Jason K. Eshraghian`_ in the `Lu Group (University of Michigan)`_.
 
-Additional contributions were made by Vincent Sun, Peng Zhou, Ridger Chu, Xinxin Wang, and Emre Neftci.
+Additional contributions were made by `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, Xinxin Wang, and Emre Neftci.
 
 Several features in snnTorch were inspired by the work of Friedemann Zenke, Emre Neftci, Doo Seok Jeong, Sumit Bam Shrestha and Garrick Orchard.
 
