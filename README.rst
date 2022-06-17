@@ -131,6 +131,10 @@ To install snnTorch from source instead::
 To install snntorch with conda::
 
     $ conda install -c conda-forge snntorch
+
+To install for an Intelligent Processing Units (IPU) based build using Graphcore's accelerators::
+
+  $ pip install snntorch-ipu
     
 
 API & Examples 
@@ -289,6 +293,34 @@ It consists of interactive notebooks with complete explanations that can get you
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_pop.ipynb
 
 
+   * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
+     -       —
+
+IPU Acceleration
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+snnTorch has been optimized for Graphcore's IPU accelerators. 
+To install an IPU based build of snnTorch::
+
+  $ pip install snntorch-ipu
+
+Low-level custom operations for IPU compatibility will be automatically compiled when :code:`import snntorch` is called for the first time. 
+
+When updating the Poplar SDK, these operations may need to be recompiled. 
+This can be done by reinstalling :code:`snntorch-ipu`, or deleting files in the base directory with an .so extension.
+
+The `snntorch.backprop` module, and several functions from `snntorch.functional` and `snntorch.surrogate`, are incompatible with IPUs, but can be recreated using PyTorch primitives.
+
+Additional requirements include:
+
+* poptorch 
+* The Poplar SDK 
+
+Refer to `Graphcore's documentation <https://github.com/graphcore/poptorch>`_ for installation instructions of poptorch and the Poplar SDK.
+
+The homepage for the snnTorch IPU project can be found `here <https://github.com/vinniesun/snntorch-ipu>`_.
+A tutorial for training SNNs is provided `here <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_.
+
 
 Contributing
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -300,7 +332,7 @@ Acknowledgments
 ^^^^^^^^^^^^^^^^^^^^^^^^
 snnTorch was initially developed by `Jason K. Eshraghian`_ in the `Lu Group (University of Michigan)`_.
 
-Additional contributions were made by Xinxin Wang, Vincent Sun, and Emre Neftci.
+Additional contributions were made by `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, Xinxin Wang, and Emre Neftci.
 
 Several features in snnTorch were inspired by the work of Friedemann Zenke, Emre Neftci, Doo Seok Jeong, Sumit Bam Shrestha and Garrick Orchard.
 
