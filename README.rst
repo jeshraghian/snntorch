@@ -295,10 +295,10 @@ It consists of interactive notebooks with complete explanations that can get you
    * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
      -       —
 
-IPU Acceleration
-^^^^^^^^^^^^^^^^^^^^^^^^
+Intelligent Processing Unit (IPU) Acceleration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-snnTorch has been optimized for Graphcore's IPU accelerators. 
+snnTorch has been optimized for `Graphcore's IPU accelerators <https://www.graphcore.ai/>`_. 
 To install an IPU based build of snnTorch::
 
   $ pip install snntorch-ipu
