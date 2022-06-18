@@ -21,7 +21,7 @@ Introduction
 ============
 
 Spiking neural networks (SNNs) have achieved orders of magnitude improvement in terms of energy consumption and latency when performing inference with deep learning workloads.
-But in a twist of irony, using error backpropagation to train SNNs becomes more expenive than non-spiking network when trained on CPUs and GPUs.
+But in a twist of irony, using error backpropagation to train SNNs becomes more expensive than non-spiking network when trained on CPUs and GPUs.
 The additional temporal dimension must be accounted for, and memory complexity increases lineary with time when a network is trained using the backpropagation-through-time algorithm.
 
 An alternative build of snnTorch has been optimized for `Graphcore's Intelligence Processing Units (IPUs) <https://www.graphcore.ai/>`_.
