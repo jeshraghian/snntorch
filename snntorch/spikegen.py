@@ -85,7 +85,7 @@ def rate(
             "``num_steps`` should not be specified if input is time-varying, i.e., ``time_var_input=True``.\n The first dimension of the input data + ``first_spike_time`` will determine ``num_steps``."
         )
 
-    device = torch.device("cuda") if data.is_cuda else torch.device("cpu")
+    device = data.device
 
     # intended for time-varying input data
     if time_var_input:
@@ -211,7 +211,7 @@ def latency(
             "``num_steps`` must be specified. Alternatively, setting ``bypass=True`` will automatically set ``num_steps`` to the last spike time. This may lead to uneven tensor sizes when used in a loop."
         )
 
-    device = torch.device("cuda") if data.is_cuda else torch.device("cpu")
+    device = data.device
 
     spike_time, idx = latency_code(
         data,
@@ -834,7 +834,7 @@ def targets_rate(
             "``firing_pattern`` must be either 'regular', 'uniform' or 'poisson'."
         )
 
-    device = torch.device("cuda") if targets.is_cuda else torch.device("cpu")
+    device = targets.device
 
     # return a non time-varying tensor
     if correct_rate == 1 and incorrect_rate == 0:
@@ -1140,7 +1140,7 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
             f"``on_target`` [{on_target}] must be greater than ``off_target`` [{off_target}]."
         )
 
-    device = torch.device("cuda") if spike_time.is_cuda else torch.device("cpu")
+    device = targets.device
 
     spike_time = torch.round(
         spike_time
@@ -1327,7 +1327,7 @@ def to_one_hot(targets, num_classes):
             f"target [{torch.max(targets)}] is out of bounds for ``num_classes`` [{num_classes}]"
         )
 
-    device = torch.device("cuda") if targets.is_cuda else torch.device("cpu")
+    device = targets.device
 
     # Initialize zeros. E.g, for MNIST: (batch_size, 10).
     one_hot = torch.zeros([len(targets), num_classes], device=device, dtype=dtype)
