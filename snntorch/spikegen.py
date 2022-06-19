@@ -1140,7 +1140,7 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
             f"``on_target`` [{on_target}] must be greater than ``off_target`` [{off_target}]."
         )
 
-    device = targets.device
+    device = spike_time.device
 
     spike_time = torch.round(
         spike_time
