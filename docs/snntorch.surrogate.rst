@@ -13,6 +13,7 @@ At present, the surrogate gradient functions available include:
 
 * `Sigmoid <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.Sigmoid>`_
 * `Fast Sigmoid <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.FastSigmoid>`_
+* `ATan <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.ATan>`_
 * `Straight Through Estimator <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.StraightThroughEstimator>`_
 * `Triangular <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.Triangular>`_
 * `SpikeRateEscape <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.SpikeRateEscape>`_
