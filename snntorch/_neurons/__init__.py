@@ -10,6 +10,7 @@
 
 __neuron__ = [
     "alpha",
+    "izhikevich",
     "lapicque",
     "leaky",
     "rleaky",
@@ -33,3 +34,4 @@ from .sconv2dlstm import SConv2dLSTM
 from .slstm import SLSTM
 
 # from .slstm import SLSTM
+from .izhikevich import Izhikevich
