@@ -181,6 +181,13 @@ class SpikingNeuron(nn.Module):
             state = torch.zeros_like(state)
 
     @staticmethod
+    def init_izhikevich(v_rest, u_rest):
+        v = torch.tensor(v_rest)
+        u = torch.tensor(u_rest)
+
+        return v, u
+
+    @staticmethod
     class Heaviside(torch.autograd.Function):
         """Default spiking function for neuron.
 
