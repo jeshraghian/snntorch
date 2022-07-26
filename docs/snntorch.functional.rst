@@ -57,3 +57,11 @@ State Quantization
    :members:
    :undoc-members:
    :show-inheritance:
+   
+Probe
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: snntorch.functional.probe
+   :members:
+   :undoc-members:
+   :show-inheritance:
