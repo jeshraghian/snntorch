@@ -182,7 +182,7 @@ class InputMonitor(BaseMonitor):
         return hook
 
 class AttributeMonitor(BaseMonitor):
-        '''
+    '''
     A monitor to record the attribute (e.g. membrane potential) of a specific neuron layer (e.g. Leaky) in a network.
     You could specify the attribute name as the first parameter of this function.
     all of the input data will be recorded in ''self.record'' with the python data type ''list''.
@@ -225,7 +225,7 @@ class AttributeMonitor(BaseMonitor):
             
     :param attribute_name: the attribute's name of probed neuron layer
     :type net: str
-    :param pre_forward: If "True", recording the attribute value before feed forward, otherwise recording the value after feed forward.
+    :param pre_forward: If ``True``, recording the attribute value before feed forward, otherwise recording the value after feed forward.
     :type pre_forward: bool
     :param net: a PyTorch network
     :type net: nn.Module
@@ -262,7 +262,7 @@ class AttributeMonitor(BaseMonitor):
         return hook
 
 class GradInputMonitor(BaseMonitor):
-        '''
+    '''
     A monitor to record the input gradient of each specific neuron layer (e.g. Leaky) in a network.
     all of the input data will be recorded in ''self.record'' with the python data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
@@ -331,7 +331,7 @@ class GradInputMonitor(BaseMonitor):
         return hook
 
 class GradOutputMonitor(BaseMonitor):
-            '''
+    '''
     A monitor to record the output gradient of each specific neuron layer (e.g. Leaky) in a network.
     all of the input data will be recorded in ''self.record'' with the python data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
