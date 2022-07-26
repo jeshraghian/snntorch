@@ -54,50 +54,53 @@ class BaseMonitor:
 class OutputMonitor(BaseMonitor):
     '''
     A monitor to record the output spikes of each specific neuron layer (e.g. Leaky) in a network.
-    all of the output data will be recorded in ''self.record'' with the python data type ''list''.
+    All output data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
-    Call ``self.clear_recorded_data()`` to clear the recorded data.
+    Call ``self.clear_recorded_data()`` to clear recorded data.
     
     Example::
-        import snntorch
+
+        import snntorch as snn
         from snntorch.functional import probe
-        from torch import nn
+        
         import torch
+        from torch import nn
+
         class Net(nn.Module):
             def __init__(self):
                 super().__init__()
                 self.fc1 = nn.Linear(8, 4)
-                self.sn1 = snntorch.Leaky()
+                self.lif1 = snn.Leaky()
                 self.fc2 = nn.Linear(4, 2)
-                self.sn2 = snntorch.Leaky()
+                self.lif2 = snn.Leaky()
 
             def forward(self, x_seq: torch.Tensor):
                 x_seq = self.fc1(x_seq)
-                x_seq = self.sn1(x_seq)
+                x_seq = self.lif1(x_seq)
                 x_seq = self.fc2(x_seq)
-                x_seq = self.sn2(x_seq)
+                x_seq = self.lif2(x_seq)
                 return x_seq
 
         net = Net()
-        for param in net.parameters():
-            #keeps all parameter in positive to make sure spike emiting in network.
-            param.data.abs_()
 
-        mtor = probe.OutputMonitor(net, instance=snntorch.Leaky())
+        monitor = probe.OutputMonitor(net, instance=snntorch.Leaky())
 
         with torch.no_grad():
             y = net(torch.rand([1, 8]))
-            print(f'mtor.records={mtor.records}')
-            print(f'mtor[0]={mtor[0]}')
-            print(f'mtor.monitored_layers={mtor.monitored_layers}')
-            print(f"mtor['sn1']={mtor['sn1']}")
+            print(f'monitor.records={monitor.records}')
+            print(f'monitor[0]={monitor[0]}')
+            print(f'monitor.monitored_layers={monitor.monitored_layers}')
+            print(f"monitor['lif1']={monitor['lif1']}")
             
-    :param net: a PyTorch network
+    :param net: Network model (either wrapped in Sequential container or as a class)
     :type net: nn.Module
-    :param instance: the instance of modules to be monitored. If ``None``, it will be regarded as ``type(net)``
+
+    :param instance: Instance of modules to be monitored. If ``None``, defaults to ``type(net)``
     :type instance: Any or tuple
-    :param function_on_output: the function that applies on the monitored modules' outputs
+
+    :param function_on_output: Function that is applied to the monitored modules' outputs
     :type function_on_output: Callable, optional
+
     '''
     def __init__(self, net: nn.Module, instance: Any or tuple = None, function_on_output: Callable = lambda x: x):
         super().__init__()
@@ -118,50 +121,51 @@ class OutputMonitor(BaseMonitor):
 
 class InputMonitor(BaseMonitor):
     '''
-    A monitor to record the input of each specific neuron layer (e.g. Leaky) in a network.
-    all of the input data will be recorded in ''self.record'' with the python data type ''list''.
+    A monitor to record the input of each neuron layer (e.g. Leaky) in a network.
+    All input data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
-    Call ``self.clear_recorded_data()`` to clear the recorded data.
+    Call ``self.clear_recorded_data()`` to clear recorded data.
     
     Example::
+        import snntorch as snn
         from snntorch.functional import probe
-        import snntorch
+        
         import torch
         from torch import nn
+
         class Net(nn.Module):
             def __init__(self):
                 super().__init__()
                 self.fc1 = nn.Linear(8, 4)
-                self.sn1 = snntorch.Leaky()
+                self.lif1 = snn.Leaky()
                 self.fc2 = nn.Linear(4, 2)
-                self.sn2 = snntorch.Leaky()
+                self.lif2 = snn.Leaky()
 
             def forward(self, x_seq: torch.Tensor):
                 x_seq = self.fc1(x_seq)
-                x_seq = self.sn1(x_seq)
+                x_seq = self.lif1(x_seq)
                 x_seq = self.fc2(x_seq)
-                x_seq = self.sn2(x_seq)
+                x_seq = self.lif2(x_seq)
                 return x_seq
 
         net = Net()
-        for param in net.parameters():
-            #keeps all parameter in positive to make sure spike emiting in network.
-            param.data.abs_()
 
-        mtor = probe.InputMonitor(net, instance=snntorch.Leaky())
+        monitor = probe.InputMonitor(net, instance=snn.Leaky())
 
         with torch.no_grad():
             y = net(torch.rand([1, 8]))
-            print(f'mtor.records={mtor.records}')
-            print(f'mtor[0]={mtor[0]}')
-            print(f'mtor.monitored_layers={mtor.monitored_layers}')
-            print(f"mtor['sn1']={mtor['sn1']}")
+            print(f'monitor.records={monitor.records}')
+            print(f'monitor[0]={monitor[0]}')
+            print(f'monitor.monitored_layers={monitor.monitored_layers}')
+            print(f"monitor['lif1']={monitor['lif1']}")
             
-    :param net: a PyTorch network
+    :param net: Network model (either wrapped in Sequential container or as a class)
     :type net: nn.Module
-    :param instance: the instance of modules to be monitored. If ``None``, it will be regarded as ``type(net)``
+
+    :param instance: Instance of modules to be monitored. If ``None``, defaults to ``type(net)``
     :type instance: Any or tuple
-    :param function_on_input: the function that applies on the monitored modules' inputs
+
+    :param function_on_input: Function that is applied to the monitored modules' input
     :type function_on_input: Callable, optional
     '''
     def __init__(self, net: nn.Module, instance: Any or tuple = None, function_on_input: Callable = lambda x: x):
@@ -184,56 +188,60 @@ class InputMonitor(BaseMonitor):
 class AttributeMonitor(BaseMonitor):
     '''
     A monitor to record the attribute (e.g. membrane potential) of a specific neuron layer (e.g. Leaky) in a network.
-    You could specify the attribute name as the first parameter of this function.
-    all of the input data will be recorded in ''self.record'' with the python data type ''list''.
+    The attribute name can be specified as the first argument of this function.
+    All attribute data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
-    Call ``self.clear_recorded_data()`` to clear the recorded data.
+    Call ``self.clear_recorded_data()`` to clear recorded data.
     
     Example::
+        import snntorch as snn
         from snntorch.functional import probe
-        import snntorch
+
         import torch
         from torch import nn
+
         class Net(nn.Module):
             def __init__(self):
                 super().__init__()
                 self.fc1 = nn.Linear(8, 4)
-                self.sn1 = snntorch.Leaky()
+                self.lif1 = snn.Leaky()
                 self.fc2 = nn.Linear(4, 2)
-                self.sn2 = snntorch.Leaky()
+                self.lif2 = snn.Leaky()
 
             def forward(self, x_seq: torch.Tensor):
                 x_seq = self.fc1(x_seq)
-                x_seq = self.sn1(x_seq)
+                x_seq = self.lif1(x_seq)
                 x_seq = self.fc2(x_seq)
-                x_seq = self.sn2(x_seq)
+                x_seq = self.lif2(x_seq)
                 return x_seq
 
         net = Net()
-        for param in net.parameters():
-            #keeps all parameter in positive to make sure spike emiting in network.
-            param.data.abs_()
 
-        mtor = probe.AttributeMonitor('mem', False, net, instance=snntorch.Leaky())
+        monitor = probe.AttributeMonitor('mem', False, net, instance=snn.Leaky())
 
         with torch.no_grad():
             y = net(torch.rand([1, 8]))
-            print(f'mtor.records={mtor.records}')
-            print(f'mtor[0]={mtor[0]}')
-            print(f'mtor.monitored_layers={mtor.monitored_layers}')
-            print(f"mtor['sn1']={mtor['sn1']}")
+            print(f'monitor.records={monitor.records}')
+            print(f'monitor[0]={monitor[0]}')
+            print(f'monitor.monitored_layers={monitor.monitored_layers}')
+            print(f"monitor['lif1']={monitor['lif1']}")
             
-    :param attribute_name: the attribute's name of probed neuron layer
+    :param attribute_name: Attribute's name of probed neuron layer (e.g., mem, syn, etc.)
     :type net: str
-    :param pre_forward: If ``True``, recording the attribute value before feed forward, otherwise recording the value after feed forward.
+
+    :param pre_forward: If ``True``, record the attribute value before the forward pass, otherwise record the value after forward pass.
     :type pre_forward: bool
-    :param net: a PyTorch network
+
+    :param net: Network model (either wrapped in Sequential container or as a class)
     :type net: nn.Module
-    :param instance: the instance of modules to be monitored. If ``None``, it will be regarded as ``type(net)``
+
+    :param instance: Instance of modules to be monitored. If ``None``, defaults to ``type(net)``
     :type instance: Any or tuple
-    :param function_on_attribute: the function that applies on the monitored modules' inputs
+
+    :param function_on_attribute: Function that is applied to the monitored modules' attribute
     :type function_on_attribute: Callable, optional
     '''
+
     def __init__(self, attribute_name: str, pre_forward: bool, net: nn.Module, instance: Any or tuple = None,
                  function_on_attribute: Callable = lambda x: x):
         super().__init__()
@@ -263,52 +271,54 @@ class AttributeMonitor(BaseMonitor):
 
 class GradInputMonitor(BaseMonitor):
     '''
-    A monitor to record the input gradient of each specific neuron layer (e.g. Leaky) in a network.
-    all of the input data will be recorded in ''self.record'' with the python data type ''list''.
+    A monitor to record the input gradient of each neuron layer (e.g. Leaky) in a network.
+    All input gradient data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
-    Call ``self.clear_recorded_data()`` to clear the recorded data.
+    Call ``self.clear_recorded_data()`` to clear recorded data.
     
     Example::
+        import snntorch as snn
         from snntorch.functional import probe
-        import snntorch
+
         import torch
         from torch import nn
+
         class Net(nn.Module):
             def __init__(self):
                 super().__init__()
                 self.fc1 = nn.Linear(8, 4)
-                self.sn1 = snntorch.Leaky()
+                self.lif1 = snn.Leaky()
                 self.fc2 = nn.Linear(4, 2)
-                self.sn2 = snntorch.Leaky()
+                self.lif2 = snn.Leaky()
 
             def forward(self, x_seq: torch.Tensor):
                 x_seq = self.fc1(x_seq)
-                x_seq = self.sn1(x_seq)
+                x_seq = self.lif1(x_seq)
                 x_seq = self.fc2(x_seq)
-                x_seq = self.sn2(x_seq)
+                x_seq = self.lif2(x_seq)
                 return x_seq
 
         net = Net()
-        for param in net.parameters():
-            #keeps all parameter in positive to make sure spike emiting in network.
-            param.data.abs_()
 
-        mtor = probe.GradInputMonitor(net, instance=snntorch.Leaky())
+        monitor = probe.GradInputMonitor(net, instance=snn.Leaky())
 
         with torch.no_grad():
             y = net(torch.rand([1, 8]))
-            print(f'mtor.records={mtor.records}')
-            print(f'mtor[0]={mtor[0]}')
-            print(f'mtor.monitored_layers={mtor.monitored_layers}')
-            print(f"mtor['sn1']={mtor['sn1']}")
-            
-    :param net: a PyTorch network
+            print(f'monitor.records={monitor.records}')
+            print(f'monitor[0]={monitor[0]}')
+            print(f'monitor.monitored_layers={monitor.monitored_layers}')
+            print(f"monitor['lif1']={monitor['lif1']}")
+
+    :param net: Network model (either wrapped in Sequential container or as a class)
     :type net: nn.Module
-    :param instance: the instance of modules to be monitored. If ``None``, it will be regarded as ``type(net)``
+
+    :param instance: Instance of modules to be monitored. If ``None``, defaults to ``type(net)``
     :type instance: Any or tuple
-    :param function_on_grad_input: the function that applies on the monitored modules' inputs
+    
+    :param function_on_grad_input: Function that is applied to the monitored modules' gradients
     :type function_on_grad_input: Callable, optional
     '''
+
     def __init__(self, net: nn.Module, instance: Any or tuple = None, function_on_grad_input: Callable = lambda x: x):
         super().__init__()
         self.function_on_grad_input = function_on_grad_input
@@ -333,51 +343,53 @@ class GradInputMonitor(BaseMonitor):
 class GradOutputMonitor(BaseMonitor):
     '''
     A monitor to record the output gradient of each specific neuron layer (e.g. Leaky) in a network.
-    all of the input data will be recorded in ''self.record'' with the python data type ''list''.
+    All output gradient data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
-    Call ``self.clear_recorded_data()`` to clear the recorded data.
+    Call ``self.clear_recorded_data()`` to clear recorded data.
     
     Example::
+        import snntorch as snn
         from snntorch.functional import probe
-        import snntorch
+
         import torch
         from torch import nn
+
         class Net(nn.Module):
             def __init__(self):
                 super().__init__()
                 self.fc1 = nn.Linear(8, 4)
-                self.sn1 = snntorch.Leaky()
+                self.lif1 = snn.Leaky()
                 self.fc2 = nn.Linear(4, 2)
-                self.sn2 = snntorch.Leaky()
+                self.lif2 = snn.Leaky()
 
             def forward(self, x_seq: torch.Tensor):
                 x_seq = self.fc1(x_seq)
-                x_seq = self.sn1(x_seq)
+                x_seq = self.lif1(x_seq)
                 x_seq = self.fc2(x_seq)
-                x_seq = self.sn2(x_seq)
+                x_seq = self.lif2(x_seq)
                 return x_seq
 
         net = Net()
-        for param in net.parameters():
-            #keeps all parameter in positive to make sure spike emiting in network.
-            param.data.abs_()
 
-        mtor = probe.GradOutputMonitor(net, instance=snntorch.Leaky())
+        mtor = probe.GradOutputMonitor(net, instance=snn.Leaky())
 
         with torch.no_grad():
             y = net(torch.rand([1, 8]))
             print(f'mtor.records={mtor.records}')
             print(f'mtor[0]={mtor[0]}')
             print(f'mtor.monitored_layers={mtor.monitored_layers}')
-            print(f"mtor['sn1']={mtor['sn1']}")
-            
-    :param net: a PyTorch network
+            print(f"mtor['lif1']={mtor['lif1']}")
+
+    :param net: Network model (either wrapped in Sequential container or as a class)
     :type net: nn.Module
-    :param instance: the instance of modules to be monitored. If ``None``, it will be regarded as ``type(net)``
+
+    :param instance: Instance of modules to be monitored. If ``None``, defaults to ``type(net)``
     :type instance: Any or tuple
-    :param function_on_grad_output: the function that applies on the monitored modules' inputs
+    
+    :param function_on_grad_output: Function that is applied to the monitored modules' gradients
     :type function_on_grad_output: Callable, optional
     '''
+
     def __init__(self, net: nn.Module, instance: Any or tuple = None, function_on_grad_output: Callable = lambda x: x):
         super().__init__()
         self.function_on_grad_output = function_on_grad_output
