@@ -457,7 +457,7 @@ connected to GPU, then consider reducing ``num_epochs``.
         print(f"Epoch {epoch}, Train Loss: {avg_loss.item():.2f}")
     
         # Test set accuracy
-        test_acc = batch_accuracy(train_loader, net, num_steps)
+        test_acc = batch_accuracy(test_loader, net, num_steps)
         test_acc_hist.append(test_acc)
     
         print(f"Epoch {epoch}, Test Acc: {test_acc * 100:.2f}%\n")
