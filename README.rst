@@ -139,7 +139,7 @@ To install for an Intelligent Processing Units (IPU) based build using Graphcore
 
 API & Examples 
 ^^^^^^^^^^^^^^^^^^^^^^^^
-A complete API is available `here <https://snntorch.readthedocs.io/>`_. Examples, tutorials and Colab notebooks are provided.
+A complete API is available `here <https://snntorch.readthedocs.io/>`__. Examples, tutorials and Colab notebooks are provided.
 
 
 
@@ -317,8 +317,8 @@ Additional requirements include:
 
 Refer to `Graphcore's documentation <https://github.com/graphcore/poptorch>`_ for installation instructions of poptorch and the Poplar SDK.
 
-The homepage for the snnTorch IPU project can be found `here <https://github.com/vinniesun/snntorch-ipu>`_.
-A tutorial for training SNNs is provided `here <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_.
+The homepage for the snnTorch IPU project can be found `here <https://github.com/vinniesun/snntorch-ipu>`__.
+A tutorial for training SNNs is provided `here <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`__.
 
 
 Contributing
