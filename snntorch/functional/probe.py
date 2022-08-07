@@ -127,6 +127,7 @@ class InputMonitor(BaseMonitor):
     Call ``self.clear_recorded_data()`` to clear recorded data.
     
     Example::
+    
         import snntorch as snn
         from snntorch.functional import probe
         
@@ -194,6 +195,7 @@ class AttributeMonitor(BaseMonitor):
     Call ``self.clear_recorded_data()`` to clear recorded data.
     
     Example::
+    
         import snntorch as snn
         from snntorch.functional import probe
 
@@ -277,6 +279,7 @@ class GradInputMonitor(BaseMonitor):
     Call ``self.clear_recorded_data()`` to clear recorded data.
     
     Example::
+    
         import snntorch as snn
         from snntorch.functional import probe
 
@@ -348,6 +351,7 @@ class GradOutputMonitor(BaseMonitor):
     Call ``self.clear_recorded_data()`` to clear recorded data.
     
     Example::
+    
         import snntorch as snn
         from snntorch.functional import probe
 
