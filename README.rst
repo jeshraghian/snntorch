@@ -342,4 +342,4 @@ Several features in snnTorch were inspired by the work of Friedemann Zenke, Emre
 License & Copyright
 ^^^^^^^^^^^^^^^^^^^^^^^^
 snnTorch source code is published under the terms of the MIT License. 
-snnTorch's documentation is licensed under a Creative Commons Attribution-Share Alike 3.0 Unported License (`CC BY-SA 3.0 <https://creativecommons.org/licenses/by-sa/3.0/>`_)
+snnTorch's documentation is licensed under a Creative Commons Attribution-Share Alike 3.0 Unported License (`CC BY-SA 3.0 <https://creativecommons.org/licenses/by-sa/3.0/>`_).
