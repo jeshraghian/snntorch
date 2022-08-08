@@ -341,4 +341,5 @@ Several features in snnTorch were inspired by the work of Friedemann Zenke, Emre
 
 License & Copyright
 ^^^^^^^^^^^^^^^^^^^^^^^^
-snnTorch is licensed under the GNU General Public License v3.0: https://www.gnu.org/licenses/gpl-3.0.en.html.
+snnTorch source code is published under the terms of the MIT License. 
+snnTorch's documentation is licensed under a Creative Commons Attribution-Share Alike 3.0 Unported License (`CC BY-SA 3.0 <https://creativecommons.org/licenses/by-sa/3.0/>`_).
