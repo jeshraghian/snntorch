@@ -53,7 +53,7 @@ setup(
     #     ],
     # },
     install_requires=requirements,
-    license="GNU General Public License v3",
+    license="MIT License",
     long_description=readme,
     include_package_data=True,
     keywords="snntorch",
