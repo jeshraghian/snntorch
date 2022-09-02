@@ -329,7 +329,7 @@ If you're ready to contribute to snnTorch, instructions to do so can be `found h
 
 Acknowledgments
 ^^^^^^^^^^^^^^^^^^^^^^^^
-snnTorch was initially developed by `Jason K. Eshraghian`_ in the `Lu Group (University of Michigan)`_.
+snnTorch is currently maintained by the `UCSC Neuromorphic Computing Group <https://ncg.ucsc.edu>`_. It was initially developed by `Jason K. Eshraghian`_ in the `Lu Group (University of Michigan)`_. 
 
 Additional contributions were made by `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, Xinxin Wang, and Emre Neftci.
 
