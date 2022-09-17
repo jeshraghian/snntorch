@@ -333,8 +333,6 @@ snnTorch is currently maintained by the `UCSC Neuromorphic Computing Group <http
 
 Additional contributions were made by `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, Xinxin Wang, and Emre Neftci.
 
-Several features in snnTorch were inspired by the work of Friedemann Zenke, Emre Neftci, Doo Seok Jeong, Sumit Bam Shrestha and Garrick Orchard.
-
 .. _Jason K. Eshraghian: https://jasoneshraghian.com
 .. _Lu Group (University of Michigan): https://lugroup.engin.umich.edu/
 
