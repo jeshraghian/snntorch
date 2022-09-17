@@ -308,7 +308,7 @@ Low-level custom operations for IPU compatibility will be automatically compiled
 When updating the Poplar SDK, these operations may need to be recompiled. 
 This can be done by reinstalling :code:`snntorch-ipu`, or deleting files in the base directory with an .so extension.
 
-The `snntorch.backprop` module, and several functions from `snntorch.functional` and `snntorch.surrogate`, are incompatible with IPUs, but can be recreated using PyTorch primitives.
+The :code:`snntorch.backprop` module, and several functions from :code:`snntorch.functional` and :code:`snntorch.surrogate`, are incompatible with IPUs, but can be recreated using PyTorch primitives.
 
 Additional requirements include:
 
