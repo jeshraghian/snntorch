@@ -82,10 +82,8 @@ class Triangular(torch.autograd.Function):
     def backward(ctx, grad_output):
         (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
-        if input_ < 0:
-            grad = grad_input * ctx.threshold
-        else:
-            grad = -grad_input * ctx.threshold
+        grad = grad_input * ctx.threshold
+        grad[input_ >= 0] = -grad[input_ >=0] 
         return grad, None
 
 
