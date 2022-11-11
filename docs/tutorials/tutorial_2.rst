@@ -2,7 +2,7 @@
 Tutorial 2 - The Leaky Integrate-and-Fire Neuron
 ======================================================
 
-Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.jasoneshraghian.com>`_)
+Tutorial written by Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
