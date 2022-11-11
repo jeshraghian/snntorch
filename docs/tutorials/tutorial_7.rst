@@ -2,7 +2,7 @@
 Tutorial 7 - Neuromorphic Datasets with Tonic + snnTorch
 ===============================================================================================
 
-Tutorial written by Gregor Lenz (`https://lenzgregor.com <https://lenzgregor.com)>`_) and Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.jasoneshraghian.com>`_)
+Tutorial written by Gregor Lenz (`https://lenzgregor.com <https://lenzgregor.com)>`_) and Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
@@ -123,61 +123,29 @@ dense format.
     trainset = tonic.datasets.NMNIST(save_to='./data', transform=frame_transform, train=True)
     testset = tonic.datasets.NMNIST(save_to='./data', transform=frame_transform, train=False)
 
-1.2 Fast Dataloading via Caching
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The original data is stored in a format that is slow to read. To speed
-up dataloading, we can make use of disk caching. That means that once
-files are loaded from the original file, they are written to disk in an
-efficient format in our cache directory. Let’s compare some file reading
-speeds to read 100 examples.
-
-::
-
-    def load_sample_simple():
-        for i in range(100):
-            events, target = trainset[i]
-
-::
-
-    >>> %timeit -o load_sample_simple()
-    1 loop, best of 5: 2.95 s per loop
-
-We can decrease the time it takes to read 100 samples by using a PyTorch
-DataLoader in addition to disk caching.
-
-::
-
-    from torch.utils.data import DataLoader
-    from tonic import CachedDataset
-    
-    cached_trainset = CachedDataset(trainset, cache_path='./cache/nmnist/train')
-    cached_dataloader = DataLoader(cached_trainset)
-    
-    def load_sample_cached():
-        for i, (events, target) in enumerate(iter(cached_dataloader)):
-            if i > 99: break
-
-::
-
-    >>> %timeit -o -r 20 load_sample_cached()
-    1 loop, best of 20: 2.05 s per loop
 
 
-1.3 Even Faster DataLoading via Batching
+1.2 Fast DataLoading
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now that we’ve reduced our loading time, we also want to use batching to
-make efficient use of the GPU.
+The original data is stored in a format that is slow to read. To speed up 
+dataloading, we can make use of disk caching and batching. That means that 
+once files are loaded from the original dataset, they are written to the disk. 
 
-Because event recordings have different lengths, we are going to provide
-a collation function ``tonic.collation.PadTensors()`` that will pad out
-shorter recordings to ensure all samples in a batch have the same
-dimensions.
+Because event recordings have different lengths, we are going to provide a 
+collation function ``tonic.collation.PadTensors()`` that will pad out shorter 
+recordings to ensure all samples in a batch have the same dimensions. 
 
-::
+::  
 
-    batch_size = 100
+    from torch.utils.data import DataLoader
+    from tonic import DiskCachedDataset
+
+
+    cached_trainset = DiskCachedDataset(trainset, cache_path='./cache/nmnist/train')
+    cached_dataloader = DataLoader(cached_trainset)
+
+    batch_size = 128
     trainloader = DataLoader(cached_trainset, batch_size=batch_size, collate_fn=tonic.collation.PadTensors())
 
 ::
@@ -188,11 +156,20 @@ dimensions.
 ::
 
     >>> %timeit -o -r 10 load_sample_batched()
-    100 loops, best of 10: 18.1 ms per loop
+    4.2 ms ± 119 µs per loop (mean ± std. dev. of 10 runs, 100 loops each)
 
-By using disk caching and a PyTorch dataloader with multithreading and
-batching support, we have reduced loading times to less than a tenth per
-sample in comparison to naively iterating over the dataset!
+
+By using disk caching and a PyTorch dataloader with multithreading and batching 
+support, we have signifantly reduced loading times.
+
+If you have a large amount of RAM available, you can speed up dataloading further 
+by caching to main memory instead of to disk:
+
+::
+    from tonic import MemoryCachedDataset
+
+    cached_trainset = MemoryCachedDataset(trainset)
+
 
 2. Training our network using frames created from events
 -----------------------------------------------------------
@@ -212,14 +189,14 @@ like.
     transform = tonic.transforms.Compose([torch.from_numpy,
                                           torchvision.transforms.RandomRotation([-10,10])])
     
-    cached_trainset = CachedDataset(trainset, transform=transform, cache_path='./cache/nmnist/train')
+    cached_trainset = DiskCachedDataset(trainset, transform=transform, cache_path='./cache/nmnist/train')
     
     # no augmentations for the testset
-    cached_testset = CachedDataset(testset, cache_path='./cache/nmnist/test')
+    cached_testset = DiskCachedDataset(testset, cache_path='./cache/nmnist/test')
     
     batch_size = 128
-    trainloader = DataLoader(cached_trainset, batch_size=batch_size, collate_fn=tonic.collation.PadTensors(), shuffle=True)
-    testloader = DataLoader(cached_testset, batch_size=batch_size, collate_fn=tonic.collation.PadTensors())
+    trainloader = DataLoader(cached_trainset, batch_size=batch_size, collate_fn=tonic.collation.PadTensors(batch_first=False), shuffle=True)
+    testloader = DataLoader(cached_testset, batch_size=batch_size, collate_fn=tonic.collation.PadTensors(batch_first=False))
 
 A mini-batch now has the dimensions (time steps, batch size, channels,
 height, width). The number of time steps will be set to that of the
@@ -261,7 +238,7 @@ previous tutorial. The convolutional network architecture to be used is:
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     
     # neuron and simulation parameters
-    spike_grad = surrogate.fast_sigmoid(slope=75)
+    spike_grad = surrogate.atan()
     beta = 0.5
     
     #  Initialize Network
