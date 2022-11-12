@@ -83,7 +83,7 @@ class Triangular(torch.autograd.Function):
         (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
         grad = grad_input * ctx.threshold
-        grad[input_ >= 0] = -grad[input_ >=0] 
+        grad[input_ >= 0] = -grad[input_ >= 0]
         return grad, None
 
 
@@ -198,6 +198,50 @@ def atan(alpha=2.0):
 
     def inner(x):
         return ATan.apply(x, alpha)
+
+    return inner
+
+
+@staticmethod
+class Heaviside(torch.autograd.Function):
+    """Default spiking function for neuron.
+
+    **Forward pass:** Heaviside step function shifted.
+
+    .. math::
+
+        S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+        0 & \\text{if U < U$_{\\rm thr}$}
+        \\end{cases}
+
+    **Backward pass:** Heaviside step function shifted.
+
+    .. math::
+
+        \\frac{∂S}{∂U}=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+        0 & \\text{if U < U$_{\\rm thr}$}
+        \\end{cases}
+
+    Although the backward pass is clearly not the analytical solution of the forward pass, this assumption holds true on the basis that a reset necessarily occurs after a spike is generated when :math:`U ≥ U_{\\rm thr}`."""
+
+    @staticmethod
+    def forward(ctx, input_):
+        out = (input_ > 0).float()
+        ctx.save_for_backward(out)
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        (out,) = ctx.saved_tensors
+        grad = grad_output * out
+        return grad
+
+
+def heaviside():
+    """Heaviside surrogate gradient wrapper."""
+
+    def inner(x):
+        return Heaviside.apply(x)
 
     return inner
 

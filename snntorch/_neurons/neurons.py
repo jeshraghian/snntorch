@@ -48,9 +48,8 @@ class SpikingNeuron(nn.Module):
         self._snn_register_buffer(threshold, learn_threshold, reset_mechanism)
         self._reset_mechanism = reset_mechanism
 
-        # TO-DO: Heaviside --> STE; needs a tutorial change too?
         if spike_grad is None:
-            self.spike_grad = self.Heaviside.apply
+            self.spike_grad = self.ATan.apply
         else:
             self.spike_grad = spike_grad
 
@@ -181,38 +180,59 @@ class SpikingNeuron(nn.Module):
             state = torch.zeros_like(state)
 
     @staticmethod
-    class Heaviside(torch.autograd.Function):
-        """Default spiking function for neuron.
+    class ATan(torch.autograd.Function):
+        """
+        Surrogate gradient of the Heaviside step function.
 
         **Forward pass:** Heaviside step function shifted.
 
-        .. math::
+            .. math::
 
-            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-            0 & \\text{if U < U$_{\\rm thr}$}
-            \\end{cases}
+                S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+                0 & \\text{if U < U$_{\\rm thr}$}
+                \\end{cases}
 
-        **Backward pass:** Heaviside step function shifted.
+        **Backward pass:** Gradient of shifted arc-tan function.
 
-        .. math::
+            .. math::
 
-            \\frac{∂S}{∂U}=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-            0 & \\text{if U < U$_{\\rm thr}$}
-            \\end{cases}
+                    S&≈\\frac{1}{π}\\text{arctan}(πU \\frac{α}{2}) \\\\
+                    \\frac{∂S}{∂U}&=\\frac{1}{π}\\frac{1}{(1+(πU\\frac{α}{2})^2}
 
-        Although the backward pass is clearly not the analytical solution of the forward pass, this assumption holds true on the basis that a reset necessarily occurs after a spike is generated when :math:`U ≥ U_{\\rm thr}`."""
+
+        :math:`alpha` defaults to 2, and can be modified by calling ``surrogate.atan(alpha=2)``.
+
+        Adapted from:
+
+        *W. Fang, Z. Yu, Y. Chen, T. Masquelier, T. Huang, Y. Tian (2021) Incorporating Learnable Membrane Time Constants to Enhance Learning of Spiking Neural Networks. Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV), pp. 2661-2671.*"""
 
         @staticmethod
-        def forward(ctx, input_):
+        def forward(ctx, input_, alpha=2.0):
+            ctx.save_for_backward(input_)
+            ctx.alpha = alpha
             out = (input_ > 0).float()
-            ctx.save_for_backward(out)
             return out
 
         @staticmethod
         def backward(ctx, grad_output):
-            (out,) = ctx.saved_tensors
-            grad = grad_output * out
-            return grad
+            (input_,) = ctx.saved_tensors
+            grad_input = grad_output.clone()
+            grad = (
+                ctx.alpha
+                / 2
+                / (1 + (torch.pi / 2 * ctx.alpha * input_).pow_(2))
+                * grad_input
+            )
+            return grad, None
+
+    # def atan(alpha=2.0):
+    #     """ArcTan surrogate gradient enclosed with a parameterized slope."""
+    #     alpha = alpha
+
+    #     def inner(x):
+    #         return ATan.apply(x, alpha)
+
+    #     return inner
 
 
 class LIF(SpikingNeuron):
@@ -248,9 +268,9 @@ class LIF(SpikingNeuron):
         )
         self._reset_mechanism = reset_mechanism
 
-        # TO-DO: Heaviside --> STE; needs a tutorial change too?
+        # TO-DO: Needs a tutorial change too
         if spike_grad is None:
-            self.spike_grad = self.Heaviside.apply
+            self.spike_grad = self.ATan.apply
         else:
             self.spike_grad = spike_grad
 
