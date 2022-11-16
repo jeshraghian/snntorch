@@ -184,9 +184,8 @@ class Leaky(LIF):
                 self._base_state_function(input_, mem - self.reset * self.threshold)
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self._base_state_function(
-                input_, mem
-            ) - self.reset * self._base_state_function(input_, mem)
+            mem = (1-self.reset) * mem
+            state_fn = self._base_state_function(input_, mem)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
             state_fn = self._base_state_function(input_, mem)
         return state_fn
@@ -201,9 +200,8 @@ class Leaky(LIF):
                 self._base_state_function_hidden(input_) - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self._base_state_function_hidden(
-                input_
-            ) - self.reset * self._base_state_function_hidden(input_)
+            self.mem = (1-self.reset) * self.mem
+            state_fn = self._base_state_function_hidden(input_)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
             state_fn = self._base_state_function_hidden(input_)
         return state_fn
