@@ -291,8 +291,9 @@ class LIF(SpikingNeuron):
             self.register_buffer("beta", beta)
 
     def _V_register_buffer(self, V, learn_V):
-        if not isinstance(V, torch.Tensor):
-            V = torch.as_tensor(V)
+        if V is not None:
+            if not isinstance(V, torch.Tensor):
+                V = torch.as_tensor(V)
         if learn_V:
             self.V = nn.Parameter(V)
         else:

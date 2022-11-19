@@ -18,35 +18,50 @@ def rsynaptic_instance():
         alpha=0.5,
         beta=0.5,
         V=0.5,
+        all_to_all=False,
     )
 
 
 @pytest.fixture(scope="module")
 def rsynaptic_reset_zero_instance():
-    return snn.RSynaptic(alpha=0.5, beta=0.5, V=0.5, reset_mechanism="zero")
+    return snn.RSynaptic(
+        alpha=0.5, beta=0.5, V=0.5, all_to_all=False, reset_mechanism="zero"
+    )
 
 
 @pytest.fixture(scope="module")
 def rsynaptic_reset_none_instance():
-    return snn.RSynaptic(alpha=0.5, beta=0.5, V=0.5, reset_mechanism="none")
+    return snn.RSynaptic(
+        alpha=0.5, beta=0.5, V=0.5, all_to_all=False, reset_mechanism="none"
+    )
 
 
 @pytest.fixture(scope="module")
 def rsynaptic_hidden_instance():
-    return snn.RSynaptic(alpha=0.5, beta=0.5, V=0.5, init_hidden=True)
+    return snn.RSynaptic(alpha=0.5, beta=0.5, V=0.5, all_to_all=False, init_hidden=True)
 
 
 @pytest.fixture(scope="module")
 def rsynaptic_hidden_reset_zero_instance():
     return snn.RSynaptic(
-        alpha=0.5, beta=0.5, V=0.5, init_hidden=True, reset_mechanism="zero"
+        alpha=0.5,
+        beta=0.5,
+        V=0.5,
+        init_hidden=True,
+        all_to_all=False,
+        reset_mechanism="zero",
     )
 
 
 @pytest.fixture(scope="module")
 def rsynaptic_hidden_reset_none_instance():
     return snn.RSynaptic(
-        alpha=0.5, beta=0.5, V=0.5, init_hidden=True, reset_mechanism="none"
+        alpha=0.5,
+        beta=0.5,
+        V=0.5,
+        init_hidden=True,
+        all_to_all=False,
+        reset_mechanism="none",
     )
 
 
