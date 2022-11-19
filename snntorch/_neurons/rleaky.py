@@ -28,7 +28,7 @@ class RLeaky(LIF):
 
     .. math::
 
-            U[t+1] = βU[t] + I_{\\rm syn}[t+1] + VS_{\\rm out}[t] - R(βU[t] + I_{\\rm in}[t+1] + VS_{\\rm out}[t])
+            U[t+1] = βU[t] + I_{\\rm syn}[t+1] +  V(S_{\\rm out}[t] - R(βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t])
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
@@ -141,11 +141,11 @@ class RLeaky(LIF):
     def __init__(
         self,
         beta,
-        V=1.0,  # recurrent weight for 1-1
-        all_to_all=True,  # new
-        linear_features=None,  # new
-        conv2d_channels=None,  # new
-        kernel_size=None,  # new
+        V=1.0,
+        all_to_all=True,
+        linear_features=None,
+        conv2d_channels=None,
+        kernel_size=None,
         threshold=1.0,
         spike_grad=None,
         init_hidden=False,

@@ -14,8 +14,14 @@ class RSynaptic(LIF):
 
     .. math::
 
-            I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + VS_{\\rm out}[t] + I_{\\rm in}[t+1] \\\\
+            I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + V(S_{\\rm out}[t] + I_{\\rm in}[t+1] \\\\
             U[t+1] = βU[t] + I_{\\rm syn}[t+1] - RU_{\\rm thr}
+
+    Where :math:`V(\\cdot)` acts either as a linear layer, a convolutional operator, or elementwise product on :math:`S_{\\rm out}`.
+
+    * If `all_to_all = "True"` and `linear_features` is specified, then :math:`V(\\cdot)` acts as a recurrent linear layer of the same size as :math:`S_{\\rm out}`.
+    * If `all_to_all = "True"` and `conv2d_channels` and `kernel_size` are specified, then :math:`V(\\cdot)` acts as a recurrent convlutional layer with padding to ensure the output matches the size of the input.
+    * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an elementwise multiplier with :math:`V`.
 
     If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
 
@@ -56,9 +62,9 @@ class RSynaptic(LIF):
 
                 # initialize layers
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.RSynaptic(alpha=alpha, beta=beta, V=V1)
+                self.lif1 = snn.RSynaptic(alpha=alpha, beta=beta, linear_features=num_hidden)
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.RSynaptic(alpha=alpha, beta=beta, V=V2)
+                self.lif2 = snn.RSynaptic(alpha=alpha, beta=beta, all_to_all=False, V=V2)
 
             def forward(self, x, syn1, mem1, spk1, syn2, mem2):
                 cur1 = self.fc1(x)
@@ -74,8 +80,20 @@ class RSynaptic(LIF):
     :param beta: membrane potential decay rate. Clipped between 0 and 1 during the forward-pass. May be a single-valued tensor (i.e., equal decay rate for all neurons in a layer), or multi-valued (one weight per neuron).
     :type beta: float or torch.tensor
 
-    :param V: Recurrent weights to scale output spikes.
+    :param V: Recurrent weights to scale output spikes, only used when `all_to_all=False`. Defaults to 1.
     :type V: float or torch.tensor
+
+    :param all_to_all: Enables output spikes to be connected in dense or convolutional recurrent structures instead of 1-to-1 connections. Defaults to True.
+    :type all_to_all: bool, optional
+
+    :param linear_features: Size of each output sample. Must be specified if `all_to_all=True` and the input data is 1D. Defaults to None
+    :type linear_features: int, optional
+
+    :param conv2d_channels: Number of channels in each output sample. Must be specified if `all_to_all=True` and the input data is 3D. Defaults to None
+    :type conv2d_channels: int, optional
+
+    :param kernel_size:  Size of the convolving kernel. Must be specified if `all_to_all=True` and the input data is 3D. Defaults to None
+    :type kernel_size: int or tuple
 
     :param threshold: Threshold for :math:`mem` to reach in order to generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
@@ -95,8 +113,8 @@ class RSynaptic(LIF):
     :param learn_beta: Option to enable learnable beta. Defaults to False
     :type learn_beta: bool, optional
 
-    :param learn_V: Option to enable learnable V. Defaults to True
-    :type learn_V: bool, optional
+    :param learn_recurrent: Option to enable learnable recurrent weights. Defaults to True
+    :type learn_recurrent: bool, optional
 
     :param learn_threshold: Option to enable learnable threshold. Defaults to False
     :type learn_threshold: bool, optional
@@ -125,7 +143,8 @@ class RSynaptic(LIF):
     Learnable Parameters:
         - **RSynaptic.alpha** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
         - **RSynaptic.beta** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
-        - **RSynaptic.V** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
+        - **RSynaptic.recurrent.weight** (torch.Tensor) - optional learnable weights are automatically generated if `all_to_all=True`. `RSynaptic.recurrent` stores a `nn.Linear` or `nn.Conv2d` layer depending on input arguments provided.
+        - **RSynaptic.V** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size). It is only used where `all_to_all=False` for 1-to-1 recurrent connections.
         - **RSynaptic.threshold** (torch.Tensor) - optional learnable thresholds must be manually passed in, of shape `1` or`` (input_size).
 
 """
@@ -134,7 +153,11 @@ class RSynaptic(LIF):
         self,
         alpha,
         beta,
-        V,
+        V=1.0,
+        all_to_all=True,
+        linear_features=None,
+        conv2d_channels=None,
+        kernel_size=None,
         threshold=1.0,
         spike_grad=None,
         init_hidden=False,
@@ -142,7 +165,7 @@ class RSynaptic(LIF):
         learn_alpha=False,
         learn_beta=False,
         learn_threshold=False,
-        learn_V=True,
+        learn_recurrent=True,
         reset_mechanism="subtract",
         state_quant=False,
         output=False,
@@ -160,6 +183,29 @@ class RSynaptic(LIF):
             output,
         )
 
+        self.all_to_all = all_to_all
+        self.learn_recurrent = learn_recurrent
+
+        # linear params
+        self.linear_features = linear_features
+
+        # Conv2d params
+        self.kernel_size = kernel_size
+        self.conv2d_channels = conv2d_channels
+
+        # catch cases
+        self._rsynaptic_init_cases()
+
+        # initialize recurrent connections
+        if self.all_to_all:  # init all-all connections
+            self._init_recurrent_net()
+        else:  # initialize 1-1 connections
+            self._V_register_buffer(V, learn_recurrent)
+            self._init_recurrent_one_to_one()
+
+        if not learn_recurrent:
+            self._disable_recurrent_grad()
+
         self._alpha_register_buffer(alpha, learn_alpha)
 
         if self.init_hidden:
@@ -167,8 +213,6 @@ class RSynaptic(LIF):
             self.state_fn = self._build_state_function_hidden
         else:
             self.state_fn = self._build_state_function
-
-        self._V_register_buffer(V, learn_V)
 
     def forward(self, input_, spk=False, syn=False, mem=False):
         if (
@@ -217,13 +261,47 @@ class RSynaptic(LIF):
             else:
                 return self.spk
 
+    def _init_recurrent_net(self):
+        if self.all_to_all:
+            if self.linear_features:
+                self._init_recurrent_linear()
+            elif self.kernel_size is not None:
+                self._init_recurrent_conv2d()
+        else:
+            self._init_recurrent_one_to_one()
+
+    def _init_recurrent_linear(self):
+        self.recurrent = nn.Linear(self.linear_features, self.linear_features)
+
+    def _init_recurrent_conv2d(self):
+        self._init_padding()
+        self.recurrent = nn.Conv2d(
+            in_channels=self.conv2d_channels,
+            out_channels=self.conv2d_channels,
+            kernel_size=self.kernel_size,
+            padding=self.padding,
+        )
+
+    def _init_padding(self):
+        if type(self.kernel_size) is int:
+            self.padding = self.kernel_size // 2, self.kernel_size // 2
+        else:
+            self.padding = self.kernel_size[0] // 2, self.kernel_size[1] // 2
+
+    def _init_recurrent_one_to_one(self):
+        self.recurrent = RecurrentOneToOne(self.V)
+
+    def _disable_recurrent_grad(self):
+        for param in self.recurrent.parameters():
+            param.requires_grad = False
+
     def _base_state_function(self, input_, spk, syn, mem):
-        base_fn_syn = self.alpha.clamp(0, 1) * syn + input_ + self.V * spk
+        base_fn_syn = self.alpha.clamp(0, 1) * syn + input_ + self.recurrent(spk)
         base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
         return base_fn_syn, base_fn_mem
 
     def _base_state_reset_zero(self, input_, spk, syn, mem):
-        base_fn_syn = self.alpha.clamp(0, 1) * syn + input_ + self.V * spk
+        base_fn_syn = self.alpha.clamp(0, 1) * syn + input_ + self.recurrent(spk)
         base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
         return 0, base_fn_mem
 
@@ -249,12 +327,16 @@ class RSynaptic(LIF):
         return state_fn
 
     def _base_state_function_hidden(self, input_):
-        base_fn_syn = self.alpha.clamp(0, 1) * self.syn + input_ + self.V * self.spk
+        base_fn_syn = (
+            self.alpha.clamp(0, 1) * self.syn + input_ + self.recurrent(self.spk)
+        )
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return base_fn_syn, base_fn_mem
 
     def _base_state_reset_zero_hidden(self, input_):
-        base_fn_syn = self.alpha.clamp(0, 1) * self.syn + input_ + self.V * self.spk
+        base_fn_syn = (
+            self.alpha.clamp(0, 1) * self.syn + input_ + self.recurrent(self.spk)
+        )
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return 0, base_fn_mem
 
@@ -293,6 +375,34 @@ class RSynaptic(LIF):
                 "When `init_hidden=True`, RSynaptic expects 1 input argument."
             )
 
+    def _rsynaptic_init_cases(self):
+        all_to_all_bool = bool(self.all_to_all)
+        linear_features_bool = self.linear_features
+        conv2d_channels_bool = bool(self.conv2d_channels)
+        kernel_size_bool = bool(self.kernel_size)
+
+        if all_to_all_bool:
+            if not (linear_features_bool):
+                if not (conv2d_channels_bool or kernel_size_bool):
+                    raise TypeError(
+                        "When `all_to_all=True`, RSynaptic requires either `linear_features` or (`conv2d_channels` and `kernel_size`) to be specified. The shape should match the shape of the output spike of the layer."
+                    )
+                elif conv2d_channels_bool ^ kernel_size_bool:
+                    raise TypeError(
+                        "`conv2d_channels` and `kernel_size` must both be specified. The shape of `conv2d_channels` should match the shape of the output spikes."
+                    )
+            elif (linear_features_bool and kernel_size_bool) or (
+                linear_features_bool and conv2d_channels_bool
+            ):
+                raise TypeError(
+                    "`linear_features` cannot be specified at the same time as `conv2d_channels` or `kernel_size`. A linear layer and conv2d layer cannot both be specified at the same time."
+                )
+        else:
+            if linear_features_bool or conv2d_channels_bool or kernel_size_bool:
+                raise TypeError(
+                    "When `all_to_all`=False, none of `linear_features`, `conv2d_channels`, or `kernel_size` should be specified. The weight `V` is used instead."
+                )
+
     @classmethod
     def detach_hidden(cls):
         """Returns the hidden states, detached from the current graph.
@@ -312,3 +422,12 @@ class RSynaptic(LIF):
             if isinstance(cls.instances[layer], RSynaptic):
                 cls.instances[layer].syn = _SpikeTensor(init_flag=False)
                 cls.instances[layer].mem = _SpikeTensor(init_flag=False)
+
+
+class RecurrentOneToOne(nn.Module):
+    def __init__(self, V):
+        super(RecurrentOneToOne, self).__init__()
+        self.V = V
+
+    def forward(self, x):
+        return x * self.V  # element-wise or global multiplication
