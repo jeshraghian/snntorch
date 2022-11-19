@@ -14,32 +14,36 @@ def input_():
 
 @pytest.fixture(scope="module")
 def rleaky_instance():
-    return snn.RLeaky(beta=0.5, V=0.5)
+    return snn.RLeaky(beta=0.5, V=0.5, all_to_all=False)
 
 
 @pytest.fixture(scope="module")
 def rleaky_reset_zero_instance():
-    return snn.RLeaky(beta=0.5, V=0.5, reset_mechanism="zero")
+    return snn.RLeaky(beta=0.5, V=0.5, all_to_all=False, reset_mechanism="zero")
 
 
 @pytest.fixture(scope="module")
 def rleaky_reset_none_instance():
-    return snn.RLeaky(beta=0.5, V=0.5, reset_mechanism="none")
+    return snn.RLeaky(beta=0.5, V=0.5, all_to_all=False, reset_mechanism="none")
 
 
 @pytest.fixture(scope="module")
 def rleaky_hidden_instance():
-    return snn.RLeaky(beta=0.5, V=0.5, init_hidden=True)
+    return snn.RLeaky(beta=0.5, V=0.5, all_to_all=False, init_hidden=True)
 
 
 @pytest.fixture(scope="module")
 def rleaky_hidden_reset_zero_instance():
-    return snn.RLeaky(beta=0.5, V=0.5, init_hidden=True, reset_mechanism="zero")
+    return snn.RLeaky(
+        beta=0.5, V=0.5, all_to_all=False, init_hidden=True, reset_mechanism="zero"
+    )
 
 
 @pytest.fixture(scope="module")
 def rleaky_hidden_reset_none_instance():
-    return snn.RLeaky(beta=0.5, V=0.5, init_hidden=True, reset_mechanism="none")
+    return snn.RLeaky(
+        beta=0.5, V=0.5, all_to_all=False, init_hidden=True, reset_mechanism="none"
+    )
 
 
 class TestRLeaky:
