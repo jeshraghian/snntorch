@@ -106,6 +106,8 @@ snnenv/
 
 # IDE settings
 .vscode/
+.idea/misc.xml
+.idea/snntorch.iml
 
 # Additional Files
 tbptt_test/
