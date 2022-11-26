@@ -108,6 +108,7 @@ snnenv/
 .vscode/
 .idea/misc.xml
 .idea/snntorch.iml
+.idea/markdown.xml
 
 # Additional Files
 tbptt_test/
