@@ -313,8 +313,8 @@ def nmnist_get_file_names(dataset_path):
 
     # if balance:
     # We need the same number of train and test samples for each digit, let's compute the minimum
-    max_n_train = min(map(lambda l: len(l), train_files))
-    max_n_test = min(map(lambda l: len(l), test_files))
+    max_n_train = min(map(lambda l_var: len(l_var), train_files))
+    max_n_test = min(map(lambda l_var: len(l_var), test_files))
     n_train = max_n_train  # we could take max_n_train, but my memory on the shared drive is full
     n_test = max_n_test  # we test on the whole test set - lets only take 100*10 samples
     assert (n_train <= max_n_train) and (
@@ -323,8 +323,8 @@ def nmnist_get_file_names(dataset_path):
 
     print(f"\nN-MNIST: {n_train*10} train samples and {n_test*10} test samples")
     # Crop extra samples of each digits
-    train_files = map(lambda l: l[:n_train], train_files)
-    test_files = map(lambda l: l[:n_test], test_files)
+    train_files = map(lambda l_var: l_var[:n_train], train_files)
+    test_files = map(lambda l_var: l_var[:n_test], test_files)
 
     return list(train_files), list(test_files)
 

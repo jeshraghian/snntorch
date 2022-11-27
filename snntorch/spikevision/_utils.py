@@ -19,7 +19,7 @@ def load_ATIS_bin(filename):
     all_ts = ((raw_data[2::5] & 127) << 16) | (raw_data[3::5] << 8) | (raw_data[4::5])
 
     # Process time stamp overflow events
-    time_increment = 2 ** 13
+    time_increment = 2**13
     overflow_indices = np.where(all_y == 240)[0]
     for overflow_index in overflow_indices:
         all_ts[overflow_index:] += time_increment
@@ -148,7 +148,7 @@ def load_jaer(
                 "read %i (~ %.2fM) AE events, duration= %.2fs"
                 % (
                     len(timestamps),
-                    len(timestamps) / float(10 ** 6),
+                    len(timestamps) / float(10**6),
                     (timestamps[-1] - timestamps[0]) * td,
                 )
             )
@@ -158,7 +158,8 @@ def load_jaer(
                 "timestamps: %s \nX-addr: %s\nY-addr: %s\npolarity: %s"
                 % (timestamps[0:n], xaddr[0:n], yaddr[0:n], pol[0:n])
             )
-        except:
+        except Exception as e:
+            print(e.message, e.args)
             print("failed to print statistics")
 
     return np.array(timestamps), np.array(xaddr), np.array(yaddr), np.array(pol)
@@ -281,9 +282,9 @@ def aedat_to_events(filename):
     events = np.column_stack(events)
     events = events.astype("uint32")
     clipped_events = np.zeros([4, 0], "uint32")
-    for l in labels:
-        start = np.searchsorted(events[0, :], l[1])
-        end = np.searchsorted(events[0, :], l[2])
+    for label in labels:
+        start = np.searchsorted(events[0, :], label[1])
+        end = np.searchsorted(events[0, :], label[2])
         clipped_events = np.column_stack([clipped_events, events[:, start:end]])
     return clipped_events.T, labels
 
