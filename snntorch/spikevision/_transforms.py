@@ -195,8 +195,8 @@ class ToCountFrame(object):
 
     def __call__(self, tmad):
         times = tmad[:, 0]
-        t_start = times[0]
-        t_end = times[-1]
+        # t_start = times[0]
+        # t_end = times[-1]
         addrs = tmad[:, 1:]
 
         ts = range(0, self.T)
@@ -228,8 +228,8 @@ class ToEventSum(object):
 
     def __call__(self, tmad):
         times = tmad[:, 0]
-        t_start = times[0]
-        t_end = times[-1]
+        # t_start = times[0]
+        # t_end = times[-1]
         addrs = tmad[:, 1:]
 
         ts = range(0, self.T)
