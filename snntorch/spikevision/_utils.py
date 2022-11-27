@@ -19,13 +19,13 @@ def load_ATIS_bin(filename):
     all_ts = ((raw_data[2::5] & 127) << 16) | (raw_data[3::5] << 8) | (raw_data[4::5])
 
     # Process time stamp overflow events
-    time_increment = 2**13
+    time_increment = 2 ** 13
     overflow_indices = np.where(all_y == 240)[0]
     for overflow_index in overflow_indices:
         all_ts[overflow_index:] += time_increment
 
     # Everything else is a proper td spike
-    # td_indices = np.where(all_y != 240)[0]
+    td_indices = np.where(all_y != 240)[0]
     return all_ts, all_x, all_y, all_p
 
 
@@ -148,7 +148,7 @@ def load_jaer(
                 "read %i (~ %.2fM) AE events, duration= %.2fs"
                 % (
                     len(timestamps),
-                    len(timestamps) / float(10**6),
+                    len(timestamps) / float(10 ** 6),
                     (timestamps[-1] - timestamps[0]) * td,
                 )
             )
@@ -158,8 +158,7 @@ def load_jaer(
                 "timestamps: %s \nX-addr: %s\nY-addr: %s\npolarity: %s"
                 % (timestamps[0:n], xaddr[0:n], yaddr[0:n], pol[0:n])
             )
-        except Exception as e:
-            print(e.message, e.args)
+        except:
             print("failed to print statistics")
 
     return np.array(timestamps), np.array(xaddr), np.array(yaddr), np.array(pol)
@@ -207,9 +206,9 @@ def plot_frames_imshow(
         norm = Normalize(-0.1, 0.1)
         for e, i in enumerate(rnge):
             if not transpose:
-                _ = plt.subplot(gs[e, j])
+                ax = plt.subplot(gs[e, j])
             else:
-                _ = plt.subplot(gs[j, e])
+                ax = plt.subplot(gs[j, e])
             plt.imshow(
                 images[j, i * avg : (i * avg + avg), 0, :, :].mean(axis=0).T
                 - images[j, i * avg : (i * avg + avg), 1, :, :].mean(axis=0).T,
@@ -259,13 +258,13 @@ def aedat_to_events(filename):
                 break
 
             eventtype = struct.unpack("H", data_ev_head[0:2])[0]
-            # eventsource = struct.unpack("H", data_ev_head[2:4])[0]
+            eventsource = struct.unpack("H", data_ev_head[2:4])[0]
             eventsize = struct.unpack("I", data_ev_head[4:8])[0]
-            # eventoffset = struct.unpack("I", data_ev_head[8:12])[0]
-            # eventtsoverflow = struct.unpack("I", data_ev_head[12:16])[0]
-            # eventcapacity = struct.unpack("I", data_ev_head[16:20])[0]
+            eventoffset = struct.unpack("I", data_ev_head[8:12])[0]
+            eventtsoverflow = struct.unpack("I", data_ev_head[12:16])[0]
+            eventcapacity = struct.unpack("I", data_ev_head[16:20])[0]
             eventnumber = struct.unpack("I", data_ev_head[20:24])[0]
-            # eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
+            eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
 
             if eventtype == 1:
                 event_bytes = np.frombuffer(f.read(eventnumber * eventsize), "uint32")
@@ -282,9 +281,9 @@ def aedat_to_events(filename):
     events = np.column_stack(events)
     events = events.astype("uint32")
     clipped_events = np.zeros([4, 0], "uint32")
-    for label in labels:
-        start = np.searchsorted(events[0, :], label[1])
-        end = np.searchsorted(events[0, :], label[2])
+    for l in labels:
+        start = np.searchsorted(events[0, :], l[1])
+        end = np.searchsorted(events[0, :], l[2])
         clipped_events = np.column_stack([clipped_events, events[:, start:end]])
     return clipped_events.T, labels
 
@@ -297,7 +296,7 @@ def rosbag_to_events(filename, topic="/dvs_right/events"):
             "This function requires the importRosbag library from https://github.com/event-driven-robotics"
         )
         raise (exc)
-    # all_events = []
+    all_events = []
     data = importRosbag(filename)[topic]
     data["ts"] -= data["ts"][0]  # align at 0
     data["ts"] *= 1000000.0  # second to microsecond
