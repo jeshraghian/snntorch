@@ -106,6 +106,7 @@ snnenv/
 
 # IDE settings
 .vscode/
+.idea/
 
 # Additional Files
 tbptt_test/
