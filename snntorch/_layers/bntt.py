@@ -1,5 +1,6 @@
 import torch.nn as nn
 
+
 def BatchNormTT1d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=True):
     """
     Generate a torch.nn.ModuleList of 1D Batch Normalization Layer with length time_steps.
@@ -10,26 +11,29 @@ def BatchNormTT1d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
     By Youngeun Kim & Priyadarshini Panda
     arXiv preprint arXiv:2010.01729
 
+    Original GitHub repo: https://github.com/Intelligent-Computing-Lab-Yale/BNTT-Batch-Normalization-Through-Time
+
     Using LIF neuron as the neuron of choice for the math shown below.
 
     Typically, for a single post-synaptic neuron i, we can represent its membrane potential :math:'U_{i}^{t}' at time-step t as:
 
     .. math::
 
-            U_{i}^{t} = \lambda u_{i}^{t-1} + \sum_j w_{ij}o_{j}^{t}
+            U_{i}^{t} = λ u_{i}^{t-1} + \\sum_j w_{ij}S_{j}^{t}
 
     where:
-    * \lambda - a leak factor which is less than one
+    * λ - a leak factor which is less than one
     * j - the index of the pre-synaptic neuron
-    * :math:`o_{j}` - the binary spike activation
+    * :math:`S_{j}` - the binary spike activation
     * :math:`w_{ij}` - the weight of the connection between the pre & post neurons.
 
     With Batch Normalization Throught Time, the membrane potential can be modeled as:
+
     .. math::
 
-            U_{i}^{t} = \lambda u_{i}^{t-1} + BNTT_{\gamma^{t}}
+            U_{i}^{t} = λu_{i}^{t-1} + BNTT_{γ^{t}}
 
-                      = \lambda u_{i}^{t-1} + \gamma _{i}^{t} (\frac{\sum_j w_{ij}o_{j}^{t} - \mu _{i}^{t}}{\sqrt{(\sigma _{i}^{t})^{2} + \epsilon}})
+                      = λu_{i}^{t-1} + γ _{i}^{t} (\\frac{\\sum_j w_{ij}S_{j}^{t} - µ_{i}^{t}}{\\sqrt{(σ _{i}^{t})^{2} + ε}})
 
     :param input_features: number of features of the input
     :type input_features: int
@@ -49,18 +53,24 @@ def BatchNormTT1d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
     Inputs: input_features, time_steps
         - **input_features**: same number of features as the input
         - **time_steps**: the number of time-steps to unroll in the SNN
-    
+
     Outputs: bntt
         -  **bntt** of shape `(time_steps)`: toch.nn.ModuleList of BatchNorm1d layers for the specified number of time-steps
 
     """
-    bntt = nn.ModuleList([nn.BatchNorm1d(input_features, eps=eps, momentum=momentum, affine=affine) for _ in range(time_steps)])
+    bntt = nn.ModuleList(
+        [
+            nn.BatchNorm1d(input_features, eps=eps, momentum=momentum, affine=affine)
+            for _ in range(time_steps)
+        ]
+    )
 
     # Disable bias/beta of Batch Norm
     for bn in bntt:
         bn.bias = None
 
     return bntt
+
 
 def BatchNormTT2d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=True):
     """
@@ -78,20 +88,20 @@ def BatchNormTT2d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
 
     .. math::
 
-            U_{i}^{t} = \lambda u_{i}^{t-1} + \sum_j w_{ij}o_{j}^{t}
+            U_{i}^{t} = λ u_{i}^{t-1} + \\sum_j w_{ij}S_{j}^{t}
 
     where:
-    * \lambda - a leak factor which is less than one
+    * λ - a leak factor which is less than one
     * j - the index of the pre-synaptic neuron
-    * :math:`o_{j}` - the binary spike activation
+    * :math:`S_{j}` - the binary spike activation
     * :math:`w_{ij}` - the weight of the connection between the pre & post neurons.
 
     With Batch Normalization Throught Time, the membrane potential can be modeled as:
     .. math::
 
-            U_{i}^{t} = \lambda u_{i}^{t-1} + BNTT_{\gamma^{t}}
+            U_{i}^{t} = λ u_{i}^{t-1} + BNTT_{γ^{t}}
 
-                      = \lambda u_{i}^{t-1} + \gamma _{i}^{t} (\frac{\sum_j w_{ij}o_{j}^{t} - \mu _{i}^{t}}{\sqrt{(\sigma _{i}^{t})^{2} + \epsilon}})
+                      = λ u_{i}^{t-1} + γ_{i}^{t} (\\frac{\\sum_j w_{ij}S_{j}^{t} - µ_{i}^{t}}{\\sqrt{(σ _{i}^{t})^{2} + ε}})
 
     :param input_features: number of channels of the input
     :type input_features: int
@@ -111,12 +121,17 @@ def BatchNormTT2d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
     Inputs: input_features, time_steps
         - **input_features**: same number of channels as the input
         - **time_steps**: the number of time-steps to unroll in the SNN
-    
+
     Outputs: bntt
         -  **bntt** of shape `(time_steps)`: toch.nn.ModuleList of BatchNorm1d layers for the specified number of time-steps
 
     """
-    bntt = nn.ModuleList([nn.BatchNorm2d(input_features, eps=eps, momentum=momentum, affine=affine) for _ in range(time_steps)])
+    bntt = nn.ModuleList(
+        [
+            nn.BatchNorm2d(input_features, eps=eps, momentum=momentum, affine=affine)
+            for _ in range(time_steps)
+        ]
+    )
 
     # Disable bias/beta of Batch Norm
     for bn in bntt:

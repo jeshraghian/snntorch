@@ -207,6 +207,15 @@ Neuron List
 
     snn.neurons_*
 
+snnTorch Layers
+---------------------
+.. toctree::
+    :maxdepth: 2
+    :titlesonly:
+    :glob:
+
+    snn.layers_*
+
 
 Neuron Parent Classes
 ---------------------
