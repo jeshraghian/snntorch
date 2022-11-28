@@ -209,12 +209,11 @@ Neuron List
 
 snnTorch Layers
 ---------------------
-.. toctree::
-    :maxdepth: 2
-    :titlesonly:
-    :glob:
 
-    snn.layers_*
+.. automodule:: snntorch._layers.bntt
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 
 Neuron Parent Classes
