@@ -22,6 +22,7 @@ def BatchNormTT1d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
             U_{i}^{t} = λ u_{i}^{t-1} + \\sum_j w_{ij}S_{j}^{t}
 
     where:
+
     * λ - a leak factor which is less than one
     * j - the index of the pre-synaptic neuron
     * :math:`S_{j}` - the binary spike activation
@@ -91,6 +92,7 @@ def BatchNormTT2d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
             U_{i}^{t} = λ u_{i}^{t-1} + \\sum_j w_{ij}S_{j}^{t}
 
     where:
+
     * λ - a leak factor which is less than one
     * j - the index of the pre-synaptic neuron
     * :math:`S_{j}` - the binary spike activation
