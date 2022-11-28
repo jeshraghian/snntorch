@@ -76,11 +76,10 @@ Ready to contribute? Here's how to set up `snntorch` for local development.
 
    Now you can make your changes locally.
 
-5. When you're done making changes, check that your changes pass flake8 using
-the local .flake8 configuration and the tests. In addition, ensure that your
-code is formatted using black::
+5. When you're done making changes, check that your changes pass flake8 and the
+   tests. In addition, ensure that your code is formatted using black::
 
-    $ flake8 --config .flake8 snntorch tests
+    $ flake8 snntorch tests
     $ black snntorch tests
     $ python setup.py test or pytest
 

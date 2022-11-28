@@ -138,7 +138,7 @@ def state_quant(
         # asymmetric: shifted to threshold
         if thr_centered:
             levels = torch.tensor(
-                [multiplier**j for j in reversed(range(num_levels))]
+                [multiplier ** j for j in reversed(range(num_levels))]
             )  # .to(device)
             levels = (-levels - min(-levels)) * (
                 threshold * upper_limit + threshold * lower_limit
@@ -148,8 +148,8 @@ def state_quant(
         else:
             levels = sum(
                 [
-                    [-(multiplier**j) for j in range(num_levels >> 1)],
-                    [multiplier**j for j in reversed(range(num_levels >> 1))],
+                    [-(multiplier ** j) for j in range(num_levels >> 1)],
+                    [multiplier ** j for j in reversed(range(num_levels >> 1))],
                 ],
                 [],
             )

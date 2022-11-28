@@ -182,15 +182,10 @@ class NMNIST(NeuromorphicDataset):
                 print(
                     f"Attribute not found in hdf5 file. You may be using an old hdf5 build. Delete {root + file_name} and run again."
                 )
-                print(e.message, e.args)
                 raise
 
     def _download(self):
-        # isexisting = super(NMNIST, self)._download()
-        try:
-            super(NMNIST, self)._download()
-        except Exception as e:
-            print(e.message, e.args)
+        isexisting = super(NMNIST, self)._download()
 
     def _create_hdf5(self):
         create_events_hdf5(self.directory, self.root)
@@ -235,11 +230,11 @@ def create_events_hdf5(directory, hdf5_filename):
         print("Creating n_mnist.hdf5...")
         for file_d in tqdm(fns_train + fns_test):
             istrain = file_d in fns_train
-            # data = nmnist_load_events_from_bin(file_d)
-            # times = data[:, 0]
-            # addrs = data[:, 1:]
+            data = nmnist_load_events_from_bin(file_d)
+            times = data[:, 0]
+            addrs = data[:, 1:]
             label = int(file_d.replace("\\", "/").split("/")[-2])  # \\ for binder/colab
-            # out = []
+            out = []
 
             if istrain:
                 train_keys.append(key)
@@ -249,12 +244,9 @@ def create_events_hdf5(directory, hdf5_filename):
                 test_label_list[label].append(key)
             metas.append({"key": str(key), "training sample": istrain})
             subgrp = data_grp.create_group(str(key))
-            # tm_dset = subgrp.create_dataset("times", data=times,
-            # dtype=np.uint32)
-            # ad_dset = subgrp.create_dataset("addrs", data=addrs,
-            # dtype=np.uint8)
-            # lbl_dset = subgrp.create_dataset("labels", data=label,
-            # dtype=np.uint8)
+            tm_dset = subgrp.create_dataset("times", data=times, dtype=np.uint32)
+            ad_dset = subgrp.create_dataset("addrs", data=addrs, dtype=np.uint8)
+            lbl_dset = subgrp.create_dataset("labels", data=label, dtype=np.uint8)
             subgrp.attrs["meta_info"] = str(metas[-1])
             assert label in range(10)
             key += 1
@@ -321,8 +313,8 @@ def nmnist_get_file_names(dataset_path):
 
     # if balance:
     # We need the same number of train and test samples for each digit, let's compute the minimum
-    max_n_train = min(map(lambda l_var: len(l_var), train_files))
-    max_n_test = min(map(lambda l_var: len(l_var), test_files))
+    max_n_train = min(map(lambda l: len(l), train_files))
+    max_n_test = min(map(lambda l: len(l), test_files))
     n_train = max_n_train  # we could take max_n_train, but my memory on the shared drive is full
     n_test = max_n_test  # we test on the whole test set - lets only take 100*10 samples
     assert (n_train <= max_n_train) and (
@@ -331,8 +323,8 @@ def nmnist_get_file_names(dataset_path):
 
     print(f"\nN-MNIST: {n_train*10} train samples and {n_test*10} test samples")
     # Crop extra samples of each digits
-    train_files = map(lambda l_var: l_var[:n_train], train_files)
-    test_files = map(lambda l_var: l_var[:n_test], test_files)
+    train_files = map(lambda l: l[:n_train], train_files)
+    test_files = map(lambda l: l[:n_test], test_files)
 
     return list(train_files), list(test_files)
 
@@ -344,9 +336,9 @@ def nmnist_get_file_names(dataset_path):
 def sample(hdf5_file, key, T=300):
     dset = hdf5_file["data"][str(key)]
     label = dset["labels"][()]
-    # tend = dset["times"][-1]
+    tend = dset["times"][-1]
     start_time = 0
-    # ha = dset["times"][()]
+    ha = dset["times"][()]
 
     tmad = get_tmad_slice(dset["times"][()], dset["addrs"][()], start_time, T * 1000)
     tmad[:, 0] -= tmad[0, 0]
