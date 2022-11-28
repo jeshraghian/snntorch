@@ -99,6 +99,7 @@ def BatchNormTT2d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
     * :math:`w_{ij}` - the weight of the connection between the pre & post neurons.
 
     With Batch Normalization Throught Time, the membrane potential can be modeled as:
+
     .. math::
 
             U_{i}^{t} = λ u_{i}^{t-1} + BNTT_{γ^{t}}
