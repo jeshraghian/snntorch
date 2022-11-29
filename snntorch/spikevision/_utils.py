@@ -16,11 +16,7 @@ def load_ATIS_bin(filename):
     all_y = raw_data[1::5]
     all_x = raw_data[0::5]
     all_p = (raw_data[2::5] & 128) >> 7  # bit 7
-    all_ts = (
-        ((raw_data[2::5] & 127) << 16)
-        | (raw_data[3::5] << 8)
-        | (raw_data[4::5])
-    )
+    all_ts = ((raw_data[2::5] & 127) << 16) | (raw_data[3::5] << 8) | (raw_data[4::5])
 
     # Process time stamp overflow events
     time_increment = 2**13
@@ -207,9 +203,7 @@ def plot_frames_imshow(
         gs = gridspec.GridSpec(len(rnge), nim)
     else:
         gs = gridspec.GridSpec(nim, len(rnge))
-    plt.subplots_adjust(
-        left=0, bottom=0, right=1, top=0.95, wspace=0.0, hspace=0.04
-    )
+    plt.subplots_adjust(left=0, bottom=0, right=1, top=0.95, wspace=0.0, hspace=0.04)
     if labels is not None:
         if do1h:
             categories = labels.argmax(axis=1)
@@ -263,9 +257,7 @@ def aedat_to_events(filename):
     Used for aedat 3.1
     """
     label_filename = filename[:-6] + "_labels.csv"
-    labels = np.loadtxt(
-        label_filename, skiprows=1, delimiter=",", dtype="uint32"
-    )
+    labels = np.loadtxt(label_filename, skiprows=1, delimiter=",", dtype="uint32")
     events = []
     with open(filename, "rb") as f:
         for i in range(5):
@@ -285,9 +277,7 @@ def aedat_to_events(filename):
             eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
 
             if eventtype == 1:
-                event_bytes = np.frombuffer(
-                    f.read(eventnumber * eventsize), "uint32"
-                )
+                event_bytes = np.frombuffer(f.read(eventnumber * eventsize), "uint32")
                 event_bytes = event_bytes.reshape(-1, 2)
 
                 x = (event_bytes[:, 0] >> 17) & 0x00001FFF
@@ -304,9 +294,7 @@ def aedat_to_events(filename):
     for label in labels:
         start = np.searchsorted(events[0, :], label[1])
         end = np.searchsorted(events[0, :], label[2])
-        clipped_events = np.column_stack(
-            [clipped_events, events[:, start:end]]
-        )
+        clipped_events = np.column_stack([clipped_events, events[:, start:end]])
     return clipped_events.T, labels
 
 

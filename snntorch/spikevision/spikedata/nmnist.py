@@ -176,9 +176,7 @@ class NMNIST(NeuromorphicDataset):
                     self.n = f["extra"].attrs["Ntest"]
                     self.keys = f["extra"]["test_keys"][()]
                     self.keys_by_label = f["extra"]["test_keys_by_label"][()]
-                    self.keys_by_label[:, :] -= self.keys_by_label[
-                        0, 0
-                    ]  # normalize
+                    self.keys_by_label[:, :] -= self.keys_by_label[0, 0]  # normalize
             except (AttributeError, KeyError) as e:
                 file_name = "/n_mnist.hdf5"
                 print(
@@ -235,9 +233,7 @@ def create_events_hdf5(directory, hdf5_filename):
             data = nmnist_load_events_from_bin(file_d)
             times = data[:, 0]
             addrs = data[:, 1:]
-            label = int(
-                file_d.replace("\\", "/").split("/")[-2]
-            )  # \\ for binder/colab
+            label = int(file_d.replace("\\", "/").split("/")[-2])  # \\ for binder/colab
             out = []
 
             if istrain:
@@ -248,15 +244,9 @@ def create_events_hdf5(directory, hdf5_filename):
                 test_label_list[label].append(key)
             metas.append({"key": str(key), "training sample": istrain})
             subgrp = data_grp.create_group(str(key))
-            tm_dset = subgrp.create_dataset(
-                "times", data=times, dtype=np.uint32
-            )
-            ad_dset = subgrp.create_dataset(
-                "addrs", data=addrs, dtype=np.uint8
-            )
-            lbl_dset = subgrp.create_dataset(
-                "labels", data=label, dtype=np.uint8
-            )
+            tm_dset = subgrp.create_dataset("times", data=times, dtype=np.uint32)
+            ad_dset = subgrp.create_dataset("addrs", data=addrs, dtype=np.uint8)
+            lbl_dset = subgrp.create_dataset("labels", data=label, dtype=np.uint8)
             subgrp.attrs["meta_info"] = str(metas[-1])
             assert label in range(10)
             key += 1
@@ -331,9 +321,7 @@ def nmnist_get_file_names(dataset_path):
         n_test <= max_n_test
     ), "Requested more samples than present in dataset"
 
-    print(
-        f"\nN-MNIST: {n_train*10} train samples and {n_test*10} test samples"
-    )
+    print(f"\nN-MNIST: {n_train*10} train samples and {n_test*10} test samples")
     # Crop extra samples of each digits
     train_files = map(lambda l_var: l_var[:n_train], train_files)
     test_files = map(lambda l_var: l_var[:n_test], test_files)
@@ -352,8 +340,6 @@ def sample(hdf5_file, key, T=300):
     start_time = 0
     ha = dset["times"][()]
 
-    tmad = get_tmad_slice(
-        dset["times"][()], dset["addrs"][()], start_time, T * 1000
-    )
+    tmad = get_tmad_slice(dset["times"][()], dset["addrs"][()], start_time, T * 1000)
     tmad[:, 0] -= tmad[0, 0]
     return tmad, label
