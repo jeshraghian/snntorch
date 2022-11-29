@@ -16,10 +16,14 @@ def load_ATIS_bin(filename):
     all_y = raw_data[1::5]
     all_x = raw_data[0::5]
     all_p = (raw_data[2::5] & 128) >> 7  # bit 7
-    all_ts = ((raw_data[2::5] & 127) << 16) | (raw_data[3::5] << 8) | (raw_data[4::5])
+    all_ts = (
+        ((raw_data[2::5] & 127) << 16)
+        | (raw_data[3::5] << 8)
+        | (raw_data[4::5])
+    )
 
     # Process time stamp overflow events
-    time_increment = 2 ** 13
+    time_increment = 2**13
     overflow_indices = np.where(all_y == 240)[0]
     for overflow_index in overflow_indices:
         all_ts[overflow_index:] += time_increment
@@ -30,7 +34,11 @@ def load_ATIS_bin(filename):
 
 
 def load_jaer(
-    datafile="/tmp/aerout.dat", length=0, version="aedat", debug=1, camera="DVS128"
+    datafile="/tmp/aerout.dat",
+    length=0,
+    version="aedat",
+    debug=1,
+    camera="DVS128",
 ):
     """
     Load AER data and parse these properties of AE events:
@@ -148,7 +156,7 @@ def load_jaer(
                 "read %i (~ %.2fM) AE events, duration= %.2fs"
                 % (
                     len(timestamps),
-                    len(timestamps) / float(10 ** 6),
+                    len(timestamps) / float(10**6),
                     (timestamps[-1] - timestamps[0]) * td,
                 )
             )
@@ -158,10 +166,16 @@ def load_jaer(
                 "timestamps: %s \nX-addr: %s\nY-addr: %s\npolarity: %s"
                 % (timestamps[0:n], xaddr[0:n], yaddr[0:n], pol[0:n])
             )
-        except:
+        except Exception as e:
             print("failed to print statistics")
+            print(e.message, e.args)
 
-    return np.array(timestamps), np.array(xaddr), np.array(yaddr), np.array(pol)
+    return (
+        np.array(timestamps),
+        np.array(xaddr),
+        np.array(yaddr),
+        np.array(pol),
+    )
 
 
 def plot_frames_imshow(
@@ -193,7 +207,9 @@ def plot_frames_imshow(
         gs = gridspec.GridSpec(len(rnge), nim)
     else:
         gs = gridspec.GridSpec(nim, len(rnge))
-    plt.subplots_adjust(left=0, bottom=0, right=1, top=0.95, wspace=0.0, hspace=0.04)
+    plt.subplots_adjust(
+        left=0, bottom=0, right=1, top=0.95, wspace=0.0, hspace=0.04
+    )
     if labels is not None:
         if do1h:
             categories = labels.argmax(axis=1)
@@ -247,7 +263,9 @@ def aedat_to_events(filename):
     Used for aedat 3.1
     """
     label_filename = filename[:-6] + "_labels.csv"
-    labels = np.loadtxt(label_filename, skiprows=1, delimiter=",", dtype="uint32")
+    labels = np.loadtxt(
+        label_filename, skiprows=1, delimiter=",", dtype="uint32"
+    )
     events = []
     with open(filename, "rb") as f:
         for i in range(5):
@@ -267,7 +285,9 @@ def aedat_to_events(filename):
             eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
 
             if eventtype == 1:
-                event_bytes = np.frombuffer(f.read(eventnumber * eventsize), "uint32")
+                event_bytes = np.frombuffer(
+                    f.read(eventnumber * eventsize), "uint32"
+                )
                 event_bytes = event_bytes.reshape(-1, 2)
 
                 x = (event_bytes[:, 0] >> 17) & 0x00001FFF
@@ -281,10 +301,12 @@ def aedat_to_events(filename):
     events = np.column_stack(events)
     events = events.astype("uint32")
     clipped_events = np.zeros([4, 0], "uint32")
-    for l in labels:
-        start = np.searchsorted(events[0, :], l[1])
-        end = np.searchsorted(events[0, :], l[2])
-        clipped_events = np.column_stack([clipped_events, events[:, start:end]])
+    for label in labels:
+        start = np.searchsorted(events[0, :], label[1])
+        end = np.searchsorted(events[0, :], label[2])
+        clipped_events = np.column_stack(
+            [clipped_events, events[:, start:end]]
+        )
     return clipped_events.T, labels
 
 

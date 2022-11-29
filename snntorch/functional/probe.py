@@ -52,17 +52,17 @@ class BaseMonitor:
 
 
 class OutputMonitor(BaseMonitor):
-    '''
+    """
     A monitor to record the output spikes of each specific neuron layer (e.g. Leaky) in a network.
     All output data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
     Call ``self.clear_recorded_data()`` to clear recorded data.
-    
+
     Example::
 
         import snntorch as snn
         from snntorch.functional import probe
-        
+
         import torch
         from torch import nn
 
@@ -91,7 +91,7 @@ class OutputMonitor(BaseMonitor):
             print(f'monitor[0]={monitor[0]}')
             print(f'monitor.monitored_layers={monitor.monitored_layers}')
             print(f"monitor['lif1']={monitor['lif1']}")
-            
+
     :param net: Network model (either wrapped in Sequential container or as a class)
     :type net: nn.Module
 
@@ -101,36 +101,47 @@ class OutputMonitor(BaseMonitor):
     :param function_on_output: Function that is applied to the monitored modules' outputs
     :type function_on_output: Callable, optional
 
-    '''
-    def __init__(self, net: nn.Module, instance: Any or tuple = None, function_on_output: Callable = lambda x: x):
+    """
+
+    def __init__(
+        self,
+        net: nn.Module,
+        instance: Any or tuple = None,
+        function_on_output: Callable = lambda x: x,
+    ):
         super().__init__()
         self.function_on_output = function_on_output
         for name, m in net.named_modules():
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
                 self.name_records_index[name] = []
-                self.hooks.append(m.register_forward_hook(self.create_hook(name)))
+                self.hooks.append(
+                    m.register_forward_hook(self.create_hook(name))
+                )
 
     def create_hook(self, name):
         def hook(m, x, y):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
-                self.records.append(self.function_on_output(unpack_len1_tuple(y)))
+                self.records.append(
+                    self.function_on_output(unpack_len1_tuple(y))
+                )
 
         return hook
 
+
 class InputMonitor(BaseMonitor):
-    '''
+    """
     A monitor to record the input of each neuron layer (e.g. Leaky) in a network.
     All input data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
     Call ``self.clear_recorded_data()`` to clear recorded data.
-    
+
     Example::
-    
+
         import snntorch as snn
         from snntorch.functional import probe
-        
+
         import torch
         from torch import nn
 
@@ -159,7 +170,7 @@ class InputMonitor(BaseMonitor):
             print(f'monitor[0]={monitor[0]}')
             print(f'monitor.monitored_layers={monitor.monitored_layers}')
             print(f"monitor['lif1']={monitor['lif1']}")
-            
+
     :param net: Network model (either wrapped in Sequential container or as a class)
     :type net: nn.Module
 
@@ -168,34 +179,45 @@ class InputMonitor(BaseMonitor):
 
     :param function_on_input: Function that is applied to the monitored modules' input
     :type function_on_input: Callable, optional
-    '''
-    def __init__(self, net: nn.Module, instance: Any or tuple = None, function_on_input: Callable = lambda x: x):
+    """
+
+    def __init__(
+        self,
+        net: nn.Module,
+        instance: Any or tuple = None,
+        function_on_input: Callable = lambda x: x,
+    ):
         super().__init__()
         self.function_on_input = function_on_input
         for name, m in net.named_modules():
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
                 self.name_records_index[name] = []
-                self.hooks.append(m.register_forward_hook(self.create_hook(name)))
+                self.hooks.append(
+                    m.register_forward_hook(self.create_hook(name))
+                )
 
     def create_hook(self, name):
         def hook(m, x, y):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
-                self.records.append(self.function_on_input(unpack_len1_tuple(x)))
+                self.records.append(
+                    self.function_on_input(unpack_len1_tuple(x))
+                )
 
         return hook
 
+
 class AttributeMonitor(BaseMonitor):
-    '''
+    """
     A monitor to record the attribute (e.g. membrane potential) of a specific neuron layer (e.g. Leaky) in a network.
     The attribute name can be specified as the first argument of this function.
     All attribute data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
     Call ``self.clear_recorded_data()`` to clear recorded data.
-    
+
     Example::
-    
+
         import snntorch as snn
         from snntorch.functional import probe
 
@@ -227,7 +249,7 @@ class AttributeMonitor(BaseMonitor):
             print(f'monitor[0]={monitor[0]}')
             print(f'monitor.monitored_layers={monitor.monitored_layers}')
             print(f"monitor['lif1']={monitor['lif1']}")
-            
+
     :param attribute_name: Attribute's name of probed neuron layer (e.g., mem, syn, etc.)
     :type net: str
 
@@ -242,10 +264,16 @@ class AttributeMonitor(BaseMonitor):
 
     :param function_on_attribute: Function that is applied to the monitored modules' attribute
     :type function_on_attribute: Callable, optional
-    '''
+    """
 
-    def __init__(self, attribute_name: str, pre_forward: bool, net: nn.Module, instance: Any or tuple = None,
-                 function_on_attribute: Callable = lambda x: x):
+    def __init__(
+        self,
+        attribute_name: str,
+        pre_forward: bool,
+        net: nn.Module,
+        instance: Any or tuple = None,
+        function_on_attribute: Callable = lambda x: x,
+    ):
         super().__init__()
         self.attribute_name = attribute_name
         self.function_on_attribute = function_on_attribute
@@ -267,19 +295,24 @@ class AttributeMonitor(BaseMonitor):
         def hook(m, x, y):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
-                self.records.append(self.function_on_attribute(m.__getattr__(self.attribute_name)))
+                self.records.append(
+                    self.function_on_attribute(
+                        m.__getattr__(self.attribute_name)
+                    )
+                )
 
         return hook
 
+
 class GradInputMonitor(BaseMonitor):
-    '''
+    """
     A monitor to record the input gradient of each neuron layer (e.g. Leaky) in a network.
     All input gradient data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
     Call ``self.clear_recorded_data()`` to clear recorded data.
-    
+
     Example::
-    
+
         import snntorch as snn
         from snntorch.functional import probe
 
@@ -317,12 +350,17 @@ class GradInputMonitor(BaseMonitor):
 
     :param instance: Instance of modules to be monitored. If ``None``, defaults to ``type(net)``
     :type instance: Any or tuple
-    
+
     :param function_on_grad_input: Function that is applied to the monitored modules' gradients
     :type function_on_grad_input: Callable, optional
-    '''
+    """
 
-    def __init__(self, net: nn.Module, instance: Any or tuple = None, function_on_grad_input: Callable = lambda x: x):
+    def __init__(
+        self,
+        net: nn.Module,
+        instance: Any or tuple = None,
+        function_on_grad_input: Callable = lambda x: x,
+    ):
         super().__init__()
         self.function_on_grad_input = function_on_grad_input
 
@@ -330,28 +368,37 @@ class GradInputMonitor(BaseMonitor):
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
                 self.name_records_index[name] = []
-                if torch.__version__ >= torch.torch_version.TorchVersion('1.8.0'):
-                    self.hooks.append(m.register_full_backward_hook(self.create_hook(name)))
+                if torch.__version__ >= torch.torch_version.TorchVersion(
+                    "1.8.0"
+                ):
+                    self.hooks.append(
+                        m.register_full_backward_hook(self.create_hook(name))
+                    )
                 else:
-                    self.hooks.append(m.register_backward_hook(self.create_hook(name)))
+                    self.hooks.append(
+                        m.register_backward_hook(self.create_hook(name))
+                    )
 
     def create_hook(self, name):
         def hook(m, grad_input, grad_output):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
-                self.records.append(self.function_on_grad_input(unpack_len1_tuple(grad_input)))
+                self.records.append(
+                    self.function_on_grad_input(unpack_len1_tuple(grad_input))
+                )
 
         return hook
 
+
 class GradOutputMonitor(BaseMonitor):
-    '''
+    """
     A monitor to record the output gradient of each specific neuron layer (e.g. Leaky) in a network.
     All output gradient data is recorded in ``self.record`` as data type ''list''.
     Call ``self.enable()`` or ``self.disable()`` to enable or disable the monitor.
     Call ``self.clear_recorded_data()`` to clear recorded data.
-    
+
     Example::
-    
+
         import snntorch as snn
         from snntorch.functional import probe
 
@@ -389,27 +436,42 @@ class GradOutputMonitor(BaseMonitor):
 
     :param instance: Instance of modules to be monitored. If ``None``, defaults to ``type(net)``
     :type instance: Any or tuple
-    
+
     :param function_on_grad_output: Function that is applied to the monitored modules' gradients
     :type function_on_grad_output: Callable, optional
-    '''
+    """
 
-    def __init__(self, net: nn.Module, instance: Any or tuple = None, function_on_grad_output: Callable = lambda x: x):
+    def __init__(
+        self,
+        net: nn.Module,
+        instance: Any or tuple = None,
+        function_on_grad_output: Callable = lambda x: x,
+    ):
         super().__init__()
         self.function_on_grad_output = function_on_grad_output
         for name, m in net.named_modules():
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
                 self.name_records_index[name] = []
-                if torch.__version__ >= torch.torch_version.TorchVersion('1.8.0'):
-                    self.hooks.append(m.register_full_backward_hook(self.create_hook(name)))
+                if torch.__version__ >= torch.torch_version.TorchVersion(
+                    "1.8.0"
+                ):
+                    self.hooks.append(
+                        m.register_full_backward_hook(self.create_hook(name))
+                    )
                 else:
-                    self.hooks.append(m.register_backward_hook(self.create_hook(name)))
+                    self.hooks.append(
+                        m.register_backward_hook(self.create_hook(name))
+                    )
 
     def create_hook(self, name):
         def hook(m, grad_input, grad_output):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
-                self.records.append(self.function_on_grad_output(unpack_len1_tuple(grad_output)))
+                self.records.append(
+                    self.function_on_grad_output(
+                        unpack_len1_tuple(grad_output)
+                    )
+                )
 
         return hook

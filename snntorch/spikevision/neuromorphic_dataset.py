@@ -52,7 +52,9 @@ def download_url(url, root, filename=None, md5=None, total_size=None):
                 headers = {"user-agent": "Wget/1.16 (linux-gnu)"}
                 r = requests.get(url, stream=True, headers=headers)
                 # # new
-                total_size_in_bytes = int(r.headers.get("content-length", 0))  # new
+                total_size_in_bytes = int(
+                    r.headers.get("content-length", 0)
+                )  # new
                 block_size = 1024  # 1 Kibibyte - new
                 progress_bar = tqdm(
                     total=total_size_in_bytes, unit="iB", unit_scale=True
@@ -64,7 +66,10 @@ def download_url(url, root, filename=None, md5=None, total_size=None):
                             progress_bar.update(len(chunk))  # new
                             f.write(chunk)
                 progress_bar.close()  # new
-                if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+                if (
+                    total_size_in_bytes != 0
+                    and progress_bar.n != total_size_in_bytes
+                ):
                     print(
                         "Warning: Downloaded size {progress_bar.n} does not match {total_size_in_bytes}."
                     )
@@ -73,7 +78,9 @@ def download_url(url, root, filename=None, md5=None, total_size=None):
                 raise urllib.error.URLError(url)
             else:
                 print("Downloading " + url + " to " + fpath)
-                urllib.request.urlretrieve(url, fpath, reporthook=gen_bar_updater())
+                urllib.request.urlretrieve(
+                    url, fpath, reporthook=gen_bar_updater()
+                )
         except (urllib.error.URLError, IOError) as e:
             if url[:5] == "https":
                 url = url.replace("https:", "http:")
@@ -81,7 +88,9 @@ def download_url(url, root, filename=None, md5=None, total_size=None):
                     "Failed download. Trying https -> http instead."
                     " Downloading " + url + " to " + fpath
                 )
-                urllib.request.urlretrieve(url, fpath, reporthook=gen_bar_updater())
+                urllib.request.urlretrieve(
+                    url, fpath, reporthook=gen_bar_updater()
+                )
             else:
                 raise e
         # check integrity of downloaded file
@@ -146,7 +155,9 @@ class NeuromorphicDataset(data.Dataset):
                     )
 
         has_transforms = transforms is not None
-        has_separate_transform = transform is not None or target_transform is not None
+        has_separate_transform = (
+            transform is not None or target_transform is not None
+        )
         if has_transforms and has_separate_transform:
             raise ValueError(
                 "Only transforms or transform/target_transform can "
@@ -208,7 +219,9 @@ class NeuromorphicDataset(data.Dataset):
         if res is False:
             for _, _, filename in self._resources_url:
                 extract_root = self.directory
-                archive = os.path.join(extract_root, filename).replace("\\", "/")
+                archive = os.path.join(extract_root, filename).replace(
+                    "\\", "/"
+                )
                 print("Extracting {} to {}...".format(archive, extract_root))
                 _extract_archive(archive, extract_root, remove_finished=False)
         return res
@@ -221,7 +234,10 @@ class NeuromorphicDataset(data.Dataset):
             os.makedirs(self.directory, exist_ok=True)
             for url, md5, filename in self._resources_url:
                 download_and_extract_archive(
-                    url, download_root=self.directory, filename=filename, md5=md5
+                    url,
+                    download_root=self.directory,
+                    filename=filename,
+                    md5=md5,
                 )
             return False
 
@@ -251,69 +267,75 @@ def _extract_archive(from_path, to_path=None, remove_finished=False):
 
     if _is_tar(from_path):
         with tarfile.open(from_path, "r") as tar:
+
             def is_within_directory(directory, target):
-                
+
                 abs_directory = os.path.abspath(directory)
                 abs_target = os.path.abspath(target)
-            
+
                 prefix = os.path.commonprefix([abs_directory, abs_target])
-                
+
                 return prefix == abs_directory
-            
-            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-            
+
+            def safe_extract(
+                tar, path=".", members=None, *, numeric_owner=False
+            ):
+
                 for member in tar.getmembers():
                     member_path = os.path.join(path, member.name)
                     if not is_within_directory(path, member_path):
                         raise Exception("Attempted Path Traversal in Tar File")
-            
-                tar.extractall(path, members, numeric_owner=numeric_owner) 
-                
-            
+
+                tar.extractall(path, members, numeric_owner=numeric_owner)
+
             safe_extract(tar, path=to_path)
     elif _is_targz(from_path) or _is_tgz(from_path):
         with tarfile.open(from_path, "r:gz") as tar:
+
             def is_within_directory(directory, target):
-                
+
                 abs_directory = os.path.abspath(directory)
                 abs_target = os.path.abspath(target)
-            
+
                 prefix = os.path.commonprefix([abs_directory, abs_target])
-                
+
                 return prefix == abs_directory
-            
-            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-            
+
+            def safe_extract(
+                tar, path=".", members=None, *, numeric_owner=False
+            ):
+
                 for member in tar.getmembers():
                     member_path = os.path.join(path, member.name)
                     if not is_within_directory(path, member_path):
                         raise Exception("Attempted Path Traversal in Tar File")
-            
-                tar.extractall(path, members, numeric_owner=numeric_owner) 
-                
-            
+
+                tar.extractall(path, members, numeric_owner=numeric_owner)
+
             safe_extract(tar, path=to_path)
     elif _is_tarxz(from_path):
         with tarfile.open(from_path, "r:xz") as tar:
+
             def is_within_directory(directory, target):
-                
+
                 abs_directory = os.path.abspath(directory)
                 abs_target = os.path.abspath(target)
-            
+
                 prefix = os.path.commonprefix([abs_directory, abs_target])
-                
+
                 return prefix == abs_directory
-            
-            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-            
+
+            def safe_extract(
+                tar, path=".", members=None, *, numeric_owner=False
+            ):
+
                 for member in tar.getmembers():
                     member_path = os.path.join(path, member.name)
                     if not is_within_directory(path, member_path):
                         raise Exception("Attempted Path Traversal in Tar File")
-            
-                tar.extractall(path, members, numeric_owner=numeric_owner) 
-                
-            
+
+                tar.extractall(path, members, numeric_owner=numeric_owner)
+
             safe_extract(tar, path=to_path)
     elif _is_gzip(from_path):
         to_path = os.path.join(
