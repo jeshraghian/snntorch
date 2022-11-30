@@ -6,16 +6,16 @@ def BatchNormTT1d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
     Generate a torch.nn.ModuleList of 1D Batch Normalization Layer with length time_steps.
     Input to this layer is the same as the  vanilla torch.nn.BatchNorm1d layer.
 
-    Batch Normalisation Through Time (BNTT) as presented in:
-    'Revisiting Batch Normalization for Training Low-Latency Deep Spiking Neural Networks From Scratch'
-    By Youngeun Kim & Priyadarshini Panda
-    arXiv preprint arXiv:2010.01729
+    `Batch Normalisation Through Time (BNTT) as presented in:
+    Kim, Yongeun, and Priyadarshini Panda.
+    'Revisiting Batch Normalization for Training Low-Latency Deep Spiking Neural Networks From Scratch'.
+    Frontiers in Neuroscience (2021): 1638.<https://www.frontiersin.org/articles/10.3389/fnins.2021.773954/full>`_
 
     Original GitHub repo: https://github.com/Intelligent-Computing-Lab-Yale/BNTT-Batch-Normalization-Through-Time
 
     Using LIF neuron as the neuron of choice for the math shown below.
 
-    Typically, for a single post-synaptic neuron i, we can represent its membrane potential :math:'U_{i}^{t}' at time-step t as:
+    Typically, for a single post-synaptic neuron i, we can represent its membrane potential :math:`U_{i}^{t}` at time-step :math:`t` as:
 
     .. math::
 
@@ -78,14 +78,17 @@ def BatchNormTT2d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
     Generate a torch.nn.ModuleList of 2D Batch Normalization Layer with length time_steps.
     Input to this layer is the same as the  vanilla torch.nn.BatchNorm2d layer.
 
-    Batch Normalisation Through Time (BNTT) as presented in:
-    'Revisiting Batch Normalization for Training Low-Latency Deep Spiking Neural Networks From Scratch'
-    By Youngeun Kim & Priyadarshini Panda
-    arXiv preprint arXiv:2010.01729
+    `Batch Normalisation Through Time (BNTT) as presented in:
+    Kim, Yongeun, and Priyadarshini Panda.
+    'Revisiting Batch Normalization for Training Low-Latency Deep Spiking Neural Networks From Scratch'.
+    Frontiers in Neuroscience (2021): 1638.<https://www.frontiersin.org/articles/10.3389/fnins.2021.773954/full>`_
+
+    Original GitHub repo: https://github.com/Intelligent-Computing-Lab-Yale/BNTT-Batch-Normalization-Through-Time
+
 
     Using LIF neuron as the neuron of choice for the math shown below.
 
-    Typically, for a single post-synaptic neuron i, we can represent its membrane potential :math:'U_{i}^{t}' at time-step t as:
+    Typically, for a single post-synaptic neuron i, we can represent its membrane potential :math:`U_{i}^{t}` at time-step :math:`t` as:
 
     .. math::
 
