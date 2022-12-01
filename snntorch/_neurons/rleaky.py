@@ -7,134 +7,196 @@ from .neurons import *
 
 class RLeaky(LIF):
     """
-    First-order recurrent leaky integrate-and-fire neuron model.
-    Input is assumed to be a current injection appended to the voltage spike output.
-    Membrane potential decays exponentially with rate beta.
-    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+        First-order recurrent leaky integrate-and-fire neuron model.
+        Input is assumed to be a current injection appended to the voltage
+        spike output.
+        Membrane potential decays exponentially with rate beta.
+        For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
-    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have `threshold` subtracted from it whenever the neuron emits a spike:
+        If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
+        `threshold` subtracted from it whenever the neuron emits a spike:
 
-    .. math::
+        .. math::
 
-            U[t+1] = βU[t] + I_{\\rm in}[t+1] + V(S_{\\rm out}[t]) - RU_{\\rm thr}
+                U[t+1] = βU[t] + I_{\\rm in}[t+1] + V(S_{\\rm out}[t]) -
+                RU_{\\rm thr}
 
-    Where :math:`V(\\cdot)` acts either as a linear layer, a convolutional operator, or elementwise product on :math:`S_{\\rm out}`.
+        Where :math:`V(\\cdot)` acts either as a linear layer, a convolutional
+        operator, or elementwise product on :math:`S_{\\rm out}`.
 
-    * If `all_to_all = "True"` and `linear_features` is specified, then :math:`V(\\cdot)` acts as a recurrent linear layer of the same size as :math:`S_{\\rm out}`.
-    * If `all_to_all = "True"` and `conv2d_channels` and `kernel_size` are specified, then :math:`V(\\cdot)` acts as a recurrent convlutional layer with padding to ensure the output matches the size of the input.
-    * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an elementwise multiplier with :math:`V`.
+        * If `all_to_all = "True"` and `linear_features` is specified, then
+        :math:`V(\\cdot)` acts as a recurrent linear layer of the same size as
+        :math:`S_{\\rm out}`.
+        * If `all_to_all = "True"` and `conv2d_channels` and `kernel_size` are
+        specified, then :math:`V(\\cdot)` acts as a recurrent convlutional
+        layer
+        with padding to ensure the output matches the size of the input.
+        * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an
+        elementwise
+         multiplier with :math:`V`.
 
-    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
+        If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
+        whenever the neuron emits a spike:
 
-    .. math::
+        .. math::
 
-            U[t+1] = βU[t] + I_{\\rm syn}[t+1] +  V(S_{\\rm out}[t] - R(βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t])
+                U[t+1] = βU[t] + I_{\\rm syn}[t+1] +  V(S_{\\rm out}[t] -
+                R(βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t])
 
-    * :math:`I_{\\rm in}` - Input current
-    * :math:`U` - Membrane potential
-    * :math:`U_{\\rm thr}` - Membrane threshold
-    * :math:`S_{\\rm out}` - Output spike
-    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise :math:`R = 0`
-    * :math:`β` - Membrane potential decay rate
-    * :math:`V` - Explicit recurrent weight
+        * :math:`I_{\\rm in}` - Input current
+        * :math:`U` - Membrane potential
+        * :math:`U_{\\rm thr}` - Membrane threshold
+        * :math:`S_{\\rm out}` - Output spike
+        * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
+        :math:`R = 0`
+        * :math:`β` - Membrane potential decay rate
+        * :math:`V` - Explicit recurrent weight
 
-    Example::
+        Example::
 
-        import torch
-        import torch.nn as nn
-        import snntorch as snn
+            import torch
+            import torch.nn as nn
+            import snntorch as snn
 
-        beta = 0.5
+            beta = 0.5
 
-        # shared recurrent connection for a given layer
-        V1 = 0.5
+            # shared recurrent connection for a given layer
+            V1 = 0.5
 
-        # independent connection p/neuron
-        V2 = torch.rand(num_outputs)
+            # independent connection p/neuron
+            V2 = torch.rand(num_outputs)
 
-        # Define Network
-        class Net(nn.Module):
-            def __init__(self):
-                super().__init__()
+            # Define Network
+            class Net(nn.Module):
+                def __init__(self):
+                    super().__init__()
 
-                # initialize layers
-                self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.RLeaky(beta=beta, linear_features=num_hidden)
-                self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.RLeaky(beta=beta, all_to_all=False, V=V1)
+                    # initialize layers
+                    self.fc1 = nn.Linear(num_inputs, num_hidden)
+                    self.lif1 = snn.RLeaky(beta=beta,
+                    linear_features=num_hidden)
+                    self.fc2 = nn.Linear(num_hidden, num_outputs)
+                    self.lif2 = snn.RLeaky(beta=beta, all_to_all=False, V=V1)
 
-            def forward(self, x, mem1, spk1, mem2):
-                cur1 = self.fc1(x)
-                spk1, mem1 = self.lif1(cur1, spk1, mem1)
-                cur2 = self.fc2(spk1)
-                spk2, mem2 = self.lif2(cur2, spk2, mem2)
-                return mem1, spk1, mem2, spk2
+                def forward(self, x, mem1, spk1, mem2):
+                    cur1 = self.fc1(x)
+                    spk1, mem1 = self.lif1(cur1, spk1, mem1)
+                    cur2 = self.fc2(spk1)
+                    spk2, mem2 = self.lif2(cur2, spk2, mem2)
+                    return mem1, spk1, mem2, spk2
 
-    :param beta: membrane potential decay rate. Clipped between 0 and 1 during the forward-pass. May be a single-valued tensor (i.e., equal decay rate for all neurons in a layer), or multi-valued (one weight per neuron).
-    :type beta: float or torch.tensor
+        :param beta: membrane potential decay rate. Clipped between 0 and 1
+        during the forward-pass. May be a single-valued tensor (i.e., equal
+        decay rate for all neurons in a layer), or multi-valued (one weight per
+        neuron).
+        :type beta: float or torch.tensor
 
-    :param V: Recurrent weights to scale output spikes, only used when `all_to_all=False`. Defaults to 1.
-    :type V: float or torch.tensor
+        :param V: Recurrent weights to scale output spikes, only used when
+        `all_to_all=False`. Defaults to 1.
+        :type V: float or torch.tensor
 
-    :param all_to_all: Enables output spikes to be connected in dense or convolutional recurrent structures instead of 1-to-1 connections. Defaults to True.
-    :type all_to_all: bool, optional
+        :param all_to_all: Enables output spikes to be connected in dense or
+        convolutional recurrent structures instead of 1-to-1 connections.
+        Defaults to True.
+        :type all_to_all: bool, optional
 
-    :param linear_features: Size of each output sample. Must be specified if `all_to_all=True` and the input data is 1D. Defaults to None
-    :type linear_features: int, optional
+        :param linear_features: Size of each output sample. Must be specified
+        if
+        `all_to_all=True` and the input data is 1D. Defaults to None
+        :type linear_features: int, optional
 
-    :param conv2d_channels: Number of channels in each output sample. Must be specified if `all_to_all=True` and the input data is 3D. Defaults to None
-    :type conv2d_channels: int, optional
+        :param conv2d_channels: Number of channels in each output sample. Must
+        be specified if `all_to_all=True` and the input data is 3D. Defaults to
+        None
+        :type conv2d_channels: int, optional
 
-    :param kernel_size:  Size of the convolving kernel. Must be specified if `all_to_all=True` and the input data is 3D. Defaults to None
-    :type kernel_size: int or tuple
+        :param kernel_size:  Size of the convolving kernel. Must be
+        specified if
+        `all_to_all=True` and the input data is 3D. Defaults to None
+        :type kernel_size: int or tuple
 
-    :param threshold: Threshold for :math:`mem` to reach in order to generate a spike `S=1`. Defaults to 1
-    :type threshold: float, optional
+        :param threshold: Threshold for :math:`mem` to reach in order to
+        generate a
+    spike `S=1`. Defaults to 1 :type threshold: float, optional
 
-    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to None (corresponds to Heaviside surrogate gradient. See `snntorch.surrogate` for more options)
-    :type spike_grad: surrogate gradient function from snntorch.surrogate, optional
+        :param spike_grad: Surrogate gradient for the term dS/dU. Defaults
+        to None
+    (corresponds to Heaviside surrogate gradient. See `snntorch.surrogate`
+    for more
+    options) :type spike_grad: surrogate gradient function from
+    snntorch.surrogate,
+    optional
 
-    :param init_hidden: Instantiates state variables as instance variables. Defaults to False
-    :type init_hidden: bool, optional
+        :param init_hidden: Instantiates state variables as instance variables.
+    Defaults to False :type init_hidden: bool, optional
 
-    :param inhibition: If `True`, suppresses all spiking other than the neuron with the highest state. Defaults to False
-    :type inhibition: bool, optional
+        :param inhibition: If `True`, suppresses all spiking other than the
+        neuron
+    with the highest state. Defaults to False :type inhibition: bool, optional
 
-    :param learn_beta: Option to enable learnable beta. Defaults to False
-    :type learn_beta: bool, optional
+        :param learn_beta: Option to enable learnable beta. Defaults to False
+        :type learn_beta: bool, optional
 
-    :param learn_recurrent: Option to enable learnable recurrent weights. Defaults to True
-    :type learn_recurrent: bool, optional
+        :param learn_recurrent: Option to enable learnable recurrent weights.
+    Defaults to True
+        :type learn_recurrent: bool, optional
 
-    :param learn_threshold: Option to enable learnable threshold. Defaults to False
-    :type learn_threshold: bool, optional
+        :param learn_threshold: Option to enable learnable threshold.
+        Defaults to False
+        :type learn_threshold: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "subtract"
-    :type reset_mechanism: str, optional
+        :param reset_mechanism: Defines the reset mechanism applied to
+        :math:`mem`
+    each time the threshold is met. Reset-by-subtraction: "subtract",
+    reset-to-zero:
+    "zero, none: "none". Defaults to "subtract" :type reset_mechanism: str,
+    optional
 
-    :param state_quant: If specified, hidden state :math:`mem` is quantized to a valid state for the forward pass. Defaults to False
-    :type state_quant: quantization function from snntorch.quant, optional
+        :param state_quant: If specified, hidden state :math:`mem` is
+        quantized to a
+    valid state for the forward pass. Defaults to False :type state_quant:
+    quantization function from snntorch.quant, optional
 
-    :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
-    :type output: bool, optional
+        :param output: If `True` as well as `init_hidden=True`, states are
+        returned
+    when neuron is called. Defaults to False :type output: bool, optional
 
 
 
 
-    Inputs: \\input_, spk_0, mem_0
-        - **input_** of shape `(batch, input_size)`: tensor containing input features
-        - **spk_0** of shape `(batch, input_size)`: tensor containing output spike features
-        - **mem_0** of shape `(batch, input_size)`: tensor containing the initial membrane potential for each element in the batch.
+        Inputs: \\input_, spk_0, mem_0
+            - **input_** of shape `(batch, input_size)`: tensor containing
+            input
+              features
+            - **spk_0** of shape `(batch, input_size)`: tensor containing
+            output
+              spike features
+            - **mem_0** of shape `(batch, input_size)`: tensor containing the
+              initial membrane potential for each element in the batch.
 
-    Outputs: spk_1, mem_1
-        - **spk_1** of shape `(batch, input_size)`: tensor containing the output spikes.
-        - **mem_1** of shape `(batch, input_size)`: tensor containing the next membrane potential for each element in the batch
+        Outputs: spk_1, mem_1
+            - **spk_1** of shape `(batch, input_size)`: tensor containing the
+            output
+              spikes.
+            - **mem_1** of shape `(batch, input_size)`: tensor containing
+            the next
+              membrane potential for each element in the batch
 
-    Learnable Parameters:
-        - **RLeaky.beta** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
-        - **RLeaky.recurrent.weight** (torch.Tensor) - optional learnable weights are automatically generated if `all_to_all=True`. `RLeaky.recurrent` stores a `nn.Linear` or `nn.Conv2d` layer depending on input arguments provided.
-        - **RLeaky.V** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size). It is only used where `all_to_all=False` for 1-to-1 recurrent connections.
-        - **RLeaky.threshold** (torch.Tensor) - optional learnable thresholds must be manually passed in, of shape `1` or`` (input_size).
+        Learnable Parameters:
+            - **RLeaky.beta** (torch.Tensor) - optional learnable weights
+            must be
+              manually passed in, of shape `1` or (input_size).
+            - **RLeaky.recurrent.weight** (torch.Tensor) - optional learnable
+              weights are automatically generated if `all_to_all=True`.
+    `RLeaky.recurrent` stores a `nn.Linear` or `nn.Conv2d` layer depending
+    on input
+    arguments provided.
+            - **RLeaky.V** (torch.Tensor) - optional learnable weights must be
+              manually passed in, of shape `1` or (input_size). It is only used
+    where `all_to_all=False` for 1-to-1 recurrent connections.
+            - **RLeaky.threshold** (torch.Tensor) - optional learnable
+            thresholds
+              must be manually passed in, of shape `1` or`` (input_size).
 
     """
 
@@ -211,9 +273,9 @@ class RLeaky(LIF):
                 self.spk, self.mem, input_=input_
             )
 
-        # TO-DO: alternatively, we could do torch.exp(-1 / self.beta.clamp_min(0)),
-        # giving actual time constants instead of values in [0, 1] as initial beta
-        # beta = self.beta.clamp(0, 1)
+        # TO-DO: alternatively, we could do torch.exp(-1 /
+        # self.beta.clamp_min(0)), giving actual time constants instead of
+        # values in [0, 1] as initial beta beta = self.beta.clamp(0, 1)
 
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
@@ -229,7 +291,8 @@ class RLeaky(LIF):
 
             return spk, mem
 
-        # intended for truncated-BPTT where instance variables are hidden states
+        # intended for truncated-BPTT where instance variables are hidden
+        # states
         if self.init_hidden:
             self._rleaky_forward_cases(spk, mem)
             self.reset = self.mem_reset(self.mem)
@@ -337,17 +400,27 @@ class RLeaky(LIF):
             if not (linear_features_bool):
                 if not (conv2d_channels_bool or kernel_size_bool):
                     raise TypeError(
-                        "When `all_to_all=True`, RLeaky requires either `linear_features` or (`conv2d_channels` and `kernel_size`) to be specified. The shape should match the shape of the output spike of the layer."
+                        "When `all_to_all=True`, RLeaky requires either"
+                        "`linear_features` or (`conv2d_channels` and "
+                        "`kernel_size`) to be specified. The"
+                        "shape should match the shape of the output spike of "
+                        "the layer."
                     )
                 elif conv2d_channels_bool ^ kernel_size_bool:
                     raise TypeError(
-                        "`conv2d_channels` and `kernel_size` must both be specified. The shape of `conv2d_channels` should match the shape of the output spikes."
+                        "`conv2d_channels` and `kernel_size` must both be"
+                        "specified. The shape of `conv2d_channels` should "
+                        "match the shape of the output"
+                        "spikes."
                     )
             elif (linear_features_bool and kernel_size_bool) or (
                 linear_features_bool and conv2d_channels_bool
             ):
                 raise TypeError(
-                    "`linear_features` cannot be specified at the same time as `conv2d_channels` or `kernel_size`. A linear layer and conv2d layer cannot both be specified at the same time."
+                    "`linear_features` cannot be specified at the same time as"
+                    "`conv2d_channels` or `kernel_size`. A linear layer and "
+                    "conv2d layer cannot both"
+                    "be specified at the same time."
                 )
         else:
             if (
@@ -356,13 +429,19 @@ class RLeaky(LIF):
                 or kernel_size_bool
             ):
                 raise TypeError(
-                    "When `all_to_all`=False, none of `linear_features`, `conv2d_channels`, or `kernel_size` should be specified. The weight `V` is used instead."
+                    "When `all_to_all`=False, none of `linear_features`,"
+                    "`conv2d_channels`, or `kernel_size` should be specified. "
+                    "The weight `V` is used"
+                    "instead."
                 )
 
     @classmethod
     def detach_hidden(cls):
         """Returns the hidden states, detached from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
+        Intended
+        for use in truncated backpropagation through time where hidden state
+        variables
+        are instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], RLeaky):

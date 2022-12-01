@@ -9,29 +9,46 @@ class SConv2dLSTM(SpikingNeuron):
 
     """
     A spiking 2d convolutional long short-term memory cell.
-    Hidden states are membrane potential and synaptic current :math:`mem, syn`, which correspond to the hidden and cell states :math:`h, c` in the original LSTM formulation.
+    Hidden states are membrane potential and synaptic current
+    :math:`mem, syn`, which correspond to the hidden and cell states
+    :math:`h, c` in the original LSTM formulation.
 
-    The input is expected to be of size :math:`(N, C_{in}, H_{in}, W_{in})` where :math:`N` is the batch size.
+    The input is expected to be of size :math:`(N, C_{in}, H_{in}, W_{in})`
+    where :math:`N` is the batch size.
 
-    Unlike the LSTM module in PyTorch, only one time step is simulated each time the cell is called.
+    Unlike the LSTM module in PyTorch, only one time step is simulated each
+    time the cell is called.
 
     .. math::
             \\begin{array}{ll} \\\\
-            i_t = \\sigma(W_{ii} ⋆ x_t + b_{ii} + W_{hi} ⋆ mem_{t-1} + b_{hi}) \\\\
-            f_t = \\sigma(W_{if} ⋆ x_t + b_{if} + W_{hf} mem_{t-1} + b_{hf}) \\\\
-            g_t = \\tanh(W_{ig} ⋆ x_t + b_{ig} + W_{hg} ⋆ mem_{t-1} + b_{hg}) \\\\
-            o_t = \\sigma(W_{io} ⋆ x_t + b_{io} + W_{ho} ⋆ mem_{t-1} + b_{ho}) \\\\
+            i_t = \\sigma(W_{ii} ⋆ x_t + b_{ii} + W_{hi} ⋆ mem_{t-1} + b_{hi})
+            \\\\
+            f_t = \\sigma(W_{if} ⋆ x_t + b_{if} + W_{hf} mem_{t-1} + b_{hf})
+            \\\\
+            g_t = \\tanh(W_{ig} ⋆ x_t + b_{ig} + W_{hg} ⋆ mem_{t-1} + b_{hg})
+            \\\\
+            o_t = \\sigma(W_{io} ⋆ x_t + b_{io} + W_{ho} ⋆ mem_{t-1} + b_{ho})
+            \\\\
             syn_t = f_t ∗  c_{t-1} + i_t ∗  g_t \\\\
             mem_t = o_t ∗  \\tanh(syn_t) \\\\
         \\end{array}
 
-    where :math:`\\sigma` is the sigmoid function, ⋆ is the 2D cross-correlation operator and ∗ is the Hadamard product.
-    The output state :math:`mem_{t+1}` is thresholded to determine whether an output spike is generated.
-    To conform to standard LSTM state behavior, the default reset mechanism is set to `reset="none"`, i.e., no reset is applied. If this is changed, the reset is only applied to :math:`mem_t`.
+    where :math:`\\sigma` is the sigmoid function, ⋆ is the 2D
+    cross-correlation operator and ∗ is the Hadamard product.
+    The output state :math:`mem_{t+1}` is thresholded to determine whether
+    an output spike is generated.
+    To conform to standard LSTM state behavior, the default reset mechanism
+    is set to `reset="none"`, i.e., no reset is applied. If this is changed,
+    the reset is only applied to :math:`mem_t`.
 
-    Options to apply max-pooling or average-pooling to the state :math:`mem_t` are also enabled. Note that it is preferable to apply pooling to the state rather than the spike, as it does not make sense to apply pooling to activations of 1's and 0's which may lead to random tie-breaking.
+    Options to apply max-pooling or average-pooling to the state
+    :math:`mem_t` are also enabled. Note that it is preferable to apply
+    pooling to the state rather than the spike, as it does not make sense
+    to apply pooling to activations of 1's and 0's which may lead to random
+    tie-breaking.
 
-    Padding is automatically applied to ensure consistent sizes for hidden states from one time step to the next.
+    Padding is automatically applied to ensure consistent sizes for
+    hidden states from one time step to the next.
 
     At the moment, stride != 1 is not supported.
 
@@ -62,8 +79,10 @@ class SConv2dLSTM(SpikingNeuron):
                 spike_grad_fc = surrogate.fast_sigmoid(slope=5)
 
                 # initialize layers
-                self.sclstm1 = snn.SConv2dLSTM(in_channels, out_channels, kernel_size, max_pool=max_pool, spike_grad=spike_grad_lstm)
-                self.sclstm2 = snn.SConv2dLSTM(out_channels, out_channels, kernel_size, avg_pool=avg_pool, spike_grad=spike_grad_lstm)
+                self.sclstm1 = snn.SConv2dLSTM(in_channels, out_channels,
+                kernel_size, max_pool=max_pool, spike_grad=spike_grad_lstm)
+                self.sclstm2 = snn.SConv2dLSTM(out_channels, out_channels,
+                kernel_size, avg_pool=avg_pool, spike_grad=spike_grad_lstm)
                 self.fc2 = nn.Linear(flattened_input, num_outputs)
                 self.lif2 = snn.Leaky(beta=beta, spike_grad=spike_grad_fc)
 
@@ -96,52 +115,79 @@ class SConv2dLSTM(SpikingNeuron):
     :param kernel_size: Size of the convolving kernel
     :type kernel_size: int, tuple, or list
 
-    :param bias: If `True`, adds a learnable bias to the output. Defaults to `True`
+    :param bias: If `True`, adds a learnable bias to the output. Defaults to
+    `True`
     :type bias: bool, optional
 
-    :param max_pool: Applies max-pooling to the hidden state :math:`mem` prior to thresholding if specified. Defaults to 0
+    :param max_pool: Applies max-pooling to the hidden state :math:`mem`
+    prior to thresholding if specified. Defaults to 0
     :type max_pool: int, tuple, or list, optional
 
-    :param avg_pool: Applies average-pooling to the hidden state :math:`mem` prior to thresholding if specified. Defaults to 0
+    :param avg_pool: Applies average-pooling to the hidden state :math:`mem`
+    prior to thresholding if specified. Defaults to 0
     :type avg_pool: int, tuple, or list, optional
 
-    :param threshold: Threshold for :math:`mem` to reach in order to generate a spike `S=1`. Defaults to 1
+    :param threshold: Threshold for :math:`mem` to reach in order to
+    generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
-    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to a straight-through-estimator
-    :type spike_grad: surrogate gradient function from snntorch.surrogate, optional
+    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to a
+    straight-through-estimator
+    :type spike_grad: surrogate gradient function from snntorch.surrogate,
+    optional
 
-    :param learn_threshold: Option to enable learnable threshold. Defaults to False
+    :param learn_threshold: Option to enable learnable threshold. Defaults
+    to False
     :type learn_threshold: bool, optional
 
-    :param init_hidden: Instantiates state variables as instance variables. Defaults to False
+    :param init_hidden: Instantiates state variables as instance variables.
+    Defaults to False
     :type init_hidden: bool, optional
 
-    :param inhibition: If `True`, suppresses all spiking other than the neuron with the highest state. Defaults to False
+    :param inhibition: If `True`, suppresses all spiking other than the
+    neuron with the highest state. Defaults to False
     :type inhibition: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
+    :param reset_mechanism: Defines the reset mechanism applied to
+    :math:`mem` each time the threshold is met. Reset-by-subtraction:
+    "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
     :type reset_mechanism: str, optional
 
-    :param state_quant: If specified, hidden states :math:`mem` and :math:`syn` are quantized to a valid state for the forward pass. Defaults to False
+    :param state_quant: If specified, hidden states :math:`mem` and
+    :math:`syn` are quantized to a valid state for the forward pass.
+    Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
-    :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
+    :param output: If `True` as well as `init_hidden=True`, states are
+    returned when neuron is called. Defaults to False
     :type output: bool, optional
 
 
     Inputs: \\input_, syn_0, mem_0
-        - **input_** of shape `(batch, in_channels, H, W)`: tensor containing input features
-        - **syn_0** of shape `(batch, out_channels, H, W)`: tensor containing the initial synaptic current (or cell state) for each element in the batch.
-        - **mem_0** of shape `(batch, out_channels, H, W)`: tensor containing the initial membrane potential (or hidden state) for each element in the batch.
+        - **input_** of shape `(batch, in_channels, H, W)`: tensor
+        containing input features
+        - **syn_0** of shape `(batch, out_channels, H, W)`: tensor
+        containing the initial synaptic current (or cell state) for each
+        element in the batch.
+        - **mem_0** of shape `(batch, out_channels, H, W)`: tensor
+        containing the initial membrane potential (or hidden state) for each
+        element in the batch.
 
     Outputs: spk, syn_1, mem_1
-        - **spk** of shape `(batch, out_channels, H/pool, W/pool)`: tensor containing the output spike (avg_pool and max_pool scale if greater than 0.)
-        - **syn_1** of shape `(batch, out_channels, H, W)`: tensor containing the next synaptic current (or cell state) for each element in the batch
-        - **mem_1** of shape `(batch, out_channels, H, W)`: tensor containing the next membrane potential (or hidden state) for each element in the batch
+        - **spk** of shape `(batch, out_channels, H/pool, W/pool)`: tensor
+        containing the output spike (avg_pool and max_pool scale if greater
+        than 0.)
+        - **syn_1** of shape `(batch, out_channels, H, W)`: tensor
+        containing the next synaptic current (or cell state) for each element
+        in the batch
+        - **mem_1** of shape `(batch, out_channels, H, W)`: tensor
+        containing the next membrane potential (or hidden state) for each
+        element in the batch
 
     Learnable Parameters:
-        - **SConv2dLSTM.conv.weight** (torch.Tensor) - the learnable weights, of shape ((in_channels + out_channels), 4*out_channels, kernel_size).
+        - **SConv2dLSTM.conv.weight** (torch.Tensor) - the learnable
+        weights, of shape ((in_channels + out_channels), 4*out_channels,
+        kernel_size).
 
     """
 
@@ -376,7 +422,8 @@ class SConv2dLSTM(SpikingNeuron):
     def init_sconv2dlstm():
         """
         Used to initialize h and c as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
         """
         mem = _SpikeTensor(init_flag=False)
         syn = _SpikeTensor(init_flag=False)
@@ -394,13 +441,15 @@ class SConv2dLSTM(SpikingNeuron):
     def _sconv2dlstm_cases(self):
         if self.max_pool and self.avg_pool:
             raise ValueError(
-                "Only one of either `max_pool` or `avg_pool` may be specified, not both."
+                "Only one of either `max_pool` or `avg_pool` may be "
+                "specified, not both."
             )
 
     @classmethod
     def detach_hidden(cls):
         """Returns the hidden states, detached from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
+        Intended for use in truncated backpropagation through time where
+        hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], SConv2dLSTM):
@@ -410,7 +459,8 @@ class SConv2dLSTM(SpikingNeuron):
     @classmethod
     def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are instance variables."""
+        Intended for use where hidden state variables are
+        instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], SConv2dLSTM):
