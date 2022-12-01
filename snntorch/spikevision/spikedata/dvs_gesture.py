@@ -1,5 +1,14 @@
-# DVS Gesture citation: A. Amir, B. Taba, D. Berg, T. Melano, J. McKinstry, C. Di Nolfo, T. Nayak, A. Andreopoulos, G. Garreau, M. Mendoza, J. Kusnitz, M. Debole, S. Esser, T. Delbruck, M. Flickner, and D. Modha, "A Low Power, Fully Event-Based Gesture Recognition System," 2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), Honolulu, HI, 2017.
-# Dataloader adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
+# DVS Gesture citation:
+# A. Amir, B. Taba, D. Berg, T. Melano,
+# J. McKinstry, C. Di Nolfo, T. Nayak, A. Andreopoulos,
+# G. Garreau, M. Mendoza, J. Kusnitz, M. Debole, S. Esser,
+# T. Delbruck, M. Flickner, and D. Modha, "A Low Power,
+# Fully Event-Based Gesture Recognition System,"
+# 2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
+# Honolulu, HI, 2017.
+# Dataloader adapted from
+# https://github.com/nmi-lab/torchneuromorphic
+# by Emre Neftci and Clemens Schaefer
 
 import struct
 import time
@@ -34,7 +43,8 @@ class DVSGesture(NeuromorphicDataset):
 
     """`DVS Gesture <https://www.research.ibm.com/dvsgesture/>`_ Dataset.
 
-    The data was recorded using a DVS128. The dataset contains 11 hand gestures from 29 subjects under 3 illumination conditions.
+    The data was recorded using a DVS128. The dataset contains 11
+    hand gestures from 29 subjects under 3 illumination conditions.
 
     **Number of classes:** 11
 
@@ -45,12 +55,18 @@ class DVSGesture(NeuromorphicDataset):
     **Dimensions:** ``[num_steps x 2 x 128 x 128]``
 
     * **num_steps:** time-dimension of event-based footage
-    * **2:** number of channels (on-spikes for luminance increasing; off-spikes for luminance decreasing)
+    * **2:** number of channels (on-spikes for luminance increasing;
+    off-spikes for luminance decreasing)
     * **128x128:** W x H spatial dimensions of event-based footage
 
     For further reading, see:
 
-        *A. Amir, B. Taba, D. Berg, T. Melano, J. McKinstry, C. Di Nolfo, T. Nayak, A. Andreopoulos, G. Garreau, M. Mendoza, J. Kusnitz, M. Debole, S. Esser, T. Delbruck, M. Flickner, and D. Modha, "A Low Power, Fully Event-Based Gesture Recognition System," 2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), Honolulu, HI, 2017.*
+        *A. Amir, B. Taba, D. Berg, T. Melano, J. McKinstry, C. Di Nolfo,
+        T. Nayak, A. Andreopoulos, G. Garreau, M. Mendoza, J. Kusnitz,
+        M. Debole, S. Esser, T. Delbruck, M. Flickner, and D. Modha,
+        "A Low Power, Fully Event-Based Gesture Recognition System,"
+        2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
+        Honolulu, HI, 2017.*
 
 
 
@@ -59,45 +75,65 @@ class DVSGesture(NeuromorphicDataset):
 
         from snntorch.spikevision import spikedata
 
-        train_ds = spikedata.DVSGesture("data/dvsgesture", train=True, num_steps=500, dt=1000)
-        test_ds = spikedata.DVSGesture("data/dvsgesture", train=False, num_steps=1800, dt=1000)
+        train_ds = spikedata.DVSGesture("data/dvsgesture", train=True,
+        num_steps=500, dt=1000)
+        test_ds = spikedata.DVSGesture("data/dvsgesture", train=False,
+        num_steps=1800, dt=1000)
 
-        # by default, each time step is integrated over 1ms, or dt=1000 microseconds
-        # dt can be changed to integrate events over a varying number of time steps
+        # by default, each time step is integrated over 1ms, or
+        dt=1000 microseconds
+        # dt can be changed to integrate events over a varying number
+        of time steps
         # Note that num_steps should be scaled inversely by the same factor
 
-        train_ds = spikedata.DVSGesture("data/dvsgesture", train=True, num_steps=250, dt=2000)
-        test_ds = spikedata.DVSGesture("data/dvsgesture", train=False, num_steps=900, dt=2000)
+        train_ds = spikedata.DVSGesture("data/dvsgesture", train=True,
+        num_steps=250, dt=2000)
+        test_ds = spikedata.DVSGesture("data/dvsgesture", train=False,
+        num_steps=900, dt=2000)
 
 
-    The dataset can also be manually downloaded, extracted and placed into ``root`` which will allow the dataloader to bypass straight to the generation of a hdf5 file.
+    The dataset can also be manually downloaded, extracted and placed into
+    ``root`` which will allow the dataloader to bypass straight to the
+    generation of a hdf5 file.
 
     **Direct Download Links:**
 
-        `IBM Box Link <https://ibm.ent.box.com/s/3hiq58ww1pbbjrinh367ykfdf60xsfm8/folder/50167556794>`_
+        `IBM Box Link
+        <https://ibm.ent.box.com/s/3hiq58ww1pbbjrinh367ykfdf60xsfm8/
+        folder/50167556794>`_
 
-        `Dropbox Link <https://www.dropbox.com/s/cct5kyilhtsliup/DvsGesture.tar.gz?dl=0>`_
+        `Dropbox Link <https://www.dropbox.com/s/cct5kyilhtsliup/
+        DvsGesture.tar.gz?dl=0>`_
 
 
     :param root: Root directory of dataset.
     :type root: string
 
-    :param train: If True, creates dataset from training set of dvsgesture, otherwise test set.
+    :param train: If True, creates dataset from training set of dvsgesture,
+    otherwise test set.
     :type train: bool, optional
 
-    :param transform: A function/transform that takes in a PIL image and returns a transforms version. By default, a pre-defined set of transforms are applied to all samples to convert them into a time-first tensor with correct orientation.
+    :param transform: A function/transform that takes in a PIL image and
+    returns a transforms version. By default, a pre-defined set of transforms
+    are applied to all samples to convert them into a time-first tensor with
+    correct orientation.
     :type transform: callable, optional
 
-    :param target_transform: A function/transform that takes in the target and transforms it.
+    :param target_transform: A function/transform that takes in the target
+    and transforms it.
     :type target_transform: callable, optional
 
-    :param download_and_create: If True, downloads the dataset from the internet and puts it in root directory. If dataset is already downloaded, it is not downloaded again.
+    :param download_and_create: If True, downloads the dataset from the
+    internet and puts it in root directory. If dataset is already downloaded,
+    it is not downloaded again.
     :type download_and_create: bool, optional
 
-    :param num_steps: Number of time steps, defaults to ``500`` for train set, or ``1800`` for test set
+    :param num_steps: Number of time steps, defaults to ``500``
+    for train set, or ``1800`` for test set
     :type num_steps: int, optional
 
-    :param dt: The number of time stamps integrated in microseconds, defaults to ``1000``
+    :param dt: The number of time stamps integrated in microseconds,
+    defaults to ``1000``
     :type dt: int, optional
 
     :param ds: Rescaling factor, defaults to ``1``.
@@ -106,15 +142,22 @@ class DVSGesture(NeuromorphicDataset):
     :return_meta: Option to return metadata, defaults to ``False``
     :type return_meta: bool, optional
 
-    :time_shuffle: Option to randomize start time of dataset, defaults to ``False``
+    :time_shuffle: Option to randomize start time of dataset, defaults to
+    ``False``
     :type time_shuffle: bool, optional
 
-    Dataloader adapted from `torchneuromorphic <https://github.com/nmi-lab/torchneuromorphic>`_ originally by Emre Neftci and Clemens Schaefer.
+    Dataloader adapted from `torchneuromorphic
+    <https://github.com/nmi-lab/torchneuromorphic>`_
+    originally by Emre Neftci and Clemens Schaefer.
 
-    The dataset is released under a Creative Commons Attribution 4.0 license. All rights remain with the original authors.
+    The dataset is released under a Creative Commons
+    Attribution 4.0 license. All rights remain with the original authors.
     """
 
-    # _resources_url = [['Manually Download dataset here: https://ibm.ent.box.com/s/3hiq58ww1pbbjrinh367ykfdf60xsfm8/file/211521748942?sb=/details and place under {0}'.format(directory),None, 'DvsGesture.tar.gz']]
+    # _resources_url = [['Manually Download dataset here:
+    # https://ibm.ent.box.com/s/3hiq58ww1pbbjrinh367ykfdf60xsfm8/
+    # file/211521748942?sb=/details and place under {0}'.format(directory),
+    # None, 'DvsGesture.tar.gz']]
 
     _resources_url = [
         [
@@ -213,7 +256,11 @@ class DVSGesture(NeuromorphicDataset):
                 key = key + f["extra"].attrs["Ntrain"]
             assert key in self.keys
             data, target, meta_info_light, meta_info_user = sample(
-                f, key, T=self.num_steps, shuffle=self.time_shuffle, train=self.train
+                f,
+                key,
+                T=self.num_steps,
+                shuffle=self.time_shuffle,
+                train=self.train,
             )
 
         if self.transform is not None:
@@ -239,13 +286,19 @@ def sample(hdf5_file, key, T=500, shuffle=False, train=True):
     tend = np.maximum(0, dset["times"][-1] - 2 * T * 1000)
     start_time = np.random.randint(tbegin, tend + 1) if shuffle else 0
     # print(start_time)
-    # tmad = get_tmad_slice(dset['times'][()], dset['addrs'][()], start_time, T*1000)
+    # tmad = get_tmad_slice(dset['times'][()], dset['addrs'][()],
+    # start_time, T*1000)
     tmad = get_tmad_slice(
         dset["times"][()], dset["addrs"][()], start_time, T_default * 1000
     )
     tmad[:, 0] -= tmad[0, 0]
     meta = eval(dset.attrs["meta_info"])
-    return tmad[:, [0, 3, 1, 2]], label, meta["light condition"], meta["subject"]
+    return (
+        tmad[:, [0, 3, 1, 2]],
+        label,
+        meta["light condition"],
+        meta["subject"],
+    )
 
 
 def create_events_hdf5(directory, extracted_directory, hdf5_filename):
@@ -282,8 +335,13 @@ def create_events_hdf5(directory, extracted_directory, hdf5_filename):
                 s_ = get_slice(tms, ads, start_tms[i], end_tms[i])
                 times = s_[0]
                 addrs = s_[1]
-                # subj, light = file_d.replace('\\', '/').split('/')[-1].split('.')[0].split('_')[:2]  # this line throws an error in get_slice, because idx_beg = idx_end --> empty batch
-                subj, light = file_d.split("/")[-1].split(".")[0].split("_")[:2]
+                # subj, light = file_d.replace('\\', '/').split('/')[-1].
+                # split('.')[0].split('_')[:2]
+                # this line throws an error in get_slice,
+                # because idx_beg = idx_end --> empty batch
+                subj, light = (
+                    file_d.split("/")[-1].split(".")[0].split("_")[:2]
+                )
                 metas.append(
                     {
                         "key": str(key),
@@ -293,8 +351,12 @@ def create_events_hdf5(directory, extracted_directory, hdf5_filename):
                     }
                 )
                 subgrp = data_grp.create_group(str(key))
-                tm_dset = subgrp.create_dataset("times", data=times, dtype=np.uint32)
-                ad_dset = subgrp.create_dataset("addrs", data=addrs, dtype=np.uint8)
+                tm_dset = subgrp.create_dataset(
+                    "times", data=times, dtype=np.uint32
+                )
+                ad_dset = subgrp.create_dataset(
+                    "addrs", data=addrs, dtype=np.uint8
+                )
                 lbl_dset = subgrp.create_dataset(
                     "labels", data=lbls[i] - 1, dtype=np.uint8
                 )

@@ -5,19 +5,24 @@ from .neurons import *
 
 class Synaptic(LIF):
     """
-    2nd order leaky integrate and fire neuron model accounting for synaptic conductance.
-    The synaptic current jumps upon spike arrival, which causes a jump in membrane potential.
-    Synaptic current and membrane potential decay exponentially with rates of alpha and beta, respectively.
+    2nd order leaky integrate and fire neuron model accounting for synaptic
+    conductance.
+    The synaptic current jumps upon spike arrival, which causes a jump in
+    membrane potential.
+    Synaptic current and membrane potential decay exponentially with rates
+    of alpha and beta, respectively.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
-    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have `threshold` subtracted from it whenever the neuron emits a spike:
+    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
+    `threshold` subtracted from it whenever the neuron emits a spike:
 
     .. math::
 
             I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + I_{\\rm in}[t+1] \\\\
             U[t+1] = βU[t] + I_{\\rm syn}[t+1] - RU_{\\rm thr}
 
-    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
+    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
+    whenever the neuron emits a spike:
 
     .. math::
 
@@ -28,7 +33,8 @@ class Synaptic(LIF):
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
-    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise :math:`R = 0`
+    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
+    :math:`R = 0`
     * :math:`α` - Synaptic current decay rate
     * :math:`β` - Membrane potential decay rate
 
@@ -61,22 +67,34 @@ class Synaptic(LIF):
 
 
 
-    :param alpha: synaptic current decay rate. Clipped between 0 and 1 during the forward-pass. May be a single-valued tensor (i.e., equal decay rate for all neurons in a layer), or multi-valued (one weight per neuron).
+    :param alpha: synaptic current decay rate. Clipped between 0 and 1
+    during the forward-pass. May be a single-valued tensor (i.e.,
+    equal decay rate for all neurons in a layer), or multi-valued
+    (one weight per neuron).
     :type alpha: float or torch.tensor
 
-    :param beta: membrane potential decay rate. Clipped between 0 and 1 during the forward-pass. May be a single-valued tensor (i.e., equal decay rate for all neurons in a layer), or multi-valued (one weight per neuron).
+    :param beta: membrane potential decay rate. Clipped between 0 and 1
+    during the forward-pass. May be a single-valued tensor (i.e., equal
+    decay rate for all neurons in a layer), or multi-valued (one weight
+    per neuron).
     :type beta: float or torch.tensor
 
-    :param threshold: Threshold for :math:`mem` to reach in order to generate a spike `S=1`. Defaults to 1
+    :param threshold: Threshold for :math:`mem` to reach in order to generate
+    a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
-    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to None (corresponds to Heaviside surrogate gradient. See `snntorch.surrogate` for more options)
-    :type spike_grad: surrogate gradient function from snntorch.surrogate, optional
+    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to None
+    (corresponds to Heaviside surrogate gradient. See `snntorch.surrogate`
+    for more options)
+    :type spike_grad: surrogate gradient function from snntorch.surrogate,
+    optional
 
-    :param init_hidden: Instantiates state variables as instance variables. Defaults to False
+    :param init_hidden: Instantiates state variables as instance variables.
+    Defaults to False
     :type init_hidden: bool, optional
 
-    :param inhibition: If `True`, suppresses all spiking other than the neuron with the highest state. Defaults to False
+    :param inhibition: If `True`, suppresses all spiking other than the
+    neuron with the highest state. Defaults to False
     :type inhibition: bool, optional
 
     :param learn_alpha: Option to enable learnable alpha. Defaults to False
@@ -85,33 +103,48 @@ class Synaptic(LIF):
     :param learn_beta: Option to enable learnable beta. Defaults to False
     :type learn_beta: bool, optional
 
-    :param learn_threshold: Option to enable learnable threshold. Defaults to False
+    :param learn_threshold: Option to enable learnable threshold. Defaults
+    to False
     :type learn_threshold: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "subtract"
+    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem`
+    each time the threshold is met. Reset-by-subtraction: "subtract",
+    reset-to-zero: "zero, none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
-    :param state_quant: If specified, hidden states :math:`mem` and :math:`syn` are quantized to a valid state for the forward pass. Defaults to False
+    :param state_quant: If specified, hidden states :math:`mem` and
+    :math:`syn` are quantized to a valid state for the forward pass.
+    Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
-    :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
+    :param output: If `True` as well as `init_hidden=True`, states are
+    returned when neuron is called. Defaults to False
     :type output: bool, optional
 
 
     Inputs: \\input_, syn_0, mem_0
-        - **input_** of shape `(batch, input_size)`: tensor containing input features
-        - **syn_0** of shape `(batch, input_size)`: tensor containing input features
-        - **mem_0** of shape `(batch, input_size)`: tensor containing the initial membrane potential for each element in the batch.
+        - **input_** of shape `(batch, input_size)`: tensor containing
+        input features
+        - **syn_0** of shape `(batch, input_size)`: tensor containing
+        input features
+        - **mem_0** of shape `(batch, input_size)`: tensor containing
+        the initial membrane potential for each element in the batch.
 
     Outputs: spk, syn_1, mem_1
-        - **spk** of shape `(batch, input_size)`: tensor containing the output spikes.
-        - **syn_1** of shape `(batch, input_size)`: tensor containing the next synaptic current for each element in the batch
-        - **mem_1** of shape `(batch, input_size)`: tensor containing the next membrane potential for each element in the batch
+        - **spk** of shape `(batch, input_size)`: tensor containing the
+        output spikes.
+        - **syn_1** of shape `(batch, input_size)`: tensor containing the
+        next synaptic current for each element in the batch
+        - **mem_1** of shape `(batch, input_size)`: tensor containing the
+        next membrane potential for each element in the batch
 
     Learnable Parameters:
-        - **Synaptic.alpha** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
-        - **Synaptic.beta** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
-        - **Synaptic.threshold** (torch.Tensor) - optional learnable thresholds must be manually passed in, of shape `1` or`` (input_size).
+        - **Synaptic.alpha** (torch.Tensor) - optional learnable weights
+        must be manually passed in, of shape `1` or (input_size).
+        - **Synaptic.beta** (torch.Tensor) - optional learnable weights must
+        be manually passed in, of shape `1` or (input_size).
+        - **Synaptic.threshold** (torch.Tensor) - optional learnable
+        thresholds must be manually passed in, of shape `1` or`` (input_size).
 
     """
 
@@ -157,8 +190,12 @@ class Synaptic(LIF):
             mem, "init_flag"
         ):  # only triggered on first-pass
             syn, mem = _SpikeTorchConv(syn, mem, input_=input_)
-        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
-            self.syn, self.mem = _SpikeTorchConv(self.syn, self.mem, input_=input_)
+        elif mem is False and hasattr(
+            self.mem, "init_flag"
+        ):  # init_hidden case
+            self.syn, self.mem = _SpikeTorchConv(
+                self.syn, self.mem, input_=input_
+            )
 
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
@@ -175,7 +212,8 @@ class Synaptic(LIF):
 
             return spk, syn, mem
 
-        # intended for truncated-BPTT where instance variables are hidden states
+        # intended for truncated-BPTT where instance variables are
+        # hidden states
         if self.init_hidden:
             self._synaptic_forward_cases(mem, syn)
             self.reset = self.mem_reset(self.mem)
@@ -274,7 +312,8 @@ class Synaptic(LIF):
     @classmethod
     def detach_hidden(cls):
         """Returns the hidden states, detached from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
+        Intended for use in truncated backpropagation through time where
+        hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Synaptic):
@@ -284,7 +323,8 @@ class Synaptic(LIF):
     @classmethod
     def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are instance variables."""
+        Intended for use where hidden state variables are
+        instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Synaptic):

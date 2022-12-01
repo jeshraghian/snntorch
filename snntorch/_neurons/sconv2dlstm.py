@@ -210,8 +210,12 @@ class SConv2dLSTM(SpikingNeuron):
             syn, "init_flag"
         ):  # only triggered on first-pass
 
-            syn, mem = _SpikeTorchConv(syn, mem, input_=self._reshape_input(input_))
-        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            syn, mem = _SpikeTorchConv(
+                syn, mem, input_=self._reshape_input(input_)
+            )
+        elif mem is False and hasattr(
+            self.mem, "init_flag"
+        ):  # init_hidden case
             self.syn, self.mem = _SpikeTorchConv(
                 self.syn, self.mem, input_=self._reshape_input(input_)
             )
@@ -259,7 +263,9 @@ class SConv2dLSTM(SpikingNeuron):
             [input_, mem], dim=1
         )  # concatenate along channel axis (BxCxHxW)
         combined_conv = self.conv(combined)
-        cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.out_channels, dim=1)
+        cc_i, cc_f, cc_o, cc_g = torch.split(
+            combined_conv, self.out_channels, dim=1
+        )
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
         o = torch.sigmoid(cc_o)
@@ -271,9 +277,13 @@ class SConv2dLSTM(SpikingNeuron):
         return base_fn_syn, base_fn_mem
 
     def _base_state_reset_zero(self, input_, syn, mem):
-        combined = torch.cat([input_, mem], dim=1)  # concatenate along channel axis
+        combined = torch.cat(
+            [input_, mem], dim=1
+        )  # concatenate along channel axis
         combined_conv = self.conv(combined)
-        cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.out_channels, dim=1)
+        cc_i, cc_f, cc_o, cc_g = torch.split(
+            combined_conv, self.out_channels, dim=1
+        )
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
         o = torch.sigmoid(cc_o)
@@ -310,7 +320,9 @@ class SConv2dLSTM(SpikingNeuron):
             [input_, self.mem], dim=1
         )  # concatenate along channel axis
         combined_conv = self.conv(combined)
-        cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.out_channels, dim=1)
+        cc_i, cc_f, cc_o, cc_g = torch.split(
+            combined_conv, self.out_channels, dim=1
+        )
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
         o = torch.sigmoid(cc_o)
@@ -326,7 +338,9 @@ class SConv2dLSTM(SpikingNeuron):
             [input_, self.mem], dim=1
         )  # concatenate along channel axis
         combined_conv = self.conv(combined)
-        cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.out_channels, dim=1)
+        cc_i, cc_f, cc_o, cc_g = torch.split(
+            combined_conv, self.out_channels, dim=1
+        )
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
         o = torch.sigmoid(cc_o)

@@ -2,12 +2,17 @@ import struct
 import numpy as np
 import os
 
-# Adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
-# Which was adapted from https://github.com/gorchard/event-Python/blob/master/eventvision.py by Garrick Orchard
+# Adapted from https://github.com/nmi-lab/torchneuromorphic by
+# Eire Neftci
+# and Clemens Schaefer
+# Which was adapted from
+# https://github.com/gorchard/event-Python/blob/master/eventvision.py
+# by Garrick Orchard
 
 
 def load_ATIS_bin(filename):
-    """Reads in the TD events contained in the N-MNIST and N-CALTECH101 dataset files specified by 'filename'"""
+    """Reads in the TD events contained in the N-MNIST and
+    N-CALTECH101 dataset files specified by 'filename'"""
     f = open(filename, "rb")
     raw_data = np.fromfile(f, dtype=np.uint8)
     f.close()
@@ -16,7 +21,11 @@ def load_ATIS_bin(filename):
     all_y = raw_data[1::5]
     all_x = raw_data[0::5]
     all_p = (raw_data[2::5] & 128) >> 7  # bit 7
-    all_ts = ((raw_data[2::5] & 127) << 16) | (raw_data[3::5] << 8) | (raw_data[4::5])
+    all_ts = (
+        ((raw_data[2::5] & 127) << 16)
+        | (raw_data[3::5] << 8)
+        | (raw_data[4::5])
+    )
 
     # Process time stamp overflow events
     time_increment = 2**13
@@ -42,22 +51,27 @@ def load_jaer(
     * x, y-position [0..127],
     * polarity (0/1)
 
-    :param datafile: path to the file to read, defaults to ``"/tmp/aerout.dat"``
+    :param datafile: path to the file to read, defaults to
+    ``"/tmp/aerout.dat"``
     :type datafile: string, optional
 
     :param length: how many bytes should be read, defaults to 0 (whole file)
     :type length: int, optional
 
-    :param version: which file format version is used ("aedat" for v2 or "dat" for v1), defaults to ``"aedat"``
+    :param version: which file format version is used ("aedat" for v2 or "dat"
+    for v1), defaults to ``"aedat"``
     :type version: string, optional
 
-    :param debug: 0 = silent, 1 = print summary, >=2 = print all debug, defaults to ``1``
+    :param debug: 0 = silent, 1 = print summary, >=2 = print all debug,
+    defaults to ``1``
     :type debug: int, optional
 
-    :param camera: which event-based camera is used ("DVS128" or "DAVIS240"), defaults to ``"DVS128"11
+    :param camera: which event-based camera is used ("DVS128" or "DAVIS240"),
+    defaults to ``"DVS128"11
     :type camera: string, optional
 
-    :return: (ts, xpos, ypos, pol) 4-typle of lists containing data of all events
+    :return: (ts, xpos, ypos, pol) 4-typle of lists containing data of all
+    events
     :rtype: tuple
 
     """
@@ -203,7 +217,9 @@ def plot_frames_imshow(
         gs = gridspec.GridSpec(len(rnge), nim)
     else:
         gs = gridspec.GridSpec(nim, len(rnge))
-    plt.subplots_adjust(left=0, bottom=0, right=1, top=0.95, wspace=0.0, hspace=0.04)
+    plt.subplots_adjust(
+        left=0, bottom=0, right=1, top=0.95, wspace=0.0, hspace=0.04
+    )
     if labels is not None:
         if do1h:
             categories = labels.argmax(axis=1)
@@ -257,7 +273,9 @@ def aedat_to_events(filename):
     Used for aedat 3.1
     """
     label_filename = filename[:-6] + "_labels.csv"
-    labels = np.loadtxt(label_filename, skiprows=1, delimiter=",", dtype="uint32")
+    labels = np.loadtxt(
+        label_filename, skiprows=1, delimiter=",", dtype="uint32"
+    )
     events = []
     with open(filename, "rb") as f:
         for i in range(5):
@@ -277,7 +295,9 @@ def aedat_to_events(filename):
             eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
 
             if eventtype == 1:
-                event_bytes = np.frombuffer(f.read(eventnumber * eventsize), "uint32")
+                event_bytes = np.frombuffer(
+                    f.read(eventnumber * eventsize), "uint32"
+                )
                 event_bytes = event_bytes.reshape(-1, 2)
 
                 x = (event_bytes[:, 0] >> 17) & 0x00001FFF
@@ -294,7 +314,9 @@ def aedat_to_events(filename):
     for label in labels:
         start = np.searchsorted(events[0, :], label[1])
         end = np.searchsorted(events[0, :], label[2])
-        clipped_events = np.column_stack([clipped_events, events[:, start:end]])
+        clipped_events = np.column_stack(
+            [clipped_events, events[:, start:end]]
+        )
     return clipped_events.T, labels
 
 
@@ -303,7 +325,8 @@ def rosbag_to_events(filename, topic="/dvs_right/events"):
         from importRosbag.importRosbag import importRosbag
     except ImportError as exc:
         print(
-            "This function requires the importRosbag library from https://github.com/event-driven-robotics"
+            "This function requires the importRosbag library "
+            "from https://github.com/event-driven-robotics"
         )
         raise (exc)
     all_events = []

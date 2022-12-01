@@ -129,7 +129,9 @@ class SpikingNeuron(nn.Module):
         """Set variables as learnable parameters else register them in the buffer."""
 
         self._threshold_buffer(threshold, learn_threshold)
-        self._graded_spikes_buffer(graded_spikes_factor, learn_graded_spikes_factor)
+        self._graded_spikes_buffer(
+            graded_spikes_factor, learn_graded_spikes_factor
+        )
 
         # reset buffer
         try:
@@ -142,7 +144,9 @@ class SpikingNeuron(nn.Module):
             # reset_mechanism_val has not yet been created, create it
             self._reset_mechanism_buffer(reset_mechanism)
 
-    def _graded_spikes_buffer(self, graded_spikes_factor, learn_graded_spikes_factor):
+    def _graded_spikes_buffer(
+        self, graded_spikes_factor, learn_graded_spikes_factor
+    ):
         if not isinstance(graded_spikes_factor, torch.Tensor):
             graded_spikes_factor = torch.as_tensor(graded_spikes_factor)
         if learn_graded_spikes_factor:
@@ -161,7 +165,9 @@ class SpikingNeuron(nn.Module):
     def _reset_mechanism_buffer(self, reset_mechanism):
         """Assign mapping to each reset mechanism state.
         Must be of type tensor to store in register buffer. See reset_dict for mapping."""
-        reset_mechanism_val = torch.as_tensor(SpikingNeuron.reset_dict[reset_mechanism])
+        reset_mechanism_val = torch.as_tensor(
+            SpikingNeuron.reset_dict[reset_mechanism]
+        )
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
 
     def _V_register_buffer(self, V, learn_V):

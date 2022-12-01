@@ -14,5 +14,6 @@ class l1_rate_sparsity:
 
 
 # # def l2_sparsity(mem_out, Lambda=1e-6):
-# #     """L2 regularization using accumulated membrane potential as the penalty term."""
+# #     """L2 regularization using accumulated membrane potential
+# as the penalty term."""
 # #     return Lambda * (torch.sum(mem_out)**2)

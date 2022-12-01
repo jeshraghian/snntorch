@@ -121,7 +121,9 @@ class Alpha(LIF):
             syn_exc, syn_inh, mem = _SpikeTorchConv(
                 syn_exc, syn_inh, mem, input_=input_
             )
-        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+        elif mem is False and hasattr(
+            self.mem, "init_flag"
+        ):  # init_hidden case
             self.syn_exc, self.syn_inh, self.mem = _SpikeTorchConv(
                 self.syn_exc, self.syn_inh, self.mem, input_=input_
             )
@@ -129,7 +131,9 @@ class Alpha(LIF):
         # if hidden states are passed externally
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
-            syn_exc, syn_inh, mem = self.state_fn(input_, syn_exc, syn_inh, mem)
+            syn_exc, syn_inh, mem = self.state_fn(
+                input_, syn_exc, syn_inh, mem
+            )
 
             if self.state_quant:
                 syn_exc = self.state_quant(syn_exc)
@@ -172,7 +176,10 @@ class Alpha(LIF):
         base_fn_syn_inh = self.beta.clamp(0, 1) * syn_inh - input_
         tau_alpha = (
             torch.log(self.alpha.clamp(0, 1))
-            / (torch.log(self.beta.clamp(0, 1)) - torch.log(self.alpha.clamp(0, 1)))
+            / (
+                torch.log(self.beta.clamp(0, 1))
+                - torch.log(self.alpha.clamp(0, 1))
+            )
             + 1
         )
         base_fn_mem = tau_alpha * (base_fn_syn_exc + base_fn_syn_inh)
@@ -210,7 +217,10 @@ class Alpha(LIF):
         base_fn_syn_inh = self.beta.clamp(0, 1) * self.syn_inh - input_
         tau_alpha = (
             torch.log(self.alpha.clamp(0, 1))
-            / (torch.log(self.beta.clamp(0, 1)) - torch.log(self.alpha.clamp(0, 1)))
+            / (
+                torch.log(self.beta.clamp(0, 1))
+                - torch.log(self.alpha.clamp(0, 1))
+            )
             + 1
         )
         base_fn_mem = tau_alpha * (base_fn_syn_exc + base_fn_syn_inh)
@@ -264,7 +274,9 @@ class Alpha(LIF):
 
     def _alpha_forward_cases(self, mem, syn_exc, syn_inh):
         if mem is not False or syn_exc is not False or syn_inh is not False:
-            raise TypeError("When `init_hidden=True`, Alpha expects 1 input argument.")
+            raise TypeError(
+                "When `init_hidden=True`, Alpha expects 1 input argument."
+            )
 
     @classmethod
     def detach_hidden(cls):

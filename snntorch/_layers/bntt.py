@@ -1,7 +1,9 @@
 import torch.nn as nn
 
 
-def BatchNormTT1d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=True):
+def BatchNormTT1d(
+    input_features, time_steps, eps=1e-5, momentum=0.1, affine=True
+):
     """
     Generate a torch.nn.ModuleList of 1D Batch Normalization Layer with length time_steps.
     Input to this layer is the same as the  vanilla torch.nn.BatchNorm1d layer.
@@ -61,7 +63,9 @@ def BatchNormTT1d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
     """
     bntt = nn.ModuleList(
         [
-            nn.BatchNorm1d(input_features, eps=eps, momentum=momentum, affine=affine)
+            nn.BatchNorm1d(
+                input_features, eps=eps, momentum=momentum, affine=affine
+            )
             for _ in range(time_steps)
         ]
     )
@@ -73,7 +77,9 @@ def BatchNormTT1d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
     return bntt
 
 
-def BatchNormTT2d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=True):
+def BatchNormTT2d(
+    input_features, time_steps, eps=1e-5, momentum=0.1, affine=True
+):
     """
     Generate a torch.nn.ModuleList of 2D Batch Normalization Layer with length time_steps.
     Input to this layer is the same as the  vanilla torch.nn.BatchNorm2d layer.
@@ -131,7 +137,9 @@ def BatchNormTT2d(input_features, time_steps, eps=1e-5, momentum=0.1, affine=Tru
     """
     bntt = nn.ModuleList(
         [
-            nn.BatchNorm2d(input_features, eps=eps, momentum=momentum, affine=affine)
+            nn.BatchNorm2d(
+                input_features, eps=eps, momentum=momentum, affine=affine
+            )
             for _ in range(time_steps)
         ]
     )
