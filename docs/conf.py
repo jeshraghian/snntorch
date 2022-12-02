@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import os
+import snntorch
 import sys
 
 sys.path.insert(0, os.path.abspath(".."))
 
-import snntorch
 
 # fmt: off
 __version__ = '0.5.3'
