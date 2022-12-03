@@ -4,16 +4,16 @@ import torch
 class GradedSpikes(torch.nn.Module):
     """Learnable spiking magnitude for spiking layers."""
 
-    def __init__(self, size, constant_factor=None):
+    def __init__(self, size, constant_factor):
         super().__init__()
         self.size = size
-        weights = torch.Tensor(size)
-        self.weights = torch.nn.Parameter(weights)
 
         if constant_factor:
-            torch.nn.init.ones_(tensor=self.weights) * constant_factor
+            weights = torch.ones(size=[size, 1]) * constant_factor
+            self.weights = torch.nn.Parameter(weights)
         else:
-            torch.nn.init.uniform_(tensor=self.weights, a=0.0, b=1.0)
+            weights = torch.rand(size=[size, 1]) + 0.5
+            self.weights = torch.nn.Parameter(weights)
 
     def forward(self, x):
         """Forward pass is simply: spikes 'x' * weights."""
