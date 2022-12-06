@@ -7,15 +7,18 @@
 # from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci
 
 
-import struct
-import time
+# import struct
+# import time
 import numpy as np
 import h5py
-import torch.utils.data
+
+# import torch.utils.data
 from ..neuromorphic_dataset import NeuromorphicDataset
-from ..events_timeslices import *
-from .._transforms import *
-import os
+from ..events_timeslices import get_tmad_slice
+from .._transforms import toOneHot, Repeat, Compose, hflip, ToTensor, \
+    ToCountFrame, ToChannelHeightWidth, Downsample
+
+# import os
 
 mapping = {
     0: "E0",
@@ -67,10 +70,10 @@ def create_events_hdf5(directory, hdf5_filename):
         extra_grp = f.create_group("extra")
         print("Creating shd.hdf5...")
         for i, data in enumerate(tmad):
-            times = data[:, 0]
-            addrs = data[:, 1:]
+            # times = data[:, 0]
+            # addrs = data[:, 1:]
             label = labels[i]
-            out = []
+            # out = []
             istrain = i < border
             if istrain:
                 train_keys.append(key)
@@ -78,15 +81,15 @@ def create_events_hdf5(directory, hdf5_filename):
                 test_keys.append(key)
             metas.append({"key": str(key), "training sample": istrain})
             subgrp = data_grp.create_group(str(key))
-            tm_dset = subgrp.create_dataset(
-                "times", data=times, dtype=np.uint32
-            )
-            ad_dset = subgrp.create_dataset(
-                "addrs", data=addrs, dtype=np.uint16
-            )
-            lbl_dset = subgrp.create_dataset(
-                "labels", data=label, dtype=np.uint8
-            )
+            # tm_dset = subgrp.create_dataset(
+            #     "times", data=times, dtype=np.uint32
+            # )
+            # ad_dset = subgrp.create_dataset(
+            #     "addrs", data=addrs, dtype=np.uint16
+            # )
+            # lbl_dset = subgrp.create_dataset(
+            #     "labels", data=label, dtype=np.uint8
+            # )
             subgrp.attrs["meta_info"] = str(metas[-1])
             assert label in mapping
             key += 1
@@ -103,7 +106,7 @@ def load_shd_hdf5(filename, train=True):
         evs = []
         labels = []
         for i, tl in enumerate(f["labels"]):
-            label_ = tl
+            # label_ = tl
             digit = tl
             digit = int(digit)
             labels.append(digit)
@@ -289,7 +292,11 @@ class SHD(NeuromorphicDataset):
                 self.keys = f["extra"]["test_keys"]
 
     def _download(self):
-        isexisting = super(SHD, self)._download()
+        # isexisting = super(SHD, self)._download()
+        try:
+            _ = super(SHD, self)._download()
+        except Exception as e:
+            print(e.message, e.args)
 
     def _create_hdf5(self):
         create_events_hdf5(self.directory, self.root)
@@ -316,7 +323,7 @@ class SHD(NeuromorphicDataset):
 def sample(hdf5_file, key, T=500, shuffle=False):
     dset = hdf5_file["data"][str(key)]
     label = dset["labels"][()]
-    tend = dset["times"][-1]
+    # tend = dset["times"][-1]
     start_time = 0
 
     tmad = get_tmad_slice(

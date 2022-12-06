@@ -10,18 +10,27 @@
 # https://github.com/nmi-lab/torchneuromorphic
 # by Emre Neftci and Clemens Schaefer
 
-import struct
-import time
+# import struct
+# import time
 import numpy as np
 import h5py
-import torch.utils.data
+
+# import torch.utils.data
 from ..neuromorphic_dataset import NeuromorphicDataset
-from ..events_timeslices import *
-from .._transforms import *
+from ..events_timeslices import get_tmad_slice
+from .._transforms import (
+    dvs_permute,
+    Compose,
+    Repeat,
+    toOneHot,
+    ToTensor,
+    ToCountFrame,
+    Downsample,
+)
+from .._utils import aedat_to_events
 import os
 from tqdm import tqdm
 import glob
-from .._utils import *
 
 
 mapping = {
@@ -237,7 +246,10 @@ class DVSGesture(NeuromorphicDataset):
                 self.keys = f["extra"]["test_keys"][()]
 
     def _download(self):
-        isexisting = super(DVSGesture, self)._download()
+        try:
+            _ = super(DVSGesture, self)._download()
+        except Exception as e:
+            print(e.message, e.args)
 
     def _create_hdf5(self):
         create_events_hdf5(
@@ -320,21 +332,21 @@ def create_events_hdf5(directory, extracted_directory, hdf5_filename):
         for file_d in tqdm(fns_train + fns_test):
             istrain = file_d in fns_train
             data, labels_starttime = aedat_to_events(file_d)
-            tms = data[:, 0]
-            ads = data[:, 1:]
+            # tms = data[:, 0]
+            # ads = data[:, 1:]
             lbls = labels_starttime[:, 0]
-            start_tms = labels_starttime[:, 1]
-            end_tms = labels_starttime[:, 2]
-            out = []
+            # start_tms = labels_starttime[:, 1]
+            # end_tms = labels_starttime[:, 2]
+            # out = []
 
             for i, v in enumerate(lbls):
                 if istrain:
                     train_keys.append(key)
                 else:
                     test_keys.append(key)
-                s_ = get_slice(tms, ads, start_tms[i], end_tms[i])
-                times = s_[0]
-                addrs = s_[1]
+                # s_ = get_slice(tms, ads, start_tms[i], end_tms[i])
+                # times = s_[0]
+                # addrs = s_[1]
                 # subj, light = file_d.replace('\\', '/').split('/')[-1].
                 # split('.')[0].split('_')[:2]
                 # this line throws an error in get_slice,
@@ -351,15 +363,15 @@ def create_events_hdf5(directory, extracted_directory, hdf5_filename):
                     }
                 )
                 subgrp = data_grp.create_group(str(key))
-                tm_dset = subgrp.create_dataset(
-                    "times", data=times, dtype=np.uint32
-                )
-                ad_dset = subgrp.create_dataset(
-                    "addrs", data=addrs, dtype=np.uint8
-                )
-                lbl_dset = subgrp.create_dataset(
-                    "labels", data=lbls[i] - 1, dtype=np.uint8
-                )
+                # tm_dset = subgrp.create_dataset(
+                #     "times", data=times, dtype=np.uint32
+                # )
+                # ad_dset = subgrp.create_dataset(
+                #     "addrs", data=addrs, dtype=np.uint8
+                # )
+                # lbl_dset = subgrp.create_dataset(
+                #     "labels", data=lbls[i] - 1, dtype=np.uint8
+                # )
                 subgrp.attrs["meta_info"] = str(metas[-1])
                 assert lbls[i] - 1 in range(11)
                 key += 1

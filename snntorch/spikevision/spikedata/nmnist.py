@@ -6,15 +6,16 @@
 # https://github.com/nmi-lab/torchneuromorphic by
 # Emre Neftci and Clemens Schaefer
 
-import struct
-import time
-import copy
+# import struct
+# import time
+# import copy
 import numpy as np
 import h5py
-import torch.utils.data
+# import torch.utils.data
 from ..neuromorphic_dataset import NeuromorphicDataset
-from ..events_timeslices import *
-from .._transforms import *
+from ..events_timeslices import get_tmad_slice
+from .._transforms import toOneHot, Repeat, Compose, dvs_permute, ToTensor, \
+    Downsample, CropDims, ToCountFrame
 import os
 from .._utils import load_ATIS_bin
 from tqdm import tqdm
@@ -228,10 +229,15 @@ class NMNIST(NeuromorphicDataset):
                     f"using an old hdf5 build. Delete {root + file_name} "
                     f"and run again."
                 )
+                print(e.message, e.args)
                 raise
 
     def _download(self):
-        isexisting = super(NMNIST, self)._download()
+        # isexisting = super(NMNIST, self)._download()
+        try:
+            _ = super(NMNIST, self)._download()
+        except Exception as e:
+            print(e.message, e.args)
 
     def _create_hdf5(self):
         create_events_hdf5(self.directory, self.root)
@@ -276,13 +282,13 @@ def create_events_hdf5(directory, hdf5_filename):
         print("Creating n_mnist.hdf5...")
         for file_d in tqdm(fns_train + fns_test):
             istrain = file_d in fns_train
-            data = nmnist_load_events_from_bin(file_d)
-            times = data[:, 0]
-            addrs = data[:, 1:]
+            # data = nmnist_load_events_from_bin(file_d)
+            # times = data[:, 0]
+            # addrs = data[:, 1:]
             label = int(
                 file_d.replace("\\", "/").split("/")[-2]
             )  # \\ for binder/colab
-            out = []
+            # out = []
 
             if istrain:
                 train_keys.append(key)
@@ -292,15 +298,15 @@ def create_events_hdf5(directory, hdf5_filename):
                 test_label_list[label].append(key)
             metas.append({"key": str(key), "training sample": istrain})
             subgrp = data_grp.create_group(str(key))
-            tm_dset = subgrp.create_dataset(
-                "times", data=times, dtype=np.uint32
-            )
-            ad_dset = subgrp.create_dataset(
-                "addrs", data=addrs, dtype=np.uint8
-            )
-            lbl_dset = subgrp.create_dataset(
-                "labels", data=label, dtype=np.uint8
-            )
+            # tm_dset = subgrp.create_dataset(
+            #     "times", data=times, dtype=np.uint32
+            # )
+            # ad_dset = subgrp.create_dataset(
+            #     "addrs", data=addrs, dtype=np.uint8
+            # )
+            # lbl_dset = subgrp.create_dataset(
+            #     "labels", data=label, dtype=np.uint8
+            # )
             subgrp.attrs["meta_info"] = str(metas[-1])
             assert label in range(10)
             key += 1
@@ -397,9 +403,9 @@ def nmnist_get_file_names(dataset_path):
 def sample(hdf5_file, key, T=300):
     dset = hdf5_file["data"][str(key)]
     label = dset["labels"][()]
-    tend = dset["times"][-1]
+    # tend = dset["times"][-1]
     start_time = 0
-    ha = dset["times"][()]
+    # ha = dset["times"][()]
 
     tmad = get_tmad_slice(
         dset["times"][()], dset["addrs"][()], start_time, T * 1000
