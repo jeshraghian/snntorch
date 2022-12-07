@@ -15,8 +15,16 @@ import h5py
 # import torch.utils.data
 from ..neuromorphic_dataset import NeuromorphicDataset
 from ..events_timeslices import get_tmad_slice
-from .._transforms import toOneHot, Repeat, Compose, hflip, ToTensor, \
-    ToCountFrame, ToChannelHeightWidth, Downsample
+from .._transforms import (
+    toOneHot,
+    Repeat,
+    Compose,
+    hflip,
+    ToTensor,
+    ToCountFrame,
+    ToChannelHeightWidth,
+    Downsample,
+)
 
 # import os
 

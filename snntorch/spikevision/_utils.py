@@ -34,7 +34,7 @@ def load_ATIS_bin(filename):
         all_ts[overflow_index:] += time_increment
 
     # Everything else is a proper td spike
-    td_indices = np.where(all_y != 240)[0]
+    # td_indices = np.where(all_y != 240)[0]
     return all_ts, all_x, all_y, all_p
 
 
@@ -232,9 +232,9 @@ def plot_frames_imshow(
         norm = Normalize(-0.1, 0.1)
         for e, i in enumerate(rnge):
             if not transpose:
-                ax = plt.subplot(gs[e, j])
+                _ = plt.subplot(gs[e, j])
             else:
-                ax = plt.subplot(gs[j, e])
+                _ = plt.subplot(gs[j, e])
             plt.imshow(
                 images[j, i * avg : (i * avg + avg), 0, :, :].mean(axis=0).T
                 - images[j, i * avg : (i * avg + avg), 1, :, :].mean(axis=0).T,
@@ -286,13 +286,13 @@ def aedat_to_events(filename):
                 break
 
             eventtype = struct.unpack("H", data_ev_head[0:2])[0]
-            eventsource = struct.unpack("H", data_ev_head[2:4])[0]
+            # eventsource = struct.unpack("H", data_ev_head[2:4])[0]
             eventsize = struct.unpack("I", data_ev_head[4:8])[0]
-            eventoffset = struct.unpack("I", data_ev_head[8:12])[0]
-            eventtsoverflow = struct.unpack("I", data_ev_head[12:16])[0]
-            eventcapacity = struct.unpack("I", data_ev_head[16:20])[0]
+            # eventoffset = struct.unpack("I", data_ev_head[8:12])[0]
+            # eventtsoverflow = struct.unpack("I", data_ev_head[12:16])[0]
+            # eventcapacity = struct.unpack("I", data_ev_head[16:20])[0]
             eventnumber = struct.unpack("I", data_ev_head[20:24])[0]
-            eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
+            # eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
 
             if eventtype == 1:
                 event_bytes = np.frombuffer(
@@ -329,7 +329,7 @@ def rosbag_to_events(filename, topic="/dvs_right/events"):
             "from https://github.com/event-driven-robotics"
         )
         raise (exc)
-    all_events = []
+    # all_events = []
     data = importRosbag(filename)[topic]
     data["ts"] -= data["ts"][0]  # align at 0
     data["ts"] *= 1000000.0  # second to microsecond

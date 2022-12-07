@@ -2,7 +2,7 @@ import torch
 from torch._C import Value
 import torch.nn as nn
 import torch.nn.functional as F
-from .neurons import *
+from .neurons import _SpikeTensor, _SpikeTorchConv, SpikingNeuron
 
 
 class SLSTM(SpikingNeuron):

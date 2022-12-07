@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 # from torch import functional as F
-from .neurons import *
+from .neurons import _SpikeTensor, _SpikeTorchConv, LIF
 
 
 class RLeaky(LIF):

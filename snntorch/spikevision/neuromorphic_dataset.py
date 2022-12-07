@@ -57,7 +57,7 @@ def download_url(url, root, filename=None, md5=None, total_size=None):
                 total_size_in_bytes = int(
                     r.headers.get("content-length", 0)
                 )  # new
-                block_size = 1024  # 1 Kibibyte - new
+                # block_size = 1024  # 1 Kibibyte - new
                 progress_bar = tqdm(
                     total=total_size_in_bytes, unit="iB", unit_scale=True
                 )  # new

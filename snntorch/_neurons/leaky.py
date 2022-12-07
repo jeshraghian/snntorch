@@ -1,4 +1,4 @@
-from .neurons import *
+from .neurons import _SpikeTensor, _SpikeTorchConv, LIF
 
 
 class Leaky(LIF):

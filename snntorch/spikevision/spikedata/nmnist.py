@@ -11,11 +11,20 @@
 # import copy
 import numpy as np
 import h5py
+
 # import torch.utils.data
 from ..neuromorphic_dataset import NeuromorphicDataset
 from ..events_timeslices import get_tmad_slice
-from .._transforms import toOneHot, Repeat, Compose, dvs_permute, ToTensor, \
-    Downsample, CropDims, ToCountFrame
+from .._transforms import (
+    toOneHot,
+    Repeat,
+    Compose,
+    dvs_permute,
+    ToTensor,
+    Downsample,
+    CropDims,
+    ToCountFrame,
+)
 import os
 from .._utils import load_ATIS_bin
 from tqdm import tqdm
