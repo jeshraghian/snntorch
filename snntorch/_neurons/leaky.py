@@ -126,9 +126,6 @@ class Leaky(LIF):
 
         if self.init_hidden:
             self.mem = self.init_leaky()
-            self.state_fn = self._build_state_function_hidden
-        else:
-            self.state_fn = self._build_state_function
 
     def forward(self, input_, mem=False):
 
@@ -143,7 +140,7 @@ class Leaky(LIF):
 
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
-            mem = self.state_fn(input_, mem)
+            mem = self._build_state_function(input_, mem)
 
             if self.state_quant:
                 mem = self.state_quant(mem)
@@ -159,7 +156,7 @@ class Leaky(LIF):
         if self.init_hidden:
             self._leaky_forward_cases(mem)
             self.reset = self.mem_reset(self.mem)
-            self.mem = self.state_fn(input_)
+            self.mem = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.mem = self.state_quant(self.mem)
@@ -201,9 +198,8 @@ class Leaky(LIF):
                 self._base_state_function_hidden(input_) - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self._base_state_function_hidden(
-                input_
-            ) - self.reset * self._base_state_function_hidden(input_)
+            self.mem = (1-self.reset) * self.mem
+            state_fn = self._base_state_function_hidden(input_)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
             state_fn = self._base_state_function_hidden(input_)
         return state_fn
