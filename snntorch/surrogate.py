@@ -4,7 +4,8 @@ import math
 # Spike-gradient functions
 
 # slope = 25
-# """``snntorch.surrogate.slope`` parameterizes the transition rate of the surrogate gradients."""
+# """``snntorch.surrogate.slope``
+# parameterizes the transition rate of the surrogate gradients."""
 
 
 class StraightThroughEstimator(torch.autograd.Function):
@@ -40,7 +41,8 @@ class StraightThroughEstimator(torch.autograd.Function):
 
 
 def straight_through_estimator():
-    """Straight Through Estimator surrogate gradient enclosed with a parameterized slope."""
+    """Straight Through Estimator surrogate gradient enclosed
+    with a parameterized slope."""
 
     def inner(x):
         return StraightThroughEstimator.apply(x)
@@ -64,7 +66,8 @@ class Triangular(torch.autograd.Function):
 
         .. math::
 
-                \\frac{∂S}{∂U}=\\begin{cases} U_{\\rm thr} & \\text{if U < U$_{\\rm thr}$} \\\\
+                \\frac{∂S}{∂U}=\\begin{cases} U_{\\rm thr} &
+                \\text{if U < U$_{\\rm thr}$} \\\\
                 -U_{\\rm thr}  & \\text{if U ≥ U$_{\\rm thr}$}
                 \\end{cases}
 
@@ -88,7 +91,8 @@ class Triangular(torch.autograd.Function):
 
 
 def triangular():
-    """Triangular surrogate gradient enclosed with a parameterized threshold."""
+    """Triangular surrogate gradient enclosed with
+    a parameterized threshold."""
 
     def inner(x):
         return Triangular.apply(x)
@@ -115,11 +119,13 @@ class FastSigmoid(torch.autograd.Function):
                 S&≈\\frac{U}{1 + k|U|} \\\\
                 \\frac{∂S}{∂U}&=\\frac{1}{(1+k|U|)^2}
 
-    :math:`k` defaults to 25, and can be modified by calling ``surrogate.fast_sigmoid(slope=25)``.
+    :math:`k` defaults to 25, and can be modified by calling
+    ``surrogate.fast_sigmoid(slope=25)``.
 
     Adapted from:
 
-    *F. Zenke, S. Ganguli (2018) SuperSpike: Supervised Learning in Multilayer Spiking Neural Networks. Neural Computation, pp. 1514-1541.*"""
+    *F. Zenke, S. Ganguli (2018) SuperSpike: Supervised Learning in
+    Multilayer Spiking Neural Networks. Neural Computation, pp. 1514-1541.*"""
 
     @staticmethod
     def forward(ctx, input_, slope=25):
@@ -166,11 +172,15 @@ class ATan(torch.autograd.Function):
                 \\frac{∂S}{∂U}&=\\frac{1}{π}\\frac{1}{(1+(πU\\frac{α}{2})^2}
 
 
-    :math:`alpha` defaults to 2, and can be modified by calling ``surrogate.atan(alpha=2)``.
+    :math:`alpha` defaults to 2, and can be modified by calling
+    ``surrogate.atan(alpha=2)``.
 
     Adapted from:
 
-    *W. Fang, Z. Yu, Y. Chen, T. Masquelier, T. Huang, Y. Tian (2021) Incorporating Learnable Membrane Time Constants to Enhance Learning of Spiking Neural Networks. Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV), pp. 2661-2671.*"""
+    *W. Fang, Z. Yu, Y. Chen, T. Masquelier, T. Huang,
+    Y. Tian (2021) Incorporating Learnable Membrane Time Constants
+    to Enhance Learning of Spiking Neural Networks. Proc. IEEE/CVF
+    Int. Conf. Computer Vision (ICCV), pp. 2661-2671.*"""
 
     @staticmethod
     def forward(ctx, input_, alpha=2.0):
@@ -222,7 +232,10 @@ class Heaviside(torch.autograd.Function):
         0 & \\text{if U < U$_{\\rm thr}$}
         \\end{cases}
 
-    Although the backward pass is clearly not the analytical solution of the forward pass, this assumption holds true on the basis that a reset necessarily occurs after a spike is generated when :math:`U ≥ U_{\\rm thr}`."""
+    Although the backward pass is clearly not the analytical
+    solution of the forward pass, this assumption holds true
+    on the basis that a reset necessarily occurs after a spike
+    is generated when :math:`U ≥ U_{\\rm thr}`."""
 
     @staticmethod
     def forward(ctx, input_):
@@ -263,14 +276,18 @@ class Sigmoid(torch.autograd.Function):
         .. math::
 
                 S&≈\\frac{1}{1 + {\\rm exp}(-kU)} \\\\
-                \\frac{∂S}{∂U}&=\\frac{k {\\rm exp}(-kU)}{[{\\rm exp}(-kU)+1]^2}
+                \\frac{∂S}{∂U}&=\\frac{k
+                {\\rm exp}(-kU)}{[{\\rm exp}(-kU)+1]^2}
 
-    :math:`k` defaults to 25, and can be modified by calling ``surrogate.sigmoid(slope=25)``.
+    :math:`k` defaults to 25, and can be modified by calling
+    ``surrogate.sigmoid(slope=25)``.
 
 
     Adapted from:
 
-    *F. Zenke, S. Ganguli (2018) SuperSpike: Supervised Learning in Multilayer Spiking Neural Networks. Neural Computation, pp. 1514-1541.*"""
+    *F. Zenke, S. Ganguli (2018) SuperSpike: Supervised Learning
+    in Multilayer Spiking
+    Neural Networks. Neural Computation, pp. 1514-1541.*"""
 
     @staticmethod
     def forward(ctx, input_, slope=25):
@@ -320,13 +337,17 @@ class SpikeRateEscape(torch.autograd.Function):
 
                 \\frac{∂S}{∂U}=k{\\rm exp}(-β|U-1|)
 
-    :math:`β` defaults to 1, and can be modified by calling ``surrogate.spike_rate_escape(beta=1)``.
-    :math:`k` defaults to 25, and can be modified by calling ``surrogate.spike_rate_escape(slope=25)``.
+    :math:`β` defaults to 1, and can be modified by calling
+    ``surrogate.spike_rate_escape(beta=1)``.
+    :math:`k` defaults to 25, and can be modified by calling
+    ``surrogate.spike_rate_escape(slope=25)``.
 
 
     Adapted from:
 
-    * Wulfram Gerstner and Werner M. Kistler, Spiking neuron models: Single neurons, populations, plasticity. Cambridge University Press, 2002.*"""
+    * Wulfram Gerstner and Werner M. Kistler,
+    Spiking neuron models: Single neurons, populations, plasticity.
+    Cambridge University Press, 2002.*"""
 
     @staticmethod
     def forward(ctx, input_, beta=1, slope=25):
@@ -339,12 +360,17 @@ class SpikeRateEscape(torch.autograd.Function):
     def backward(ctx, grad_output):
         (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
-        grad = grad_input * ctx.slope * torch.exp(-ctx.beta * torch.abs(input_ - 1))
+        grad = (
+            grad_input
+            * ctx.slope
+            * torch.exp(-ctx.beta * torch.abs(input_ - 1))
+        )
         return grad, None, None
 
 
 def spike_rate_escape(beta=1, slope=25):
-    """SpikeRateEscape surrogate gradient enclosed with a parameterized slope."""
+    """SpikeRateEscape surrogate gradient
+    enclosed with a parameterized slope."""
     beta = beta
     slope = slope
 
@@ -363,29 +389,39 @@ class StochasticSpikeOperator(torch.autograd.Function):
 
         .. math::
 
-            S=\\begin{cases} \\frac{U(t)}{U} & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            S=\\begin{cases} \\frac{U(t)}{U}
+            & \\text{if U ≥ U$_{\\rm thr}$} \\\\
             0 & \\text{if U < U$_{\\rm thr}$}
             \\end{cases}
 
-    **Backward pass:** Gradient of spike operator, where the subthreshold gradient is sampled from uniformly distributed noise on the interval :math:`(𝒰\\sim[-0.5, 0.5)+μ) σ^2`, where :math:`μ` is the mean and :math:`σ^2` is the variance.
+    **Backward pass:** Gradient of spike operator,
+    where the subthreshold gradient is sampled from uniformly
+    distributed noise on the interval :math:`(𝒰\\sim[-0.5, 0.5)+μ) σ^2`,
+    where :math:`μ` is the mean and :math:`σ^2` is the variance.
 
         .. math::
 
-                S&≈\\begin{cases} \\frac{U(t)}{U}\\Big{|}_{U(t)→U_{\\rm thr}}  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-                (𝒰\\sim[-0.5, 0.5) + μ) σ^2 & \\text{if U < U$_{\\rm thr}$}\\end{cases} \\\\
-                \\frac{∂S}{∂U}&=\\begin{cases} 1  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-                (𝒰\\sim[-0.5, 0.5) + μ) σ^2 & \\text{if U < U$_{\\rm thr}$}
-                \\end{cases}
+            S&≈\\begin{cases} \\frac{U(t)}{U}\\Big{|}_{U(t)→U_{\\rm thr}}
+            & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            (𝒰\\sim[-0.5, 0.5) + μ) σ^2 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases} \\\\
+            \\frac{∂S}{∂U}&=\\begin{cases} 1  & \\text{if U ≥ U$_{\\rm thr}$}
+            \\\\
+            (𝒰\\sim[-0.5, 0.5) + μ) σ^2 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
 
-    :math:`μ` defaults to 0, and can be modified by calling ``surrogate.SSO(mean=0)``.
+    :math:`μ` defaults to 0, and can be modified by calling
+    ``surrogate.SSO(mean=0)``.
 
-    :math:`σ^2` defaults to 0.2, and can be modified by calling ``surrogate.SSO(variance=0.5)``.
+    :math:`σ^2` defaults to 0.2, and can be modified by calling
+    ``surrogate.SSO(variance=0.5)``.
 
     The above defaults set the gradient to the following expression:
 
     .. math::
 
-                \\frac{∂S}{∂U}&=\\begin{cases} 1  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+                \\frac{∂S}{∂U}&=\\begin{cases} 1
+                & \\text{if U ≥ U$_{\\rm thr}$} \\\\
                 (𝒰\\sim[-0.1, 0.1) & \\text{if U < U$_{\\rm thr}$}
                 \\end{cases}
 
@@ -410,7 +446,8 @@ class StochasticSpikeOperator(torch.autograd.Function):
 
 
 def SSO(mean=0, variance=0.2):
-    """Stochastic spike operator gradient enclosed with a parameterized mean and variance."""
+    """Stochastic spike operator gradient enclosed with a parameterized mean
+    and variance."""
     mean = mean
     variance = variance
 
@@ -429,21 +466,26 @@ class LeakySpikeOperator(torch.autograd.Function):
 
         .. math::
 
-            S=\\begin{cases} \\frac{U(t)}{U} & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            S=\\begin{cases} \\frac{U(t)}{U} & \\text{if U ≥ U$_{\\rm thr}$}
+            \\\\
             0 & \\text{if U < U$_{\\rm thr}$}
             \\end{cases}
 
-    **Backward pass:** Leaky gradient of spike operator, where the subthreshold gradient is treated as a small constant slope.
+    **Backward pass:** Leaky gradient of spike operator, where
+    the subthreshold gradient is treated as a small constant slope.
 
         .. math::
 
-                S&≈\\begin{cases} \\frac{U(t)}{U}\\Big{|}_{U(t)→U_{\\rm thr}}  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+                S&≈\\begin{cases} \\frac{U(t)}{U}\\Big{|}_{U(t)→U_{\\rm thr}}
+                & \\text{if U ≥ U$_{\\rm thr}$} \\\\
                 kU & \\text{if U < U$_{\\rm thr}$}\\end{cases} \\\\
-                \\frac{∂S}{∂U}&=\\begin{cases} 1  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+                \\frac{∂S}{∂U}&=\\begin{cases} 1
+                & \\text{if U ≥ U$_{\\rm thr}$} \\\\
                 k & \\text{if U < U$_{\\rm thr}$}
                 \\end{cases}
 
-    :math:`k` defaults to 0.1, and can be modified by calling ``surrogate.LSO(slope=0.1)``.
+    :math:`k` defaults to 0.1, and can be modified by calling
+    ``surrogate.LSO(slope=0.1)``.
 
     The gradient is identical to that of a threshold-shifted Leaky ReLU."""
 
@@ -458,7 +500,9 @@ class LeakySpikeOperator(torch.autograd.Function):
     def backward(ctx, grad_output):
         (out,) = ctx.saved_tensors
         grad_input = grad_output.clone()
-        grad = grad_input * out + (~out.bool()).float() * ctx.slope * grad_input
+        grad = (
+            grad_input * out + (~out.bool()).float() * ctx.slope * grad_input
+        )
         return grad
 
 
@@ -489,16 +533,20 @@ class SparseFastSigmoid(torch.autograd.Function):
         .. math::
 
                 S&≈\\frac{U}{1 + k|U|}H(U-B) \\\\
-                \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{(1+k|U|)^2} & \\text{\\rm if U > B}
+                \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{(1+k|U|)^2}
+                & \\text{\\rm if U > B}
                 0 & \\text{\\rm otherwise}
                 \\end{cases}
 
-    :math:`k` defaults to 25, and can be modified by calling ``surrogate.SFS(slope=25)``.
-    :math:`B` defaults to 1, and can be modified by calling ``surrogate.SFS(B=1)``.
+    :math:`k` defaults to 25, and can be modified by calling
+    ``surrogate.SFS(slope=25)``.
+    :math:`B` defaults to 1, and can be modified by calling
+    ``surrogate.SFS(B=1)``.
 
     Adapted from:
 
-    *N. Perez-Nieves and D.F.M. Goodman (2021) Sparse Spiking Gradient Descent. https://arxiv.org/pdf/2105.08810.pdf.*"""
+    *N. Perez-Nieves and D.F.M. Goodman (2021) Sparse Spiking
+    Gradient Descent. https://arxiv.org/pdf/2105.08810.pdf.*"""
 
     @staticmethod
     def forward(ctx, input_, slope=25, B=1):
@@ -521,7 +569,8 @@ class SparseFastSigmoid(torch.autograd.Function):
 
 
 def SFS(slope=25, B=1):
-    """SparseFastSigmoid surrogate gradient enclosed with a parameterized slope and sparsity threshold."""
+    """SparseFastSigmoid surrogate gradient enclosed with a
+    parameterized slope and sparsity threshold."""
     slope = slope
     B = B
 
@@ -539,7 +588,8 @@ def SFS(slope=25, B=1):
 
 #         .. math::
 
-#             S=\\begin{cases} \\frac{U(t)}{U} & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+#             S=\\begin{cases} \\frac{U(t)}{U} & \\text{if U ≥
+#             U$_{\\rm thr}$} \\\\
 #             0 & \\text{if U < U$_{\\rm thr}$}
 #             \\end{cases}
 
@@ -547,12 +597,15 @@ def SFS(slope=25, B=1):
 
 #         .. math::
 
-#                 \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{U} & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+#                 \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{U}
+#                 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
 #                 0 & \\text{if U < U$_{\\rm thr}$}
 #                 \\end{cases}
 
-#     :math:`U_{\\rm thr}` defaults to 1, and can be modified by calling ``surrogate.spike_operator(threshold=1)``.
-#     .. warning:: ``threshold`` should match the threshold of the neuron, which defaults to 1 as well.
+#     :math:`U_{\\rm thr}` defaults to 1, and can be modified by calling
+#     ``surrogate.spike_operator(threshold=1)``.
+#     .. warning:: ``threshold`` should match the threshold of the neuron,
+#     which defaults to 1 as well.
 
 #                 """
 
@@ -589,35 +642,49 @@ def SFS(slope=25, B=1):
 
 #         .. math::
 
-#             S=\\begin{cases} \\frac{U(t)}{U} & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+#             S=\\begin{cases} \\frac{U(t)}{U}
+#             & \\text{if U ≥ U$_{\\rm thr}$} \\\\
 #             0 & \\text{if U < U$_{\\rm thr}$}
 #             \\end{cases}
 
-#     **Backward pass:** Gradient of spike operator, where the subthreshold gradient is sampled from uniformly distributed noise on the interval :math:`(𝒰\\sim[-0.5, 0.5)+μ) σ^2`, where :math:`μ` is the mean and :math:`σ^2` is the variance.
+#     **Backward pass:** Gradient of spike operator,
+#     where the subthreshold gradient is sampled from
+#     uniformly distributed noise on the interval
+#     :math:`(𝒰\\sim[-0.5, 0.5)+μ) σ^2`,
+#     where :math:`μ` is the mean and :math:`σ^2` is the variance.
 
 #         .. math::
 
-#                 S&≈\\begin{cases} \\frac{U(t)}{U}  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-#                 (𝒰\\sim[-0.5, 0.5) + μ) σ^2 & \\text{if U < U$_{\\rm thr}$}\\end{cases} \\\\
-#                 \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{U}  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-#                 (𝒰\\sim[-0.5, 0.5) + μ) σ^2 & \\text{if U < U$_{\\rm thr}$}
+#                 S&≈\\begin{cases} \\frac{U(t)}{U}
+#                 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+#                 (𝒰\\sim[-0.5, 0.5) + μ) σ^2
+#                 & \\text{if U < U$_{\\rm thr}$}\\end{cases} \\\\
+#                 \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{U}
+#                 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+#                 (𝒰\\sim[-0.5, 0.5) + μ) σ^2
+#                 & \\text{if U < U$_{\\rm thr}$}
 #                 \\end{cases}
 
-#     :math:`U_{\\rm thr}` defaults to 1, and can be modified by calling ``surrogate.SSO(threshold=1)``.
+#     :math:`U_{\\rm thr}` defaults to 1, and can be modified by calling
+#     ``surrogate.SSO(threshold=1)``.
 
-#     :math:`μ` defaults to 0, and can be modified by calling ``surrogate.SSO(mean=0)``.
+#     :math:`μ` defaults to 0, and can be modified by calling
+#     ``surrogate.SSO(mean=0)``.
 
-#     :math:`σ^2` defaults to 0.2, and can be modified by calling ``surrogate.SSO(variance=0.5)``.
+#     :math:`σ^2` defaults to 0.2, and can be modified by calling
+#     ``surrogate.SSO(variance=0.5)``.
 
 #     The above defaults set the gradient to the following expression:
 
 #     .. math::
 
-#                 \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{U}  & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+#                 \\frac{∂S}{∂U}&=\\begin{cases} \\frac{1}{U}
+#                 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
 #                 (𝒰\\sim[-0.1, 0.1) & \\text{if U < U$_{\\rm thr}$}
 #                 \\end{cases}
 
-#     .. warning:: ``threshold`` should match the threshold of the neuron, which defaults to 1 as well.
+#     .. warning:: ``threshold`` should match the threshold of the neuron,
+#     which defaults to 1 as well.
 
 #     """
 
@@ -642,13 +709,15 @@ def SFS(slope=25, B=1):
 
 
 # def ISSO(threshold=1, mean=0, variance=0.2):
-#     """Stochastic spike operator gradient enclosed with a parameterized threshold, mean and variance."""
+#     """Stochastic spike operator gradient enclosed with a parameterized
+#     threshold, mean and variance."""
 #     threshold = threshold
 #     mean = mean
 #     variance = variance
 
 #     def inner(x):
-#         return InverseStochasticSpikeOperator.apply(x, threshold, mean, variance)
+#         return InverseStochasticSpikeOperator.
+#         apply(x, threshold, mean, variance)
 
 #     return inner
 

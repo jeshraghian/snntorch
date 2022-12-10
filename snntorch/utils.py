@@ -4,7 +4,8 @@ import snntorch as snn
 
 
 def data_subset(dataset, subset, idx=0):
-    """Partition the dataset by a factor of ``1/subset`` without removing access to data and target attributes.
+    """Partition the dataset by a factor of ``1/subset``
+    without removing access to data and target attributes.
 
     Example::
 
@@ -30,7 +31,8 @@ def data_subset(dataset, subset, idx=0):
     :param subset: Factor to reduce dataset by
     :type subset: int
 
-    :param idx: Which subset of the train and test sets to index into, defaults to ``0``
+    :param idx: Which subset of the train and test sets to index into,
+    defaults to ``0``
     :type idx: int, optional
 
     :return: Partitioned dataset
@@ -54,8 +56,10 @@ def data_subset(dataset, subset, idx=0):
 
 
 def valid_split(ds_train, ds_val, split, seed=0):
-    """Randomly split a dataset into non-overlapping new datasets of given lengths.
-    Optionally fix the generator for reproducible results. Operates similarly to ``random_split`` from
+    """Randomly split a dataset into non-overlapping
+    new datasets of given lengths.
+    Optionally fix the generator for reproducible results.
+    Operates similarly to ``random_split`` from
     ``torch.utils.data.dataset`` but retains data and target attributes.
 
     Example ::
@@ -77,7 +81,8 @@ def valid_split(ds_train, ds_val, split, seed=0):
         >>> 60000
 
         #  Validation split
-        mnist_train, mnist_val = utils.valid_split(mnist_train, mnist_val, val_split)
+        mnist_train, mnist_val = utils.valid_split(mnist_train,
+        mnist_val, val_split)
 
         print(len(mnist_train))
         >>> 54000
@@ -91,7 +96,8 @@ def valid_split(ds_train, ds_val, split, seed=0):
     :param ds_val: Validation set
     :type ds_val: torchvision dataset
 
-    :param split: Proportion of samples assigned to the validation set from the training set
+    :param split: Proportion of samples assigned to the validation set
+    from the training set
     :type split: Float
 
     :param seed: Fix to generate reproducible results, defaults to ``0``
@@ -105,7 +111,8 @@ def valid_split(ds_train, ds_val, split, seed=0):
     n_val = int(n * split)
     n_train = n - n_val
 
-    # Create an index list of length n_train, containing non-repeating values from 0 to n-1
+    # Create an index list of length n_train, containing non-repeating
+    # values from 0 to n-1
     rng = np.random.default_rng(seed=seed)
     train_idx = rng.choice(n, size=n_train, replace=False)
 
@@ -190,7 +197,8 @@ def _layer_check(net):
 
 
 def _layer_reset():
-    """Reset hidden parameters to zero and detach them from the current computation graph."""
+    """Reset hidden parameters to zero and detach them from
+    the current computation graph."""
 
     if is_lapicque:
         snn.Lapicque.reset_hidden()  # reset hidden state to 0's

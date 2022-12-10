@@ -2,18 +2,22 @@ import torch
 from torch._C import Value
 import torch.nn as nn
 import torch.nn.functional as F
-from .neurons import *
+from .neurons import _SpikeTensor, _SpikeTorchConv, SpikingNeuron
 
 
 class SLSTM(SpikingNeuron):
 
     """
     A spiking long short-term memory cell.
-    Hidden states are membrane potential and synaptic current :math:`mem, syn`, which correspond to the hidden and cell states :math:`h, c` in the original LSTM formulation.
+    Hidden states are membrane potential and synaptic current
+    :math:`mem, syn`, which correspond to the hidden and cell
+    states :math:`h, c` in the original LSTM formulation.
 
-    The input is expected to be of size :math:`(N, X)` where :math:`N` is the batch size.
+    The input is expected to be of size :math:`(N, X)` where
+    :math:`N` is the batch size.
 
-    Unlike the LSTM module in PyTorch, only one time step is simulated each time the cell is called.
+    Unlike the LSTM module in PyTorch, only one time step is
+    simulated each time the cell is called.
 
     .. math::
             \\begin{array}{ll} \\\\
@@ -25,9 +29,13 @@ class SLSTM(SpikingNeuron):
             mem_t = o_t ∗  \\tanh(syn_t) \\\\
         \\end{array}
 
-    where :math:`\\sigma` is the sigmoid function and ∗ is the Hadamard product.
-    The output state :math:`mem_{t+1}` is thresholded to determine whether an output spike is generated.
-    To conform to standard LSTM state behavior, the default reset mechanism is set to `reset="none"`, i.e., no reset is applied. If this is changed, the reset is only applied to :math:`h_t`.
+    where :math:`\\sigma` is the sigmoid function and ∗ is the
+    Hadamard product.
+    The output state :math:`mem_{t+1}` is thresholded to determine whether
+    an output spike is generated.
+    To conform to standard LSTM state behavior, the default reset mechanism
+    is set to `reset="none"`, i.e., no reset is applied. If this is changed,
+    the reset is only applied to :math:`h_t`.
 
     Example::
 
@@ -49,8 +57,10 @@ class SLSTM(SpikingNeuron):
                 spike_grad_lstm = surrogate.straight_through_estimator()
 
                 # initialize layers
-                self.slstm1 = snn.SLSTM(num_inputs, num_hidden1, spike_grad=spike_grad_lstm)
-                self.slstm2 = snn.SLSTM(num_hidden1, num_hidden2, spike_grad=spike_grad_lstm)
+                self.slstm1 = snn.SLSTM(num_inputs, num_hidden1,
+                spike_grad=spike_grad_lstm)
+                self.slstm2 = snn.SLSTM(num_hidden1, num_hidden2,
+                spike_grad=spike_grad_lstm)
 
             def forward(self, x):
                 # Initialize hidden states and outputs at t=0
@@ -76,49 +86,72 @@ class SLSTM(SpikingNeuron):
     :param hidden_size: the number of features in the hidden state :math:`mem`
     :type hidden_size: int
 
-    :param bias: If `True`, adds a learnable bias to the output. Defaults to `True`
+    :param bias: If `True`, adds a learnable bias to the output.
+    Defaults to `True`
     :type bias: bool, optional
 
-    :param threshold: Threshold for :math:`h` to reach in order to generate a spike `S=1`. Defaults to 1
+    :param threshold: Threshold for :math:`h` to reach in order to generate
+    a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
-    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to a straight-through-estimator
-    :type spike_grad: surrogate gradient function from snntorch.surrogate, optional
+    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to a
+    straight-through-estimator
+    :type spike_grad: surrogate gradient function from snntorch.surrogate,
+    optional
 
-    :param learn_threshold: Option to enable learnable threshold. Defaults to False
+    :param learn_threshold: Option to enable learnable threshold. Defaults
+    to False
     :type learn_threshold: bool, optional
 
-    :param init_hidden: Instantiates state variables as instance variables. Defaults to False
+    :param init_hidden: Instantiates state variables as instance variables.
+    Defaults to False
     :type init_hidden: bool, optional
 
-    :param inhibition: If `True`, suppresses all spiking other than the neuron with the highest state. Defaults to False
+    :param inhibition: If `True`, suppresses all spiking other than the
+    neuron with the highest state. Defaults to False
     :type inhibition: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
+    :param reset_mechanism: Defines the reset mechanism applied to
+    :math:`mem` each time the threshold is met. Reset-by-subtraction:
+    "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
     :type reset_mechanism: str, optional
 
-    :param state_quant: If specified, hidden states :math:`mem` and :math:`syn` are quantized to a valid state for the forward pass. Defaults to False
+    :param state_quant: If specified, hidden states :math:`mem` and
+    :math:`syn` are quantized to a valid state for the forward pass.
+    Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
-    :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
+    :param output: If `True` as well as `init_hidden=True`, states are
+    returned when neuron is called. Defaults to False
     :type output: bool, optional
 
 
     Inputs: \\input_, syn_0, mem_0
-        - **input_** of shape `(batch, input_size)`: tensor containing input features
-        - **syn_0** of shape `(batch, hidden_size)`: tensor containing the initial synaptic current (or cell state) for each element in the batch.
-        - **mem_0** of shape `(batch, hidden_size)`: tensor containing the initial membrane potential (or hidden state) for each element in the batch.
+        - **input_** of shape `(batch, input_size)`: tensor containing input
+        features
+        - **syn_0** of shape `(batch, hidden_size)`: tensor containing the
+        initial synaptic current (or cell state) for each element in the batch.
+        - **mem_0** of shape `(batch, hidden_size)`: tensor containing the
+        initial membrane potential (or hidden state) for each element in the
+        batch.
 
     Outputs: spk, syn_1, mem_1
-        - **spk** of shape `(batch, hidden_size)`: tensor containing the output spike
-        - **syn_1** of shape `(batch, hidden_size)`: tensor containing the next synaptic current (or cell state) for each element in the batch
-        - **mem_1** of shape `(batch, hidden_size)`: tensor containing the next membrane potential (or hidden state) for each element in the batch
+        - **spk** of shape `(batch, hidden_size)`: tensor containing the
+        output spike
+        - **syn_1** of shape `(batch, hidden_size)`: tensor containing the
+        next synaptic current (or cell state) for each element in the batch
+        - **mem_1** of shape `(batch, hidden_size)`: tensor containing the
+        next membrane potential (or hidden state) for each element in the batch
 
     Learnable Parameters:
-        - **SLSTM.lstm_cell.weight_ih** (torch.Tensor) - the learnable input-hidden weights, of shape (4*hidden_size, input_size)
-        - **SLSTM.lstm_cell.weight_ih** (torch.Tensor) – the learnable hidden-hidden weights, of shape (4*hidden_size, hidden_size)
-        - **SLSTM.lstm_cell.bias_ih** – the learnable input-hidden bias, of shape (4*hidden_size)
-        - **SLSTM.lstm_cell.bias_hh** – the learnable hidden-hidden bias, of shape (4*hidden_size)
+        - **SLSTM.lstm_cell.weight_ih** (torch.Tensor) - the learnable
+        input-hidden weights, of shape (4*hidden_size, input_size)
+        - **SLSTM.lstm_cell.weight_ih** (torch.Tensor) – the learnable
+        hidden-hidden weights, of shape (4*hidden_size, hidden_size)
+        - **SLSTM.lstm_cell.bias_ih** – the learnable input-hidden bias, of
+        shape (4*hidden_size)
+        - **SLSTM.lstm_cell.bias_hh** – the learnable hidden-hidden bias, of
+        shape (4*hidden_size)
 
     """
 
@@ -158,15 +191,21 @@ class SLSTM(SpikingNeuron):
         self.hidden_size = hidden_size
         self.bias = bias
 
-        self.lstm_cell = nn.LSTMCell(self.input_size, self.hidden_size, bias=self.bias)
+        self.lstm_cell = nn.LSTMCell(
+            self.input_size, self.hidden_size, bias=self.bias
+        )
 
     def forward(self, input_, syn=False, mem=False):
         if hasattr(mem, "init_flag") or hasattr(
             syn, "init_flag"
         ):  # only triggered on first-pass
 
-            syn, mem = _SpikeTorchConv(syn, mem, input_=self._reshape_input(input_))
-        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            syn, mem = _SpikeTorchConv(
+                syn, mem, input_=self._reshape_input(input_)
+            )
+        elif mem is False and hasattr(
+            self.mem, "init_flag"
+        ):  # init_hidden case
             self.syn, self.mem = _SpikeTorchConv(
                 self.syn, self.mem, input_=self._reshape_input(input_)
             )
@@ -268,7 +307,8 @@ class SLSTM(SpikingNeuron):
     def init_slstm():
         """
         Used to initialize mem and syn as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
         """
         mem = _SpikeTensor(init_flag=False)
         syn = _SpikeTensor(init_flag=False)
@@ -278,7 +318,8 @@ class SLSTM(SpikingNeuron):
     @classmethod
     def detach_hidden(cls):
         """Returns the hidden states, detached from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
+        Intended for use in truncated backpropagation through time where
+        hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], SLSTM):
@@ -288,7 +329,8 @@ class SLSTM(SpikingNeuron):
     @classmethod
     def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are instance variables."""
+        Intended for use where hidden state variables are instance
+        variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], SLSTM):

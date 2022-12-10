@@ -27,16 +27,20 @@ class LossFunctions:
         """Count up spikes sequentially from output classes."""
         if not num_classes:
             raise Exception(
-                "``num_classes`` must be specified if ``population_code=True``."
+                "``num_classes`` must be specified if "
+                "``population_code=True``."
             )
         if num_outputs % num_classes:
             raise Exception(
-                f"``num_outputs {num_outputs} must be a factor of num_classes {num_classes}."
+                f"``num_outputs {num_outputs} must be a factor "
+                f"of num_classes {num_classes}."
             )
         device = "cpu"
         if spk_out.is_cuda:
             device = "cuda"
-        pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(device)
+        pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(
+            device
+        )
         for idx in range(num_classes):
             pop_code[:, idx] = (
                 spk_out[
@@ -54,12 +58,16 @@ class LossFunctions:
 
 class ce_rate_loss(LossFunctions):
     """Cross Entropy Spike Rate Loss.
-    When called, the spikes at each time step are sequentially passed through the Cross Entropy Loss function.
+    When called, the spikes at each time step are sequentially passed
+    through the Cross Entropy Loss function.
     This criterion combines log_softmax and NLLLoss in a single function.
     The losses are accumulated over time steps to give the final loss.
-    The Cross Entropy Loss encourages the correct class to fire at all time steps, and aims to suppress incorrect classes from firing.
+    The Cross Entropy Loss encourages the correct class to fire at all
+    time steps, and aims to suppress incorrect classes from firing.
 
-    The Cross Entropy Rate Loss applies the Cross Entropy function at every time step. In contrast, the Cross Entropy Count Loss accumulates spikes first, and applies Cross Entropy Loss only once.
+    The Cross Entropy Rate Loss applies the Cross Entropy function at
+    every time step. In contrast, the Cross Entropy Count Loss accumulates
+    spikes first, and applies Cross Entropy Loss only once.
 
 
     Example::
@@ -94,29 +102,39 @@ class ce_rate_loss(LossFunctions):
 class ce_count_loss(LossFunctions):
     """Cross Entropy Spike Count Loss.
 
-    The spikes at each time step [num_steps x batch_size x num_outputs] are accumulated and then passed through the Cross Entropy Loss function.
+    The spikes at each time step [num_steps x batch_size x num_outputs]
+    are accumulated and then passed through the Cross Entropy Loss function.
     This criterion combines log_softmax and NLLLoss in a single function.
-    The Cross Entropy Loss encourages the correct class to fire at all time steps, and aims to suppress incorrect classes from firing.
+    The Cross Entropy Loss encourages the correct class to fire at all
+    time steps, and aims to suppress incorrect classes from firing.
 
-    The Cross Entropy Count Loss accumulates spikes first, and applies Cross Entropy Loss only once.
-    In contrast, the Cross Entropy Rate Loss applies the Cross Entropy function at every time step.
+    The Cross Entropy Count Loss accumulates spikes first, and applies
+    Cross Entropy Loss only once.
+    In contrast, the Cross Entropy Rate Loss applies the Cross Entropy
+    function at every time step.
 
     Example::
 
         import snntorch.functional as SF
 
-        # if not using population codes (i.e., more output neurons than there are classes)
+        # if not using population codes (i.e., more output neurons than
+        there are classes)
         loss_fn = ce_count_loss()
         loss = loss_fn(spk_out, targets)
 
-        # if using population codes; e.g., 200 output neurons, 10 output classes --> 20 output neurons p/class
+        # if using population codes; e.g., 200 output neurons, 10 output
+        classes --> 20 output neurons p/class
         loss_fn = ce_count_loss(population_code=True, num_classes=10)
         loss = loss_fn(spk_out, targets)
 
-    :param population_code: Specify if a population code is applied, i.e., the number of outputs is greater than the number of classes. Defaults to ``False``
+    :param population_code: Specify if a population code is applied, i.e.,
+    the number of outputs is greater than the number of classes. Defaults
+    to ``False``
     :type population_code: bool, optional
 
-    :param num_classes: Number of output classes must be specified if ``population_code=True``. Must be a factor of the number of output neurons if population code is enabled. Defaults to ``False``
+    :param num_classes: Number of output classes must be specified if
+    ``population_code=True``. Must be a factor of the number of output
+    neurons if population code is enabled. Defaults to ``False``
     :type num_classes: int, optional
 
     :return: Loss
@@ -135,7 +153,9 @@ class ce_count_loss(LossFunctions):
 
         if self.population_code:
             _, _, num_outputs = self._prediction_check(spk_out)
-            spike_count = self._population_code(spk_out, self.num_classes, num_outputs)
+            spike_count = self._population_code(
+                spk_out, self.num_classes, num_outputs
+            )
         else:
             spike_count = torch.sum(spk_out, 0)  # B x C
         log_p_y = log_softmax_fn(spike_count)
@@ -147,9 +167,12 @@ class ce_count_loss(LossFunctions):
 
 class ce_max_membrane_loss(LossFunctions):
     """Cross Entropy Max Membrane Loss.
-    When called, the maximum membrane potential value for each output neuron is sampled and passed through the Cross Entropy Loss Function.
+    When called, the maximum membrane potential value for each output
+    neuron is sampled and passed through the Cross Entropy Loss Function.
     This criterion combines log_softmax and NLLLoss in a single function.
-    The Cross Entropy Loss encourages the maximum membrane potential of the correct class to increase, while suppressing the maximum membrane potential of incorrect classes.
+    The Cross Entropy Loss encourages the maximum membrane potential of
+    the correct class to increase, while suppressing the maximum membrane
+    potential of incorrect classes.
     This function is adopted from SpyTorch by Friedemann Zenke.
 
     Example::
@@ -181,10 +204,15 @@ class ce_max_membrane_loss(LossFunctions):
 
 class mse_count_loss(LossFunctions):
     """Mean Square Error Spike Count Loss.
-    When called, the total spike count is accumulated over time for each neuron.
-    The target spike count for correct classes is set to (num_steps * correct_rate), and for incorrect classes (num_steps * incorrect_rate).
-    The spike counts and target spike counts are then applied to a Mean Square Error Loss Function.
-    This function is adopted from SLAYER by Sumit Bam Shrestha and Garrick Orchard.
+    When called, the total spike count is accumulated over time for
+    each neuron.
+    The target spike count for correct classes is set to
+    (num_steps * correct_rate), and for incorrect classes
+    (num_steps * incorrect_rate).
+    The spike counts and target spike counts are then applied to a
+     Mean Square Error Loss Function.
+    This function is adopted from SLAYER by Sumit Bam Shrestha and
+    Garrick Orchard.
 
     Example::
 
@@ -194,16 +222,24 @@ class mse_count_loss(LossFunctions):
         loss = loss_fn(outputs, targets)
 
 
-    :param correct_rate: Firing frequency of correct class as a ratio, e.g., ``1`` promotes firing at every step; ``0.5`` promotes firing at 50% of steps, ``0`` discourages any firing, defaults to ``1``
+    :param correct_rate: Firing frequency of correct class as a ratio, e.g.,
+    ``1`` promotes firing at every step; ``0.5`` promotes firing at 50% of
+    steps, ``0`` discourages any firing, defaults to ``1``
     :type correct_rate: float, optional
 
-    :param incorrect_rate: Firing frequency of incorrect class(es) as a ratio, e.g., ``1`` promotes firing at every step; ``0.5`` promotes firing at 50% of steps, ``0`` discourages any firing, defaults to ``1``
+    :param incorrect_rate: Firing frequency of incorrect class(es) as a
+    ratio, e.g., ``1`` promotes firing at every step; ``0.5`` promotes
+    firing at 50% of steps, ``0`` discourages any firing, defaults to ``1``
     :type incorrect_rate: float, optional
 
-    :param population_code: Specify if a population code is applied, i.e., the number of outputs is greater than the number of classes. Defaults to ``False``
+    :param population_code: Specify if a population code is applied, i.e., the
+    number of outputs is greater than the number of classes. Defaults to
+    ``False``
     :type population_code: bool, optional
 
-    :param num_classes: Number of output classes must be specified if ``population_code=True``. Must be a factor of the number of output neurons if population code is enabled. Defaults to ``False``
+    :param num_classes: Number of output classes must be specified if
+    ``population_code=True``. Must be a factor of the number of output neurons
+    if population code is enabled. Defaults to ``False``
     :type num_classes: int, optional
 
     :return: Loss
@@ -212,7 +248,11 @@ class mse_count_loss(LossFunctions):
     """
 
     def __init__(
-        self, correct_rate=1, incorrect_rate=0, population_code=False, num_classes=False
+        self,
+        correct_rate=1,
+        incorrect_rate=0,
+        population_code=False,
+        num_classes=False,
     ):
         self.correct_rate = correct_rate
         self.incorrect_rate = incorrect_rate
@@ -240,10 +280,14 @@ class mse_count_loss(LossFunctions):
 
         else:
             on_target = int(
-                num_steps * self.correct_rate * (num_outputs / self.num_classes)
+                num_steps
+                * self.correct_rate
+                * (num_outputs / self.num_classes)
             )
             off_target = int(
-                num_steps * self.incorrect_rate * (num_outputs / self.num_classes)
+                num_steps
+                * self.incorrect_rate
+                * (num_outputs / self.num_classes)
             )
             spike_count_target = spikegen.targets_convert(
                 targets,
@@ -251,7 +295,9 @@ class mse_count_loss(LossFunctions):
                 on_target=on_target,
                 off_target=off_target,
             )
-            spike_count = self._population_code(spk_out, self.num_classes, num_outputs)
+            spike_count = self._population_code(
+                spk_out, self.num_classes, num_outputs
+            )
 
         loss = loss_fn(spike_count, spike_count_target)
         return loss / num_steps
@@ -259,8 +305,10 @@ class mse_count_loss(LossFunctions):
 
 class mse_membrane_loss(LossFunctions):
     """Mean Square Error Membrane Loss.
-    When called, pass the output membrane of shape [num_steps x batch_size x num_outputs] and the target tensor of membrane potential.
-    The membrane potential and target are then applied to a Mean Square Error Loss Function.
+    When called, pass the output membrane of shape [num_steps x batch_size x
+    num_outputs] and the target tensor of membrane potential.
+    The membrane potential and target are then applied to a Mean Square Error
+    Loss Function.
     This function is adopted from Spike-Op by Jason K. Eshraghian.
 
     Example::
@@ -275,13 +323,16 @@ class mse_membrane_loss(LossFunctions):
         loss_fn = mse_membrane_loss(time_var_targets=True)
         loss = loss_fn(outputs, targets)
 
-    :param time_var_targets: Specifies whether the targets are time-varying, defaults to ``False``
+    :param time_var_targets: Specifies whether the targets are time-varying,
+    defaults to ``False``
     :type correct_rate: bool, optional
 
-    :param on_target: Specify target membrane potential for correct class, defaults to ``1``
+    :param on_target: Specify target membrane potential for correct class,
+    defaults to ``1``
     :type on_target: float, optional
 
-    :param off_target: Specify target membrane potential for incorrect class, defaults to ``0``
+    :param off_target: Specify target membrane potential for incorrect class,
+    defaults to ``0``
     :type off_target: float, optional
 
     :return: Loss
@@ -289,7 +340,8 @@ class mse_membrane_loss(LossFunctions):
 
     """
 
-    #  to-do: add **kwargs to modify other keyword args in spikegen.targets_convert
+    #  to-do: add **kwargs to modify other keyword args in
+    #  spikegen.targets_convert
     def __init__(self, time_var_targets=False, on_target=1, off_target=0):
         self.time_var_targets = time_var_targets
         self.on_target = on_target
@@ -322,7 +374,8 @@ class mse_membrane_loss(LossFunctions):
 
 # Use labels by default unless target_is_time = True
 class SpikeTime(nn.Module):
-    """Used by ce_temporal_loss and mse_temporal_loss to convert spike outputs into spike times."""
+    """Used by ce_temporal_loss and mse_temporal_loss to convert spike
+    outputs into spike times."""
 
     def __init__(
         self,
@@ -343,7 +396,8 @@ class SpikeTime(nn.Module):
             self.on_target = on_target
             self.off_target = off_target  # override this with final step
 
-        # function used to extract the first F spike times. If multi_spike=False, F=1.
+        # function used to extract the first F spike times. If
+        # multi_spike=False, F=1.
         if self.multi_spike:
             self.first_spike_fn = self.MultiSpike.apply
         else:
@@ -358,7 +412,8 @@ class SpikeTime(nn.Module):
         if not self.target_is_time:
             targets = self.labels_to_spike_times(targets, num_outputs)
 
-        # convert negative spike times to time steps: -1 --> ( num_steps+ (-1) )
+        # convert negative spike times to time steps: -1 -->
+        # ( num_steps+ (-1) )
         targets[targets < 0] = spk_out.size(0) + targets[targets < 0]
 
         # now operating in the spike-time domain rather than with labels
@@ -374,7 +429,9 @@ class SpikeTime(nn.Module):
 
         # next need to check how tolerance copes with multi-spikes
         if self.tolerance:
-            spk_time_final = self.tolerance_fn(spk_time_final, targets, self.tolerance)
+            spk_time_final = self.tolerance_fn(
+                spk_time_final, targets, self.tolerance
+            )
 
         return spk_time_final, targets
 
@@ -397,20 +454,23 @@ class SpikeTime(nn.Module):
         def forward(ctx, spk_rec, device="cpu"):
             """Convert spk_rec of 1/0s [TxBxN] --> spk_time [TxBxN].
             0's indicate no spike --> +1 is first time step.
-            Transpose accounts for broadcasting along final dimension (i.e., multiply along T)."""
+            Transpose accounts for broadcasting along final dimension
+            (i.e., multiply along T)."""
             spk_time = (
                 spk_rec.transpose(0, -1)
                 * (torch.arange(0, spk_rec.size(0)).detach().to(device) + 1)
             ).transpose(0, -1)
 
-            """extact first spike time. Will be used to pass into loss function."""
+            """extact first spike time. Will be used to pass into loss
+            function."""
             first_spike_time = torch.zeros_like(spk_time[0])
             for step in range(spk_time.size(0)):
                 first_spike_time += (
                     spk_time[step] * ~first_spike_time.bool()
                 )  # mask out subsequent spikes
 
-            """override element 0 (no spike) with shadow spike @ final time step, then offset by -1
+            """override element 0 (no spike) with shadow spike @ final time
+            step, then offset by -1
             s.t. first_spike is at t=0."""
             first_spike_time += ~first_spike_time.bool() * (spk_time.size(0))
             first_spike_time -= 1  # fix offset
@@ -422,8 +482,10 @@ class SpikeTime(nn.Module):
             (first_spike_time, spk_rec) = ctx.saved_tensors
             spk_time_grad = torch.zeros_like(spk_rec)  # T x B x N
 
-            """spike extraction step/indexing @ each step is non-differentiable.
-            Apply sign estimator by substituting gradient for -1 ONLY at first spike time."""
+            """spike extraction step/indexing @ each step is
+            non-differentiable.
+            Apply sign estimator by substituting gradient for -1 ONLY at
+            first spike time."""
             for i in range(first_spike_time.size(0)):
                 for j in range(first_spike_time.size(1)):
                     spk_time_grad[first_spike_time[i, j].long(), i, j] = 1.0
@@ -443,10 +505,16 @@ class SpikeTime(nn.Module):
             for step in range(spk_count):
                 """Convert spk_rec of 1/0s [TxBxN] --> spk_time [TxBxN].
                 0's indicate no spike --> +1 is first time step.
-                Transpose accounts for broadcasting along final dimension (i.e., multiply along T)."""
+                Transpose accounts for broadcasting along final dimension
+                (i.e., multiply along T)."""
                 spk_time = (
                     spk_rec_tmp.transpose(0, -1)
-                    * (torch.arange(0, spk_rec_tmp.size(0)).detach().to(device) + 1)
+                    * (
+                        torch.arange(0, spk_rec_tmp.size(0))
+                        .detach()
+                        .to(device)
+                        + 1
+                    )
                 ).transpose(0, -1)
 
                 """extact n-th spike time (n=step) up to F."""
@@ -456,7 +524,8 @@ class SpikeTime(nn.Module):
                         spk_time[step] * ~nth_spike_time.bool()
                     )  # mask out subsequent spikes
 
-                """override element 0 (no spike) with shadow spike @ final time step, then offset by -1
+                """override element 0 (no spike) with shadow spike @ final
+                time step, then offset by -1
                 s.t. first_spike is at t=0."""
                 nth_spike_time += ~nth_spike_time.bool() * (
                     spk_time.size(0)
@@ -464,7 +533,8 @@ class SpikeTime(nn.Module):
                 nth_spike_time -= 1  # fix offset
                 spk_time_rec.append(nth_spike_time)
 
-                """before looping, eliminate n-th spike. this avoids double counting spikes."""
+                """before looping, eliminate n-th spike. this avoids double
+                counting spikes."""
                 spk_rec_tmp[nth_spike_time.long()] = 0
 
             """Pass this into loss function."""
@@ -479,8 +549,10 @@ class SpikeTime(nn.Module):
             (spk_time_final, spk_rec) = ctx.saved_tensors
             spk_time_grad = torch.zeros_like(spk_rec)  # T x B x N
 
-            """spike extraction step/indexing @ each step is non-differentiable.
-            Apply sign estimator by substituting gradient for -1 ONLY at F-th spike time."""
+            """spike extraction step/indexing @ each step is
+            non-differentiable.
+            Apply sign estimator by substituting gradient for -1 ONLY at
+            F-th spike time."""
             for i in range(spk_time_final.size(0)):
                 for j in range(spk_time_final.size(1)):
                     for k in range(spk_time_final.size(2)):
@@ -492,7 +564,8 @@ class SpikeTime(nn.Module):
 
     @staticmethod
     class Tolerance(torch.autograd.Function):
-        """If spike time is 'close enough' to target spike within tolerance, set the time to target for loss calc only."""
+        """If spike time is 'close enough' to target spike within tolerance,
+        set the time to target for loss calc only."""
 
         # TO-DO: remove ctx?
         @staticmethod
@@ -524,7 +597,8 @@ class SpikeTime(nn.Module):
         return targets
 
     def label_to_single_spike(self, targets, num_outputs):
-        """Convert labels from neuron index (dim: B) to first spike time (dim: B x N)."""
+        """Convert labels from neuron index (dim: B) to first spike time
+        (dim: B x N)."""
 
         # guess: i designed this code with on_target >> off_target in mind
         targets = spikegen.targets_convert(
@@ -537,15 +611,18 @@ class SpikeTime(nn.Module):
         return targets
 
     def label_to_multi_spike(self, targets, num_outputs):
-        """Convert labels from neuron index (dim: B) to multiple spike times (dim: F x B x N).
-        F is the number of spikes per neuron. Assumes target is iterable along F."""
+        """Convert labels from neuron index (dim: B) to multiple spike times
+        (dim: F x B x N).
+        F is the number of spikes per neuron. Assumes target is iterable
+        along F."""
 
         num_spikes_on = len(self.on_target)
         num_spikes_off = len(self.off_target)
 
         if num_spikes_on != num_spikes_off:
             raise IndexError(
-                f"`on_target` (length: {num_spikes_on}) must have the same length as `off_target` (length: {num_spikes_off}."
+                f"`on_target` (length: {num_spikes_on}) must have the same "
+                f"length as `off_target` (length: {num_spikes_off}."
             )
 
         # iterate through each spike
@@ -566,17 +643,27 @@ class SpikeTime(nn.Module):
 class mse_temporal_loss:
     """Mean Square Error Temporal Loss.
 
-    The first spike time of each output neuron [batch_size x num_outputs] is measured against the desired spike time with the Mean Square Error Loss Function.
-    Note that the derivative of each spike time with respect to the spike df/dU is non-differentiable for most neuron classes, and is set to a sign estimator of -1.
-    I.e., increasing membrane potential causes a proportionately earlier firing time.
+    The first spike time of each output neuron [batch_size x num_outputs] is
+    measured against the desired spike time with the Mean Square Error Loss
+    Function.
+    Note that the derivative of each spike time with respect to the spike
+    df/dU is non-differentiable for most neuron classes, and is set to a sign
+    estimator of -1.
+    I.e., increasing membrane potential causes a proportionately earlier
+    firing time.
 
-    The Mean Square Error Temporal Loss can account for multiple spikes by setting ``multi_spike=True``.
-    If the actual spike time is close enough to the target spike time within a given tolerance, e.g., ``tolerance = 5`` time steps, then it does not contribute to the loss.
+    The Mean Square Error Temporal Loss can account for multiple spikes by
+    setting ``multi_spike=True``.
+    If the actual spike time is close enough to the target spike time within
+    a given tolerance, e.g., ``tolerance = 5`` time steps, then it does not
+    contribute to the loss.
 
     Index labels are passed as the target by default.
-    To enable passing in the spike time(s) for output neuron(s), set ``target_is_time=True``.
+    To enable passing in the spike time(s) for output neuron(s), set
+    ``target_is_time=True``.
 
-    Note: After spike times with specified targets, no penalty is applied for subsequent spiking.
+    Note: After spike times with specified targets, no penalty is applied
+    for subsequent spiking.
     To eliminate later spikes, an additional target should be applied.
 
     Example::
@@ -585,18 +672,21 @@ class mse_temporal_loss:
         import snntorch.functional as SF
 
         # default takes in idx labels as targets
-        # correct classes aimed to fire by default at t=0, incorrect at t=-1 (final time step)
+        # correct classes aimed to fire by default at t=0, incorrect at t=-1
+        (final time step)
         loss_fn = mse_temporal_loss()
         loss = loss_fn(spk_out, targets)
 
-        # as above, but correct class fire @ t=5, incorrect at t=100 with a tolerance of 2 steps
+        # as above, but correct class fire @ t=5, incorrect at t=100 with a
+        tolerance of 2 steps
         loss_fn = mse_temporal_loss(on_target=5, off_target=100, tolerance=2)
         loss = loss_fn(spk_out, targets)
 
         # as above with multiple spike time targets
         on_target = torch.tensor(5, 10)
         off_target = torch.tensor(100, 105)
-        loss_fn = mse_temporal_loss(on_target=on_target, off_target=off_target, tolerance=2)
+        loss_fn = mse_temporal_loss(on_target=on_target,
+        off_target=off_target, tolerance=2)
         loss = loss_fn(spk_out, targets)
 
         # specify first spike time for 5 neurons individually, zero tolerance
@@ -605,19 +695,27 @@ class mse_temporal_loss:
         loss = loss_fn(spk_out, target)
 
 
-    :param target_is_time: Specify if target is specified as spike times (True) or as neuron indexes (False). Defaults to ``False``
+    :param target_is_time: Specify if target is specified as spike times
+    (True) or as neuron indexes (False). Defaults to ``False``
     :type target_is_time: bool, optional
 
-    :param on_target: Spike time for correct classes (only if target_is_time=False). Defaults to ``0``
-    :type on_target: int (or interable over multiple int if ``multi_spike=True``), optional
+    :param on_target: Spike time for correct classes
+    (only if target_is_time=False). Defaults to ``0``
+    :type on_target: int
+    (or interable over multiple int if ``multi_spike=True``), optional
 
-    :param off_target: Spike time for incorrect classes (only if target_is_time=False). Defaults to ``-1``, i.e., final time step
-    :type off_target: int (or interable over multiple int if ``multi_spike=True``), optional
+    :param off_target: Spike time for incorrect classes
+    (only if target_is_time=False). Defaults to ``-1``, i.e., final time step
+    :type off_target: int (or interable over multiple int if
+    ``multi_spike=True``), optional
 
-    :param tolerance: If the distance between the spike time and target is less than the specified tolerance, then it does not contribute to the loss. Defaults to ``0``.
+    :param tolerance: If the distance between the spike time and target is
+    less than the specified tolerance, then it does not contribute to the
+    loss. Defaults to ``0``.
     :type tolerance: int, optional
 
-    :param multi_spike: Specify if multiple spikes in target. Defaults to ``False``
+    :param multi_spike: Specify if multiple spikes in target. Defaults to
+    ``False``
     :type multi_spike: bool, optional
 
     :return: Loss
@@ -641,7 +739,9 @@ class mse_temporal_loss:
         self.__name__ = "mse_temporal_loss"
 
     def __call__(self, spk_rec, targets):
-        spk_time, targets = self.spk_time_fn(spk_rec, targets)  # return encoded targets
+        spk_time, targets = self.spk_time_fn(
+            spk_rec, targets
+        )  # return encoded targets
         loss = self.loss_fn(
             spk_time / spk_rec.size(0), targets / spk_rec.size(0)
         )  # spk_time_final: num_spikes x B x Nc. # Same with targets.
@@ -652,28 +752,39 @@ class mse_temporal_loss:
 class ce_temporal_loss:
     """Cross Entropy Temporal Loss.
 
-    The cross entropy loss of an 'inverted' first spike time of each output neuron [batch_size x num_outputs] is calculated.
-    The 'inversion' is applied such that maximizing the value of the correct class decreases the first spike time (i.e., earlier spike).
+    The cross entropy loss of an 'inverted' first spike time of each output
+    neuron [batch_size x num_outputs] is calculated.
+    The 'inversion' is applied such that maximizing the value of the correct
+    class decreases the first spike time (i.e., earlier spike).
 
-    Options for inversion include: ``inverse='negate'`` which applies (-1 * output), or ``inverse='reciprocal'`` which takes (1/output).
+    Options for inversion include: ``inverse='negate'`` which applies
+    (-1 * output), or ``inverse='reciprocal'`` which takes (1/output).
 
-    Note that the derivative of each spike time with respect to the spike df/dU is non-differentiable for most neuron classes, and is set to a sign estimator of -1.
-    I.e., increasing membrane potential causes a proportionately earlier firing time.
+    Note that the derivative of each spike time with respect to the spike
+    df/dU is non-differentiable for most neuron classes, and is set to a
+    sign estimator of -1.
+    I.e., increasing membrane potential causes a proportionately earlier
+    firing time.
 
-    Index labels are passed as the target. To specify the exact spike time, use ``mse_temporal_loss`` instead.
+    Index labels are passed as the target. To specify the exact spike time,
+    use ``mse_temporal_loss`` instead.
 
-    Note: After spike times with specified targets, no penalty is applied for subsequent spiking.
+    Note: After spike times with specified targets, no penalty is applied
+    for subsequent spiking.
 
     Example::
 
         import torch
         import snntorch.functional as SF
 
-        # correct classes aimed to fire by default at t=0, incorrect at final step
+        # correct classes aimed to fire by default at t=0, incorrect at
+        final step
         loss_fn = ce_temporal_loss()
         loss = loss_fn(spk_out, targets)
 
-    :param inverse: Specify how to invert output before taking cross enrtopy. Either scale by (-1 * x) with ``inverse='negate'`` or take the reciprocal (1/x) with ``inverse='reciprocal'``. Defaults to ``negate``
+    :param inverse: Specify how to invert output before taking cross
+    enrtopy. Either scale by (-1 * x) with ``inverse='negate'`` or take the
+    reciprocal (1/x) with ``inverse='reciprocal'``. Defaults to ``negate``
     :type inverse: str, optional
 
     :return: Loss
@@ -693,7 +804,9 @@ class ce_temporal_loss:
         self.__name__ = "ce_temporal_loss"
 
     def __call__(self, spk_rec, targets):
-        spk_time, _ = self.spk_time_fn(spk_rec, targets)  # return encoded targets
+        spk_time, _ = self.spk_time_fn(
+            spk_rec, targets
+        )  # return encoded targets
         if self.inverse == "negate":
             spk_time = -spk_time
         if self.inverse == "reciprocal":
@@ -712,5 +825,6 @@ class ce_temporal_loss:
     def _ce_temporal_cases(self):
         if self.inverse != "negate" and self.inverse != "reciprocal":
             raise ValueError(
-                '`inverse` must be of type string containing either "negate" or "reciprocal".'
+                '`inverse` must be of type string containing either "negate" '
+                'or "reciprocal".'
             )

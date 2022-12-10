@@ -42,7 +42,9 @@ def sconv2dlstm_hidden_reset_zero_instance():
 
 @pytest.fixture(scope="module")
 def sconv2dlstm_hidden_reset_subtract_instance():
-    return snn.SConv2dLSTM(1, 8, 3, init_hidden=True, reset_mechanism="subtract")
+    return snn.SConv2dLSTM(
+        1, 8, 3, init_hidden=True, reset_mechanism="subtract"
+    )
 
 
 class TestSConv2dLSTM:
@@ -87,7 +89,9 @@ class TestSConv2dLSTM:
         assert lif2.reset_mechanism_val == 1
         assert lif3.reset_mechanism_val == 0
 
-    def test_sconv2dlstm_init_hidden(self, sconv2dlstm_hidden_instance, input_):
+    def test_sconv2dlstm_init_hidden(
+        self, sconv2dlstm_hidden_instance, input_
+    ):
 
         spk_rec = []
 

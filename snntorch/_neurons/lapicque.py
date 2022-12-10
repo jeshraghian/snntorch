@@ -1,48 +1,62 @@
 import torch
-from .neurons import *
+from .neurons import _SpikeTensor, _SpikeTorchConv, LIF
 
 
 class Lapicque(LIF):
     """
-    An extension of Lapicque's experimental comparison between extracellular nerve fibers and an RC circuit.
-    It is qualitatively equivalent to :code:`Leaky` but defined using RC circuit parameters.
-    Input stimulus is integrated by membrane potential which decays exponentially with a rate of beta.
+    An extension of Lapicque's experimental comparison between extracellular
+    nerve fibers and an RC circuit.
+    It is qualitatively equivalent to :code:`Leaky` but defined using RC
+    circuit parameters.
+    Input stimulus is integrated by membrane potential which decays
+    exponentially with a rate of beta.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
-    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have `threshold` subtracted from it whenever the neuron emits a spike:
+    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
+    `threshold` subtracted from it whenever the neuron emits a spike:
 
     .. math::
 
-            U[t+1] = I_{\\rm in}[t+1] (\\frac{T}{C}) + (1- \\frac{T}{\\tau})U[t] - RU_{\\rm thr}
+            U[t+1] = I_{\\rm in}[t+1] (\\frac{T}{C}) +
+            (1- \\frac{T}{\\tau})U[t] - RU_{\\rm thr}
 
-    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` whenever the neuron emits a spike:
+    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
+    whenever the neuron emits a spike:
 
     .. math::
 
-            U[t+1] = I_{\\rm in}[t+1] (\\frac{T}{\\tau}) + (1- \\frac{T}{\\tau})U[t] - R(I_{\\rm in}[t+1] (\\frac{T}{C}) + (1- \\frac{T}{\\tau})U[t])
+            U[t+1] = I_{\\rm in}[t+1] (\\frac{T}{\\tau}) +
+            (1- \\frac{T}{\\tau})U[t] - R(I_{\\rm in}[t+1] (\\frac{T}{C})
+            + (1- \\frac{T}{\\tau})U[t])
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`T`- duration of each time step
-    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise :math:`R = 0`
+    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
+    :math:`R = 0`
     * :math:`β` - Membrane potential decay rate
 
-    Alternatively, the membrane potential decay rate β can be specified instead:
+    Alternatively, the membrane potential decay rate β can be
+    specified instead:
 
     .. math::
 
             β = e^{-1/RC}
 
     * :math:`β` - Membrane potential decay rate
-    * :math:`R` - Parallel resistance of passive membrane (note: distinct from the reset :math:`R`)
+    * :math:`R` - Parallel resistance of passive membrane
+    (note: distinct from the reset :math:`R`)
     * :math:`C` - Parallel capacitance of passive membrane
 
     * If only β is defined, then R will default to 1, and C will be inferred.
     * If RC is defined, β will be automatically calculated.
-    * If (β and R) or (β and C) are defined, the missing variable will be automatically calculated.
+    * If (β and R) or (β and C) are defined, the missing variable will be
+    automatically calculated.
 
-    * Note that β, R and C are treated as `hard-wired' physically plausible parameters, and are therefore not learnable. For a single-state neuron with a learnable decay rate β, use `snn.Leaky` instead.
+    * Note that β, R and C are treated as `hard-wired' physically
+    plausible parameters, and are therefore not learnable. For a
+    single-state neuron with a learnable decay rate β, use `snn.Leaky` instead.
 
     Example::
 
@@ -64,7 +78,8 @@ class Lapicque(LIF):
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
                 self.lif1 = snn.Lapicque(beta=beta)
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.Lapicque(R=R, C=C)  # lif1 and lif2 are approximately equivalent
+                self.lif2 = snn.Lapicque(R=R, C=C)  # lif1 and lif2 are
+                approximately equivalent
 
             def forward(self, x, mem1, spk1, mem2):
                 cur1 = self.fc1(x)
@@ -76,15 +91,22 @@ class Lapicque(LIF):
 
     For further reading, see:
 
-    *L. Lapicque (1907) Recherches quantitatives sur l'excitation électrique des nerfs traitée comme une polarisation. J. Physiol. Pathol. Gen. 9, pp. 620-635. (French)*
+    *L. Lapicque (1907) Recherches quantitatives sur l'excitation
+    électrique des nerfs traitée comme une polarisation. J. Physiol. Pathol.
+    Gen. 9, pp. 620-635. (French)*
 
-    *N. Brunel and M. C. Van Rossum (2007) Lapicque's 1907 paper: From frogs to integrate-and-fire. Biol. Cybern. 97, pp. 337-339. (English)*
+    *N. Brunel and M. C. Van Rossum (2007) Lapicque's 1907 paper: From frogs
+    to integrate-and-fire. Biol. Cybern. 97, pp. 337-339. (English)*
 
-    Although Lapicque did not formally introduce this as an integrate-and-fire neuron model, we pay homage to his discovery of an RC circuit mimicking the dynamics of synaptic current.
+    Although Lapicque did not formally introduce this as an
+    integrate-and-fire neuron model, we pay homage to his discovery of an
+    RC circuit mimicking the dynamics of synaptic current.
 
 
 
-    :param beta: RC potential decay rate. Clipped between 0 and 1 during the forward-pass. May be a single-valued tensor (i.e., equal decay rate for all neurons in a layer), or multi-valued (one weight per neuron).
+    :param beta: RC potential decay rate. Clipped between 0 and 1 during the
+    forward-pass. May be a single-valued tensor (i.e., equal decay rate for
+    all neurons in a layer), or multi-valued (one weight per neuron).
     :type beta: float or torch.tensor, Optional
 
     :param R: Resistance of RC circuit
@@ -96,45 +118,62 @@ class Lapicque(LIF):
     :param time_step: time step precision. Defaults to 1
     :type time_step: float, Optional
 
-    :param threshold: Threshold for :math:`mem` to reach in order to generate a spike `S=1`. Defaults to 1
+    :param threshold: Threshold for :math:`mem` to reach in order to
+    generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
-    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to None (corresponds to Heaviside surrogate gradient. See `snntorch.surrogate` for more options)
-    :type spike_grad: surrogate gradient function from snntorch.surrogate, optional
+    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to
+    None (corresponds to Heaviside surrogate gradient. See
+    `snntorch.surrogate` for more options)
+    :type spike_grad: surrogate gradient function from snntorch.surrogate,
+    optional
 
-    :param init_hidden: Instantiates state variables as instance variables. Defaults to False
+    :param init_hidden: Instantiates state variables as instance variables.
+    Defaults to False
     :type init_hidden: bool, optional
 
-    :param inhibition: If `True`, suppresses all spiking other than the neuron with the highest state. Defaults to False
+    :param inhibition: If `True`, suppresses all spiking other than the
+    neuron with the highest state. Defaults to False
     :type inhibition: bool, optional
 
     :param learn_beta: Option to enable learnable beta. Defaults to False
     :type learn_beta: bool, optional
 
-    :param learn_threshold: Option to enable learnable threshold. Defaults to False
+    :param learn_threshold: Option to enable learnable threshold. Defaults
+    to False
     :type learn_threshold: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` each time the threshold is met. Reset-by-subtraction: "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
+    :param reset_mechanism: Defines the reset mechanism applied to
+    :math:`mem` each time the threshold is met. Reset-by-subtraction:
+    "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
     :type reset_mechanism: str, optional
 
-    :param state_quant: If specified, hidden state :math:`mem` is quantized to a valid state for the forward pass. Defaults to False
+    :param state_quant: If specified, hidden state :math:`mem` is
+    quantized to a valid state for the forward pass. Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
-    :param output: If `True` as well as `init_hidden=True`, states are returned when neuron is called. Defaults to False
+    :param output: If `True` as well as `init_hidden=True`, states are
+    returned when neuron is called. Defaults to False
     :type output: bool, optional
 
 
     Inputs: \\input_, mem_0
-        - **input_** of shape `(batch, input_size)`: tensor containing input features
-        - **mem_0** of shape `(batch, input_size)`: tensor containing the initial membrane potential for each element in the batch.
+        - **input_** of shape `(batch, input_size)`: tensor containing
+        input features
+        - **mem_0** of shape `(batch, input_size)`: tensor containing the
+        initial membrane potential for each element in the batch.
 
     Outputs: spk, mem_1
-        - **spk** of shape `(batch, input_size)`: tensor containing the output spikes.
-        - **mem_1** of shape `(batch, input_size)`: tensor containing the next membrane potential for each element in the batch
+        - **spk** of shape `(batch, input_size)`: tensor containing the
+        output spikes.
+        - **mem_1** of shape `(batch, input_size)`: tensor containing the
+        next membrane potential for each element in the batch
 
     Learnable Parameters:
-        - **Lapcique.beta** (torch.Tensor) - optional learnable weights must be manually passed in, of shape `1` or (input_size).
-        - **Lapcique.threshold** (torch.Tensor) - optional learnable thresholds must be manually passed in, of shape `1` or`` (input_size).
+        - **Lapcique.beta** (torch.Tensor) - optional learnable weights must
+        be manually passed in, of shape `1` or (input_size).
+        - **Lapcique.threshold** (torch.Tensor) - optional learnable
+        thresholds must be manually passed in, of shape `1` or`` (input_size).
 
     """
 
@@ -179,7 +218,9 @@ class Lapicque(LIF):
 
         if hasattr(mem, "init_flag"):  # only triggered on first-pass
             mem = _SpikeTorchConv(mem, input_=input_)
-        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+        elif mem is False and hasattr(
+            self.mem, "init_flag"
+        ):  # init_hidden case
             self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
         if not self.init_hidden:
@@ -196,7 +237,8 @@ class Lapicque(LIF):
 
             return spk, mem
 
-        # intended for truncated-BPTT where instance variables are hidden states
+        # intended for truncated-BPTT where instance variables are hidden
+        # states
         if self.init_hidden:
             self._lapicque_forward_cases(mem)
             self.reset = self.mem_reset(self.mem)
@@ -225,7 +267,8 @@ class Lapicque(LIF):
     def _build_state_function(self, input_, mem):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = (
-                self._base_state_function(input_, mem) - self.reset * self.threshold
+                self._base_state_function(input_, mem)
+                - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
             state_fn = self._base_state_function(
@@ -245,7 +288,8 @@ class Lapicque(LIF):
     def _build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = (
-                self._base_state_function_hidden(input_) - self.reset * self.threshold
+                self._base_state_function_hidden(input_)
+                - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
             state_fn = self._base_state_function_hidden(
@@ -262,12 +306,14 @@ class Lapicque(LIF):
 
         if not self.beta and not (R and C):
             raise ValueError(
-                "Either beta or 2 of beta, R and C must be specified as an input argument."
+                "Either beta or 2 of beta, R and C must be specified as an "
+                "input argument."
             )
 
         elif not self.beta and (bool(R) ^ bool(C)):
             raise ValueError(
-                "Either beta or 2 of beta, R and C must be specified as an input argument."
+                "Either beta or 2 of beta, R and C must be specified as an "
+                "input argument."
             )
 
         elif (R and C) and not self.beta:
@@ -315,7 +361,8 @@ class Lapicque(LIF):
     @classmethod
     def detach_hidden(cls):
         """Returns the hidden states, detached from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are instance variables."""
+        Intended for use in truncated backpropagation through time where
+        hidden state variables are instance variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Lapicque):
@@ -324,7 +371,8 @@ class Lapicque(LIF):
     @classmethod
     def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are instance variables."""
+        Intended for use where hidden state variables are instance
+        variables."""
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Lapicque):
