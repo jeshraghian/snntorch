@@ -119,9 +119,6 @@ class Alpha(LIF):
 
         if self.init_hidden:
             self.syn_exc, self.syn_inh, self.mem = self.init_alpha()
-            self.state_fn = self._build_state_function_hidden
-        else:
-            self.state_fn = self._build_state_function
 
         # if reset_mechanism == "subtract":
         #     self.mem_residual = False
@@ -146,7 +143,7 @@ class Alpha(LIF):
         # if hidden states are passed externally
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
-            syn_exc, syn_inh, mem = self.state_fn(
+            syn_exc, syn_inh, mem = self._build_state_function(
                 input_, syn_exc, syn_inh, mem
             )
 
@@ -168,7 +165,7 @@ class Alpha(LIF):
             self._alpha_forward_cases(mem, syn_exc, syn_inh)
 
             self.reset = self.mem_reset(self.mem)
-            self.syn_exc, self.syn_inh, self.mem = self.state_fn(input_)
+            self.syn_exc, self.syn_inh, self.mem = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.syn_exc = self.state_quant(self.syn_exc)
