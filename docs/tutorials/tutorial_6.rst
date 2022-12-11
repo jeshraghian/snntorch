@@ -284,7 +284,10 @@ The convolutional network architecture to be used is:
 
 In the previous tutorial, the network was wrapped inside of a class, as shown above. 
 With increasing network complexity, this adds a
-lot of boilerplate code that we might wish to avoid. Alternatively, the ``nn.Sequential`` method can be used instead:
+lot of boilerplate code that we might wish to avoid. Alternatively, the ``nn.Sequential`` method can be used instead.
+
+.. note::
+    The following code-block simulates over one single time-step, and requires a separate for-loop over time.
 
 ::
 
