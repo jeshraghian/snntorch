@@ -2,6 +2,15 @@ import snntorch as snn
 import torch
 from snntorch import utils
 from snntorch import functional as SF
+from warnings import warn
+
+warn(
+    f"The module {__name__} will be deprecated in "
+    f" a future release. Writing out your own training "
+    f"loop will lead to substantially faster performance.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 # consider turning into a class s.t. dictionary params can be parsed at
@@ -189,9 +198,8 @@ def TBPTT(
     if regularization:
         for reg_item in reg_dict:
             if reg_item == regularization.__name__:
-                reg_spk = reg_dict[
-                    reg_item
-                ]  # m: mem, s: spk // s: every step, e: end
+                # m: mem, s: spk // s: every step, e: end
+                reg_spk = reg_dict[reg_item]
 
     num_return = utils._final_layer_check(net)  # number of outputs
 
@@ -308,9 +316,7 @@ def TBPTT(
 
                 for neuron in neurons_dict:
                     if neuron:
-                        neurons_dict[
-                            neuron
-                        ].detach_hidden()  # might need to swap
+                        neurons_dict[neuron].detach_hidden()
                         # detach_hidden --> _reset_hidden
 
                 K_count += 1
@@ -324,19 +330,17 @@ def TBPTT(
             mem_rec_trunc = torch.stack(mem_rec_trunc, dim=0)
 
             if time_var_targets:
+                idx1 = K_count * K
+                idx2 = K_count * K + num_steps % K
                 if loss_spk:
                     loss = criterion(
                         spk_rec_trunc,
-                        targets[
-                            int(K_count * K) : int(K_count * K + num_steps % K)
-                        ],
+                        targets[int(idx1) : int(idx2)],
                     )
                 else:
                     loss = criterion(
                         mem_rec_trunc,
-                        targets[
-                            int(K_count * K) : int(K_count * K + num_steps % K)
-                        ],
+                        targets[int(idx1) : int(idx2)],
                     )
             else:
                 if loss_spk:
