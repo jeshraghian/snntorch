@@ -257,9 +257,9 @@ class RLeaky(LIF):
 
         if self.init_hidden:
             self.spk, self.mem = self.init_rleaky()
-            self.state_fn = self._build_state_function_hidden
-        else:
-            self.state_fn = self._build_state_function
+        #     self.state_fn = self._build_state_function_hidden
+        # else:
+        #     self.state_fn = self._build_state_function
 
     def forward(self, input_, spk=False, mem=False):
         if hasattr(spk, "init_flag") or hasattr(
@@ -279,7 +279,7 @@ class RLeaky(LIF):
 
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
-            mem = self.state_fn(input_, spk, mem)
+            mem = self._build_state_function(input_, spk, mem)
 
             if self.state_quant:
                 mem = self.state_quant(mem)
@@ -296,7 +296,7 @@ class RLeaky(LIF):
         if self.init_hidden:
             self._rleaky_forward_cases(spk, mem)
             self.reset = self.mem_reset(self.mem)
-            self.mem = self.state_fn(input_)
+            self.mem = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.mem = self.state_quant(self.mem)
@@ -356,7 +356,7 @@ class RLeaky(LIF):
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
             state_fn = self._base_state_function(
-                input_, mem
+                input_, spk, mem
             ) - self.reset * self._base_state_function(input_, spk, mem)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
             state_fn = self._base_state_function(input_, spk, mem)
@@ -402,7 +402,7 @@ class RLeaky(LIF):
                     raise TypeError(
                         "When `all_to_all=True`, RLeaky requires either"
                         "`linear_features` or (`conv2d_channels` and "
-                        "`kernel_size`) to be specified. The"
+                        "`kernel_size`) to be specified. The "
                         "shape should match the shape of the output spike of "
                         "the layer."
                     )

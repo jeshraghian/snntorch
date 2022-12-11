@@ -222,9 +222,6 @@ class SConv2dLSTM(SpikingNeuron):
 
         if self.init_hidden:
             self.syn, self.mem = self.init_sconv2dlstm()
-            self.state_fn = self._build_state_function_hidden
-        else:
-            self.state_fn = self._build_state_function
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -268,7 +265,7 @@ class SConv2dLSTM(SpikingNeuron):
 
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
-            syn, mem = self.state_fn(input_, syn, mem)
+            syn, mem = self._build_state_function(input_, syn, mem)
 
             if self.state_quant:
                 syn = self.state_quant(syn)
@@ -285,7 +282,7 @@ class SConv2dLSTM(SpikingNeuron):
         if self.init_hidden:
             # self._sconv2dlstm_forward_cases(mem, c)
             self.reset = self.mem_reset(self.mem)
-            self.syn, self.mem = self.state_fn(input_)
+            self.syn, self.mem = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.syn = self.state_quant(self.syn)
