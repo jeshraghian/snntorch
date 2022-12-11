@@ -49,7 +49,7 @@ version = __version__
 release = __version__
 # release = "0.1.0"
 
-language = None
+# language = None
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
