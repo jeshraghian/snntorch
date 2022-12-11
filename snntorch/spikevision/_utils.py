@@ -2,12 +2,17 @@ import struct
 import numpy as np
 import os
 
-# Adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
-# Which was adapted from https://github.com/gorchard/event-Python/blob/master/eventvision.py by Garrick Orchard
+# Adapted from https://github.com/nmi-lab/torchneuromorphic by
+# Eire Neftci
+# and Clemens Schaefer
+# Which was adapted from
+# https://github.com/gorchard/event-Python/blob/master/eventvision.py
+# by Garrick Orchard
 
 
 def load_ATIS_bin(filename):
-    """Reads in the TD events contained in the N-MNIST and N-CALTECH101 dataset files specified by 'filename'"""
+    """Reads in the TD events contained in the N-MNIST and
+    N-CALTECH101 dataset files specified by 'filename'"""
     f = open(filename, "rb")
     raw_data = np.fromfile(f, dtype=np.uint8)
     f.close()
@@ -16,21 +21,29 @@ def load_ATIS_bin(filename):
     all_y = raw_data[1::5]
     all_x = raw_data[0::5]
     all_p = (raw_data[2::5] & 128) >> 7  # bit 7
-    all_ts = ((raw_data[2::5] & 127) << 16) | (raw_data[3::5] << 8) | (raw_data[4::5])
+    all_ts = (
+        ((raw_data[2::5] & 127) << 16)
+        | (raw_data[3::5] << 8)
+        | (raw_data[4::5])
+    )
 
     # Process time stamp overflow events
-    time_increment = 2 ** 13
+    time_increment = 2**13
     overflow_indices = np.where(all_y == 240)[0]
     for overflow_index in overflow_indices:
         all_ts[overflow_index:] += time_increment
 
     # Everything else is a proper td spike
-    td_indices = np.where(all_y != 240)[0]
+    # td_indices = np.where(all_y != 240)[0]
     return all_ts, all_x, all_y, all_p
 
 
 def load_jaer(
-    datafile="/tmp/aerout.dat", length=0, version="aedat", debug=1, camera="DVS128"
+    datafile="/tmp/aerout.dat",
+    length=0,
+    version="aedat",
+    debug=1,
+    camera="DVS128",
 ):
     """
     Load AER data and parse these properties of AE events:
@@ -38,22 +51,27 @@ def load_jaer(
     * x, y-position [0..127],
     * polarity (0/1)
 
-    :param datafile: path to the file to read, defaults to ``"/tmp/aerout.dat"``
+    :param datafile: path to the file to read, defaults to
+    ``"/tmp/aerout.dat"``
     :type datafile: string, optional
 
     :param length: how many bytes should be read, defaults to 0 (whole file)
     :type length: int, optional
 
-    :param version: which file format version is used ("aedat" for v2 or "dat" for v1), defaults to ``"aedat"``
+    :param version: which file format version is used ("aedat" for v2 or "dat"
+    for v1), defaults to ``"aedat"``
     :type version: string, optional
 
-    :param debug: 0 = silent, 1 = print summary, >=2 = print all debug, defaults to ``1``
+    :param debug: 0 = silent, 1 = print summary, >=2 = print all debug,
+    defaults to ``1``
     :type debug: int, optional
 
-    :param camera: which event-based camera is used ("DVS128" or "DAVIS240"), defaults to ``"DVS128"11
+    :param camera: which event-based camera is used ("DVS128" or "DAVIS240"),
+    defaults to ``"DVS128"11
     :type camera: string, optional
 
-    :return: (ts, xpos, ypos, pol) 4-typle of lists containing data of all events
+    :return: (ts, xpos, ypos, pol) 4-typle of lists containing data of all
+    events
     :rtype: tuple
 
     """
@@ -148,7 +166,7 @@ def load_jaer(
                 "read %i (~ %.2fM) AE events, duration= %.2fs"
                 % (
                     len(timestamps),
-                    len(timestamps) / float(10 ** 6),
+                    len(timestamps) / float(10**6),
                     (timestamps[-1] - timestamps[0]) * td,
                 )
             )
@@ -158,10 +176,16 @@ def load_jaer(
                 "timestamps: %s \nX-addr: %s\nY-addr: %s\npolarity: %s"
                 % (timestamps[0:n], xaddr[0:n], yaddr[0:n], pol[0:n])
             )
-        except:
+        except Exception as e:
             print("failed to print statistics")
+            print(e.message, e.args)
 
-    return np.array(timestamps), np.array(xaddr), np.array(yaddr), np.array(pol)
+    return (
+        np.array(timestamps),
+        np.array(xaddr),
+        np.array(yaddr),
+        np.array(pol),
+    )
 
 
 def plot_frames_imshow(
@@ -193,7 +217,9 @@ def plot_frames_imshow(
         gs = gridspec.GridSpec(len(rnge), nim)
     else:
         gs = gridspec.GridSpec(nim, len(rnge))
-    plt.subplots_adjust(left=0, bottom=0, right=1, top=0.95, wspace=0.0, hspace=0.04)
+    plt.subplots_adjust(
+        left=0, bottom=0, right=1, top=0.95, wspace=0.0, hspace=0.04
+    )
     if labels is not None:
         if do1h:
             categories = labels.argmax(axis=1)
@@ -206,9 +232,9 @@ def plot_frames_imshow(
         norm = Normalize(-0.1, 0.1)
         for e, i in enumerate(rnge):
             if not transpose:
-                ax = plt.subplot(gs[e, j])
+                _ = plt.subplot(gs[e, j])
             else:
-                ax = plt.subplot(gs[j, e])
+                _ = plt.subplot(gs[j, e])
             plt.imshow(
                 images[j, i * avg : (i * avg + avg), 0, :, :].mean(axis=0).T
                 - images[j, i * avg : (i * avg + avg), 1, :, :].mean(axis=0).T,
@@ -247,7 +273,9 @@ def aedat_to_events(filename):
     Used for aedat 3.1
     """
     label_filename = filename[:-6] + "_labels.csv"
-    labels = np.loadtxt(label_filename, skiprows=1, delimiter=",", dtype="uint32")
+    labels = np.loadtxt(
+        label_filename, skiprows=1, delimiter=",", dtype="uint32"
+    )
     events = []
     with open(filename, "rb") as f:
         for i in range(5):
@@ -258,16 +286,18 @@ def aedat_to_events(filename):
                 break
 
             eventtype = struct.unpack("H", data_ev_head[0:2])[0]
-            eventsource = struct.unpack("H", data_ev_head[2:4])[0]
+            # eventsource = struct.unpack("H", data_ev_head[2:4])[0]
             eventsize = struct.unpack("I", data_ev_head[4:8])[0]
-            eventoffset = struct.unpack("I", data_ev_head[8:12])[0]
-            eventtsoverflow = struct.unpack("I", data_ev_head[12:16])[0]
-            eventcapacity = struct.unpack("I", data_ev_head[16:20])[0]
+            # eventoffset = struct.unpack("I", data_ev_head[8:12])[0]
+            # eventtsoverflow = struct.unpack("I", data_ev_head[12:16])[0]
+            # eventcapacity = struct.unpack("I", data_ev_head[16:20])[0]
             eventnumber = struct.unpack("I", data_ev_head[20:24])[0]
-            eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
+            # eventvalid = struct.unpack("I", data_ev_head[24:28])[0]
 
             if eventtype == 1:
-                event_bytes = np.frombuffer(f.read(eventnumber * eventsize), "uint32")
+                event_bytes = np.frombuffer(
+                    f.read(eventnumber * eventsize), "uint32"
+                )
                 event_bytes = event_bytes.reshape(-1, 2)
 
                 x = (event_bytes[:, 0] >> 17) & 0x00001FFF
@@ -281,10 +311,12 @@ def aedat_to_events(filename):
     events = np.column_stack(events)
     events = events.astype("uint32")
     clipped_events = np.zeros([4, 0], "uint32")
-    for l in labels:
-        start = np.searchsorted(events[0, :], l[1])
-        end = np.searchsorted(events[0, :], l[2])
-        clipped_events = np.column_stack([clipped_events, events[:, start:end]])
+    for label in labels:
+        start = np.searchsorted(events[0, :], label[1])
+        end = np.searchsorted(events[0, :], label[2])
+        clipped_events = np.column_stack(
+            [clipped_events, events[:, start:end]]
+        )
     return clipped_events.T, labels
 
 
@@ -293,10 +325,11 @@ def rosbag_to_events(filename, topic="/dvs_right/events"):
         from importRosbag.importRosbag import importRosbag
     except ImportError as exc:
         print(
-            "This function requires the importRosbag library from https://github.com/event-driven-robotics"
+            "This function requires the importRosbag library "
+            "from https://github.com/event-driven-robotics"
         )
         raise (exc)
-    all_events = []
+    # all_events = []
     data = importRosbag(filename)[topic]
     data["ts"] -= data["ts"][0]  # align at 0
     data["ts"] *= 1000000.0  # second to microsecond

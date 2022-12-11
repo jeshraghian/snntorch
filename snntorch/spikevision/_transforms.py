@@ -1,4 +1,5 @@
-# Adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
+# Adapted from https://github.com/nmi-lab/torchneuromorphic
+# by Emre Neftci and Clemens Schaefer
 
 import numpy as np
 import pandas as pd
@@ -38,7 +39,8 @@ class toDtype(object):
 class Downsample(object):
     """Resize the address event Tensor to the given size.
     Args:
-        factor: : Desired resize factor. Applied to all dimensions including time
+        factor: : Desired resize factor. Applied to all dimensions
+        including time
     """
 
     def __init__(self, factor):
@@ -49,7 +51,10 @@ class Downsample(object):
         return tmad // self.factor
 
     def __repr__(self):
-        return self.__class__.__name__ + "(dt = {0}, dp = {1}, dx = {2}, dy = {3})"
+        return (
+            self.__class__.__name__
+            + "(dt = {0}, dp = {1}, dx = {2}, dy = {3})"
+        )
 
 
 # class Crop(object):
@@ -72,7 +77,8 @@ class Downsample(object):
 
 # class ShuffleMask(object):
 #     '''
-#     Shuffles events within t_min and t_max with a Random spike train having the same number of events
+#     Shuffles events within t_min and t_max with a Random spike train
+#     having the same number of events
 #     '''
 #     def __init__(self, t_min, t_max, size=[2,32,32]):
 #         from decolle.snn_utils import spiketrains
@@ -85,7 +91,8 @@ class Downsample(object):
 #         idx = np.where((tmad[:,0]>=self.t_min) * (tmad[:,0]<self.t_max))
 #         for i in range(1,tmad.shape[1]):
 #             #tmad[idx,i] = shuffle_along_axis(tmad[idx,i][0],0)
-#             tmad[idx,i] = np.random.randint(low=0,high=self.size[i-1],size=len(idx[0]))
+#             tmad[idx,i] = np.random.randint(low=0,high=self.size[i-1],
+#             size=len(idx[0]))
 
 #         return tmad
 
@@ -176,7 +183,8 @@ class ToChannelHeightWidth(object):
 
         else:
             raise TypeError(
-                "Wrong number of dimensions. Found {0}, expected 1 or 3".format(n - 1)
+                "Wrong number of dimensions. Found {0}, "
+                "expected 1 or 3".format(n - 1)
             )
 
     def __repr__(self):
@@ -185,7 +193,8 @@ class ToChannelHeightWidth(object):
 
 class ToCountFrame(object):
     """Convert Address Events to Binary tensor.
-    Converts a numpy.ndarray (T x H x W x C) to a torch.FloatTensor of shape (T x C x H x W) in the range [0., 1., ...]
+    Converts a numpy.ndarray (T x H x W x C) to a torch.FloatTensor of shape
+    (T x C x H x W) in the range [0., 1., ...]
     """
 
     def __init__(self, T=500, size=[2, 32, 32]):
@@ -195,8 +204,8 @@ class ToCountFrame(object):
 
     def __call__(self, tmad):
         times = tmad[:, 0]
-        t_start = times[0]
-        t_end = times[-1]
+        # t_start = times[0]
+        # t_end = times[-1]
         addrs = tmad[:, 1:]
 
         ts = range(0, self.T)
@@ -218,7 +227,8 @@ class ToCountFrame(object):
 
 class ToEventSum(object):
     """Convert Address Events to Image By Summing.
-    Converts a numpy.ndarray (T x H x W x C) to a torch.FloatTensor of shape (C x H x W) in the range [0., 1., ...]
+    Converts a numpy.ndarray (T x H x W x C) to a torch.FloatTensor of shape
+    (C x H x W) in the range [0., 1., ...]
     """
 
     def __init__(self, T=500, size=[2, 32, 32]):
@@ -228,8 +238,8 @@ class ToEventSum(object):
 
     def __call__(self, tmad):
         times = tmad[:, 0]
-        t_start = times[0]
-        t_end = times[-1]
+        # t_start = times[0]
+        # t_end = times[-1]
         addrs = tmad[:, 1:]
 
         ts = range(0, self.T)
@@ -277,7 +287,9 @@ class FilterEvents(object):
 
 
 class ExpFilterEvents(FilterEvents):
-    def __init__(self, length, tau=200, channels=2, tpad=None, device="cpu", **kwargs):
+    def __init__(
+        self, length, tau=200, channels=2, tpad=None, device="cpu", **kwargs
+    ):
         t = torch.arange(0.0, length, 1.0)
         kernel = torch.ones(channels, 1, len(t), 1, 1)
         exp_kernel = torch.exp(-t / tau)
@@ -351,7 +363,8 @@ class dvs_permute(object):
 
 class Repeat(object):
     """
-    Replicate np.array (C) as (n_repeat X C). This is useful to transform sample labels into sequences
+    Replicate np.array (C) as (n_repeat X C). This is useful to transform
+    sample labels into sequences
     """
 
     def __init__(self, n_repeat):

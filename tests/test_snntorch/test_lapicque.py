@@ -62,7 +62,10 @@ class TestLapicque:
                 / (lapicque_instance.R * lapicque_instance.C)
             )
         ) + input_[1] * lapicque_instance.R * (
-            1 / lapicque_instance.R * lapicque_instance.C * lapicque_instance.time_step
+            1
+            / lapicque_instance.R
+            * lapicque_instance.C
+            * lapicque_instance.time_step
         )
         assert spk_rec[0] == spk_rec[1]
 

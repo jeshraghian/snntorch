@@ -2,7 +2,8 @@ from __future__ import print_function
 import bisect
 import numpy as np
 
-# Adapted from https://github.com/nmi-lab/torchneuromorphic by Emre Neftci and Clemens Schaefer
+# Adapted from https://github.com/nmi-lab/torchneuromorphic
+# by Emre Neftci and Clemens Schaefer
 
 
 def expand_targets(targets, T=500, burnin=0):
@@ -28,7 +29,8 @@ def cast_evs(evs):
 
 
 # def get_binary_frame(evs, size = (346,260), ds=1):
-#     tr = sparse_matrix((2*evs[:,3]-1,(evs[:,1]//ds,evs[:,2]//ds)), dtype=np.int8, shape=size)
+#     tr = sparse_matrix((2*evs[:,3]-1,(evs[:,1]//ds,evs[:,2]//ds)),
+#     dtype=np.int8, shape=size)
 #     return tr.toarray()
 
 
@@ -61,7 +63,9 @@ def get_slice(times, addrs, start_time, end_time):
         raise IndexError("Empty batch found")
 
 
-def get_event_slice(times, addrs, start_time, T, size=[128, 128], ds=1, dt=1000):
+def get_event_slice(
+    times, addrs, start_time, T, size=[128, 128], ds=1, dt=1000
+):
     try:
         idx_beg = find_first(times, start_time)
         idx_end = find_first(times[idx_beg:], start_time + T * dt) + idx_beg
@@ -82,7 +86,9 @@ def get_tmad_slice(times, addrs, start_time, T):
     try:
         idx_beg = find_first(times, start_time)
         idx_end = find_first(times[idx_beg:], start_time + T) + idx_beg
-        return np.column_stack([times[idx_beg:idx_end], addrs[idx_beg:idx_end]])
+        return np.column_stack(
+            [times[idx_beg:idx_end], addrs[idx_beg:idx_end]]
+        )
     except IndexError:
         raise IndexError("Empty batch found")
 
@@ -98,7 +104,9 @@ def get_time_surface(evs, invtau=1e-6, size=(346, 260, 2)):
     return a
 
 
-def chunk_evs_dvs(evs, deltat=1000, chunk_size=500, size=[304, 240], ds_w=1, ds_h=1):
+def chunk_evs_dvs(
+    evs, deltat=1000, chunk_size=500, size=[304, 240], ds_w=1, ds_h=1
+):
     t_start = evs[0, 0]
     ts = range(t_start + chunk_size, t_start + chunk_size * deltat, deltat)
     chunks = np.zeros([len(ts)] + size, dtype="int8")
@@ -114,7 +122,9 @@ def chunk_evs_dvs(evs, deltat=1000, chunk_size=500, size=[304, 240], ds_w=1, ds_
     return chunks
 
 
-def frame_evs(times, addrs, deltat=1000, duration=500, size=[240], downsample=[1]):
+def frame_evs(
+    times, addrs, deltat=1000, duration=500, size=[240], downsample=[1]
+):
     t_start = times[0]
     ts = range(t_start, t_start + duration * deltat, deltat)
     chunks = np.zeros([len(ts)] + size, dtype="int8")
@@ -124,14 +134,23 @@ def frame_evs(times, addrs, deltat=1000, duration=500, size=[240], downsample=[1
         idx_end += find_first(times[idx_end:], t)
         if idx_end > idx_start:
             ee = addrs[idx_start:idx_end]
-            ev = [(ee[:, i] // d).astype(np.int) for i, d in enumerate(downsample)]
+            ev = [
+                (ee[:, i] // d).astype(np.int)
+                for i, d in enumerate(downsample)
+            ]
             np.add.at(chunks, tuple([i] + ev), 1)
         idx_start = idx_end
     return chunks
 
 
 def chunk_evs_pol_dvs(
-    times, addrs, deltat=1000, chunk_size=500, size=[2, 304, 240], ds_w=1, ds_h=1
+    times,
+    addrs,
+    deltat=1000,
+    chunk_size=500,
+    size=[2, 304, 240],
+    ds_w=1,
+    ds_h=1,
 ):
     t_start = times[0]
     ts = range(t_start, t_start + chunk_size * deltat, deltat)
