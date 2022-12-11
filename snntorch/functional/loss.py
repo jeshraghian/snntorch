@@ -14,9 +14,10 @@ dtype = torch.float
 
 class LossFunctions:
     def _prediction_check(self, spk_out):
-        device = "cpu"
-        if spk_out.is_cuda:
-            device = "cuda"
+        # device = "cpu"
+        # if spk_out.is_cuda:
+        #     device = "cuda"
+        device = spk_out.device
 
         num_steps = spk_out.size(0)
         num_outputs = spk_out.size(-1)
@@ -33,9 +34,10 @@ class LossFunctions:
             raise Exception(
                 f"``num_outputs {num_outputs} must be a factor of num_classes {num_classes}."
             )
-        device = "cpu"
-        if spk_out.is_cuda:
-            device = "cuda"
+        # device = "cpu"
+        # if spk_out.is_cuda:
+        #     device = "cuda"
+        device = spk_out.device
         pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(device)
         for idx in range(num_classes):
             pop_code[:, idx] = (
@@ -379,9 +381,10 @@ class SpikeTime(nn.Module):
         return spk_time_final, targets
 
     def _prediction_check(self, spk_out):
-        device = "cpu"
-        if spk_out.is_cuda:
-            device = "cuda"
+        # device = "cpu"
+        # if spk_out.is_cuda:
+        #     device = "cuda"
+        device = spk_out.device
 
         num_steps = spk_out.size(0)
         num_outputs = spk_out.size(-1)

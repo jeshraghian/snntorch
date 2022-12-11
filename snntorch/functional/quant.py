@@ -7,9 +7,10 @@ class StateQuant(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input_, levels):
 
-        device = "cpu"
-        if input_.is_cuda:
-            device = "cuda"
+        # device = "cpu"
+        # if input_.is_cuda:
+        #     device = "cuda"
+        device = input_.device
 
         levels = levels.to(device)
 
