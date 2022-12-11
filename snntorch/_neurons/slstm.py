@@ -183,9 +183,6 @@ class SLSTM(SpikingNeuron):
 
         if self.init_hidden:
             self.syn, self.mem = self.init_slstm()
-            self.state_fn = self._build_state_function_hidden
-        else:
-            self.state_fn = self._build_state_function
 
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -212,7 +209,7 @@ class SLSTM(SpikingNeuron):
 
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
-            syn, mem = self.state_fn(input_, syn, mem)
+            syn, mem = self._build_state_function(input_, syn, mem)
 
             if self.state_quant:
                 syn = self.state_quant(syn)
@@ -224,7 +221,7 @@ class SLSTM(SpikingNeuron):
         if self.init_hidden:
             # self._slstm_forward_cases(mem, syn)
             self.reset = self.mem_reset(self.mem)
-            self.syn, self.mem = self.state_fn(input_)
+            self.syn, self.mem = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.syn = self.state_quant(self.syn)
