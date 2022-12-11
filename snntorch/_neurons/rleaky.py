@@ -356,7 +356,7 @@ class RLeaky(LIF):
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
             state_fn = self._base_state_function(
-                input_, mem
+                input_, spk, mem
             ) - self.reset * self._base_state_function(input_, spk, mem)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
             state_fn = self._base_state_function(input_, spk, mem)
@@ -402,7 +402,7 @@ class RLeaky(LIF):
                     raise TypeError(
                         "When `all_to_all=True`, RLeaky requires either"
                         "`linear_features` or (`conv2d_channels` and "
-                        "`kernel_size`) to be specified. The"
+                        "`kernel_size`) to be specified. The "
                         "shape should match the shape of the output spike of "
                         "the layer."
                     )
