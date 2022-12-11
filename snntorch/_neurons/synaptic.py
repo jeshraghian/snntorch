@@ -180,9 +180,6 @@ class Synaptic(LIF):
 
         if self.init_hidden:
             self.syn, self.mem = self.init_synaptic()
-            self.state_fn = self._build_state_function_hidden
-        else:
-            self.state_fn = self._build_state_function
 
     def forward(self, input_, syn=False, mem=False):
 
@@ -199,7 +196,7 @@ class Synaptic(LIF):
 
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
-            syn, mem = self.state_fn(input_, syn, mem)
+            syn, mem = self._build_state_function(input_, syn, mem)
 
             if self.state_quant:
                 syn = self.state_quant(syn)
@@ -217,7 +214,7 @@ class Synaptic(LIF):
         if self.init_hidden:
             self._synaptic_forward_cases(mem, syn)
             self.reset = self.mem_reset(self.mem)
-            self.syn, self.mem = self.state_fn(input_)
+            self.syn, self.mem = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.syn = self.state_quant(self.syn)
