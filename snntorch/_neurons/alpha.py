@@ -1,24 +1,31 @@
 import torch
 import torch.nn as nn
 
-from .neurons import *
+from .neurons import _SpikeTensor, _SpikeTorchConv, LIF
 
 
 class Alpha(LIF):
     """
-    A variant of the leaky integrate and fire neuron where membrane potential follows an alpha function.
-    The time course of the membrane potential response depends on a combination of exponentials.
-    In general, this causes the change in membrane potential to experience a delay with respect to an input spike.
+    A variant of the leaky integrate and fire neuron where membrane
+    potential follows an alpha function.
+    The time course of the membrane potential response depends on a
+    combination of exponentials.
+    In general, this causes the change in membrane potential to
+    experience a delay with respect to an input spike.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
-    .. warning:: For a positive input current to induce a positive membrane response, ensure :math:`α > β`.
+    .. warning:: For a positive input current to induce a positive membrane
+    response, ensure :math:`α > β`.
 
-    If `reset_mechanism = "zero"`, then :math:`I_{\\rm exc}, I_{\\rm inh}` will both be set to `0` whenever the neuron emits a spike:
+    If `reset_mechanism = "zero"`, then :math:`I_{\\rm exc}, I_{\\rm inh}`
+    will both be set to `0` whenever the neuron emits a spike:
 
     .. math::
 
-            I_{\\rm exc}[t+1] = (αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) - R(αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) \\\\
-            I_{\\rm inh}[t+1] = (βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) - R(βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) \\\\
+            I_{\\rm exc}[t+1] = (αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) -
+            R(αI_{\\rm exc}[t] + I_{\\rm in}[t+1]) \\\\
+            I_{\\rm inh}[t+1] = (βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) -
+            R(βI_{\\rm inh}[t] - I_{\\rm in}[t+1]) \\\\
             U[t+1] = τ_{\\rm α}(I_{\\rm exc}[t+1] + I_{\\rm inh}[t+1])
 
     * :math:`I_{\\rm exc}` - Excitatory current
@@ -26,7 +33,8 @@ class Alpha(LIF):
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
-    * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise :math:`R = 0`
+    * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise
+    :math:`R = 0`
     * :math:`α` - Excitatory current decay rate
     * :math:`β` - Inhibitory current decay rate
     * :math:`τ_{\\rm α} = \\frac{log(α)}{log(β)} - log(α) + 1`
@@ -51,22 +59,29 @@ class Alpha(LIF):
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
                 self.lif2 = snn.Alpha(alpha=alpha, beta=beta)
 
-            def forward(self, x, syn_exc1, syn_inh1, mem1, spk1, syn_exc2, syn_inh2, mem2):
+            def forward(self, x, syn_exc1, syn_inh1, mem1, spk1, syn_exc2,
+            syn_inh2, mem2):
                 cur1 = self.fc1(x)
-                spk1, syn_exc1, syn_inh1, mem1 = self.lif1(cur1, syn_exc1, syn_inh1, mem1)
+                spk1, syn_exc1, syn_inh1, mem1 = self.lif1(cur1, syn_exc1,
+                syn_inh1, mem1)
                 cur2 = self.fc2(spk1)
-                spk2, syn_exc2, syn_inh2, mem2 = self.lif2(cur2, syn_exc2, syn_inh2, mem2)
-                return syn_exc1, syn_inh1, mem1, spk1, syn_exc2, syn_inh2, mem2, spk2
+                spk2, syn_exc2, syn_inh2, mem2 = self.lif2(cur2, syn_exc2,
+                syn_inh2, mem2)
+                return syn_exc1, syn_inh1, mem1, spk1, syn_exc2, syn_inh2,
+                mem2, spk2
 
-        # Too many state variables which becomes cumbersome, so the following is also an option:
+        # Too many state variables which becomes cumbersome, so the
+        following is also an option:
 
         alpha = 0.9
         beta = 0.8
 
         net = nn.Sequential(nn.Linear(num_inputs, num_hidden),
-                            snn.Alpha(alpha=alpha, beta=beta, init_hidden=True),
+                            snn.Alpha(alpha=alpha, beta=beta,
+                            init_hidden=True),
                             nn.Linear(num_hidden, num_outputs),
-                            snn.Alpha(alpha=alpha, beta=beta, init_hidden=True, output=True))
+                            snn.Alpha(alpha=alpha, beta=beta,
+                            init_hidden=True, output=True))
 
 
     """
@@ -104,9 +119,6 @@ class Alpha(LIF):
 
         if self.init_hidden:
             self.syn_exc, self.syn_inh, self.mem = self.init_alpha()
-            self.state_fn = self._build_state_function_hidden
-        else:
-            self.state_fn = self._build_state_function
 
         # if reset_mechanism == "subtract":
         #     self.mem_residual = False
@@ -121,7 +133,9 @@ class Alpha(LIF):
             syn_exc, syn_inh, mem = _SpikeTorchConv(
                 syn_exc, syn_inh, mem, input_=input_
             )
-        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+        elif mem is False and hasattr(
+            self.mem, "init_flag"
+        ):  # init_hidden case
             self.syn_exc, self.syn_inh, self.mem = _SpikeTorchConv(
                 self.syn_exc, self.syn_inh, self.mem, input_=input_
             )
@@ -129,7 +143,9 @@ class Alpha(LIF):
         # if hidden states are passed externally
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)
-            syn_exc, syn_inh, mem = self.state_fn(input_, syn_exc, syn_inh, mem)
+            syn_exc, syn_inh, mem = self._build_state_function(
+                input_, syn_exc, syn_inh, mem
+            )
 
             if self.state_quant:
                 syn_exc = self.state_quant(syn_exc)
@@ -149,7 +165,7 @@ class Alpha(LIF):
             self._alpha_forward_cases(mem, syn_exc, syn_inh)
 
             self.reset = self.mem_reset(self.mem)
-            self.syn_exc, self.syn_inh, self.mem = self.state_fn(input_)
+            self.syn_exc, self.syn_inh, self.mem = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.syn_exc = self.state_quant(self.syn_exc)
@@ -172,7 +188,10 @@ class Alpha(LIF):
         base_fn_syn_inh = self.beta.clamp(0, 1) * syn_inh - input_
         tau_alpha = (
             torch.log(self.alpha.clamp(0, 1))
-            / (torch.log(self.beta.clamp(0, 1)) - torch.log(self.alpha.clamp(0, 1)))
+            / (
+                torch.log(self.beta.clamp(0, 1))
+                - torch.log(self.alpha.clamp(0, 1))
+            )
             + 1
         )
         base_fn_mem = tau_alpha * (base_fn_syn_exc + base_fn_syn_inh)
@@ -210,7 +229,10 @@ class Alpha(LIF):
         base_fn_syn_inh = self.beta.clamp(0, 1) * self.syn_inh - input_
         tau_alpha = (
             torch.log(self.alpha.clamp(0, 1))
-            / (torch.log(self.beta.clamp(0, 1)) - torch.log(self.alpha.clamp(0, 1)))
+            / (
+                torch.log(self.beta.clamp(0, 1))
+                - torch.log(self.alpha.clamp(0, 1))
+            )
             + 1
         )
         base_fn_mem = tau_alpha * (base_fn_syn_exc + base_fn_syn_inh)
@@ -259,12 +281,15 @@ class Alpha(LIF):
 
         if (self.beta == 1).any():
             raise ValueError(
-                "beta cannot be '1' otherwise ZeroDivisionError occurs: tau_alpha = log(alpha)/log(beta) - log(alpha) + 1"
+                "beta cannot be '1' otherwise ZeroDivisionError occurs: "
+                "tau_alpha = log(alpha)/log(beta) - log(alpha) + 1"
             )
 
     def _alpha_forward_cases(self, mem, syn_exc, syn_inh):
         if mem is not False or syn_exc is not False or syn_inh is not False:
-            raise TypeError("When `init_hidden=True`, Alpha expects 1 input argument.")
+            raise TypeError(
+                "When `init_hidden=True`, Alpha expects 1 input argument."
+            )
 
     @classmethod
     def detach_hidden(cls):
@@ -280,7 +305,8 @@ class Alpha(LIF):
     @classmethod
     def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are instance variables."""
+        Intended for use where hidden state variables are instance
+        variables."""
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Alpha):
                 cls.instances[layer].syn_exc = _SpikeTensor(init_flag=False)

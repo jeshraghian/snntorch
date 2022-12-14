@@ -207,6 +207,14 @@ Neuron List
 
     snn.neurons_*
 
+snnTorch Layers
+---------------------
+
+.. automodule:: snntorch._layers.bntt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 
 Neuron Parent Classes
 ---------------------

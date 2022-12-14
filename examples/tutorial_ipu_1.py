@@ -41,10 +41,16 @@ transform = transforms.Compose(
     ]
 )
 
-mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
-mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
+mnist_train = datasets.MNIST(
+    data_path, train=True, download=True, transform=transform
+)
+mnist_test = datasets.MNIST(
+    data_path, train=False, download=True, transform=transform
+)
 opts = poptorch.Options()
-opts.Precision.halfFloatCasting(poptorch.HalfFloatCastingBehavior.HalfUpcastToFloat)
+opts.Precision.halfFloatCasting(
+    poptorch.HalfFloatCastingBehavior.HalfUpcastToFloat
+)
 # Create DataLoaders
 train_loader = poptorch.DataLoader(
     options=opts,
@@ -97,14 +103,22 @@ if __name__ == "__main__":
     # net.half()
     # net.train()
     # test_net.eval()
-    optimizer = poptorch.optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999))
+    optimizer = poptorch.optim.Adam(
+        net.parameters(), lr=0.001, betas=(0.9, 0.999)
+    )
 
-    poptorch_model = poptorch.trainingModel(net, options=opts, optimizer=optimizer)
+    poptorch_model = poptorch.trainingModel(
+        net, options=opts, optimizer=optimizer
+    )
 
     # Time
     date = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
     csv_file = (
-        "Batch_Size_" + str(batch_size) + "_Graphcore_Throughput_" + date + ".csv"
+        "Batch_Size_"
+        + str(batch_size)
+        + "_Graphcore_Throughput_"
+        + date
+        + ".csv"
     )
     with open(csv_file, "a", newline="") as file:
         writer = csv.writer(file)

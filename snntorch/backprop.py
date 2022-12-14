@@ -2,9 +2,19 @@ import snntorch as snn
 import torch
 from snntorch import utils
 from snntorch import functional as SF
+from warnings import warn
+
+warn(
+    f"The module {__name__} will be deprecated in "
+    f" a future release. Writing out your own training "
+    f"loop will lead to substantially faster performance.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
-# consider turning into a class s.t. dictionary params can be parsed at __init__
+# consider turning into a class s.t. dictionary params can be parsed at
+# __init__
 # and never touched again
 def TBPTT(
     net,
@@ -18,7 +28,8 @@ def TBPTT(
     device="cpu",
     K=1,
 ):
-    """Truncated backpropagation through time. LIF layers require parameter ``init_hidden = True``.
+    """Truncated backpropagation through time. LIF layers require parameter
+    ``init_hidden = True``.
     Weight updates are performed every ``K`` time steps.
 
     Example::
@@ -39,16 +50,20 @@ def TBPTT(
                             nn.Linear(500, 10),
                             lif2).to(device)
 
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        device = torch.device("cuda") if torch.cuda.is_available() else
+        torch.device("cpu")
         num_steps = 100
 
-        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
+        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4,
+        betas=(0.9, 0.999))
         loss_fn = SF.mse_count_loss()
         reg_fn = SF.l1_rate_sparsity()
 
         # train_loader is of type torch.utils.data.DataLoader
-        # if input data is time-static, set time_var=False, and specify num_steps.
-        # if input data is time-varying, set time_var=True and do not specify num_steps.
+        # if input data is time-static, set time_var=False, and specify
+        num_steps.
+        # if input data is time-varying, set time_var=True and do not
+        specify num_steps.
         # backprop is automatically applied every K=40 time steps
 
         for epoch in range(5):
@@ -57,7 +72,8 @@ def TBPTT(
             regularization=reg_fn, device=device, K=40)
 
 
-    :param net: Network model (either wrapped in Sequential container or as a class)
+    :param net: Network model (either wrapped in Sequential container or as a
+    class)
     :type net: torch.nn.modules.container.Sequential
 
     :param dataloader: DataLoader containing data and targets
@@ -66,25 +82,33 @@ def TBPTT(
     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
     :type optimizer: torch.optim
 
-    :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
+    :param criterion: Loss criterion from snntorch.functional, e.g.,
+    snn.functional.mse_count_loss()
     :type criterion: snn.functional.LossFunctions
 
-    :param num_steps: Number of time steps. Does not need to be specified if ``time_var=True``.
+    :param num_steps: Number of time steps. Does not need to be
+    specified if ``time_var=True``.
     :type num_steps: int, optional
 
-    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims], defaults to ``True``
+    :param time_var: Set to ``True`` if input data is time-varying
+    [T x B x dims]. Otherwise, set to false if input data is time-static
+    [B x dims], defaults to ``True``
     :type time_var: Bool, optional
 
-    :param time_first: Set to ``False`` if first dimension of data is not time [B x T x dims] AND must also be permuted to [T x B x dims], defaults to ``True``
+    :param time_first: Set to ``False`` if first dimension of data is not
+    time [B x T x dims] AND must also be permuted to [T x B x dims],
+    defaults to ``True``
     :type time_first: Bool, optional
 
-    :param regularization: Option to add a regularization term to the loss function
+    :param regularization: Option to add a regularization term to the loss
+    function
     :type regularization: snn.functional regularization function, optional
 
     :param device: Specify either "cuda" or "cpu", defaults to "cpu"
     :type device: string, optional
 
-    :param K: Number of time steps to process per weight update, defaults to ``1``
+    :param K: Number of time steps to process per weight update, defaults
+    to ``1``
     :type K: int, optional
 
     :return: return average loss for one epoch
@@ -94,12 +118,16 @@ def TBPTT(
 
     if num_steps and time_var:
         raise ValueError(
-            "``num_steps`` should not be specified if time_var is ``True``. When using time-varying input data, the size of the time-first dimension of each batch is automatically used as ``num_steps``."
+            "``num_steps`` should not be specified if time_var is ``True``. "
+            "When using time-varying input data, the size of the time-first "
+            "dimension of each batch is automatically used as ``num_steps``."
         )
 
     if num_steps is False and time_var is False:
         raise ValueError(
-            "``num_steps`` must be specified if ``time_var`` is ``False``. When using time-static input data, ``num_steps`` must be passed in."
+            "``num_steps`` must be specified if ``time_var`` is ``False``. "
+            "When using time-static input data, ``num_steps`` must be "
+            "passed in."
         )
 
     if num_steps and K > num_steps:
@@ -107,7 +135,8 @@ def TBPTT(
 
     if time_var is False and time_first is False:
         raise ValueError(
-            "``time_first`` should not be specified if data is not time-varying, i.e., ``time_var`` is ``False``."
+            "``time_first`` should not be specified if data is not "
+            "time-varying, i.e., ``time_var`` is ``False``."
         )
 
     # triggers global variables is_lapicque etc for neurons_dict
@@ -131,7 +160,8 @@ def TBPTT(
         "mse_membrane_loss": [
             False,
             True,
-        ],  # if time_var_target is true, need a flag to let mse_mem_loss know when to re-start iterating targets from
+        ],  # if time_var_target is true, need a flag to let mse_mem_loss
+        # know when to re-start iterating targets from
         "ce_max_membrane_loss": [False, False],
         "ce_rate_loss": [True, False],
         "ce_count_loss": [True, False],
@@ -139,7 +169,8 @@ def TBPTT(
         "ce_latency_loss": [True, False],
         "mse_temporal_loss": [True, False],
         "ce_temporal_loss": [True, False],
-    }  # note: when using mse_count_loss, the target spike-count should be for a truncated time, not for the full time
+    }  # note: when using mse_count_loss, the target spike-count should be
+    # for a truncated time, not for the full time
 
     reg_dict = {"l1_rate_sparsity": True}
 
@@ -159,13 +190,16 @@ def TBPTT(
         counter -= 1
     if counter:  # fix the print statement
         raise TypeError(
-            "``criterion`` must be one of the loss functions in ``snntorch.functional``: e.g., 'mse_membrane_loss', 'ce_max_membrane_loss', 'ce_rate_loss' etc."
+            "``criterion`` must be one of the loss functions in "
+            "``snntorch.functional``: e.g., 'mse_membrane_loss', "
+            "'ce_max_membrane_loss', 'ce_rate_loss' etc."
         )
 
     if regularization:
         for reg_item in reg_dict:
             if reg_item == regularization.__name__:
-                reg_spk = reg_dict[reg_item]  # m: mem, s: spk // s: every step, e: end
+                # m: mem, s: spk // s: every step, e: end
+                reg_spk = reg_dict[reg_item]
 
     num_return = utils._final_layer_check(net)  # number of outputs
 
@@ -282,9 +316,8 @@ def TBPTT(
 
                 for neuron in neurons_dict:
                     if neuron:
-                        neurons_dict[
-                            neuron
-                        ].detach_hidden()  # might need to swap detach_hidden --> _reset_hidden
+                        neurons_dict[neuron].detach_hidden()
+                        # detach_hidden --> _reset_hidden
 
                 K_count += 1
                 step_trunc = 0
@@ -297,15 +330,17 @@ def TBPTT(
             mem_rec_trunc = torch.stack(mem_rec_trunc, dim=0)
 
             if time_var_targets:
+                idx1 = K_count * K
+                idx2 = K_count * K + num_steps % K
                 if loss_spk:
                     loss = criterion(
                         spk_rec_trunc,
-                        targets[int(K_count * K) : int(K_count * K + num_steps % K)],
+                        targets[int(idx1) : int(idx2)],
                     )
                 else:
                     loss = criterion(
                         mem_rec_trunc,
-                        targets[int(K_count * K) : int(K_count * K + num_steps % K)],
+                        targets[int(idx1) : int(idx2)],
                     )
             else:
                 if loss_spk:
@@ -350,8 +385,11 @@ def BPTT(
     regularization=False,
     device="cpu",
 ):
-    """Backpropagation through time. LIF layers require parameter ``init_hidden = True``.
-    A forward pass is applied for each time step while the loss accumulates. The backward pass and parameter update is only applied at the end of each time step sequence.
+    """Backpropagation through time. LIF layers require parameter
+    ``init_hidden = True``.
+    A forward pass is applied for each time step while the loss accumulates.
+    The backward pass and parameter update is only applied at the end of
+    each time step sequence.
     BPTT is equivalent to TBPTT for the case where ``num_steps = K``.
 
     Example::
@@ -372,17 +410,21 @@ def BPTT(
                             nn.Linear(500, 10),
                             lif2).to(device)
 
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        device = torch.device("cuda") if torch.cuda.is_available() else
+        torch.device("cpu")
         num_steps = 100
 
-        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
+        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4,
+        betas=(0.9, 0.999))
         loss_fn = SF.mse_count_loss()
         reg_fn = SF.l1_rate_sparsity()
 
 
         # train_loader is of type torch.utils.data.DataLoader
-        # if input data is time-static, set time_var=False, and specify num_steps.
-        # if input data is time-varying, set time_var=True and do not specify num_steps.
+        # if input data is time-static, set time_var=False, and specify
+        num_steps.
+        # if input data is time-varying, set time_var=True and do not
+        specify num_steps.
 
         for epoch in range(5):
             loss = backprop.RTRL(net, train_loader, optimizer=optimizer,
@@ -390,7 +432,8 @@ def BPTT(
             regularization=reg_fn, device=device)
 
 
-    :param net: Network model (either wrapped in Sequential container or as a class)
+    :param net: Network model (either wrapped in Sequential container or as
+    a class)
     :type net: torch.nn.modules.container.Sequential
 
     :param dataloader: DataLoader containing data and targets
@@ -399,19 +442,26 @@ def BPTT(
     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
     :type optimizer: torch.optim
 
-    :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
+    :param criterion: Loss criterion from snntorch.functional, e.g.,
+    snn.functional.mse_count_loss()
     :type criterion: snn.functional.LossFunctions
 
-    :param num_steps: Number of time steps. Does not need to be specified if ``time_var=True``.
+    :param num_steps: Number of time steps. Does not need to be specified if
+    ``time_var=True``.
     :type num_steps: int, optional
 
-    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims], defaults to ``True``
+    :param time_var: Set to ``True`` if input data is time-varying
+    [T x B x dims]. Otherwise, set to false if input data is time-static
+    [B x dims], defaults to ``True``
     :type time_var: Bool, optional
 
-    :param time_first: Set to ``False`` if first dimension of data is not time [B x T x dims] AND must also be permuted to [T x B x dims], defaults to ``True``
+    :param time_first: Set to ``False`` if first dimension of data is not
+    time [B x T x dims] AND must also be permuted to [T x B x dims],
+    defaults to ``True``
     :type time_first: Bool, optional
 
-    :param regularization: Option to add a regularization term to the loss function
+    :param regularization: Option to add a regularization term to the loss
+    function
     :type regularization: snn.functional regularization function, optional
 
     :param device: Specify either "cuda" or "cpu", defaults to "cpu"
@@ -421,7 +471,8 @@ def BPTT(
     :rtype: torch.Tensor
     """
 
-    #  Net requires hidden instance variables rather than global instance variables for TBPTT
+    #  Net requires hidden instance variables rather than global instance
+    #  variables for TBPTT
     return TBPTT(
         net,
         dataloader,
@@ -448,8 +499,10 @@ def RTRL(
     device="cpu",
 ):
 
-    """Real-time Recurrent Learning. LIF layers require parameter ``init_hidden = True``.
-    A forward pass, backward pass and parameter update are applied at each time step.
+    """Real-time Recurrent Learning. LIF layers require parameter
+    ``init_hidden = True``.
+    A forward pass, backward pass and parameter update are applied at each
+    time step.
     RTRL is equivalent to TBPTT for the case where ``K = 1``.
 
     Example::
@@ -470,15 +523,18 @@ def RTRL(
                             nn.Linear(500, 10),
                             lif2).to(device)
 
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        device = torch.device("cuda") if torch.cuda.is_available() else
+        torch.device("cpu")
         num_steps = 100
 
-        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
+        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4,
+        betas=(0.9, 0.999))
         loss_fn = SF.mse_count_loss()
         reg_fn = SF.l1_rate_sparsity()
 
         # train_loader is of type torch.utils.data.DataLoader
-        # if input data is time-static, set time_var=False, and specify num_steps.
+        # if input data is time-static, set time_var=False, and
+        specify num_steps.
 
         for epoch in range(5):
             loss = backprop.RTRL(net, train_loader, optimizer=optimizer,
@@ -486,7 +542,8 @@ def RTRL(
             regularization=reg_fn, device=device)
 
 
-    :param net: Network model (either wrapped in Sequential container or as a class)
+    :param net: Network model (either wrapped in Sequential container or as
+    a class)
     :type net: torch.nn.modules.container.Sequential
 
     :param dataloader: DataLoader containing data and targets
@@ -495,25 +552,34 @@ def RTRL(
     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
     :type optimizer: torch.optim
 
-    :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
+    :param criterion: Loss criterion from snntorch.functional, e.g.,
+    snn.functional.mse_count_loss()
     :type criterion: snn.functional.LossFunctions
 
-    :param num_steps: Number of time steps. Does not need to be specified if ``time_var=True``.
+    :param num_steps: Number of time steps. Does not need to be specified
+    if ``time_var=True``.
     :type num_steps: int, optional
 
-    :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims], defaults to ``True``
+    :param time_var: Set to ``True`` if input data is time-varying
+    [T x B x
+    dims]. Otherwise, set to false if input data is time-static [B x dims],
+    defaults to ``True``
     :type time_var: Bool, optional
 
-    :param time_first: Set to ``False`` if first dimension of data is not time [B x T x dims] AND must also be permuted to [T x B x dims], defaults to ``True``
+    :param time_first: Set to ``False`` if first dimension of data is not
+    time [B x T x dims] AND must also be permuted to [T x B x dims],
+    defaults to ``True``
     :type time_first: Bool, optional
 
-    :param regularization: Option to add a regularization term to the loss function
+    :param regularization: Option to add a regularization term to the loss
+    function
     :type regularization: snn.functional regularization function, optional
 
     :param device: Specify either "cuda" or "cpu", defaults to "cpu"
     :type device: string, optional
 
-    :param K: Number of time steps to process per weight update, defaults to ``1``
+    :param K: Number of time steps to process per weight update, defaults
+    to ``1``
     :type K: int, optional
 
     :return: return average loss for one epoch
@@ -545,8 +611,11 @@ def RTRL(
 #     device="cpu",
 #     K=1,
 # ):
-#     """Backpropagation to the future. LIF layers require parameter ``init_hidden = True``.
-#     Forward and backward passes are performed at every time step. Gradients from previous time steps are propagated forward and scaled by the leaky rate.
+#     """Backpropagation to the future. LIF layers require parameter
+#     ``init_hidden = True``.
+#     Forward and backward passes are performed at every time step.
+#     Gradients from previous time steps are propagated forward and scaled by
+#     the leaky rate.
 
 #     Example::
 
@@ -566,21 +635,26 @@ def RTRL(
 #                             nn.Linear(500, 10),
 #                             lif2).to(device)
 
-#         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+#         device = torch.device("cuda") if torch.cuda.is_available() else
+#         torch.device("cpu")
 #         num_steps = 100
 
-#         optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
+#         optimizer = torch.optim.Adam(net.parameters(), lr=5e-4,
+#         betas=(0.9, 0.999))
 #         loss_fn = SF.mse_count_loss()
 #         reg_fn = SF.l1_rate_sparsity()
 
 #         # train_loader is of type torch.utils.data.DataLoader
 #         # backprop is automatically applied every K=40 time steps
 #         for epoch in range(5):
-#             loss, spk, mem = backprop.BPTF(net, train_loader, num_steps=num_steps,
-#             optimizer=optimizer, criterion=loss_fn, regularization=reg_fn, device=device)
+#             loss, spk, mem = backprop.BPTF(net, train_loader,
+#             num_steps=num_steps,
+#             optimizer=optimizer, criterion=loss_fn,
+#             regularization=reg_fn, device=device)
 
 
-#     :param net: Network model (either wrapped in Sequential container or as a class)
+#     :param net: Network model (either wrapped in Sequential container or
+#     as a class)
 #     :type net: torch.nn.modules.container.Sequential
 
 #     :param dataloader: DataLoader containing data and targets
@@ -592,19 +666,24 @@ def RTRL(
 #     :param optimizer: Optimizer used, e.g., torch.optim.adam.Adam
 #     :type optimizer: torch.optim
 
-#     :param criterion: Loss criterion from snntorch.functional, e.g., snn.functional.mse_count_loss()
+#     :param criterion: Loss criterion from snntorch.functional, e.g.,
+#     snn.functional.mse_count_loss()
 #     :type criterion: snn.functional.LossFunctions
 
-#     :param time_var: Set to ``True`` if input data is time-varying [T x B x dims]. Otherwise, set to false if input data is time-static [B x dims].
+#     :param time_var: Set to ``True`` if input data is time-varying
+#     [T x B x dims]. Otherwise, set to false if input data is time-static
+#     [B x dims].
 #     :type time_var: Bool
 
-#     :param regularization: Option to add a regularization term to the loss function
+#     :param regularization: Option to add a regularization term to the loss
+#     function
 #     :type regularization: snn.functional regularization function, optional
 
 #     :param device: Specify either "cuda" or "cpu", defaults to "cpu"
 #     :type device: string, optional
 
-#     :param K: Number of time steps to process per weight update, defaults to ``1``
+#     :param K: Number of time steps to process per weight update, defaults
+#     to ``1``
 #     :type K: int, optional
 
 #     :return: return average loss for one epoch
@@ -627,7 +706,8 @@ def RTRL(
 #     spk_rec_trunc=False,
 #     mem_rec_trunc=False,
 # ):
-#     """Creates truncated mem and spk tensors where needed by criterion & regularization."""
+#     """Creates truncated mem and spk tensors where needed by criterion &
+#     regularization."""
 
 #     if regularization:
 #         if loss_spk and reg_spk:
@@ -638,7 +718,8 @@ def RTRL(
 #         else:
 #             mem_rec_trunc.append(mem)
 #     else:
-#         if loss_spk:  # risk: removing option for losses with both mem and spk
+#         if loss_spk:  # risk: removing option for losses with both mem and
+#         spk
 #             spk_rec_trunc.append(spk)
 #         else:
 #             mem_rec_trunc.append(mem)

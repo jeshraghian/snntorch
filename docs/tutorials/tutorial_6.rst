@@ -2,7 +2,7 @@
 Tutorial 6 - Surrogate Gradient Descent in a Convolutional SNN
 ===============================================================================================
 
-Tutorial written by Jason K. Eshraghian (`www.jasoneshraghian.com <https://www.jasoneshraghian.com>`_)
+Tutorial written by Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
@@ -278,7 +278,10 @@ The convolutional network architecture to be used is:
 
 In the previous tutorial, the network was wrapped inside of a class, as shown above. 
 With increasing network complexity, this adds a
-lot of boilerplate code that we might wish to avoid. Alternatively, the ``nn.Sequential`` method can be used instead:
+lot of boilerplate code that we might wish to avoid. Alternatively, the ``nn.Sequential`` method can be used instead.
+
+.. note::
+    The following code-block simulates over one single time-step, and requires a separate for-loop over time.
 
 ::
 

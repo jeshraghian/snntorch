@@ -4,7 +4,6 @@ import sys
 
 sys.path.insert(0, os.path.abspath(".."))
 
-import snntorch
 
 # fmt: off
 __version__ = '0.5.3'
@@ -49,7 +48,7 @@ version = __version__
 release = __version__
 # release = "0.1.0"
 
-language = None
+# language = None
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
@@ -71,7 +70,8 @@ html_theme = "sphinx_rtd_theme"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# html_logo = "_static/img/snntorch_alpha_full.png"  # RTD is adding an additional _static here
+# html_logo = "_static/img/snntorch_alpha_full.png"
+# RTD is adding an additional _static here
 html_logo = "_static/img/snntorch_alpha_full.png"
 
 # Add any paths that contain custom static files (such as style sheets) here,

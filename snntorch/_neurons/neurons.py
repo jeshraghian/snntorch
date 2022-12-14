@@ -17,8 +17,11 @@ class SpikingNeuron(nn.Module):
     """Parent class for spiking neuron models."""
 
     instances = []
-    """Each :mod:`snntorch.SpikingNeuron` neuron (e.g., :mod:`snntorch.Synaptic`) will populate the :mod:`snntorch.SpikingNeuron.instances` list with a new entry.
-    The list is used to initialize and clear neuron states when the argument `init_hidden=True`."""
+    """Each :mod:`snntorch.SpikingNeuron` neuron
+    (e.g., :mod:`snntorch.Synaptic`) will populate the
+    :mod:`snntorch.SpikingNeuron.instances` list with a new entry.
+    The list is used to initialize and clear neuron states when the
+    argument `init_hidden=True`."""
 
     reset_dict = {
         "subtract": 0,
@@ -36,6 +39,8 @@ class SpikingNeuron(nn.Module):
         reset_mechanism="subtract",
         state_quant=False,
         output=False,
+        graded_spikes_factor=1.0,
+        learn_graded_spikes_factor=False,
     ):
         super(SpikingNeuron, self).__init__()
 
@@ -45,12 +50,17 @@ class SpikingNeuron(nn.Module):
         self.output = output
 
         self._snn_cases(reset_mechanism, inhibition)
-        self._snn_register_buffer(threshold, learn_threshold, reset_mechanism)
+        self._snn_register_buffer(
+            threshold=threshold,
+            learn_threshold=learn_threshold,
+            reset_mechanism=reset_mechanism,
+            graded_spikes_factor=graded_spikes_factor,
+            learn_graded_spikes_factor=learn_graded_spikes_factor,
+        )
         self._reset_mechanism = reset_mechanism
 
-        # TO-DO: Heaviside --> STE; needs a tutorial change too?
         if spike_grad is None:
-            self.spike_grad = self.Heaviside.apply
+            self.spike_grad = self.ATan.apply
         else:
             self.spike_grad = spike_grad
 
@@ -66,10 +76,13 @@ class SpikingNeuron(nn.Module):
         mem_shift = mem - self.threshold
         spk = self.spike_grad(mem_shift)
 
+        spk = spk * self.graded_spikes_factor
+
         return spk
 
     def fire_inhibition(self, batch_size, mem):
-        """Generates spike if mem > threshold, only for the largest membrane. All others neurons will be inhibited for that time step.
+        """Generates spike if mem > threshold, only for the largest membrane.
+        All others neurons will be inhibited for that time step.
         Returns spk."""
         mem_shift = mem - self.threshold
         index = torch.argmax(mem_shift, dim=1)
@@ -95,7 +108,8 @@ class SpikingNeuron(nn.Module):
 
         if inhibition:
             warn(
-                "Inhibition is an unstable feature that has only been tested for dense (fully-connected) layers. Use with caution!",
+                "Inhibition is an unstable feature that has only been tested "
+                "for dense (fully-connected) layers. Use with caution!",
                 UserWarning,
             )
 
@@ -106,17 +120,30 @@ class SpikingNeuron(nn.Module):
             and reset_mechanism != "none"
         ):
             raise ValueError(
-                "reset_mechanism must be set to either 'subtract', 'zero', or 'none'."
+                "reset_mechanism must be set to either 'subtract', "
+                "'zero', or 'none'."
             )
 
-    def _snn_register_buffer(self, threshold, learn_threshold, reset_mechanism):
-        """Set variables as learnable parameters else register them in the buffer."""
+    def _snn_register_buffer(
+        self,
+        threshold,
+        learn_threshold,
+        reset_mechanism,
+        graded_spikes_factor,
+        learn_graded_spikes_factor,
+    ):
+        """Set variables as learnable parameters else register them in the
+        buffer."""
 
         self._threshold_buffer(threshold, learn_threshold)
+        self._graded_spikes_buffer(
+            graded_spikes_factor, learn_graded_spikes_factor
+        )
 
         # reset buffer
         try:
-            # if reset_mechanism_val is loaded from .pt, override reset_mechanism
+            # if reset_mechanism_val is loaded from .pt, override
+            # reset_mechanism
             if torch.is_tensor(self.reset_mechanism_val):
                 self.reset_mechanism = list(SpikingNeuron.reset_dict)[
                     self.reset_mechanism_val
@@ -124,6 +151,16 @@ class SpikingNeuron(nn.Module):
         except AttributeError:
             # reset_mechanism_val has not yet been created, create it
             self._reset_mechanism_buffer(reset_mechanism)
+
+    def _graded_spikes_buffer(
+        self, graded_spikes_factor, learn_graded_spikes_factor
+    ):
+        if not isinstance(graded_spikes_factor, torch.Tensor):
+            graded_spikes_factor = torch.as_tensor(graded_spikes_factor)
+        if learn_graded_spikes_factor:
+            self.graded_spikes_factor = nn.Parameter(graded_spikes_factor)
+        else:
+            self.register_buffer("graded_spikes_factor", graded_spikes_factor)
 
     def _threshold_buffer(self, threshold, learn_threshold):
         if not isinstance(threshold, torch.Tensor):
@@ -135,8 +172,11 @@ class SpikingNeuron(nn.Module):
 
     def _reset_mechanism_buffer(self, reset_mechanism):
         """Assign mapping to each reset mechanism state.
-        Must be of type tensor to store in register buffer. See reset_dict for mapping."""
-        reset_mechanism_val = torch.as_tensor(SpikingNeuron.reset_dict[reset_mechanism])
+        Must be of type tensor to store in register buffer. See reset_dict
+        for mapping."""
+        reset_mechanism_val = torch.as_tensor(
+            SpikingNeuron.reset_dict[reset_mechanism]
+        )
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
 
     def _V_register_buffer(self, V, learn_V):
@@ -149,7 +189,8 @@ class SpikingNeuron(nn.Module):
 
     @property
     def reset_mechanism(self):
-        """If reset_mechanism is modified, reset_mechanism_val is triggered to update.
+        """If reset_mechanism is modified, reset_mechanism_val is triggered
+        to update.
         0: subtract, 1: zero, 2: none."""
         return self._reset_mechanism
 
@@ -163,13 +204,15 @@ class SpikingNeuron(nn.Module):
 
     @classmethod
     def init(cls):
-        """Removes all items from :mod:`snntorch.SpikingNeuron.instances` when called."""
+        """Removes all items from :mod:`snntorch.SpikingNeuron.instances`
+        when called."""
         cls.instances = []
 
     @staticmethod
     def detach(*args):
         """Used to detach input arguments from the current graph.
-        Intended for use in truncated backpropagation through time where hidden state variables are global variables."""
+        Intended for use in truncated backpropagation through time where
+        hidden state variables are global variables."""
         for state in args:
             state.detach_()
 
@@ -181,38 +224,64 @@ class SpikingNeuron(nn.Module):
             state = torch.zeros_like(state)
 
     @staticmethod
-    class Heaviside(torch.autograd.Function):
-        """Default spiking function for neuron.
+    class ATan(torch.autograd.Function):
+        """
+        Surrogate gradient of the Heaviside step function.
 
         **Forward pass:** Heaviside step function shifted.
 
-        .. math::
+            .. math::
 
-            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-            0 & \\text{if U < U$_{\\rm thr}$}
-            \\end{cases}
+                S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+                0 & \\text{if U < U$_{\\rm thr}$}
+                \\end{cases}
 
-        **Backward pass:** Heaviside step function shifted.
+        **Backward pass:** Gradient of shifted arc-tan function.
 
-        .. math::
+            .. math::
 
-            \\frac{∂S}{∂U}=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-            0 & \\text{if U < U$_{\\rm thr}$}
-            \\end{cases}
+                    S&≈\\frac{1}{π}\\text{arctan}(πU \\frac{α}{2}) \\\\
+                    \\frac{∂S}{∂U}&=\\frac{1}{π}\
+                    \frac{1}{(1+(πU\\frac{α}{2})^2}
 
-        Although the backward pass is clearly not the analytical solution of the forward pass, this assumption holds true on the basis that a reset necessarily occurs after a spike is generated when :math:`U ≥ U_{\\rm thr}`."""
+
+        :math:`alpha` defaults to 2, and can be modified by calling
+        ``surrogate.atan(alpha=2)``.
+
+        Adapted from:
+
+        *W. Fang, Z. Yu, Y. Chen, T. Masquelier, T. Huang, Y. Tian (2021)
+        Incorporating Learnable Membrane Time Constants to Enhance Learning
+        of Spiking Neural Networks. Proc. IEEE/CVF Int. Conf. Computer
+        Vision (ICCV), pp. 2661-2671.*"""
 
         @staticmethod
-        def forward(ctx, input_):
+        def forward(ctx, input_, alpha=2.0):
+            ctx.save_for_backward(input_)
+            ctx.alpha = alpha
             out = (input_ > 0).float()
-            ctx.save_for_backward(out)
             return out
 
         @staticmethod
         def backward(ctx, grad_output):
-            (out,) = ctx.saved_tensors
-            grad = grad_output * out
-            return grad
+            (input_,) = ctx.saved_tensors
+            grad_input = grad_output.clone()
+            grad = (
+                ctx.alpha
+                / 2
+                / (1 + (torch.pi / 2 * ctx.alpha * input_).pow_(2))
+                * grad_input
+            )
+            return grad, None
+
+    # def atan(alpha=2.0):
+    #     """ArcTan surrogate gradient enclosed with a parameterized slope."""
+    #     alpha = alpha
+
+    #     def inner(x):
+    #         return ATan.apply(x, alpha)
+
+    #     return inner
 
 
 class LIF(SpikingNeuron):
@@ -230,6 +299,8 @@ class LIF(SpikingNeuron):
         reset_mechanism="subtract",
         state_quant=False,
         output=False,
+        graded_spikes_factor=1.0,
+        learn_graded_spikes_factor=False,
     ):
         super().__init__(
             threshold,
@@ -240,6 +311,8 @@ class LIF(SpikingNeuron):
             reset_mechanism,
             state_quant,
             output,
+            graded_spikes_factor,
+            learn_graded_spikes_factor,
         )
 
         self._lif_register_buffer(
@@ -248,9 +321,9 @@ class LIF(SpikingNeuron):
         )
         self._reset_mechanism = reset_mechanism
 
-        # TO-DO: Heaviside --> STE; needs a tutorial change too?
+        # TO-DO: Needs a tutorial change too
         if spike_grad is None:
-            self.spike_grad = self.Heaviside.apply
+            self.spike_grad = self.ATan.apply
         else:
             self.spike_grad = spike_grad
 
@@ -259,7 +332,8 @@ class LIF(SpikingNeuron):
         beta,
         learn_beta,
     ):
-        """Set variables as learnable parameters else register them in the buffer."""
+        """Set variables as learnable parameters else register them in the
+        buffer."""
         self._beta_buffer(beta, learn_beta)
 
     def _beta_buffer(self, beta, learn_beta):
@@ -271,8 +345,9 @@ class LIF(SpikingNeuron):
             self.register_buffer("beta", beta)
 
     def _V_register_buffer(self, V, learn_V):
-        if not isinstance(V, torch.Tensor):
-            V = torch.as_tensor(V)
+        if V is not None:
+            if not isinstance(V, torch.Tensor):
+                V = torch.as_tensor(V)
         if learn_V:
             self.V = nn.Parameter(V)
         else:
@@ -282,7 +357,8 @@ class LIF(SpikingNeuron):
     def init_leaky():
         """
         Used to initialize mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
         """
         mem = _SpikeTensor(init_flag=False)
 
@@ -292,7 +368,8 @@ class LIF(SpikingNeuron):
     def init_rleaky():
         """
         Used to initialize spk and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
         """
         spk = _SpikeTensor(init_flag=False)
         mem = _SpikeTensor(init_flag=False)
@@ -302,7 +379,8 @@ class LIF(SpikingNeuron):
     @staticmethod
     def init_synaptic():
         """Used to initialize syn and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
         """
 
         syn = _SpikeTensor(init_flag=False)
@@ -314,7 +392,8 @@ class LIF(SpikingNeuron):
     def init_rsynaptic():
         """
         Used to initialize spk, syn and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
         """
         spk = _SpikeTensor(init_flag=False)
         syn = _SpikeTensor(init_flag=False)
@@ -326,7 +405,8 @@ class LIF(SpikingNeuron):
     def init_lapicque():
         """
         Used to initialize mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
         """
 
         return LIF.init_leaky()
@@ -334,7 +414,8 @@ class LIF(SpikingNeuron):
     @staticmethod
     def init_alpha():
         """Used to initialize syn_exc, syn_inh and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert the hidden states to the same as the input.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
         """
         syn_exc = _SpikeTensor(init_flag=False)
         syn_inh = _SpikeTensor(init_flag=False)
@@ -346,7 +427,8 @@ class LIF(SpikingNeuron):
 class _SpikeTensor(torch.Tensor):
     """Inherits from torch.Tensor with additional attributes.
     ``init_flag`` is set at the time of initialization.
-    When called in the forward function of any neuron, they are parsed and replaced with a torch.Tensor variable.
+    When called in the forward function of any neuron, they are parsed and
+    replaced with a torch.Tensor variable.
     """
 
     @staticmethod

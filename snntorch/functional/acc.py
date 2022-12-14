@@ -5,10 +5,12 @@ import numpy as np
 def accuracy_rate(spk_out, targets, population_code=False, num_classes=False):
     """Use spike count to measure accuracy.
 
-    :param spk_out: Output spikes of shape [num_steps x batch_size x num_outputs]
+    :param spk_out: Output spikes of shape
+    [num_steps x batch_size x num_outputs]
     :type spk_out: torch.Tensor
 
-    :param targets: Target tensor (without one-hot-encoding) of shape [batch_size]
+    :param targets: Target tensor (without one-hot-encoding) of shape
+    [batch_size]
     :type targets: torch.Tensor
 
     :return: accuracy
@@ -41,7 +43,8 @@ def accuracy_temporal(spk_out, targets):
             spk_time[step] * ~first_spike_time.bool()
         )  # mask out subsequent spikes
 
-    """override element 0 (no spike) with shadow spike @ final time step, then offset by -1
+    """override element 0 (no spike) with shadow spike @ final time step,
+    then offset by -1
     s.t. first_spike is at t=0."""
     first_spike_time += ~first_spike_time.bool() * (spk_time.size(0))
     first_spike_time -= 1  # fix offset
@@ -54,9 +57,7 @@ def accuracy_temporal(spk_out, targets):
 
 
 def _prediction_check(spk_out):
-    device = "cpu"
-    if spk_out.is_cuda:
-        device = "cuda"
+    device = spk_out.device
 
     num_steps = spk_out.size(0)
     num_outputs = spk_out.size(-1)
@@ -72,11 +73,13 @@ def _population_code(spk_out, num_classes, num_outputs):
         )
     if num_outputs % num_classes:
         raise Exception(
-            f"``num_outputs {num_outputs} must be a factor of num_classes {num_classes}."
+            f"``num_outputs {num_outputs} must be a factor of num_classes "
+            f"{num_classes}."
         )
-    device = "cpu"
-    if spk_out.is_cuda:
-        device = "cuda"
+    # device = "cpu"
+    # if spk_out.is_cuda:
+    #     device = "cuda"
+    device = spk_out.device
     pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(device)
     for idx in range(num_classes):
         pop_code[:, idx] = (

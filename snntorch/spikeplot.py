@@ -13,7 +13,8 @@ from matplotlib.animation import ArtistAnimation
 
 
 def animator(data, fig, ax, num_steps=False, interval=40, cmap="plasma"):
-    """Generate an animation by looping through the first dimension of a sample of spiking data.
+    """Generate an animation by looping through the first dimension of a
+    sample of spiking data.
     Time must be the first dimension of ``data``.
 
     Example::
@@ -38,17 +39,20 @@ def animator(data, fig, ax, num_steps=False, interval=40, cmap="plasma"):
         #  Save as a gif
         anim.save("spike_mnist.gif")
 
-    :param data: Data tensor for a single sample across time steps of shape [num_steps x input_size]
+    :param data: Data tensor for a single sample across time steps of
+    shape [num_steps x input_size]
     :type data: torch.Tensor
 
     :param fig: Top level container for all plot elements
     :type fig: matplotlib.figure.Figure
 
-    :param ax: Contains additional figure elements and sets the coordinate system. E.g.:
+    :param ax: Contains additional figure elements and sets the coordinate
+    system. E.g.:
         fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
     :type ax: matplotlib.axes._subplots.AxesSubplot
 
-    :param num_steps: Number of time steps to plot. If not specified, the number of entries in the first dimension
+    :param num_steps: Number of time steps to plot. If not specified,
+    the number of entries in the first dimension
         of ``data`` will automatically be used, defaults to ``False``
     :type num_steps: int, optional
 
@@ -71,7 +75,9 @@ def animator(data, fig, ax, num_steps=False, interval=40, cmap="plasma"):
     plt.axis("off")
 
     # iterate over time and take a snapshot with celluloid
-    for step in range(num_steps):  # im appears unused but is required by camera.snap()
+    for step in range(
+        num_steps
+    ):  # im appears unused but is required by camera.snap()
         im = ax.imshow(data[step], cmap=cmap)  # noqa: F841
         camera.snap()
     anim = camera.animate(interval=interval)
@@ -124,7 +130,8 @@ def spike_count(
     interval=25,
     time_step=False,
 ):
-    """Generate horizontal bar plot for a single forward pass. Options to animate also available.
+    """Generate horizontal bar plot for a single forward pass.
+    Options to animate also available.
 
     Example::
 
@@ -134,9 +141,11 @@ def spike_count(
 
         num_steps = 25
 
-        #  Use splt.spike_count to display behavior of output neurons for a single sample during feedforward
+        #  Use splt.spike_count to display behavior of output neurons for a
+        single sample during feedforward
 
-        #  spk_rec is a recording of output spikes across 25 time steps, using ``batch_size=128``
+        #  spk_rec is a recording of output spikes across 25 time steps,
+        using ``batch_size=128``
         print(spk_rec.size())
         >>> torch.Size([25, 128, 10])
 
@@ -149,22 +158,26 @@ def spike_count(
         labels=['0', '1', '2', '3', '4', '5', '6', '7', '8','9']
 
         #  Plot and save spike count histogram
-        splt.spike_count(spk_results, fig, ax, labels, num_steps = num_steps, time_step=1e-3)
+        splt.spike_count(spk_results, fig, ax, labels, num_steps = num_steps,
+        time_step=1e-3)
         plt.show()
         plt.savefig('hist2.png', dpi=300, bbox_inches='tight')
 
         # Animate and save spike count histogram
-        anim = splt.spike_count(spk_results, fig, ax, labels, animate=True, interpolate=5, num_steps = num_steps, time_step=1e-3)
+        anim = splt.spike_count(spk_results, fig, ax, labels, animate=True,
+        interpolate=5, num_steps = num_steps, time_step=1e-3)
         HTML(anim.to_html5_video())
         anim.save("spike_bar.gif")
 
-    :param data: Sample of spiking data across numerous time steps [num_steps x num_outputs]
+    :param data: Sample of spiking data across numerous time steps [num_steps
+    x num_outputs]
     :type data: torch.Tensor
 
     :param fig: Top level container for all plot elements
     :type fig: matplotlib.figure.Figures
 
-    :param ax: Contains additional figure elements and sets the coordinate system.
+    :param ax: Contains additional figure elements and sets the coordinate
+    system.
         E.g., fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
     :type ax: matplotlib.axes._subplots.AxesSubplot
 
@@ -172,29 +185,36 @@ def spike_count(
          E.g., for MNIST, ``labels = ['0', '1', '2', ... , '9']``
     :type labels: list
 
-    :param num_steps: Number of time steps to plot. If not specified, the number of entries in the first dimension
+    :param num_steps: Number of time steps to plot. If not specified, the
+    number of entries in the first dimension
         of ``data`` will automatically be used, defaults to ``False``
     :type num_steps: int, optional
 
-    :param animate: If ``True``, return type matplotlib.animation.ArtistAnimation sequentially scanning across the
+    :param animate: If ``True``, return type matplotlib.animation.
+    ArtistAnimation sequentially scanning across the
         range of time steps available in ``data``.
-        If ``False``, display plot of the final step once all spikes have been counted, defaults to ``False``
+        If ``False``, display plot of the final step once all spikes have
+        been counted, defaults to ``False``
     :type animate: Bool, optional
 
-    :param interpolate: Can be increased to smooth the animation of the vertical time bar. The value passed is the
+    :param interpolate: Can be increased to smooth the animation of the
+    vertical time bar. The value passed is the
         interpolation factor:
         e.g., ``interpolate=1`` results in no additional interpolation.
-        e.g., ``interpolate=5`` results in 4 additional frames for each time step, defaults to ``1``
+        e.g., ``interpolate=5`` results in 4 additional frames for each
+        time step, defaults to ``1``
     :type interpolate: int, optional
 
-    :param gridshader: Applies shading to figure background to distinguish output classes, defaults to ``True``
+    :param gridshader: Applies shading to figure background to distinguish
+    output classes, defaults to ``True``
     :type gridshader: Bool, optional
 
     :param interval: Delay between frames in milliseconds, defaults to ``25``
     :type interval: int, optional
 
     :param time_step: Duration of each time step in seconds.
-        If ``False``, time-axis will be in terms of ``num_steps``. Else, time-axis is scaled
+        If ``False``, time-axis will be in terms of ``num_steps``.
+        Else, time-axis is scaled
         by the argument passed, defaults to ``False``
     :type time_step: int, optional
 
@@ -249,7 +269,8 @@ def spike_count(
 
 
 def traces(data, spk=None, dim=(3, 3), spk_height=5, titles=None):
-    """Plot an array of neuron traces (e.g., membrane potential or synaptic current).
+    """Plot an array of neuron traces (e.g., membrane potential or synaptic
+    current).
     Optionally apply spikes to ride on the traces.
     `traces` was originally written by Friedemann Zenke.
 
@@ -257,7 +278,8 @@ def traces(data, spk=None, dim=(3, 3), spk_height=5, titles=None):
 
         import snntorch.spikeplot as splt
 
-        #  mem_rec contains the traces of 9 neuron membrane potentials across 100 time steps in duration
+        #  mem_rec contains the traces of 9 neuron membrane potentials across
+        100 time steps in duration
         print(mem_rec.size())
         >>> torch.Size([100, 9])
 
@@ -265,10 +287,12 @@ def traces(data, spk=None, dim=(3, 3), spk_height=5, titles=None):
         traces(mem_rec, dim=(3,3))
 
 
-    :param data: Data tensor for neuron traces across time steps of shape [num_steps x num_neurons]
+    :param data: Data tensor for neuron traces across time steps of shape
+    [num_steps x num_neurons]
     :type data: torch.Tensor
 
-    :param spk: Data tensor for neuron traces across time steps of shape [num_steps x num_neurons], defaults to ``None``
+    :param spk: Data tensor for neuron traces across time steps of shape
+    [num_steps x num_neurons], defaults to ``None``
     :type spk: torch.Tensor, optional
 
     :param dim: Dimensions of figure, defaults to ``(3, 3)``
@@ -315,16 +339,26 @@ def _plt_style(data, labels, ax, idx, time_step=False):
     # numeric placeholder for the y axis
     my_range = list(range(1, len(df.index) + 1))
 
-    # create horizontal line for each labels that starts at x = 0 with the length represented by the spike count
+    # create horizontal line for each labels that starts at x = 0 with the
+    # length represented by the spike count
     plt.hlines(
-        y=my_range, xmin=0, xmax=df["time"], color="#007ACC", alpha=0.5, linewidth=8
+        y=my_range,
+        xmin=0,
+        xmax=df["time"],
+        color="#007ACC",
+        alpha=0.5,
+        linewidth=8,
     )
 
     # create dot for each label
-    plt.plot(df["time"], my_range, "o", markersize=8, color="#007ACC", alpha=0.6)
+    plt.plot(
+        df["time"], my_range, "o", markersize=8, color="#007ACC", alpha=0.6
+    )
 
     # set labels
-    ax.set_xlabel("Time Step", fontsize=15, fontweight="black", color="#333F4B")
+    ax.set_xlabel(
+        "Time Step", fontsize=15, fontweight="black", color="#333F4B"
+    )
     ax.set_ylabel("Labels", fontsize=15, fontweight="black", color="#333F4B")
 
     # set axis
@@ -340,7 +374,9 @@ def _plt_style(data, labels, ax, idx, time_step=False):
     ax.spines["left"].set_position(("axes", 0.0))
 
     if time_step:
-        ax.set_xlabel("Time [s]", fontsize=15, fontweight="black", color="#333F4B")
+        ax.set_xlabel(
+            "Time [s]", fontsize=15, fontweight="black", color="#333F4B"
+        )
         locs, steps = plt.xticks()
         steps = [float(item) * time_step for item in locs]
         plt.xticks(locs, steps)
@@ -388,7 +424,14 @@ class Camera:
         # need to keep track off artists for each axis
         self._offsets: Dict[str, Dict[int, int]] = {
             k: defaultdict(int)
-            for k in ["collections", "patches", "lines", "texts", "artists", "images"]
+            for k in [
+                "collections",
+                "patches",
+                "lines",
+                "texts",
+                "artists",
+                "images",
+            ]
         }
         self._photos: List[List[Artist]] = []
 
