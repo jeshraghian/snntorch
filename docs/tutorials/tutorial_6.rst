@@ -265,22 +265,16 @@ The convolutional network architecture to be used is:
             mem2 = self.lif2.init_leaky() 
             mem3 = self.lif3.init_leaky()
     
-            # Record the final layer
-            spk3_rec = []
-            mem3_rec = []
+            cur1 = F.max_pool2d(self.conv1(x), 2)
+            spk1, mem1 = self.lif1(cur1, mem1)
+
+            cur2 = F.max_pool2d(self.conv2(spk1), 2)
+            spk2, mem2 = self.lif2(cur2, mem2)
+
+            cur3 = self.fc1(spk2.view(batch_size, -1))
+            spk3, mem3 = self.lif3(cur3, mem3)
     
-            for step in range(num_steps):
-                cur1 = F.max_pool2d(self.conv1(x), 2)
-                spk1, mem1 = self.lif1(cur1, mem1)
-                cur2 = F.max_pool2d(self.conv2(spk1), 2)
-                spk2, mem2 = self.lif2(cur2, mem2)
-                cur3 = self.fc1(spk2.view(batch_size, -1))
-                spk3, mem3 = self.lif3(cur3, mem3)
-    
-                spk3_rec.append(spk3)
-                mem3_rec.append(mem3)
-    
-            return torch.stack(spk3_rec), torch.stack(mem3_rec)
+            return spk3, mem3
 
 In the previous tutorial, the network was wrapped inside of a class, as shown above. 
 With increasing network complexity, this adds a
@@ -558,6 +552,8 @@ You should now have a grasp of the basic features of snnTorch and
 be able to start running your own experiments. `In the next
 tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
 we will train a network using a neuromorphic dataset.
+
+A special thanks to `Gianfresco Angelini <https://github.com/gianfa>`__ for providing valuable feedback on the tutorial.
 
 If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
 
