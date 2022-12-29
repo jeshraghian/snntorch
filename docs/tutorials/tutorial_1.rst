@@ -434,6 +434,7 @@ a few different neurons between 0 & 784 before finding one that
 spikes.
 
 ::
+    
     idx = 210  # index into 210th neuron
 
     fig = plt.figure(facecolor="w", figsize=(8, 1))
