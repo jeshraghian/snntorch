@@ -39,9 +39,7 @@ class TestLeaky:
 
         assert torch.all(true == out)
 
-    def test_graded_spikes_learning(
-        self, graded_spikes_instance, input_, label_
-    ):
+    def test_graded_spikes_learning(self, graded_spikes_instance, input_, label_):
 
         optimizer = torch.optim.AdamW(
             graded_spikes_instance.parameters(),

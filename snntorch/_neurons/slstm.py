@@ -188,21 +188,15 @@ class SLSTM(SpikingNeuron):
         self.hidden_size = hidden_size
         self.bias = bias
 
-        self.lstm_cell = nn.LSTMCell(
-            self.input_size, self.hidden_size, bias=self.bias
-        )
+        self.lstm_cell = nn.LSTMCell(self.input_size, self.hidden_size, bias=self.bias)
 
     def forward(self, input_, syn=False, mem=False):
         if hasattr(mem, "init_flag") or hasattr(
             syn, "init_flag"
         ):  # only triggered on first-pass
 
-            syn, mem = _SpikeTorchConv(
-                syn, mem, input_=self._reshape_input(input_)
-            )
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
+            syn, mem = _SpikeTorchConv(syn, mem, input_=self._reshape_input(input_))
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
             self.syn, self.mem = _SpikeTorchConv(
                 self.syn, self.mem, input_=self._reshape_input(input_)
             )

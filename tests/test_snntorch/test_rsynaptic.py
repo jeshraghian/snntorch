@@ -14,12 +14,7 @@ def input_():
 
 @pytest.fixture(scope="module")
 def rsynaptic_instance():
-    return snn.RSynaptic(
-        alpha=0.5,
-        beta=0.5,
-        V=0.5,
-        all_to_all=False,
-    )
+    return snn.RSynaptic(alpha=0.5, beta=0.5, V=0.5, all_to_all=False,)
 
 
 @pytest.fixture(scope="module")
@@ -38,9 +33,7 @@ def rsynaptic_reset_none_instance():
 
 @pytest.fixture(scope="module")
 def rsynaptic_hidden_instance():
-    return snn.RSynaptic(
-        alpha=0.5, beta=0.5, V=0.5, all_to_all=False, init_hidden=True
-    )
+    return snn.RSynaptic(alpha=0.5, beta=0.5, V=0.5, all_to_all=False, init_hidden=True)
 
 
 @pytest.fixture(scope="module")

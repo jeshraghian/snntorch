@@ -333,15 +333,9 @@ def TBPTT(
                 idx1 = K_count * K
                 idx2 = K_count * K + num_steps % K
                 if loss_spk:
-                    loss = criterion(
-                        spk_rec_trunc,
-                        targets[int(idx1) : int(idx2)],
-                    )
+                    loss = criterion(spk_rec_trunc, targets[int(idx1) : int(idx2)],)
                 else:
-                    loss = criterion(
-                        mem_rec_trunc,
-                        targets[int(idx1) : int(idx2)],
-                    )
+                    loss = criterion(mem_rec_trunc, targets[int(idx1) : int(idx2)],)
             else:
                 if loss_spk:
                     loss = criterion(spk_rec_trunc, targets)

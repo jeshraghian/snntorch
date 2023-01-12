@@ -154,9 +154,7 @@ class Leaky(LIF):
 
         if hasattr(mem, "init_flag"):  # only triggered on first-pass
             mem = _SpikeTorchConv(mem, input_=input_)
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
             self.mem = _SpikeTorchConv(self.mem, input_=input_)
 
         # TO-DO: alternatively, we could do torch.exp(-1 /
@@ -223,11 +221,10 @@ class Leaky(LIF):
     def _build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = (
-                self._base_state_function_hidden(input_)
-                - self.reset * self.threshold
+                self._base_state_function_hidden(input_) - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
-            self.mem = (1-self.reset) * self.mem
+            self.mem = (1 - self.reset) * self.mem
             state_fn = self._base_state_function_hidden(input_)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
             state_fn = self._base_state_function_hidden(input_)
@@ -235,9 +232,7 @@ class Leaky(LIF):
 
     def _leaky_forward_cases(self, mem):
         if mem is not False:
-            raise TypeError(
-                "When `init_hidden=True`, Leaky expects 1 input argument."
-            )
+            raise TypeError("When `init_hidden=True`, Leaky expects 1 input argument.")
 
     @classmethod
     def detach_hidden(cls):

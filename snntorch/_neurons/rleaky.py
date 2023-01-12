@@ -40,8 +40,8 @@ class RLeaky(LIF):
 
         .. math::
 
-                U[t+1] = βU[t] + I_{\\rm syn}[t+1] +  V(S_{\\rm out}[t] -
-                R(βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t])
+                U[t+1] = βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t]) -
+                R(βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t]))
 
         * :math:`I_{\\rm in}` - Input current
         * :math:`U` - Membrane potential
@@ -266,12 +266,8 @@ class RLeaky(LIF):
             mem, "init_flag"
         ):  # only triggered on first-pass
             spk, mem = _SpikeTorchConv(spk, mem, input_=input_)
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
-            self.spk, self.mem = _SpikeTorchConv(
-                self.spk, self.mem, input_=input_
-            )
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            self.spk, self.mem = _SpikeTorchConv(self.spk, self.mem, input_=input_)
 
         # TO-DO: alternatively, we could do torch.exp(-1 /
         # self.beta.clamp_min(0)), giving actual time constants instead of
@@ -363,18 +359,13 @@ class RLeaky(LIF):
         return state_fn
 
     def _base_state_function_hidden(self, input_):
-        base_fn = (
-            self.beta.clamp(0, 1) * self.mem
-            + input_
-            + self.recurrent(self.spk)
-        )
+        base_fn = self.beta.clamp(0, 1) * self.mem + input_ + self.recurrent(self.spk)
         return base_fn
 
     def _build_state_function_hidden(self, input_):
         if self.reset_mechanism_val == 0:  # reset by subtraction
             state_fn = (
-                self._base_state_function_hidden(input_)
-                - self.reset * self.threshold
+                self._base_state_function_hidden(input_) - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
             state_fn = self._base_state_function_hidden(
@@ -386,9 +377,7 @@ class RLeaky(LIF):
 
     def _rleaky_forward_cases(self, spk, mem):
         if mem is not False or spk is not False:
-            raise TypeError(
-                "When `init_hidden=True`, RLeaky expects 1 input argument."
-            )
+            raise TypeError("When `init_hidden=True`, RLeaky expects 1 input argument.")
 
     def _rleaky_init_cases(self):
         all_to_all_bool = bool(self.all_to_all)
@@ -423,11 +412,7 @@ class RLeaky(LIF):
                     "be specified at the same time."
                 )
         else:
-            if (
-                linear_features_bool
-                or conv2d_channels_bool
-                or kernel_size_bool
-            ):
+            if linear_features_bool or conv2d_channels_bool or kernel_size_bool:
                 raise TypeError(
                     "When `all_to_all`=False, none of `linear_features`,"
                     "`conv2d_channels`, or `kernel_size` should be specified. "
@@ -455,10 +440,9 @@ class RLeaky(LIF):
         Assumes hidden states have a batch dimension already."""
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], RLeaky):
-                (
-                    cls.instances[layer].spk,
-                    cls.instances[layer].mem,
-                ) = cls.instances[layer].init_rleaky()
+                (cls.instances[layer].spk, cls.instances[layer].mem,) = cls.instances[
+                    layer
+                ].init_rleaky()
 
 
 class RecurrentOneToOne(nn.Module):

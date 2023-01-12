@@ -187,12 +187,8 @@ class Synaptic(LIF):
             mem, "init_flag"
         ):  # only triggered on first-pass
             syn, mem = _SpikeTorchConv(syn, mem, input_=input_)
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
-            self.syn, self.mem = _SpikeTorchConv(
-                self.syn, self.mem, input_=input_
-            )
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
+            self.syn, self.mem = _SpikeTorchConv(self.syn, self.mem, input_=input_)
 
         if not self.init_hidden:
             self.reset = self.mem_reset(mem)

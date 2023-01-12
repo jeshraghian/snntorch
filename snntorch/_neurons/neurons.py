@@ -136,9 +136,7 @@ class SpikingNeuron(nn.Module):
         buffer."""
 
         self._threshold_buffer(threshold, learn_threshold)
-        self._graded_spikes_buffer(
-            graded_spikes_factor, learn_graded_spikes_factor
-        )
+        self._graded_spikes_buffer(graded_spikes_factor, learn_graded_spikes_factor)
 
         # reset buffer
         try:
@@ -152,9 +150,7 @@ class SpikingNeuron(nn.Module):
             # reset_mechanism_val has not yet been created, create it
             self._reset_mechanism_buffer(reset_mechanism)
 
-    def _graded_spikes_buffer(
-        self, graded_spikes_factor, learn_graded_spikes_factor
-    ):
+    def _graded_spikes_buffer(self, graded_spikes_factor, learn_graded_spikes_factor):
         if not isinstance(graded_spikes_factor, torch.Tensor):
             graded_spikes_factor = torch.as_tensor(graded_spikes_factor)
         if learn_graded_spikes_factor:
@@ -174,9 +170,7 @@ class SpikingNeuron(nn.Module):
         """Assign mapping to each reset mechanism state.
         Must be of type tensor to store in register buffer. See reset_dict
         for mapping."""
-        reset_mechanism_val = torch.as_tensor(
-            SpikingNeuron.reset_dict[reset_mechanism]
-        )
+        reset_mechanism_val = torch.as_tensor(SpikingNeuron.reset_dict[reset_mechanism])
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
 
     def _V_register_buffer(self, V, learn_V):
@@ -316,8 +310,7 @@ class LIF(SpikingNeuron):
         )
 
         self._lif_register_buffer(
-            beta,
-            learn_beta,
+            beta, learn_beta,
         )
         self._reset_mechanism = reset_mechanism
 
@@ -328,9 +321,7 @@ class LIF(SpikingNeuron):
             self.spike_grad = spike_grad
 
     def _lif_register_buffer(
-        self,
-        beta,
-        learn_beta,
+        self, beta, learn_beta,
     ):
         """Set variables as learnable parameters else register them in the
         buffer."""
@@ -436,9 +427,7 @@ class _SpikeTensor(torch.Tensor):
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(
-        self,
-        *args,
-        init_flag=True,
+        self, *args, init_flag=True,
     ):
         # super().__init__() # optional
         self.init_flag = init_flag

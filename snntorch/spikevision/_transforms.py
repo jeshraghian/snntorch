@@ -51,10 +51,7 @@ class Downsample(object):
         return tmad // self.factor
 
     def __repr__(self):
-        return (
-            self.__class__.__name__
-            + "(dt = {0}, dp = {1}, dx = {2}, dy = {3})"
-        )
+        return self.__class__.__name__ + "(dt = {0}, dp = {1}, dx = {2}, dy = {3})"
 
 
 # class Crop(object):
@@ -287,9 +284,7 @@ class FilterEvents(object):
 
 
 class ExpFilterEvents(FilterEvents):
-    def __init__(
-        self, length, tau=200, channels=2, tpad=None, device="cpu", **kwargs
-    ):
+    def __init__(self, length, tau=200, channels=2, tpad=None, device="cpu", **kwargs):
         t = torch.arange(0.0, length, 1.0)
         kernel = torch.ones(channels, 1, len(t), 1, 1)
         exp_kernel = torch.exp(-t / tau)

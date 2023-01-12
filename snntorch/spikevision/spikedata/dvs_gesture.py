@@ -268,11 +268,7 @@ class DVSGesture(NeuromorphicDataset):
                 key = key + f["extra"].attrs["Ntrain"]
             assert key in self.keys
             data, target, meta_info_light, meta_info_user = sample(
-                f,
-                key,
-                T=self.num_steps,
-                shuffle=self.time_shuffle,
-                train=self.train,
+                f, key, T=self.num_steps, shuffle=self.time_shuffle, train=self.train,
             )
 
         if self.transform is not None:
@@ -351,9 +347,7 @@ def create_events_hdf5(directory, extracted_directory, hdf5_filename):
                 # split('.')[0].split('_')[:2]
                 # this line throws an error in get_slice,
                 # because idx_beg = idx_end --> empty batch
-                subj, light = (
-                    file_d.split("/")[-1].split(".")[0].split("_")[:2]
-                )
+                subj, light = file_d.split("/")[-1].split(".")[0].split("_")[:2]
                 metas.append(
                     {
                         "key": str(key),

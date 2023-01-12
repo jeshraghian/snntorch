@@ -9,9 +9,7 @@ from tests.conftest import Net
 from unittest import mock
 import torch
 
-device = (
-    torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-)
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
 # def test_TBPTT():

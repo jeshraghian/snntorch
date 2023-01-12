@@ -65,10 +65,7 @@ class TestSLSTM:
         assert spk.size() == (1, 2)
 
     def test_sconv2dlstm_reset(
-        self,
-        slstm_instance,
-        slstm_reset_zero_instance,
-        slstm_reset_subtract_instance,
+        self, slstm_instance, slstm_reset_zero_instance, slstm_reset_subtract_instance,
     ):
 
         lif1 = slstm_reset_subtract_instance

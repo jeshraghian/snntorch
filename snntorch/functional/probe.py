@@ -120,17 +120,13 @@ class OutputMonitor(BaseMonitor):
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
                 self.name_records_index[name] = []
-                self.hooks.append(
-                    m.register_forward_hook(self.create_hook(name))
-                )
+                self.hooks.append(m.register_forward_hook(self.create_hook(name)))
 
     def create_hook(self, name):
         def hook(m, x, y):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
-                self.records.append(
-                    self.function_on_output(unpack_len1_tuple(y))
-                )
+                self.records.append(self.function_on_output(unpack_len1_tuple(y)))
 
         return hook
 
@@ -203,17 +199,13 @@ class InputMonitor(BaseMonitor):
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
                 self.name_records_index[name] = []
-                self.hooks.append(
-                    m.register_forward_hook(self.create_hook(name))
-                )
+                self.hooks.append(m.register_forward_hook(self.create_hook(name)))
 
     def create_hook(self, name):
         def hook(m, x, y):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
-                self.records.append(
-                    self.function_on_input(unpack_len1_tuple(x))
-                )
+                self.records.append(self.function_on_input(unpack_len1_tuple(x)))
 
         return hook
 
@@ -305,18 +297,14 @@ class AttributeMonitor(BaseMonitor):
                         m.register_forward_pre_hook(self.create_hook(name))
                     )
                 else:
-                    self.hooks.append(
-                        m.register_forward_hook(self.create_hook(name))
-                    )
+                    self.hooks.append(m.register_forward_hook(self.create_hook(name)))
 
     def create_hook(self, name):
         def hook(m, x, y):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
                 self.records.append(
-                    self.function_on_attribute(
-                        m.__getattr__(self.attribute_name)
-                    )
+                    self.function_on_attribute(m.__getattr__(self.attribute_name))
                 )
 
         return hook
@@ -392,16 +380,12 @@ class GradInputMonitor(BaseMonitor):
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
                 self.name_records_index[name] = []
-                if torch.__version__ >= torch.torch_version.TorchVersion(
-                    "1.8.0"
-                ):
+                if torch.__version__ >= torch.torch_version.TorchVersion("1.8.0"):
                     self.hooks.append(
                         m.register_full_backward_hook(self.create_hook(name))
                     )
                 else:
-                    self.hooks.append(
-                        m.register_backward_hook(self.create_hook(name))
-                    )
+                    self.hooks.append(m.register_backward_hook(self.create_hook(name)))
 
     def create_hook(self, name):
         def hook(m, grad_input, grad_output):
@@ -483,25 +467,19 @@ class GradOutputMonitor(BaseMonitor):
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
                 self.name_records_index[name] = []
-                if torch.__version__ >= torch.torch_version.TorchVersion(
-                    "1.8.0"
-                ):
+                if torch.__version__ >= torch.torch_version.TorchVersion("1.8.0"):
                     self.hooks.append(
                         m.register_full_backward_hook(self.create_hook(name))
                     )
                 else:
-                    self.hooks.append(
-                        m.register_backward_hook(self.create_hook(name))
-                    )
+                    self.hooks.append(m.register_backward_hook(self.create_hook(name)))
 
     def create_hook(self, name):
         def hook(m, grad_input, grad_output):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
                 self.records.append(
-                    self.function_on_grad_output(
-                        unpack_len1_tuple(grad_output)
-                    )
+                    self.function_on_grad_output(unpack_len1_tuple(grad_output))
                 )
 
         return hook

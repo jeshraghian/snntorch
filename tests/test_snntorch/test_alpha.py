@@ -34,16 +34,12 @@ def alpha_hidden_instance():
 
 @pytest.fixture(scope="module")
 def alpha_hidden_reset_zero_instance():
-    return snn.Alpha(
-        alpha=0.6, beta=0.5, init_hidden=True, reset_mechanism="zero"
-    )
+    return snn.Alpha(alpha=0.6, beta=0.5, init_hidden=True, reset_mechanism="zero")
 
 
 @pytest.fixture(scope="module")
 def alpha_hidden_reset_none_instance():
-    return snn.Alpha(
-        alpha=0.6, beta=0.5, init_hidden=True, reset_mechanism="none"
-    )
+    return snn.Alpha(alpha=0.6, beta=0.5, init_hidden=True, reset_mechanism="none")
 
 
 class TestAlpha:
@@ -78,10 +74,7 @@ class TestAlpha:
         assert mem_rec[0] < mem_rec[1]
 
     def test_alpha_reset(
-        self,
-        alpha_instance,
-        alpha_reset_zero_instance,
-        alpha_reset_none_instance,
+        self, alpha_instance, alpha_reset_zero_instance, alpha_reset_none_instance,
     ):
         lif1 = alpha_instance
         lif2 = alpha_reset_zero_instance

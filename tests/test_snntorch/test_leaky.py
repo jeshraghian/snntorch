@@ -59,10 +59,7 @@ class TestLeaky:
         assert spk_rec[0] == spk_rec[1]
 
     def test_leaky_reset(
-        self,
-        leaky_instance,
-        leaky_reset_zero_instance,
-        leaky_reset_none_instance,
+        self, leaky_instance, leaky_reset_zero_instance, leaky_reset_none_instance,
     ):
         lif1 = leaky_instance
         lif2 = leaky_reset_zero_instance

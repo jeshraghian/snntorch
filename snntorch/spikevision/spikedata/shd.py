@@ -59,9 +59,7 @@ def one_hot1d(mbt, num_classes):
 
 
 def create_events_hdf5(directory, hdf5_filename):
-    train_evs, train_labels_isolated = load_shd_hdf5(
-        directory + "/shd_train.h5"
-    )
+    train_evs, train_labels_isolated = load_shd_hdf5(directory + "/shd_train.h5")
     test_evs, test_labels_isolated = load_shd_hdf5(directory + "/shd_test.h5")
     border = len(train_labels_isolated)
 
@@ -228,16 +226,8 @@ class SHD(NeuromorphicDataset):
     """
 
     _resources_url = [
-        [
-            "https://compneuro.net/datasets/shd_test.h5.gz",
-            None,
-            "shd_test.h5.gz",
-        ],
-        [
-            "https://compneuro.net/datasets/shd_train.h5.gz",
-            None,
-            "shd_train.h5.gz",
-        ],
+        ["https://compneuro.net/datasets/shd_test.h5.gz", None, "shd_test.h5.gz",],
+        ["https://compneuro.net/datasets/shd_train.h5.gz", None, "shd_train.h5.gz",],
     ]
 
     def __init__(
@@ -279,9 +269,7 @@ class SHD(NeuromorphicDataset):
             )
 
         if target_transform is not None:
-            target_transform = Compose(
-                [Repeat(num_steps), toOneHot(len(mapping))]
-            )
+            target_transform = Compose([Repeat(num_steps), toOneHot(len(mapping))])
 
         super(SHD, self).__init__(
             root=root + "/shd.hdf5",
@@ -289,9 +277,7 @@ class SHD(NeuromorphicDataset):
             target_transform=target_transform,
         )
 
-        with h5py.File(
-            root + "/shd.hdf5", "r", swmr=True, libver="latest"
-        ) as f:
+        with h5py.File(root + "/shd.hdf5", "r", swmr=True, libver="latest") as f:
             if train:
                 self.n = f["extra"].attrs["Ntrain"]
                 self.keys = f["extra"]["train_keys"]
@@ -334,8 +320,6 @@ def sample(hdf5_file, key, T=500, shuffle=False):
     # tend = dset["times"][-1]
     start_time = 0
 
-    tmad = get_tmad_slice(
-        dset["times"][()], dset["addrs"][()], start_time, T * 1000
-    )
+    tmad = get_tmad_slice(dset["times"][()], dset["addrs"][()], start_time, T * 1000)
     tmad[:, 0] -= tmad[0, 0]
     return tmad, label

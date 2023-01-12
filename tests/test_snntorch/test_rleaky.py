@@ -19,16 +19,12 @@ def rleaky_instance():
 
 @pytest.fixture(scope="module")
 def rleaky_reset_zero_instance():
-    return snn.RLeaky(
-        beta=0.5, V=0.5, all_to_all=False, reset_mechanism="zero"
-    )
+    return snn.RLeaky(beta=0.5, V=0.5, all_to_all=False, reset_mechanism="zero")
 
 
 @pytest.fixture(scope="module")
 def rleaky_reset_none_instance():
-    return snn.RLeaky(
-        beta=0.5, V=0.5, all_to_all=False, reset_mechanism="none"
-    )
+    return snn.RLeaky(beta=0.5, V=0.5, all_to_all=False, reset_mechanism="none")
 
 
 @pytest.fixture(scope="module")
@@ -39,22 +35,14 @@ def rleaky_hidden_instance():
 @pytest.fixture(scope="module")
 def rleaky_hidden_reset_zero_instance():
     return snn.RLeaky(
-        beta=0.5,
-        V=0.5,
-        all_to_all=False,
-        init_hidden=True,
-        reset_mechanism="zero",
+        beta=0.5, V=0.5, all_to_all=False, init_hidden=True, reset_mechanism="zero",
     )
 
 
 @pytest.fixture(scope="module")
 def rleaky_hidden_reset_none_instance():
     return snn.RLeaky(
-        beta=0.5,
-        V=0.5,
-        all_to_all=False,
-        init_hidden=True,
-        reset_mechanism="none",
+        beta=0.5, V=0.5, all_to_all=False, init_hidden=True, reset_mechanism="none",
     )
 
 
@@ -75,10 +63,7 @@ class TestRLeaky:
         assert spk_rec[0] == spk_rec[1]
 
     def test_rleaky_reset(
-        self,
-        rleaky_instance,
-        rleaky_reset_zero_instance,
-        rleaky_reset_none_instance,
+        self, rleaky_instance, rleaky_reset_zero_instance, rleaky_reset_none_instance,
     ):
         lif1 = rleaky_instance
         lif2 = rleaky_reset_zero_instance

@@ -28,8 +28,7 @@ class LossFunctions:
         """Count up spikes sequentially from output classes."""
         if not num_classes:
             raise Exception(
-                "``num_classes`` must be specified if "
-                "``population_code=True``."
+                "``num_classes`` must be specified if " "``population_code=True``."
             )
         if num_outputs % num_classes:
             raise Exception(
@@ -150,9 +149,7 @@ class ce_count_loss(LossFunctions):
 
         if self.population_code:
             _, _, num_outputs = self._prediction_check(spk_out)
-            spike_count = self._population_code(
-                spk_out, self.num_classes, num_outputs
-            )
+            spike_count = self._population_code(spk_out, self.num_classes, num_outputs)
         else:
             spike_count = torch.sum(spk_out, 0)  # B x C
         log_p_y = log_softmax_fn(spike_count)
@@ -277,14 +274,10 @@ class mse_count_loss(LossFunctions):
 
         else:
             on_target = int(
-                num_steps
-                * self.correct_rate
-                * (num_outputs / self.num_classes)
+                num_steps * self.correct_rate * (num_outputs / self.num_classes)
             )
             off_target = int(
-                num_steps
-                * self.incorrect_rate
-                * (num_outputs / self.num_classes)
+                num_steps * self.incorrect_rate * (num_outputs / self.num_classes)
             )
             spike_count_target = spikegen.targets_convert(
                 targets,
@@ -292,9 +285,7 @@ class mse_count_loss(LossFunctions):
                 on_target=on_target,
                 off_target=off_target,
             )
-            spike_count = self._population_code(
-                spk_out, self.num_classes, num_outputs
-            )
+            spike_count = self._population_code(spk_out, self.num_classes, num_outputs)
 
         loss = loss_fn(spike_count, spike_count_target)
         return loss / num_steps
@@ -426,9 +417,7 @@ class SpikeTime(nn.Module):
 
         # next need to check how tolerance copes with multi-spikes
         if self.tolerance:
-            spk_time_final = self.tolerance_fn(
-                spk_time_final, targets, self.tolerance
-            )
+            spk_time_final = self.tolerance_fn(spk_time_final, targets, self.tolerance)
 
         return spk_time_final, targets
 
@@ -507,12 +496,7 @@ class SpikeTime(nn.Module):
                 (i.e., multiply along T)."""
                 spk_time = (
                     spk_rec_tmp.transpose(0, -1)
-                    * (
-                        torch.arange(0, spk_rec_tmp.size(0))
-                        .detach()
-                        .to(device)
-                        + 1
-                    )
+                    * (torch.arange(0, spk_rec_tmp.size(0)).detach().to(device) + 1)
                 ).transpose(0, -1)
 
                 """extact n-th spike time (n=step) up to F."""
@@ -737,9 +721,7 @@ class mse_temporal_loss:
         self.__name__ = "mse_temporal_loss"
 
     def __call__(self, spk_rec, targets):
-        spk_time, targets = self.spk_time_fn(
-            spk_rec, targets
-        )  # return encoded targets
+        spk_time, targets = self.spk_time_fn(spk_rec, targets)  # return encoded targets
         loss = self.loss_fn(
             spk_time / spk_rec.size(0), targets / spk_rec.size(0)
         )  # spk_time_final: num_spikes x B x Nc. # Same with targets.
@@ -802,9 +784,7 @@ class ce_temporal_loss:
         self.__name__ = "ce_temporal_loss"
 
     def __call__(self, spk_rec, targets):
-        spk_time, _ = self.spk_time_fn(
-            spk_rec, targets
-        )  # return encoded targets
+        spk_time, _ = self.spk_time_fn(spk_rec, targets)  # return encoded targets
         if self.inverse == "negate":
             spk_time = -spk_time
         if self.inverse == "reciprocal":

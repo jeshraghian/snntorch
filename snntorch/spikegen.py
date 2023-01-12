@@ -4,12 +4,7 @@ dtype = torch.float
 
 
 def rate(
-    data,
-    num_steps=False,
-    gain=1,
-    offset=0,
-    first_spike_time=0,
-    time_var_input=False,
+    data, num_steps=False, gain=1, offset=0, first_spike_time=0, time_var_input=False,
 ):
 
     """Spike rate encoding of input data. Convert tensor into Poisson spike
@@ -75,9 +70,7 @@ def rate(
     """
 
     if first_spike_time < 0 or num_steps < 0:
-        raise Exception(
-            "``first_spike_time`` and ``num_steps`` cannot be negative."
-        )
+        raise Exception("``first_spike_time`` and ``num_steps`` cannot be negative.")
 
     if first_spike_time > (num_steps - 1):
         if num_steps:
@@ -133,10 +126,7 @@ def rate(
         # Multiply by gain and add offset.
         time_data = (
             data.repeat(
-                tuple(
-                    [num_steps]
-                    + torch.ones(len(data.size()), dtype=int).tolist()
-                )
+                tuple([num_steps] + torch.ones(len(data.size()), dtype=int).tolist())
             )
             * gain
             + offset
@@ -282,10 +272,7 @@ def latency(
                 f"smaller value."
             )
 
-    if (
-        torch.round(torch.max(spike_time)).long() > (num_steps - 1)
-        and not bypass
-    ):
+    if torch.round(torch.max(spike_time)).long() > (num_steps - 1) and not bypass:
         raise Exception(
             f"The maximum value in ``spike_time`` "
             f"[{torch.round(torch.max(spike_time)).long()}] is out of "
@@ -298,9 +285,7 @@ def latency(
     if not interpolate:
 
         spike_data = torch.zeros(
-            (tuple([num_steps] + list(spike_time.size()))),
-            dtype=dtype,
-            device=device,
+            (tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device,
         )
 
         # use rm_idx to remove spikes beyond the range of num_steps
@@ -330,10 +315,7 @@ def latency(
 
 
 def delta(
-    data,
-    threshold=0.1,
-    padding=False,
-    off_spike=False,
+    data, threshold=0.1, padding=False, off_spike=False,
 ):
     """Generate spike only when the difference between two subsequent
     time steps meets a threshold.
@@ -380,9 +362,7 @@ def delta(
             :-1
         ]  # duplicate first time step, remove final step
     else:
-        data_offset = torch.cat(
-            (torch.zeros_like(data[0]).unsqueeze(0), data)
-        )[
+        data_offset = torch.cat((torch.zeros_like(data[0]).unsqueeze(0), data))[
             :-1
         ]  # add 0's to first step, remove final step
 
@@ -524,12 +504,7 @@ def latency_code(
 
 
 def latency_code_linear(
-    data,
-    num_steps=False,
-    threshold=0.01,
-    tau=1,
-    first_spike_time=0,
-    normalize=False,
+    data, num_steps=False, threshold=0.01, tau=1, first_spike_time=0, normalize=False,
 ):
 
     """Linear latency encoding of input data. Convert input features
@@ -664,9 +639,7 @@ def latency_code_log(
     return spike_time
 
 
-def _latency_errors(
-    data, num_steps, threshold, tau, first_spike_time, normalize
-):
+def _latency_errors(data, num_steps, threshold, tau, first_spike_time, normalize):
 
     """Catch errors for spike time encoding latency functions
     ``latency_code_linear`` and ``latency_code_log``"""
@@ -689,22 +662,17 @@ def _latency_errors(
     # < data < 1
     if first_spike_time and torch.max(data) > 1 and torch.min(data) < 0:
         raise Exception(
-            "`first_spike_time` can only be applied to data between "
-            "`0` and `1`."
+            "`first_spike_time` can only be applied to data between " "`0` and `1`."
         )
 
     if first_spike_time < 0:
-        raise Exception(
-            "``first_spike_time`` [{first_spike_time}] cannot be negative."
-        )
+        raise Exception("``first_spike_time`` [{first_spike_time}] cannot be negative.")
 
     if num_steps < 0:
         raise Exception("``num_steps`` [{num_steps}] cannot be negative.")
 
     if normalize and not num_steps:
-        raise Exception(
-            "`num_steps` should not be empty if normalize is set to True."
-        )
+        raise Exception("`num_steps` should not be empty if normalize is set to True.")
 
 
 def targets_convert(
@@ -994,14 +962,11 @@ def targets_rate(
         )
 
     if incorrect_rate > correct_rate:
-        raise Exception(
-            "``correct_rate`` must be greater than ``incorrect_rate``."
-        )
+        raise Exception("``correct_rate`` must be greater than ``incorrect_rate``.")
 
     if firing_pattern.lower() not in ["regular", "uniform", "poisson"]:
         raise Exception(
-            "``firing_pattern`` must be either 'regular', 'uniform' or "
-            "'poisson'."
+            "``firing_pattern`` must be either 'regular', 'uniform' or " "'poisson'."
         )
 
     device = targets.device
@@ -1124,9 +1089,7 @@ def targets_rate(
             return correct_spike_targets + incorrect_spike_targets
 
 
-def target_rate_code(
-    num_steps, first_spike_time=0, rate=1, firing_pattern="regular"
-):
+def target_rate_code(num_steps, first_spike_time=0, rate=1, firing_pattern="regular"):
     """
     Rate coding a single output neuron of tensor of length ``num_steps``
     containing spikes, and another tensor containing the spike times.
@@ -1195,9 +1158,7 @@ def target_rate_code(
 
     elif firing_pattern.lower() == "uniform":
         spike_times = (
-            torch.rand(
-                len(torch.arange(first_spike_time, num_steps, 1 / rate))
-            )
+            torch.rand(len(torch.arange(first_spike_time, num_steps, 1 / rate)))
             * (num_steps - first_spike_time)
             + first_spike_time
         )
@@ -1221,9 +1182,7 @@ def target_rate_code(
         return spike_targets, torch.where(spike_targets == 1)[0]
 
 
-def rate_interpolate(
-    spike_time, num_steps, on_target=1, off_target=0, epsilon=1e-7
-):
+def rate_interpolate(spike_time, num_steps, on_target=1, off_target=0, epsilon=1e-7):
     """Apply linear interpolation to a tensor of target spike times to
     enable gradual increasing membrane.
 
@@ -1280,8 +1239,7 @@ def rate_interpolate(
                         torch.arange(
                             off_target,
                             on_target + epsilon,
-                            (on_target - off_target)
-                            / (step - current_time - 1),
+                            (on_target - off_target) / (step - current_time - 1),
                         ),
                     )
                 )
@@ -1356,9 +1314,7 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
     # --> (step/spike_time) > 1, which gets clipped.
 
     interpolated_targets = torch.ones(
-        (tuple([num_steps] + list(spike_time.size()))),
-        dtype=dtype,
-        device=device,
+        (tuple([num_steps] + list(spike_time.size()))), dtype=dtype, device=device,
     )
 
     # offset skips first step if a 0 spike occurs. must be handled
@@ -1367,9 +1323,7 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
     # index into first step
     if 0 in spike_time:
         interpolated_targets[0] = torch.where(
-            spike_time == 0,
-            interpolated_targets[0],
-            interpolated_targets[0] * 0,
+            spike_time == 0, interpolated_targets[0], interpolated_targets[0] * 0,
         )  # replace 0's with ones for first spike time, others with 0s
         spike_time[spike_time == 0] = 0.5
         offset = 1
@@ -1379,9 +1333,7 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
         interpolated_targets[step + offset] = (step + offset) / spike_time
 
     # next we clamp those that exceed 1, and rescale
-    interpolated_targets = (
-        interpolated_targets * (on_target - off_target) + off_target
-    )
+    interpolated_targets = interpolated_targets * (on_target - off_target) + off_target
     interpolated_targets[interpolated_targets > on_target] = off_target
 
     return interpolated_targets
@@ -1565,9 +1517,7 @@ def to_one_hot(targets, num_classes):
     device = targets.device
 
     # Initialize zeros. E.g, for MNIST: (batch_size, 10).
-    one_hot = torch.zeros(
-        [len(targets), num_classes], device=device, dtype=dtype
-    )
+    one_hot = torch.zeros([len(targets), num_classes], device=device, dtype=dtype)
 
     # Unsqueeze converts dims of [100] to [100, 1]
     one_hot = one_hot.scatter(1, targets.type(torch.int64).unsqueeze(-1), 1)

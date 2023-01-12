@@ -275,9 +275,7 @@ class RSynaptic(LIF):
             or hasattr(mem, "init_flag")
         ):  # only triggered on first-pass
             spk, syn, mem = _SpikeTorchConv(spk, syn, mem, input_=input_)
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
+        elif mem is False and hasattr(self.mem, "init_flag"):  # init_hidden case
             self.spk, self.syn, self.mem = _SpikeTorchConv(
                 self.spk, self.syn, self.mem, input_=input_
             )
@@ -353,16 +351,12 @@ class RSynaptic(LIF):
             param.requires_grad = False
 
     def _base_state_function(self, input_, spk, syn, mem):
-        base_fn_syn = (
-            self.alpha.clamp(0, 1) * syn + input_ + self.recurrent(spk)
-        )
+        base_fn_syn = self.alpha.clamp(0, 1) * syn + input_ + self.recurrent(spk)
         base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
         return base_fn_syn, base_fn_mem
 
     def _base_state_reset_zero(self, input_, spk, syn, mem):
-        base_fn_syn = (
-            self.alpha.clamp(0, 1) * syn + input_ + self.recurrent(spk)
-        )
+        base_fn_syn = self.alpha.clamp(0, 1) * syn + input_ + self.recurrent(spk)
         base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
         return 0, base_fn_mem
 
@@ -389,18 +383,14 @@ class RSynaptic(LIF):
 
     def _base_state_function_hidden(self, input_):
         base_fn_syn = (
-            self.alpha.clamp(0, 1) * self.syn
-            + input_
-            + self.recurrent(self.spk)
+            self.alpha.clamp(0, 1) * self.syn + input_ + self.recurrent(self.spk)
         )
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return base_fn_syn, base_fn_mem
 
     def _base_state_reset_zero_hidden(self, input_):
         base_fn_syn = (
-            self.alpha.clamp(0, 1) * self.syn
-            + input_
-            + self.recurrent(self.spk)
+            self.alpha.clamp(0, 1) * self.syn + input_ + self.recurrent(self.spk)
         )
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return 0, base_fn_mem
@@ -471,11 +461,7 @@ class RSynaptic(LIF):
                     "time."
                 )
         else:
-            if (
-                linear_features_bool
-                or conv2d_channels_bool
-                or kernel_size_bool
-            ):
+            if linear_features_bool or conv2d_channels_bool or kernel_size_bool:
                 raise TypeError(
                     "When `all_to_all`=False, none of `linear_features`, "
                     "`conv2d_channels`, or `kernel_size` should be specified. "
