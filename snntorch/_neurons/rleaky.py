@@ -39,9 +39,8 @@ class RLeaky(LIF):
         whenever the neuron emits a spike:
 
         .. math::
-
-                U[t+1] = βU[t] + I_{\\rm syn}[t+1] +  V(S_{\\rm out}[t] -
-                R(βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t])
+                U[t+1] = βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t]) -
+                R(βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t]))
 
         * :math:`I_{\\rm in}` - Input current
         * :math:`U` - Membrane potential
@@ -266,9 +265,8 @@ class RLeaky(LIF):
             mem, "init_flag"
         ):  # only triggered on first-pass
             spk, mem = _SpikeTorchConv(spk, mem, input_=input_)
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
+        # init_hidden case
+        elif mem is False and hasattr(self.mem, "init_flag"):
             self.spk, self.mem = _SpikeTorchConv(
                 self.spk, self.mem, input_=input_
             )
@@ -387,7 +385,7 @@ class RLeaky(LIF):
     def _rleaky_forward_cases(self, spk, mem):
         if mem is not False or spk is not False:
             raise TypeError(
-                "When `init_hidden=True`, RLeaky expects 1 input argument."
+                "When `init_hidden=True`," "RLeaky expects 1 input argument."
             )
 
     def _rleaky_init_cases(self):
