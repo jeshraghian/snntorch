@@ -951,7 +951,8 @@ def targets_rate(
 
     :param correct_rate: Firing frequency of correct class as a
         ratio, e.g., ``1`` enables firing at every step; ``0.5``
-        enables firing at 50% of steps, ``0`` means no firing, defaults to ``1``
+        enables firing at 50% of steps, ``0`` means no firing,
+        defaults to ``1``
     :type correct_rate: float, optional
 
     :param incorrect_rate: Firing frequency of incorrect class(es), e.g.,

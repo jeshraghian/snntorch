@@ -165,7 +165,11 @@ class Alpha(LIF):
             self._alpha_forward_cases(mem, syn_exc, syn_inh)
 
             self.reset = self.mem_reset(self.mem)
-            self.syn_exc, self.syn_inh, self.mem = self._build_state_function_hidden(input_)
+            (
+                self.syn_exc,
+                self.syn_inh,
+                self.mem,
+            ) = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.syn_exc = self.state_quant(self.syn_exc)

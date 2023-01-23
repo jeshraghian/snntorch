@@ -227,7 +227,7 @@ class Leaky(LIF):
                 - self.reset * self.threshold
             )
         elif self.reset_mechanism_val == 1:  # reset to zero
-            self.mem = (1-self.reset) * self.mem
+            self.mem = (1 - self.reset) * self.mem
             state_fn = self._base_state_function_hidden(input_)
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
             state_fn = self._base_state_function_hidden(input_)
