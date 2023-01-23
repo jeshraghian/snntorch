@@ -32,11 +32,12 @@ def data_subset(dataset, subset, idx=0):
     :type subset: int
 
     :param idx: Which subset of the train and test sets to index into,
-    defaults to ``0``
+        defaults to ``0``
     :type idx: int, optional
 
     :return: Partitioned dataset
     :rtype: list of torch.utils.data
+
     """
 
     if subset > 1:
@@ -97,7 +98,7 @@ def valid_split(ds_train, ds_val, split, seed=0):
     :type ds_val: torchvision dataset
 
     :param split: Proportion of samples assigned to the validation set
-    from the training set
+        from the training set
     :type split: Float
 
     :param seed: Fix to generate reproducible results, defaults to ``0``
@@ -105,6 +106,7 @@ def valid_split(ds_train, ds_val, split, seed=0):
 
     :return: Randomly split train and validation sets
     :rtype: list of torch.utils.data
+
     """
 
     n = len(ds_train)
