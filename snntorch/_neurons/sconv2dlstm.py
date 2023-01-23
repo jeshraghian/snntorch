@@ -116,50 +116,50 @@ class SConv2dLSTM(SpikingNeuron):
     :type kernel_size: int, tuple, or list
 
     :param bias: If `True`, adds a learnable bias to the output. Defaults to
-    `True`
+        `True`
     :type bias: bool, optional
 
     :param max_pool: Applies max-pooling to the hidden state :math:`mem`
-    prior to thresholding if specified. Defaults to 0
+        prior to thresholding if specified. Defaults to 0
     :type max_pool: int, tuple, or list, optional
 
     :param avg_pool: Applies average-pooling to the hidden state :math:`mem`
-    prior to thresholding if specified. Defaults to 0
+        prior to thresholding if specified. Defaults to 0
     :type avg_pool: int, tuple, or list, optional
 
     :param threshold: Threshold for :math:`mem` to reach in order to
-    generate a spike `S=1`. Defaults to 1
+        generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
     :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to a
-    straight-through-estimator
+        straight-through-estimator
     :type spike_grad: surrogate gradient function from snntorch.surrogate,
-    optional
+        optional
 
     :param learn_threshold: Option to enable learnable threshold. Defaults
-    to False
+        to False
     :type learn_threshold: bool, optional
 
     :param init_hidden: Instantiates state variables as instance variables.
-    Defaults to False
+        Defaults to False
     :type init_hidden: bool, optional
 
     :param inhibition: If `True`, suppresses all spiking other than the
-    neuron with the highest state. Defaults to False
+        neuron with the highest state. Defaults to False
     :type inhibition: bool, optional
 
     :param reset_mechanism: Defines the reset mechanism applied to
     :math:`mem` each time the threshold is met. Reset-by-subtraction:
-    "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
+        "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden states :math:`mem` and
     :math:`syn` are quantized to a valid state for the forward pass.
-    Defaults to False
+        Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
     :param output: If `True` as well as `init_hidden=True`, states are
-    returned when neuron is called. Defaults to False
+        returned when neuron is called. Defaults to False
     :type output: bool, optional
 
 
