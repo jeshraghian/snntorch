@@ -52,26 +52,26 @@ def load_jaer(
     * polarity (0/1)
 
     :param datafile: path to the file to read, defaults to
-    ``"/tmp/aerout.dat"``
+        ``"/tmp/aerout.dat"``
     :type datafile: string, optional
 
     :param length: how many bytes should be read, defaults to 0 (whole file)
     :type length: int, optional
 
     :param version: which file format version is used ("aedat" for v2 or "dat"
-    for v1), defaults to ``"aedat"``
+        for v1), defaults to ``"aedat"``
     :type version: string, optional
 
     :param debug: 0 = silent, 1 = print summary, >=2 = print all debug,
-    defaults to ``1``
+        defaults to ``1``
     :type debug: int, optional
 
     :param camera: which event-based camera is used ("DVS128" or "DAVIS240"),
-    defaults to ``"DVS128"11
+        defaults to ``"DVS128"11
     :type camera: string, optional
 
     :return: (ts, xpos, ypos, pol) 4-typle of lists containing data of all
-    events
+        events
     :rtype: tuple
 
     """
