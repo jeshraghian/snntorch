@@ -34,7 +34,7 @@ class Alpha(LIF):
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise
-    :math:`R = 0`
+        :math:`R = 0`
     * :math:`α` - Excitatory current decay rate
     * :math:`β` - Inhibitory current decay rate
     * :math:`τ_{\\rm α} = \\frac{log(α)}{log(β)} - log(α) + 1`
