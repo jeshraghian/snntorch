@@ -26,13 +26,13 @@ class RSynaptic(LIF):
     operator, or elementwise product on :math:`S_{\\rm out}`.
 
     * If `all_to_all = "True"` and `linear_features` is specified, then
-    :math:`V(\\cdot)` acts as a recurrent linear layer of the same size as
-    :math:`S_{\\rm out}`.
+        :math:`V(\\cdot)` acts as a recurrent linear layer of the same size as
+        :math:`S_{\\rm out}`.
     * If `all_to_all = "True"` and `conv2d_channels` and `kernel_size` are
-    specified, then :math:`V(\\cdot)` acts as a recurrent convlutional layer
-    with padding to ensure the output matches the size of the input.
+        specified, then :math:`V(\\cdot)` acts as a recurrent convlutional
+        layer with padding to ensure the output matches the size of the input.
     * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an
-    elementwise multiplier with :math:`V`.
+        elementwise multiplier with :math:`V`.
 
     If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
     whenever the neuron emits a spike:
@@ -49,7 +49,7 @@ class RSynaptic(LIF):
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`S_{\\rm out}` - Output spike
     * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
-    :math:`R = 0`
+        :math:`R = 0`
     * :math:`α` - Synaptic current decay rate
     * :math:`β` - Membrane potential decay rate
     * :math:`V` - Explicit recurrent weight
@@ -91,55 +91,55 @@ class RSynaptic(LIF):
 
 
     :param alpha: synaptic current decay rate. Clipped between 0 and 1
-    during the forward-pass. May be a single-valued tensor (i.e., equal
-    decay rate for all neurons in a layer), or multi-valued (one weight per
-    neuron).
+        during the forward-pass. May be a single-valued tensor (i.e., equal
+        decay rate for all neurons in a layer), or multi-valued (one weight per
+        neuron).
     :type alpha: float or torch.tensor
 
     :param beta: membrane potential decay rate. Clipped between 0 and 1
-    during the forward-pass. May be a single-valued tensor (i.e., equal
-    decay rate for all neurons in a layer), or multi-valued (one weight per
-    neuron).
+        during the forward-pass. May be a single-valued tensor (i.e., equal
+        decay rate for all neurons in a layer), or multi-valued (one weight per
+        neuron).
     :type beta: float or torch.tensor
 
     :param V: Recurrent weights to scale output spikes, only used when
-    `all_to_all=False`. Defaults to 1.
+        `all_to_all=False`. Defaults to 1.
     :type V: float or torch.tensor
 
     :param all_to_all: Enables output spikes to be connected in dense or
-    convolutional recurrent structures instead of 1-to-1 connections.
-    Defaults to True.
+        convolutional recurrent structures instead of 1-to-1 connections.
+        Defaults to True.
     :type all_to_all: bool, optional
 
     :param linear_features: Size of each output sample. Must be specified if
-    `all_to_all=True` and the input data is 1D. Defaults to None
+        `all_to_all=True` and the input data is 1D. Defaults to None
     :type linear_features: int, optional
 
     :param conv2d_channels: Number of channels in each output sample. Must
-    be specified if `all_to_all=True` and the input data is 3D. Defaults to
-    None
+        be specified if `all_to_all=True` and the input data is 3D. Defaults to
+        None
     :type conv2d_channels: int, optional
 
     :param kernel_size:  Size of the convolving kernel. Must be specified if
-    `all_to_all=True` and the input data is 3D. Defaults to None
+        `all_to_all=True` and the input data is 3D. Defaults to None
     :type kernel_size: int or tuple
 
     :param threshold: Threshold for :math:`mem` to reach in order to
-    generate a spike `S=1`. Defaults to 1
+        generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
     :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to
-    None (corresponds to Heaviside surrogate gradient. See
-    `snntorch.surrogate` for more options)
+        None (corresponds to Heaviside surrogate gradient. See
+        `snntorch.surrogate` for more options)
     :type spike_grad: surrogate gradient function from snntorch.surrogate,
-    optional
+        optional
 
     :param init_hidden: Instantiates state variables as instance variables.
-    Defaults to False
+        Defaults to False
     :type init_hidden: bool, optional
 
     :param inhibition: If `True`, suppresses all spiking other than the
-    neuron with the highest state. Defaults to False
+        neuron with the highest state. Defaults to False
     :type inhibition: bool, optional
 
     :param learn_alpha: Option to enable learnable alpha. Defaults to False
@@ -149,25 +149,25 @@ class RSynaptic(LIF):
     :type learn_beta: bool, optional
 
     :param learn_recurrent: Option to enable learnable recurrent weights.
-    Defaults to True
+        Defaults to True
     :type learn_recurrent: bool, optional
 
     :param learn_threshold: Option to enable learnable threshold.
-    Defaults to False
+        Defaults to False
     :type learn_threshold: bool, optional
 
     :param reset_mechanism: Defines the reset mechanism applied to
     :math:`mem` each time the threshold is met. Reset-by-subtraction:
-    "subtract", reset-to-zero: "zero, none: "none". Defaults to "subtract"
+        "subtract", reset-to-zero: "zero, none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden states :math:`mem` and
     :math:`syn` are quantized to a valid state for the forward pass.
-    Defaults to False
+        Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
     :param output: If `True` as well as `init_hidden=True`, states are
-    returned when neuron is called. Defaults to False
+        returned when neuron is called. Defaults to False
     :type output: bool, optional
 
 

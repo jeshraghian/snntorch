@@ -34,7 +34,7 @@ class Alpha(LIF):
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise
-    :math:`R = 0`
+        :math:`R = 0`
     * :math:`α` - Excitatory current decay rate
     * :math:`β` - Inhibitory current decay rate
     * :math:`τ_{\\rm α} = \\frac{log(α)}{log(β)} - log(α) + 1`
@@ -165,7 +165,11 @@ class Alpha(LIF):
             self._alpha_forward_cases(mem, syn_exc, syn_inh)
 
             self.reset = self.mem_reset(self.mem)
-            self.syn_exc, self.syn_inh, self.mem = self._build_state_function_hidden(input_)
+            (
+                self.syn_exc,
+                self.syn_inh,
+                self.mem,
+            ) = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.syn_exc = self.state_quant(self.syn_exc)

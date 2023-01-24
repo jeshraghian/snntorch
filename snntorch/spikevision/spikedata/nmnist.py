@@ -115,33 +115,33 @@ class NMNIST(NeuromorphicDataset):
         AADSKgJ2CjaBWh75HnTNZyhca/Test.zip?dl=0>`_
 
     :param root: Root directory of dataset where ``Train.zip`` and
-    ``Test.zip`` exist.
+        ``Test.zip`` exist.
     :type root: string
 
     :param train: If True, creates dataset from ``Train.zip``,
-    otherwise from ``Test.zip``
+        otherwise from ``Test.zip``
     :type train: bool, optional
 
     :param transform: A function/transform that takes in a PIL image
-    and returns a transforms version. By default, a pre-defined set of
-    transforms are applied to all samples to convert them into a
-    time-first tensor with correct orientation.
+        and returns a transforms version. By default, a pre-defined set of
+        transforms are applied to all samples to convert them into a
+        time-first tensor with correct orientation.
     :type transform: callable, optional
 
     :param target_transform: A function/transform that takes in the
-    target and transforms it.
+        target and transforms it.
     :type target_transform: callable, optional
 
     :param download_and_create: If True, downloads the dataset from
-    the internet and puts it in root directory. If dataset is already
-    downloaded, it is not downloaded again.
+        the internet and puts it in root directory. If dataset is already
+        downloaded, it is not downloaded again.
     :type download_and_create: bool, optional
 
     :param num_steps: Number of time steps, defaults to ``300``
     :type num_steps: int, optional
 
     :param dt: Number of time stamps integrated in microseconds,
-    defaults to ``1000``
+        defaults to ``1000``
     :type dt: int, optional
 
     Dataloader adapted from `torchneuromorphic
@@ -151,6 +151,7 @@ class NMNIST(NeuromorphicDataset):
     The dataset is released under the Creative Commons
     Attribution-ShareAlike 4.0 license. All rights remain
     with the original authors.
+
     """
 
     _resources_url = [

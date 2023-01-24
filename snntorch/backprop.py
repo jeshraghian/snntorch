@@ -61,9 +61,9 @@ def TBPTT(
 
         # train_loader is of type torch.utils.data.DataLoader
         # if input data is time-static, set time_var=False, and specify
-        num_steps.
+        # num_steps.
         # if input data is time-varying, set time_var=True and do not
-        specify num_steps.
+        # specify num_steps.
         # backprop is automatically applied every K=40 time steps
 
         for epoch in range(5):
@@ -73,7 +73,7 @@ def TBPTT(
 
 
     :param net: Network model (either wrapped in Sequential container or as a
-    class)
+        class)
     :type net: torch.nn.modules.container.Sequential
 
     :param dataloader: DataLoader containing data and targets
@@ -83,32 +83,32 @@ def TBPTT(
     :type optimizer: torch.optim
 
     :param criterion: Loss criterion from snntorch.functional, e.g.,
-    snn.functional.mse_count_loss()
+        snn.functional.mse_count_loss()
     :type criterion: snn.functional.LossFunctions
 
     :param num_steps: Number of time steps. Does not need to be
-    specified if ``time_var=True``.
+        specified if ``time_var=True``.
     :type num_steps: int, optional
 
     :param time_var: Set to ``True`` if input data is time-varying
-    [T x B x dims]. Otherwise, set to false if input data is time-static
-    [B x dims], defaults to ``True``
+        [T x B x dims]. Otherwise, set to false if input data is time-static
+        [B x dims], defaults to ``True``
     :type time_var: Bool, optional
 
     :param time_first: Set to ``False`` if first dimension of data is not
-    time [B x T x dims] AND must also be permuted to [T x B x dims],
-    defaults to ``True``
+        time [B x T x dims] AND must also be permuted to [T x B x dims],
+        defaults to ``True``
     :type time_first: Bool, optional
 
     :param regularization: Option to add a regularization term to the loss
-    function
+        function
     :type regularization: snn.functional regularization function, optional
 
     :param device: Specify either "cuda" or "cpu", defaults to "cpu"
     :type device: string, optional
 
     :param K: Number of time steps to process per weight update, defaults
-    to ``1``
+        to ``1``
     :type K: int, optional
 
     :return: return average loss for one epoch
@@ -422,9 +422,9 @@ def BPTT(
 
         # train_loader is of type torch.utils.data.DataLoader
         # if input data is time-static, set time_var=False, and specify
-        num_steps.
+        # num_steps.
         # if input data is time-varying, set time_var=True and do not
-        specify num_steps.
+        # specify num_steps.
 
         for epoch in range(5):
             loss = backprop.RTRL(net, train_loader, optimizer=optimizer,
@@ -433,7 +433,7 @@ def BPTT(
 
 
     :param net: Network model (either wrapped in Sequential container or as
-    a class)
+        a class)
     :type net: torch.nn.modules.container.Sequential
 
     :param dataloader: DataLoader containing data and targets
@@ -443,25 +443,25 @@ def BPTT(
     :type optimizer: torch.optim
 
     :param criterion: Loss criterion from snntorch.functional, e.g.,
-    snn.functional.mse_count_loss()
+        snn.functional.mse_count_loss()
     :type criterion: snn.functional.LossFunctions
 
     :param num_steps: Number of time steps. Does not need to be specified if
-    ``time_var=True``.
+        ``time_var=True``.
     :type num_steps: int, optional
 
     :param time_var: Set to ``True`` if input data is time-varying
-    [T x B x dims]. Otherwise, set to false if input data is time-static
-    [B x dims], defaults to ``True``
+        [T x B x dims]. Otherwise, set to false if input data is time-static
+        [B x dims], defaults to ``True``
     :type time_var: Bool, optional
 
     :param time_first: Set to ``False`` if first dimension of data is not
-    time [B x T x dims] AND must also be permuted to [T x B x dims],
-    defaults to ``True``
+        time [B x T x dims] AND must also be permuted to [T x B x dims],
+        defaults to ``True``
     :type time_first: Bool, optional
 
     :param regularization: Option to add a regularization term to the loss
-    function
+        function
     :type regularization: snn.functional regularization function, optional
 
     :param device: Specify either "cuda" or "cpu", defaults to "cpu"
@@ -543,7 +543,7 @@ def RTRL(
 
 
     :param net: Network model (either wrapped in Sequential container or as
-    a class)
+        a class)
     :type net: torch.nn.modules.container.Sequential
 
     :param dataloader: DataLoader containing data and targets
@@ -553,33 +553,33 @@ def RTRL(
     :type optimizer: torch.optim
 
     :param criterion: Loss criterion from snntorch.functional, e.g.,
-    snn.functional.mse_count_loss()
+        snn.functional.mse_count_loss()
     :type criterion: snn.functional.LossFunctions
 
     :param num_steps: Number of time steps. Does not need to be specified
-    if ``time_var=True``.
+        if ``time_var=True``.
     :type num_steps: int, optional
 
     :param time_var: Set to ``True`` if input data is time-varying
-    [T x B x
-    dims]. Otherwise, set to false if input data is time-static [B x dims],
-    defaults to ``True``
+        [T x B x
+        dims]. Otherwise, set to false if input data is time-static [B x dims],
+        defaults to ``True``
     :type time_var: Bool, optional
 
     :param time_first: Set to ``False`` if first dimension of data is not
-    time [B x T x dims] AND must also be permuted to [T x B x dims],
-    defaults to ``True``
+        time [B x T x dims] AND must also be permuted to [T x B x dims],
+        defaults to ``True``
     :type time_first: Bool, optional
 
     :param regularization: Option to add a regularization term to the loss
-    function
+        function
     :type regularization: snn.functional regularization function, optional
 
     :param device: Specify either "cuda" or "cpu", defaults to "cpu"
     :type device: string, optional
 
     :param K: Number of time steps to process per weight update, defaults
-    to ``1``
+        to ``1``
     :type K: int, optional
 
     :return: return average loss for one epoch

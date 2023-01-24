@@ -334,6 +334,7 @@ class hflip(object):
 
     Returns:
         PIL Image or Tensor:  Horizontally flipped image.
+
     """
 
     def __call__(self, target):
@@ -391,6 +392,7 @@ class ToTensor(object):
             frame (numpy.ndarray): numpy array of frames
         Returns:
             Tensor: Converted data.
+
         """
         return torch.FloatTensor(frame).to(self.device)
 

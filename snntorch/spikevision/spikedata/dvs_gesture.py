@@ -119,30 +119,30 @@ class DVSGesture(NeuromorphicDataset):
     :type root: string
 
     :param train: If True, creates dataset from training set of dvsgesture,
-    otherwise test set.
+        otherwise test set.
     :type train: bool, optional
 
     :param transform: A function/transform that takes in a PIL image and
-    returns a transforms version. By default, a pre-defined set of transforms
-    are applied to all samples to convert them into a time-first tensor with
-    correct orientation.
+        returns a transforms version. By default, a pre-defined set of
+        transforms are applied to all samples to convert them into a
+        time-first tensor with correct orientation.
     :type transform: callable, optional
 
     :param target_transform: A function/transform that takes in the target
-    and transforms it.
+        and transforms it.
     :type target_transform: callable, optional
 
     :param download_and_create: If True, downloads the dataset from the
-    internet and puts it in root directory. If dataset is already downloaded,
-    it is not downloaded again.
+        internet and puts it in root directory. If dataset is already
+        downloaded, it is not downloaded again.
     :type download_and_create: bool, optional
 
     :param num_steps: Number of time steps, defaults to ``500``
-    for train set, or ``1800`` for test set
+        for train set, or ``1800`` for test set
     :type num_steps: int, optional
 
     :param dt: The number of time stamps integrated in microseconds,
-    defaults to ``1000``
+        defaults to ``1000``
     :type dt: int, optional
 
     :param ds: Rescaling factor, defaults to ``1``.
@@ -152,7 +152,7 @@ class DVSGesture(NeuromorphicDataset):
     :type return_meta: bool, optional
 
     :time_shuffle: Option to randomize start time of dataset, defaults to
-    ``False``
+        ``False``
     :type time_shuffle: bool, optional
 
     Dataloader adapted from `torchneuromorphic
