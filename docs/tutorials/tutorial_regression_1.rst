@@ -49,11 +49,11 @@ An overview of the regression tutorial series:
    firing time of a neuron.
 
 
-.. code:: ipython3
+::
 
     !pip install snntorch --quiet
 
-.. code:: ipython3
+::
 
     # imports
     import snntorch as snn
@@ -76,7 +76,7 @@ An overview of the regression tutorial series:
 
 Fix the random seed:
 
-.. code:: ipython3
+::
 
     # Seed
     torch.manual_seed(0)
@@ -159,7 +159,7 @@ root of this straight line is taken instead.
 Our goal: train a leaky integrate-and-fire neuron such that its membrane
 potential follows the sample over time.
 
-.. code:: ipython3
+::
 
     class RegressionDataset(torch.utils.data.Dataset):
         """Simple regression dataset."""
@@ -200,7 +200,7 @@ potential follows the sample over time.
 
 To see what a random sample looks like, run the following code-block:
 
-.. code:: ipython3
+::
 
     num_steps = 50
     num_samples = 1
@@ -230,7 +230,7 @@ DataLoader will serve it up in batches. DataLoaders in PyTorch are a
 handy interface for passing data into a network. They return an iterator
 divided up into mini-batches of size ``batch_size``.
 
-.. code:: ipython3
+::
 
     batch_size = 1 # only one sample to learn
     dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, drop_last=True)
@@ -253,7 +253,7 @@ A few notes on the architecture below:
 -  The output layer has the reset mechanism disabled by setting
    ``reset_mechanism="none"`` as we will not use any output spikes
 
-.. code:: ipython3
+::
 
     class Net(torch.nn.Module):
         """Simple spiking neural network in snntorch."""
@@ -318,7 +318,7 @@ A few notes on the architecture below:
 
 Instantiate the network below:
 
-.. code:: ipython3
+::
 
     hidden = 128
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -328,7 +328,7 @@ Instantiate the network below:
 Let’s observe the behavior of the output neuron before it has been
 trained and how it compares to the target function:
 
-.. code:: ipython3
+::
 
     train_batch = iter(dataloader)
     
@@ -365,7 +365,7 @@ the membrane potential and the target evolution.
 
 We iterate over the same sample of data.
 
-.. code:: ipython3
+::
 
     num_iter = 100 # train for 100 iterations
     optimizer = torch.optim.Adam(params=model.parameters(), lr=1e-3)
@@ -405,7 +405,7 @@ We iterate over the same sample of data.
 5. Evaluation
 ------------------------
 
-.. code:: ipython3
+::
 
     loss_function = torch.nn.L1Loss() # Use L1 loss instead
     
@@ -450,14 +450,14 @@ We iterate over the same sample of data.
     print(f"{'Mean rel. err.:':<{20}}{mean_rel:1.2e}")
 
 
-.. code:: ipython3
+::
 
     >> Mean L1-loss:       1.22e-02
     >> Mean rel. err.:     2.84e-02
 
 Let’s plot our results for some visual intuition:
 
-.. code:: ipython3
+::
 
     mem = mem.cpu()
     label = label.cpu()
