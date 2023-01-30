@@ -37,7 +37,9 @@ class LossFunctions:
                 f"of num_classes {num_classes}."
             )
         device = spk_out.device
-        pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(device)
+        pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(
+            device
+        )
         for idx in range(num_classes):
             pop_code[:, idx] = (
                 spk_out[
@@ -125,13 +127,13 @@ class ce_count_loss(LossFunctions):
         loss = loss_fn(spk_out, targets)
 
     :param population_code: Specify if a population code is applied, i.e.,
-    the number of outputs is greater than the number of classes. Defaults
-    to ``False``
+        the number of outputs is greater than the number of classes. Defaults
+        to ``False``
     :type population_code: bool, optional
 
     :param num_classes: Number of output classes must be specified if
-    ``population_code=True``. Must be a factor of the number of output
-    neurons if population code is enabled. Defaults to ``False``
+        ``population_code=True``. Must be a factor of the number of output
+        neurons if population code is enabled. Defaults to ``False``
     :type num_classes: int, optional
 
     :return: Loss
@@ -220,23 +222,23 @@ class mse_count_loss(LossFunctions):
 
 
     :param correct_rate: Firing frequency of correct class as a ratio, e.g.,
-    ``1`` promotes firing at every step; ``0.5`` promotes firing at 50% of
-    steps, ``0`` discourages any firing, defaults to ``1``
+        ``1`` promotes firing at every step; ``0.5`` promotes firing at 50% of
+        steps, ``0`` discourages any firing, defaults to ``1``
     :type correct_rate: float, optional
 
     :param incorrect_rate: Firing frequency of incorrect class(es) as a
-    ratio, e.g., ``1`` promotes firing at every step; ``0.5`` promotes
-    firing at 50% of steps, ``0`` discourages any firing, defaults to ``1``
+        ratio, e.g., ``1`` promotes firing at every step; ``0.5`` promotes
+        firing at 50% of steps, ``0`` discourages any firing, defaults to ``1``
     :type incorrect_rate: float, optional
 
     :param population_code: Specify if a population code is applied, i.e., the
-    number of outputs is greater than the number of classes. Defaults to
-    ``False``
+        number of outputs is greater than the number of classes. Defaults to
+        ``False``
     :type population_code: bool, optional
 
     :param num_classes: Number of output classes must be specified if
-    ``population_code=True``. Must be a factor of the number of output neurons
-    if population code is enabled. Defaults to ``False``
+        ``population_code=True``. Must be a factor of the number of output
+        neurons if population code is enabled. Defaults to ``False``
     :type num_classes: int, optional
 
     :return: Loss
@@ -321,15 +323,15 @@ class mse_membrane_loss(LossFunctions):
         loss = loss_fn(outputs, targets)
 
     :param time_var_targets: Specifies whether the targets are time-varying,
-    defaults to ``False``
+        defaults to ``False``
     :type correct_rate: bool, optional
 
     :param on_target: Specify target membrane potential for correct class,
-    defaults to ``1``
+        defaults to ``1``
     :type on_target: float, optional
 
     :param off_target: Specify target membrane potential for incorrect class,
-    defaults to ``0``
+        defaults to ``0``
     :type off_target: float, optional
 
     :return: Loss
@@ -694,30 +696,32 @@ class mse_temporal_loss:
 
 
     :param target_is_time: Specify if target is specified as spike times
-    (True) or as neuron indexes (False). Defaults to ``False``
+        (True) or as neuron indexes (False). Defaults to ``False``
     :type target_is_time: bool, optional
 
     :param on_target: Spike time for correct classes
-    (only if target_is_time=False). Defaults to ``0``
+        (only if target_is_time=False). Defaults to ``0``
     :type on_target: int
-    (or interable over multiple int if ``multi_spike=True``), optional
+        (or interable over multiple int if ``multi_spike=True``), optional
 
     :param off_target: Spike time for incorrect classes
-    (only if target_is_time=False). Defaults to ``-1``, i.e., final time step
+        (only if target_is_time=False).
+        Defaults to ``-1``, i.e., final time step
     :type off_target: int (or interable over multiple int if
-    ``multi_spike=True``), optional
+        ``multi_spike=True``), optional
 
     :param tolerance: If the distance between the spike time and target is
-    less than the specified tolerance, then it does not contribute to the
-    loss. Defaults to ``0``.
+        less than the specified tolerance, then it does not contribute to the
+        loss. Defaults to ``0``.
     :type tolerance: int, optional
 
     :param multi_spike: Specify if multiple spikes in target. Defaults to
-    ``False``
+        ``False``
     :type multi_spike: bool, optional
 
     :return: Loss
     :rtype: torch.Tensor (single element)
+
     """
 
     def __init__(
@@ -781,8 +785,8 @@ class ce_temporal_loss:
         loss = loss_fn(spk_out, targets)
 
     :param inverse: Specify how to invert output before taking cross
-    enrtopy. Either scale by (-1 * x) with ``inverse='negate'`` or take the
-    reciprocal (1/x) with ``inverse='reciprocal'``. Defaults to ``negate``
+        enrtopy. Either scale by (-1 * x) with ``inverse='negate'`` or take the
+        reciprocal (1/x) with ``inverse='reciprocal'``. Defaults to ``negate``
     :type inverse: str, optional
 
     :return: Loss

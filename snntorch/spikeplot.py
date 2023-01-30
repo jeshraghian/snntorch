@@ -40,20 +40,20 @@ def animator(data, fig, ax, num_steps=False, interval=40, cmap="plasma"):
         anim.save("spike_mnist.gif")
 
     :param data: Data tensor for a single sample across time steps of
-    shape [num_steps x input_size]
+        shape [num_steps x input_size]
     :type data: torch.Tensor
 
     :param fig: Top level container for all plot elements
     :type fig: matplotlib.figure.Figure
 
     :param ax: Contains additional figure elements and sets the coordinate
-    system. E.g.:
-        fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
+        system. E.g.:
+            fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
     :type ax: matplotlib.axes._subplots.AxesSubplot
 
     :param num_steps: Number of time steps to plot. If not specified,
-    the number of entries in the first dimension
-        of ``data`` will automatically be used, defaults to ``False``
+        the number of entries in the first dimension
+            of ``data`` will automatically be used, defaults to ``False``
     :type num_steps: int, optional
 
     :param interval: Delay between frames in milliseconds, defaults to ``40``
@@ -170,15 +170,15 @@ def spike_count(
         anim.save("spike_bar.gif")
 
     :param data: Sample of spiking data across numerous time steps [num_steps
-    x num_outputs]
+        x num_outputs]
     :type data: torch.Tensor
 
     :param fig: Top level container for all plot elements
     :type fig: matplotlib.figure.Figures
 
     :param ax: Contains additional figure elements and sets the coordinate
-    system.
-        E.g., fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
+        system.
+            E.g., fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
     :type ax: matplotlib.axes._subplots.AxesSubplot
 
     :param labels: List of strings of the names of the output labels.
@@ -186,27 +186,27 @@ def spike_count(
     :type labels: list
 
     :param num_steps: Number of time steps to plot. If not specified, the
-    number of entries in the first dimension
-        of ``data`` will automatically be used, defaults to ``False``
+        number of entries in the first dimension
+            of ``data`` will automatically be used, defaults to ``False``
     :type num_steps: int, optional
 
     :param animate: If ``True``, return type matplotlib.animation.
-    ArtistAnimation sequentially scanning across the
-        range of time steps available in ``data``.
-        If ``False``, display plot of the final step once all spikes have
-        been counted, defaults to ``False``
+        ArtistAnimation sequentially scanning across the
+            range of time steps available in ``data``.
+            If ``False``, display plot of the final step once all spikes have
+            been counted, defaults to ``False``
     :type animate: Bool, optional
 
     :param interpolate: Can be increased to smooth the animation of the
-    vertical time bar. The value passed is the
-        interpolation factor:
-        e.g., ``interpolate=1`` results in no additional interpolation.
-        e.g., ``interpolate=5`` results in 4 additional frames for each
-        time step, defaults to ``1``
+        vertical time bar. The value passed is the
+            interpolation factor:
+            e.g., ``interpolate=1`` results in no additional interpolation.
+            e.g., ``interpolate=5`` results in 4 additional frames for each
+            time step, defaults to ``1``
     :type interpolate: int, optional
 
     :param gridshader: Applies shading to figure background to distinguish
-    output classes, defaults to ``True``
+        output classes, defaults to ``True``
     :type gridshader: Bool, optional
 
     :param interval: Delay between frames in milliseconds, defaults to ``25``
@@ -288,11 +288,11 @@ def traces(data, spk=None, dim=(3, 3), spk_height=5, titles=None):
 
 
     :param data: Data tensor for neuron traces across time steps of shape
-    [num_steps x num_neurons]
+        [num_steps x num_neurons]
     :type data: torch.Tensor
 
     :param spk: Data tensor for neuron traces across time steps of shape
-    [num_steps x num_neurons], defaults to ``None``
+        [num_steps x num_neurons], defaults to ``None``
     :type spk: torch.Tensor, optional
 
     :param dim: Dimensions of figure, defaults to ``(3, 3)``

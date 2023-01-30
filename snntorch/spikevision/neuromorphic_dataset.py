@@ -26,11 +26,12 @@ def download_url(url, root, filename=None, md5=None, total_size=None):
     :type root: string
 
     :param filename: Name to save the file under. If None, use the
-    basename of the URL
+        basename of the URL
     :type filename: string, optional
 
     :param md5: MD5 checksum of the download. If None, do not check
     :type md5: string, optional
+
     """
 
     from six.moves import urllib

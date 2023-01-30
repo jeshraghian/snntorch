@@ -34,7 +34,7 @@ class Lapicque(LIF):
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`T`- duration of each time step
     * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
-    :math:`R = 0`
+        :math:`R = 0`
     * :math:`β` - Membrane potential decay rate
 
     Alternatively, the membrane potential decay rate β can be
@@ -46,17 +46,18 @@ class Lapicque(LIF):
 
     * :math:`β` - Membrane potential decay rate
     * :math:`R` - Parallel resistance of passive membrane
-    (note: distinct from the reset :math:`R`)
+        (note: distinct from the reset :math:`R`)
     * :math:`C` - Parallel capacitance of passive membrane
 
     * If only β is defined, then R will default to 1, and C will be inferred.
     * If RC is defined, β will be automatically calculated.
     * If (β and R) or (β and C) are defined, the missing variable will be
-    automatically calculated.
+        automatically calculated.
 
     * Note that β, R and C are treated as `hard-wired' physically
-    plausible parameters, and are therefore not learnable. For a
-    single-state neuron with a learnable decay rate β, use `snn.Leaky` instead.
+        plausible parameters, and are therefore not learnable. For a
+        single-state neuron with a learnable decay rate β,
+        use `snn.Leaky` instead.
 
     Example::
 
@@ -105,8 +106,8 @@ class Lapicque(LIF):
 
 
     :param beta: RC potential decay rate. Clipped between 0 and 1 during the
-    forward-pass. May be a single-valued tensor (i.e., equal decay rate for
-    all neurons in a layer), or multi-valued (one weight per neuron).
+        forward-pass. May be a single-valued tensor (i.e., equal decay rate for
+        all neurons in a layer), or multi-valued (one weight per neuron).
     :type beta: float or torch.tensor, Optional
 
     :param R: Resistance of RC circuit
@@ -119,41 +120,41 @@ class Lapicque(LIF):
     :type time_step: float, Optional
 
     :param threshold: Threshold for :math:`mem` to reach in order to
-    generate a spike `S=1`. Defaults to 1
+        generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
     :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to
-    None (corresponds to Heaviside surrogate gradient. See
-    `snntorch.surrogate` for more options)
+        None (corresponds to Heaviside surrogate gradient. See
+        `snntorch.surrogate` for more options)
     :type spike_grad: surrogate gradient function from snntorch.surrogate,
-    optional
+        optional
 
     :param init_hidden: Instantiates state variables as instance variables.
-    Defaults to False
+        Defaults to False
     :type init_hidden: bool, optional
 
     :param inhibition: If `True`, suppresses all spiking other than the
-    neuron with the highest state. Defaults to False
+        neuron with the highest state. Defaults to False
     :type inhibition: bool, optional
 
     :param learn_beta: Option to enable learnable beta. Defaults to False
     :type learn_beta: bool, optional
 
     :param learn_threshold: Option to enable learnable threshold. Defaults
-    to False
+        to False
     :type learn_threshold: bool, optional
 
     :param reset_mechanism: Defines the reset mechanism applied to
     :math:`mem` each time the threshold is met. Reset-by-subtraction:
-    "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
+        "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden state :math:`mem` is
-    quantized to a valid state for the forward pass. Defaults to False
+        quantized to a valid state for the forward pass. Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
     :param output: If `True` as well as `init_hidden=True`, states are
-    returned when neuron is called. Defaults to False
+        returned when neuron is called. Defaults to False
     :type output: bool, optional
 
 

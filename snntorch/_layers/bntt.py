@@ -143,11 +143,11 @@ def BatchNormTT2d(
     :type eps: float
 
     :param momentum: the value used for the running_mean and running_var
-    computation
+        computation
     :type momentum: float
 
     :param affine: a boolean value that when set to True, the Batch Norm
-    layer will have learnable affine parameters
+        layer will have learnable affine parameters
     :type affine: bool
 
     Inputs: input_features, time_steps

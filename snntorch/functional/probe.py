@@ -95,15 +95,15 @@ class OutputMonitor(BaseMonitor):
             print(f"monitor['lif1']={monitor['lif1']}")
 
     :param net: Network model (either wrapped in Sequential container or
-    as a class)
+        as a class)
     :type net: nn.Module
 
     :param instance: Instance of modules to be monitored. If ``None``,
-    defaults to ``type(net)``
+        defaults to ``type(net)``
     :type instance: Any or tuple
 
     :param function_on_output: Function that is applied to the monitored
-    modules' outputs
+        modules' outputs
     :type function_on_output: Callable, optional
 
     """
@@ -179,16 +179,17 @@ class InputMonitor(BaseMonitor):
             print(f"monitor['lif1']={monitor['lif1']}")
 
     :param net: Network model (either wrapped in Sequential container
-    or as a class)
+        or as a class)
     :type net: nn.Module
 
     :param instance: Instance of modules to be monitored. If ``None``,
-    defaults to ``type(net)``
+        defaults to ``type(net)``
     :type instance: Any or tuple
 
     :param function_on_input: Function that is applied to the monitored
-    modules' input
+        modules' input
     :type function_on_input: Callable, optional
+
     """
 
     def __init__(
@@ -264,24 +265,25 @@ class AttributeMonitor(BaseMonitor):
             print(f"monitor['lif1']={monitor['lif1']}")
 
     :param attribute_name: Attribute's name of probed neuron layer
-    (e.g., mem, syn, etc.)
+        (e.g., mem, syn, etc.)
     :type net: str
 
     :param pre_forward: If ``True``, record the attribute value before
-    the forward pass, otherwise record the value after forward pass.
+        the forward pass, otherwise record the value after forward pass.
     :type pre_forward: bool
 
     :param net: Network model (either wrapped in Sequential container or
-    as a class)
+        as a class)
     :type net: nn.Module
 
     :param instance: Instance of modules to be monitored. If ``None``,
-    defaults to ``type(net)``
+        defaults to ``type(net)``
     :type instance: Any or tuple
 
     :param function_on_attribute: Function that is applied to the
-    monitored modules' attribute
+        monitored modules' attribute
     :type function_on_attribute: Callable, optional
+
     """
 
     def __init__(
@@ -367,16 +369,17 @@ class GradInputMonitor(BaseMonitor):
             print(f"monitor['lif1']={monitor['lif1']}")
 
     :param net: Network model (either wrapped in Sequential container or
-    as a class)
+        as a class)
     :type net: nn.Module
 
     :param instance: Instance of modules to be monitored. If ``None``,
-    defaults to ``type(net)``
+        defaults to ``type(net)``
     :type instance: Any or tuple
 
     :param function_on_grad_input: Function that is applied to the
-    monitored modules' gradients
+        monitored modules' gradients
     :type function_on_grad_input: Callable, optional
+
     """
 
     def __init__(
@@ -459,16 +462,17 @@ class GradOutputMonitor(BaseMonitor):
             print(f"mtor['lif1']={mtor['lif1']}")
 
     :param net: Network model (either wrapped in Sequential container
-    or as a class)
+        or as a class)
     :type net: nn.Module
 
     :param instance: Instance of modules to be monitored. If ``None``,
-    defaults to ``type(net)``
+        defaults to ``type(net)``
     :type instance: Any or tuple
 
     :param function_on_grad_output: Function that is applied to the
-    monitored modules' gradients
+        monitored modules' gradients
     :type function_on_grad_output: Callable, optional
+
     """
 
     def __init__(
