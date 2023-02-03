@@ -373,7 +373,7 @@ The cross-entropy between :math:`p_i` and the target
 :math:`y_i \in \{0,1\}^C`, which is a one-hot target vector, is obtained
 using:
 
-.. math:: \mathcal{L}_{CE}[t] = \sum_{i=0}^Cy_i{\rm log}(p_i[t]) \tag{9}
+.. math:: \mathcal{L}_{CE}[t] = -\sum_{i=0}^Cy_i{\rm log}(p_i[t]) \tag{9}
 
 The practical effect is that the membrane potential of the correct class
 is encouraged to increase while those of incorrect classes are reduced. In effect, this means the correct class is encouraged to fire
