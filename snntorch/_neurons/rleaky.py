@@ -45,7 +45,7 @@ class RLeaky(LIF):
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`S_{\\rm out}` - Output spike
-    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
+    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise \
         :math:`R = 0`
     * :math:`β` - Membrane potential decay rate
     * :math:`V` - Explicit recurrent weight
