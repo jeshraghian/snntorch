@@ -25,13 +25,13 @@ class RSynaptic(LIF):
     Where :math:`V(\\cdot)` acts either as a linear layer, a convolutional
     operator, or elementwise product on :math:`S_{\\rm out}`.
 
-    * If `all_to_all = "True"` and `linear_features` is specified, then
-        :math:`V(\\cdot)` acts as a recurrent linear layer of the same size as
-        :math:`S_{\\rm out}`.
-    * If `all_to_all = "True"` and `conv2d_channels` and `kernel_size` are
-        specified, then :math:`V(\\cdot)` acts as a recurrent convlutional
+    * If `all_to_all = "True"` and `linear_features` is specified, then \
+        :math:`V(\\cdot)` acts as a recurrent linear layer of the same size \
+        as :math:`S_{\\rm out}`.
+    * If `all_to_all = "True"` and `conv2d_channels` and `kernel_size` are \
+        specified, then :math:`V(\\cdot)` acts as a recurrent convlutional \
         layer with padding to ensure the output matches the size of the input.
-    * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an
+    * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an \
         elementwise multiplier with :math:`V`.
 
     If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
@@ -48,11 +48,11 @@ class RSynaptic(LIF):
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`S_{\\rm out}` - Output spike
-    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
+    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise \
         :math:`R = 0`
     * :math:`α` - Synaptic current decay rate
     * :math:`β` - Membrane potential decay rate
-    * :math:`V` - Explicit recurrent weight
+    * :math:`V` - Explicit recurrent weight when `all_to_all=False`
 
     Example::
 
@@ -60,14 +60,9 @@ class RSynaptic(LIF):
         import torch.nn as nn
         import snntorch as snn
 
-        alpha = 0.9
-        beta = 0.5
-
-        # shared recurrent connection for a given layer
-        V1 = 0.5
-
-        # independent connection p/neuron
-        V2 = torch.rand(num_outputs)
+        beta = 0.5 # decay rate
+        V1 = 0.5 # shared recurrent connection
+        V2 = torch.rand(num_outputs) # unshared recurrent connections
 
         # Define Network
         class Net(nn.Module):
@@ -76,19 +71,46 @@ class RSynaptic(LIF):
 
                 # initialize layers
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.RSynaptic(alpha=alpha, beta=beta,
-                linear_features=num_hidden)
+
+                # Default RLeaky Layer where recurrent connections
+                # are initialized using PyTorch defaults in nn.Linear.
+                self.lif1 = snn.RLeaky(beta=beta,
+                            linear_features=num_hidden)
+
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.RSynaptic(alpha=alpha, beta=beta,
-                all_to_all=False, V=V2)
 
-            def forward(self, x, syn1, mem1, spk1, syn2, mem2):
-                cur1 = self.fc1(x)
-                spk1, syn1, mem1 = self.lif1(cur1, spk1, syn1, mem1)
-                cur2 = self.fc2(spk1)
-                spk2, syn2, mem2 = self.lif2(cur2, spk2, syn2, mem2)
-                return syn1, mem1, spk1, syn2, mem2, spk2
+                # each neuron has a single connection back to itself
+                # where the output spike is scaled by V.
+                # For `all_to_all = True`, V can be shared between
+                # neurons (e.g., V1) or unique / unshared between
+                # neurons (e.g., V2).
+                # V is learnable by default.
+                self.lif2 = snn.RLeaky(beta=beta, all_to_all=False, V=V1)
 
+            def forward(self, x):
+                # Initialize hidden states at t=0
+                spk1, syn1, mem1 = self.lif1.init_rsynaptic()
+                spk2, syn2, mem2 = self.lif2.init_rsynaptic()
+
+                # Record output layer spikes and membrane
+                spk2_rec = []
+                mem2_rec = []
+
+                # time-loop
+                for step in range(num_steps):
+                    cur1 = self.fc1(x)
+                    spk1, syn1, mem1 = self.lif1(cur1, spk1, syn1, mem1)
+                    cur2 = self.fc2(spk1)
+                    spk2, syn2, mem2 = self.lif2(cur2, spk2, syn2, mem2)
+
+                    spk2_rec.append(spk2)
+                    mem2_rec.append(mem2)
+
+                # convert lists to tensors
+                spk2_rec = torch.stack(spk2_rec)
+                mem2_rec = torch.stack(mem2_rec)
+
+                return spk2_rec, mem2_rec
 
     :param alpha: synaptic current decay rate. Clipped between 0 and 1
         during the forward-pass. May be a single-valued tensor (i.e., equal
@@ -156,13 +178,13 @@ class RSynaptic(LIF):
         Defaults to False
     :type learn_threshold: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to
+    :param reset_mechanism: Defines the reset mechanism applied to \
     :math:`mem` each time the threshold is met. Reset-by-subtraction:
         "subtract", reset-to-zero: "zero, none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
-    :param state_quant: If specified, hidden states :math:`mem` and
-    :math:`syn` are quantized to a valid state for the forward pass.
+    :param state_quant: If specified, hidden states :math:`mem` and \
+    :math:`syn` are quantized to a valid state for the forward pass. \
         Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
@@ -172,36 +194,36 @@ class RSynaptic(LIF):
 
 
     Inputs: \\input_, spk_0, syn_0, mem_0
-        - **input_** of shape `(batch, input_size)`: tensor containing input
+        - **input_** of shape `(batch, input_size)`: tensor containing input \
         features
-        - **spk_0** of shape `(batch, input_size)`: tensor containing output
+        - **spk_0** of shape `(batch, input_size)`: tensor containing output \
         spike features
-        - **syn_0** of shape `(batch, input_size)`: tensor containing input
+        - **syn_0** of shape `(batch, input_size)`: tensor containing input \
         features
-        - **mem_0** of shape `(batch, input_size)`: tensor containing the
+        - **mem_0** of shape `(batch, input_size)`: tensor containing the \
         initial membrane potential for each element in the batch.
 
     Outputs: spk_1, syn_1, mem_1
-        - **spk_1** of shape `(batch, input_size)`: tensor containing the
+        - **spk_1** of shape `(batch, input_size)`: tensor containing the \
         output spikes.
-        - **syn_1** of shape `(batch, input_size)`: tensor containing the
+        - **syn_1** of shape `(batch, input_size)`: tensor containing the \
         next synaptic current for each element in the batch
-        - **mem_1** of shape `(batch, input_size)`: tensor containing the
+        - **mem_1** of shape `(batch, input_size)`: tensor containing the \
         next membrane potential for each element in the batch
 
     Learnable Parameters:
-        - **RSynaptic.alpha** (torch.Tensor) - optional learnable weights
+        - **RSynaptic.alpha** (torch.Tensor) - optional learnable weights  \
         must be manually passed in, of shape `1` or (input_size).
-        - **RSynaptic.beta** (torch.Tensor) - optional learnable weights
+        - **RSynaptic.beta** (torch.Tensor) - optional learnable weights \
         must be manually passed in, of shape `1` or (input_size).
-        - **RSynaptic.recurrent.weight** (torch.Tensor) - optional learnable
-        weights are automatically generated if `all_to_all=True`.
-        `RSynaptic.recurrent` stores a `nn.Linear` or `nn.Conv2d` layer
+        - **RSynaptic.recurrent.weight** (torch.Tensor) - optional learnable \
+        weights are automatically generated if `all_to_all=True`. \
+        `RSynaptic.recurrent` stores a `nn.Linear` or `nn.Conv2d` layer \
         depending on input arguments provided.
-        - **RSynaptic.V** (torch.Tensor) - optional learnable weights must
-        be manually passed in, of shape `1` or (input_size). It is only used
+        - **RSynaptic.V** (torch.Tensor) - optional learnable weights must \
+        be manually passed in, of shape `1` or (input_size). It is only used \
         where `all_to_all=False` for 1-to-1 recurrent connections.
-        - **RSynaptic.threshold** (torch.Tensor) - optional learnable
+        - **RSynaptic.threshold** (torch.Tensor) - optional learnable \
         thresholds must be manually passed in, of shape `1` or`` (input_size).
 
 """

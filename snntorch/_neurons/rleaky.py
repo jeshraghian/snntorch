@@ -48,7 +48,7 @@ class RLeaky(LIF):
     * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise \
         :math:`R = 0`
     * :math:`β` - Membrane potential decay rate
-    * :math:`V` - Explicit recurrent weight
+    * :math:`V` - Explicit recurrent weight when `all_to_all=False`
 
     Example::
 
@@ -76,7 +76,11 @@ class RLeaky(LIF):
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
 
                 # each neuron has a single connection back to itself
-                # where the output spike is scaled by V
+                # where the output spike is scaled by V.
+                # For `all_to_all = False`, V can be shared between
+                # neurons (e.g., V1) or unique / unshared between
+                # neurons (e.g., V2).
+                # V is learnable by default.
                 self.lif2 = snn.RLeaky(beta=beta, all_to_all=False, V=V1)
 
             def forward(self, x):
