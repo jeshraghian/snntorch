@@ -119,7 +119,7 @@ class FastSigmoid(torch.autograd.Function):
                 S&≈\\frac{U}{1 + k|U|} \\\\
                 \\frac{∂S}{∂U}&=\\frac{1}{(1+k|U|)^2}
 
-    :math:`k` defaults to 25, and can be modified by calling
+    :math:`k` defaults to 25, and can be modified by calling \
         ``surrogate.fast_sigmoid(slope=25)``.
 
     Adapted from:
@@ -172,7 +172,7 @@ class ATan(torch.autograd.Function):
                 \\frac{∂S}{∂U}&=\\frac{1}{π}\\frac{1}{(1+(πU\\frac{α}{2})^2}
 
 
-    :math:`alpha` defaults to 2, and can be modified by calling
+    α defaults to 2, and can be modified by calling \
         ``surrogate.atan(alpha=2)``.
 
     Adapted from:
@@ -279,7 +279,7 @@ class Sigmoid(torch.autograd.Function):
                 \\frac{∂S}{∂U}&=\\frac{k
                 {\\rm exp}(-kU)}{[{\\rm exp}(-kU)+1]^2}
 
-    :math:`k` defaults to 25, and can be modified by calling
+    :math:`k` defaults to 25, and can be modified by calling \
         ``surrogate.sigmoid(slope=25)``.
 
 
@@ -337,9 +337,9 @@ class SpikeRateEscape(torch.autograd.Function):
 
                 \\frac{∂S}{∂U}=k{\\rm exp}(-β|U-1|)
 
-    :math:`β` defaults to 1, and can be modified by calling
+    :math:`β` defaults to 1, and can be modified by calling \
         ``surrogate.spike_rate_escape(beta=1)``.
-    :math:`k` defaults to 25, and can be modified by calling
+    :math:`k` defaults to 25, and can be modified by calling \
         ``surrogate.spike_rate_escape(slope=25)``.
 
 
@@ -410,10 +410,10 @@ class StochasticSpikeOperator(torch.autograd.Function):
             (𝒰\\sim[-0.5, 0.5) + μ) σ^2 & \\text{if U < U$_{\\rm thr}$}
             \\end{cases}
 
-    :math:`μ` defaults to 0, and can be modified by calling
+    :math:`μ` defaults to 0, and can be modified by calling \
         ``surrogate.SSO(mean=0)``.
 
-    :math:`σ^2` defaults to 0.2, and can be modified by calling
+    :math:`σ^2` defaults to 0.2, and can be modified by calling \
         ``surrogate.SSO(variance=0.5)``.
 
     The above defaults set the gradient to the following expression:
@@ -484,7 +484,7 @@ class LeakySpikeOperator(torch.autograd.Function):
                 k & \\text{if U < U$_{\\rm thr}$}
                 \\end{cases}
 
-    :math:`k` defaults to 0.1, and can be modified by calling
+    :math:`k` defaults to 0.1, and can be modified by calling \
         ``surrogate.LSO(slope=0.1)``.
 
     The gradient is identical to that of a threshold-shifted Leaky ReLU."""
@@ -538,9 +538,9 @@ class SparseFastSigmoid(torch.autograd.Function):
                 0 & \\text{\\rm otherwise}
                 \\end{cases}
 
-    :math:`k` defaults to 25, and can be modified by calling
+    :math:`k` defaults to 25, and can be modified by calling \
         ``surrogate.SFS(slope=25)``.
-    :math:`B` defaults to 1, and can be modified by calling
+    :math:`B` defaults to 1, and can be modified by calling \
         ``surrogate.SFS(B=1)``.
 
     Adapted from:
