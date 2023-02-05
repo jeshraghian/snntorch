@@ -34,8 +34,8 @@ class RSynaptic(LIF):
     * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an \
         elementwise multiplier with :math:`V`.
 
-    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
-    whenever the neuron emits a spike:
+    * If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
+        whenever the neuron emits a spike:
 
     .. math::
 

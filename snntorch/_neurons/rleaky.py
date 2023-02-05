@@ -167,7 +167,7 @@ class RLeaky(LIF):
 
     :param reset_mechanism: Defines the reset mechanism applied to
         :math:`mem` each time the threshold is met.
-        Reset-by-subtraction: "subtract", reset-to-zero: "zero,
+        Reset-by-subtraction: "subtract", reset-to-zero: "zero",
         none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
