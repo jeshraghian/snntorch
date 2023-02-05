@@ -24,8 +24,8 @@ class RLeaky(LIF):
     Where :math:`V(\\cdot)` acts either as a linear layer, a convolutional
     operator, or elementwise product on :math:`S_{\\rm out}`.
 
-    * If `all_to_all = "True"` and `linear_features` is specified, then
-        :math:`V(\\cdot)` acts as a recurrent linear layer of the
+    * If `all_to_all = "True"` and `linear_features` is specified, then \
+        :math:`V(\\cdot)` acts as a recurrent linear layer of the \
         same size as :math:`S_{\\rm out}`.
     * If `all_to_all = "True"` and `conv2d_channels` and `kernel_size` are
         specified, then :math:`V(\\cdot)` acts as a recurrent convlutional
