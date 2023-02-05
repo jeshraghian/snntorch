@@ -34,7 +34,7 @@ def BatchNormTT1d(
     * λ - a leak factor which is less than one
     * j - the index of the pre-synaptic neuron
     * :math:`S_{j}` - the binary spike activation
-    * :math:`w_{ij}` - the weight of the connection between the pre &
+    * :math:`w_{ij}` - the weight of the connection between the pre & \
     post neurons.
 
     With Batch Normalization Throught Time, the membrane potential can be
@@ -57,11 +57,11 @@ def BatchNormTT1d(
     :param eps: a value added to the denominator for numerical stability
     :type eps: float
 
-    :param momentum: the value used for the running_mean and running_var
+    :param momentum: the value used for the running_mean and running_var \
     computation
     :type momentum: float
 
-    :param affine: a boolean value that when set to True, the Batch Norm
+    :param affine: a boolean value that when set to True, the Batch Norm \
     layer will have learnable affine parameters
     :type affine: bool
 
@@ -70,7 +70,7 @@ def BatchNormTT1d(
         - **time_steps**: the number of time-steps to unroll in the SNN
 
     Outputs: bntt
-        -  **bntt** of shape `(time_steps)`: toch.nn.ModuleList of
+        -  **bntt** of shape `(time_steps)`: toch.nn.ModuleList of \
         BatchNorm1d layers for the specified number of time-steps
 
     """
@@ -118,10 +118,10 @@ def BatchNormTT2d(
     * λ - a leak factor which is less than one
     * j - the index of the pre-synaptic neuron
     * :math:`S_{j}` - the binary spike activation
-    * :math:`w_{ij}` - the weight of the connection between the pre & post
+    * :math:`w_{ij}` - the weight of the connection between the pre & post \
     neurons.
 
-    With Batch Normalization Throught Time, the membrane potential can be
+    With Batch Normalization Throught Time, the membrane potential can be \
     modeled as:
 
     .. math::
@@ -142,11 +142,11 @@ def BatchNormTT2d(
     :param eps: a value added to the denominator for numerical stability
     :type eps: float
 
-    :param momentum: the value used for the running_mean and running_var
+    :param momentum: the value used for the running_mean and running_var \
         computation
     :type momentum: float
 
-    :param affine: a boolean value that when set to True, the Batch Norm
+    :param affine: a boolean value that when set to True, the Batch Norm \
         layer will have learnable affine parameters
     :type affine: bool
 
@@ -155,7 +155,7 @@ def BatchNormTT2d(
         - **time_steps**: the number of time-steps to unroll in the SNN
 
     Outputs: bntt
-        -  **bntt** of shape `(time_steps)`: toch.nn.ModuleList of
+        -  **bntt** of shape `(time_steps)`: toch.nn.ModuleList of \
         BatchNorm1d layers for the specified number of time-steps
 
     """
