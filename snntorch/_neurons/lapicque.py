@@ -33,31 +33,31 @@ class Lapicque(LIF):
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
     * :math:`T`- duration of each time step
-    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
+    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise \
         :math:`R = 0`
-    * :math:`β` - Membrane potential decay rate
-
-    Alternatively, the membrane potential decay rate β can be
+    * :math:`β` - Membrane potential decay rate. \
+    Alternatively, the membrane potential decay rate β can be \
     specified instead:
 
     .. math::
 
             β = e^{-1/RC}
 
-    * :math:`β` - Membrane potential decay rate
-    * :math:`R` - Parallel resistance of passive membrane
+    * :math:`R` - Parallel resistance of passive membrane \
         (note: distinct from the reset :math:`R`)
     * :math:`C` - Parallel capacitance of passive membrane
 
+    Notes:
+
     * If only β is defined, then R will default to 1, and C will be inferred.
     * If RC is defined, β will be automatically calculated.
-    * If (β and R) or (β and C) are defined, the missing variable will be
+    * If (β and R) or (β and C) are defined, the missing variable will be \
         automatically calculated.
 
-    * Note that β, R and C are treated as `hard-wired' physically
-        plausible parameters, and are therefore not learnable. For a
-        single-state neuron with a learnable decay rate β,
-        use `snn.Leaky` instead.
+    * Note that β, R and C are treated as 'hard-wired' physically \
+        plausible parameters, and are therefore not learnable. For a \
+        single-state neuron with a learnable decay rate β, \
+        use :code:`snn.Leaky` instead.
 
     Example::
 
@@ -144,9 +144,9 @@ class Lapicque(LIF):
         to False
     :type learn_threshold: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to
-    :math:`mem` each time the threshold is met. Reset-by-subtraction:
-        "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
+    :param reset_mechanism: Defines the reset mechanism applied to \
+    :math:`mem` each time the threshold is met. Reset-by-subtraction: \
+        "subtract", reset-to-zero: "zero", none: "none". Defaults to "none"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden state :math:`mem` is
