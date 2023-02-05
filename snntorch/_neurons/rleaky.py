@@ -27,14 +27,14 @@ class RLeaky(LIF):
     * If `all_to_all = "True"` and `linear_features` is specified, then \
         :math:`V(\\cdot)` acts as a recurrent linear layer of the \
         same size as :math:`S_{\\rm out}`.
-    * If `all_to_all = "True"` and `conv2d_channels` and `kernel_size` are
-        specified, then :math:`V(\\cdot)` acts as a recurrent convlutional
-        layer
+    * If `all_to_all = "True"` and `conv2d_channels` and `kernel_size` are \
+        specified, then :math:`V(\\cdot)` acts as a recurrent convlutional \
+        layer \
         with padding to ensure the output matches the size of the input.
-    * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an
+    * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an \
         elementwise multiplier with :math:`V`.
 
-    * If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
+    * If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` \
         whenever the neuron emits a spike:
 
     .. math::
