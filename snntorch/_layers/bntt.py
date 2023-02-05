@@ -23,7 +23,7 @@ def BatchNormTT1d(
     Using LIF neuron as the neuron of choice for the math shown below.
 
     Typically, for a single post-synaptic neuron i, we can represent its
-    membrane potential :math:'U_{i}^{t}' at time-step t as:
+    membrane potential :math:`U_{i}^{t}` at time-step t as:
 
     .. math::
 
@@ -107,7 +107,7 @@ def BatchNormTT2d(
     Using LIF neuron as the neuron of choice for the math shown below.
 
     Typically, for a single post-synaptic neuron i, we can represent its
-    membrane potential :math:'U_{i}^{t}' at time-step t as:
+    membrane potential :math:`U_{i}^{t}` at time-step t as:
 
     .. math::
 
