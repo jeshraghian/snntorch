@@ -148,13 +148,13 @@ class SConv2dLSTM(SpikingNeuron):
         neuron with the highest state. Defaults to False
     :type inhibition: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to
-    :math:`mem` each time the threshold is met. Reset-by-subtraction:
+    :param reset_mechanism: Defines the reset mechanism applied to \
+    :math:`mem` each time the threshold is met. Reset-by-subtraction: \
         "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
     :type reset_mechanism: str, optional
 
-    :param state_quant: If specified, hidden states :math:`mem` and
-    :math:`syn` are quantized to a valid state for the forward pass.
+    :param state_quant: If specified, hidden states :math:`mem` and \
+    :math:`syn` are quantized to a valid state for the forward pass. \
         Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
@@ -164,29 +164,29 @@ class SConv2dLSTM(SpikingNeuron):
 
 
     Inputs: \\input_, syn_0, mem_0
-        - **input_** of shape `(batch, in_channels, H, W)`: tensor
+        - **input_** of shape `(batch, in_channels, H, W)`: tensor \
         containing input features
-        - **syn_0** of shape `(batch, out_channels, H, W)`: tensor
-        containing the initial synaptic current (or cell state) for each
+        - **syn_0** of shape `(batch, out_channels, H, W)`: tensor \
+        containing the initial synaptic current (or cell state) for each \
         element in the batch.
-        - **mem_0** of shape `(batch, out_channels, H, W)`: tensor
-        containing the initial membrane potential (or hidden state) for each
+        - **mem_0** of shape `(batch, out_channels, H, W)`: tensor \
+        containing the initial membrane potential (or hidden state) for each \
         element in the batch.
 
     Outputs: spk, syn_1, mem_1
-        - **spk** of shape `(batch, out_channels, H/pool, W/pool)`: tensor
-        containing the output spike (avg_pool and max_pool scale if greater
+        - **spk** of shape `(batch, out_channels, H/pool, W/pool)`: tensor \
+        containing the output spike (avg_pool and max_pool scale if greater \
         than 0.)
-        - **syn_1** of shape `(batch, out_channels, H, W)`: tensor
-        containing the next synaptic current (or cell state) for each element
+        - **syn_1** of shape `(batch, out_channels, H, W)`: tensor \
+        containing the next synaptic current (or cell state) for each element \
         in the batch
-        - **mem_1** of shape `(batch, out_channels, H, W)`: tensor
-        containing the next membrane potential (or hidden state) for each
+        - **mem_1** of shape `(batch, out_channels, H, W)`: tensor \
+        containing the next membrane potential (or hidden state) for each \
         element in the batch
 
     Learnable Parameters:
-        - **SConv2dLSTM.conv.weight** (torch.Tensor) - the learnable
-        weights, of shape ((in_channels + out_channels), 4*out_channels,
+        - **SConv2dLSTM.conv.weight** (torch.Tensor) - the learnable \
+        weights, of shape ((in_channels + out_channels), 4*out_channels, \
         kernel_size).
 
     """
