@@ -14,7 +14,7 @@ class Alpha(LIF):
     experience a delay with respect to an input spike.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
-    .. warning:: For a positive input current to induce a positive membrane
+    .. warning:: For a positive input current to induce a positive membrane \
     response, ensure :math:`α > β`.
 
     If `reset_mechanism = "zero"`, then :math:`I_{\\rm exc}, I_{\\rm inh}`
@@ -33,7 +33,7 @@ class Alpha(LIF):
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
-    * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise
+    * :math:`R` - Reset mechanism, :math:`R = 1` if spike occurs, otherwise \
         :math:`R = 0`
     * :math:`α` - Excitatory current decay rate
     * :math:`β` - Inhibitory current decay rate
@@ -71,7 +71,7 @@ class Alpha(LIF):
                 mem2, spk2
 
         # Too many state variables which becomes cumbersome, so the
-        following is also an option:
+        # following is also an option:
 
         alpha = 0.9
         beta = 0.8
