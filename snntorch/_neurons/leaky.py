@@ -25,7 +25,7 @@ class Leaky(LIF):
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
-    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
+    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise \
         :math:`R = 0`
     * :math:`β` - Membrane potential decay rate
 
@@ -87,9 +87,9 @@ class Leaky(LIF):
         to False
     :type learn_threshold: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to
-    :math:`mem` each time the threshold is met. Reset-by-subtraction:
-        "subtract", reset-to-zero: "zero, none: "none". Defaults to "subtract"
+    :param reset_mechanism: Defines the reset mechanism applied to \
+    :math:`mem` each time the threshold is met. Reset-by-subtraction: \
+        "subtract", reset-to-zero: "zero", none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden state :math:`mem` is quantized
