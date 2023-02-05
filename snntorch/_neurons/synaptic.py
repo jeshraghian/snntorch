@@ -33,7 +33,7 @@ class Synaptic(LIF):
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
     * :math:`U_{\\rm thr}` - Membrane threshold
-    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise
+    * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise \
         :math:`R = 0`
     * :math:`α` - Synaptic current decay rate
     * :math:`β` - Membrane potential decay rate
@@ -109,11 +109,11 @@ class Synaptic(LIF):
 
     :param reset_mechanism: Defines the reset mechanism applied to :math:`mem`
         each time the threshold is met. Reset-by-subtraction: "subtract",
-        reset-to-zero: "zero, none: "none". Defaults to "subtract"
+        reset-to-zero: "zero", none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
-    :param state_quant: If specified, hidden states :math:`mem` and
-    :math:`syn` are quantized to a valid state for the forward pass.
+    :param state_quant: If specified, hidden states :math:`mem` and \
+    :math:`syn` are quantized to a valid state for the forward pass. \
         Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
@@ -123,27 +123,27 @@ class Synaptic(LIF):
 
 
     Inputs: \\input_, syn_0, mem_0
-        - **input_** of shape `(batch, input_size)`: tensor containing
+        - **input_** of shape `(batch, input_size)`: tensor containing \
         input features
-        - **syn_0** of shape `(batch, input_size)`: tensor containing
+        - **syn_0** of shape `(batch, input_size)`: tensor containing \
         input features
-        - **mem_0** of shape `(batch, input_size)`: tensor containing
+        - **mem_0** of shape `(batch, input_size)`: tensor containing \
         the initial membrane potential for each element in the batch.
 
     Outputs: spk, syn_1, mem_1
-        - **spk** of shape `(batch, input_size)`: tensor containing the
+        - **spk** of shape `(batch, input_size)`: tensor containing the \
         output spikes.
-        - **syn_1** of shape `(batch, input_size)`: tensor containing the
+        - **syn_1** of shape `(batch, input_size)`: tensor containing the \
         next synaptic current for each element in the batch
-        - **mem_1** of shape `(batch, input_size)`: tensor containing the
+        - **mem_1** of shape `(batch, input_size)`: tensor containing the \
         next membrane potential for each element in the batch
 
     Learnable Parameters:
-        - **Synaptic.alpha** (torch.Tensor) - optional learnable weights
+        - **Synaptic.alpha** (torch.Tensor) - optional learnable weights \
         must be manually passed in, of shape `1` or (input_size).
-        - **Synaptic.beta** (torch.Tensor) - optional learnable weights must
+        - **Synaptic.beta** (torch.Tensor) - optional learnable weights must \
         be manually passed in, of shape `1` or (input_size).
-        - **Synaptic.threshold** (torch.Tensor) - optional learnable
+        - **Synaptic.threshold** (torch.Tensor) - optional learnable \
         thresholds must be manually passed in, of shape `1` or`` (input_size).
 
     """

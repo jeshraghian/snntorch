@@ -111,13 +111,13 @@ class SLSTM(SpikingNeuron):
         neuron with the highest state. Defaults to False
     :type inhibition: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to
-    :math:`mem` each time the threshold is met. Reset-by-subtraction:
+    :param reset_mechanism: Defines the reset mechanism applied to \
+    :math:`mem` each time the threshold is met. Reset-by-subtraction: \
         "subtract", reset-to-zero: "zero, none: "none". Defaults to "none"
     :type reset_mechanism: str, optional
 
-    :param state_quant: If specified, hidden states :math:`mem` and
-    :math:`syn` are quantized to a valid state for the forward pass.
+    :param state_quant: If specified, hidden states :math:`mem` and \
+    :math:`syn` are quantized to a valid state for the forward pass. \
         Defaults to False
     :type state_quant: quantization function from snntorch.quant, optional
 
@@ -127,30 +127,30 @@ class SLSTM(SpikingNeuron):
 
 
     Inputs: \\input_, syn_0, mem_0
-        - **input_** of shape `(batch, input_size)`: tensor containing input
+        - **input_** of shape `(batch, input_size)`: tensor containing input \
         features
-        - **syn_0** of shape `(batch, hidden_size)`: tensor containing the
+        - **syn_0** of shape `(batch, hidden_size)`: tensor containing the \
         initial synaptic current (or cell state) for each element in the batch.
-        - **mem_0** of shape `(batch, hidden_size)`: tensor containing the
-        initial membrane potential (or hidden state) for each element in the
+        - **mem_0** of shape `(batch, hidden_size)`: tensor containing the \
+        initial membrane potential (or hidden state) for each element in the \
         batch.
 
     Outputs: spk, syn_1, mem_1
-        - **spk** of shape `(batch, hidden_size)`: tensor containing the
+        - **spk** of shape `(batch, hidden_size)`: tensor containing the \
         output spike
-        - **syn_1** of shape `(batch, hidden_size)`: tensor containing the
+        - **syn_1** of shape `(batch, hidden_size)`: tensor containing the \
         next synaptic current (or cell state) for each element in the batch
-        - **mem_1** of shape `(batch, hidden_size)`: tensor containing the
+        - **mem_1** of shape `(batch, hidden_size)`: tensor containing the \
         next membrane potential (or hidden state) for each element in the batch
 
     Learnable Parameters:
-        - **SLSTM.lstm_cell.weight_ih** (torch.Tensor) - the learnable
+        - **SLSTM.lstm_cell.weight_ih** (torch.Tensor) - the learnable \
         input-hidden weights, of shape (4*hidden_size, input_size)
-        - **SLSTM.lstm_cell.weight_ih** (torch.Tensor) – the learnable
+        - **SLSTM.lstm_cell.weight_ih** (torch.Tensor) – the learnable \
         hidden-hidden weights, of shape (4*hidden_size, hidden_size)
-        - **SLSTM.lstm_cell.bias_ih** – the learnable input-hidden bias, of
+        - **SLSTM.lstm_cell.bias_ih** – the learnable input-hidden bias, of \
         shape (4*hidden_size)
-        - **SLSTM.lstm_cell.bias_hh** – the learnable hidden-hidden bias, of
+        - **SLSTM.lstm_cell.bias_hh** – the learnable hidden-hidden bias, of \
         shape (4*hidden_size)
 
     """
