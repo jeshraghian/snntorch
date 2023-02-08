@@ -101,10 +101,10 @@ def state_quant(
         if unspecified, defaults to ``True``
     :type uniform: Bool, optional
 
-    :param uniform: For non-uniform quantization, specifies if valid states
-        should be centered (densely clustered) around the threshold rather
-        than at 0, defaults to ``True``
-    :type uniform: Bool, optional
+    :param thr_centered: For non-uniform quantization, specifies if valid
+        states should be centered (densely clustered) around the threshold
+        rather than at 0, defaults to ``True``
+    :type thr_centered: Bool, optional
 
     :param threshold: Specifies the threshold, defaults to ``1``
     :type threshold: float, optional
@@ -167,17 +167,20 @@ def state_quant(
 
         # centered about zero
         else:
-            levels = sum(
-                [
-                    [-(multiplier**j) for j in range(num_levels >> 1)],
+            levels = torch.tensor(
+                sum(
                     [
-                        multiplier**j
-                        for j in reversed(range(num_levels >> 1))
+                        [-(multiplier**j) for j in range(num_levels >> 1)],
+                        [
+                            multiplier**j
+                            for j in reversed(range(num_levels >> 1))
+                        ],
                     ],
-                ],
-                [],
+                    [],
+                )
             )
-            levels = (levels - min(levels)) * (
+            min_level = min(levels)
+            levels = (levels - min_level) * (
                 threshold * upper_limit + threshold * lower_limit
             ) - (threshold - threshold * lower_limit)
 
