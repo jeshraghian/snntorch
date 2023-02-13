@@ -355,7 +355,8 @@ class mse_membrane_loss(LossFunctions):
         self.__name__ = "mse_membrane_loss"
 
     def __call__(self, mem_out, targets):
-        device, num_steps, num_outputs = self._prediction_check(mem_out)
+        _, num_steps, num_outputs = self._prediction_check(mem_out)
+        device = mem_out.device
         targets = spikegen.targets_convert(
             targets,
             num_classes=num_outputs,
