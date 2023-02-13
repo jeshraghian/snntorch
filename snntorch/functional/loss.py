@@ -14,9 +14,6 @@ dtype = torch.float
 
 class LossFunctions:
     def _prediction_check(self, spk_out):
-        # device = "cpu"
-        # if spk_out.is_cuda:
-        #     device = "cuda"
         device = spk_out.device
 
         num_steps = spk_out.size(0)
