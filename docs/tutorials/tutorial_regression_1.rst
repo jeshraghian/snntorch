@@ -5,7 +5,7 @@ Regression with SNNs: Part I
 Learning Membrane Potentials with LIF Neurons
 ---------------------------------------------
 
-Tutorial written by Alexander Henkes (`ORCID <https://orcid.org/0000-0003-4615-9271>`_) and Jason K. Eshraghian (`ncg.ucsc.edu <https://ncg.ucsc.edu1>`_)
+Tutorial written by Alexander Henkes (`ORCID <https://orcid.org/0000-0003-4615-9271>`_) and Jason K. Eshraghian (`ncg.ucsc.edu <https://ncg.ucsc.edu>`_)
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
@@ -43,11 +43,8 @@ An overview of the regression tutorial series:
 
 -  Part I (this tutorial) will train the membrane potential of a LIF
    neuron to follow a given trajectory over time.
--  Part II will improve upon these results by using a more complex
-   spiking LSTM network instead.
--  Part III will use LIF neurons with recurrent feedback to train the
-   firing time of a neuron.
-
+-  Part II will use LIF neurons with recurrent feedback to perform classification using regression-based loss functions
+-  Part III will use a more complex spiking LSTM network instead to train the firing time of a neuron.
 
 ::
 
