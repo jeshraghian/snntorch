@@ -5,8 +5,7 @@ Regression with SNNs: Part II
 Regression-based Classification with Recurrent Leaky Integrate-and-Fire Neurons
 -------------------------------------------------------------------------------
 
-By Alexander Henkes (`ORCID <https://orcid.org/0000-0003-4615-9271>`_) and Jason K. Eshraghian (`ncg.ucsc.edu <https://ncg.ucsc.edu>`_)
-------------------------------------------------------------------------------------------------------
+Tutorial written by Alexander Henkes (`ORCID <https://orcid.org/0000-0003-4615-9271>`_) and Jason K. Eshraghian (`ncg.ucsc.edu <https://ncg.ucsc.edu>`_)
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
