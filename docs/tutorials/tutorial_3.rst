@@ -286,6 +286,15 @@ back one step without loss of generality.
     plot_cur_mem_spk(cur_in, mem_rec, spk_rec, thr_line=1, ylim_max1=0.5,
                      title="snn.Leaky Neuron Model")
 
+Compare this plot with the manually derived leaky integrate-and-fire neuron. 
+The membrane potential reset is slightly weaker: i.e., it uses a *soft reset*. 
+This has been done intentionally because it enables better performance on a few deep learning benchmarks. 
+The equation used instead is:
+
+$$U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{\beta S[t]U_{\rm thr}}_\text{soft reset} \tag{11}$$
+.. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{\beta S[t]U_{\rm thr}}_\text{soft reset} \tag{11}
+
+
 This model has the same optional input arguments of ``reset_mechanism``
 and ``threshold`` as described for Lapicque’s neuron model.
 
