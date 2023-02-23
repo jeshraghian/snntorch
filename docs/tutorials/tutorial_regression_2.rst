@@ -104,7 +104,7 @@ class to fire at *all* time steps, and incorrect classes to not fire at
 all.
 
 As with the previous tutorial, we can use the mean-square error to
-acehieve this. Recall the form of the mean-square error loss:
+achieve this. Recall the form of the mean-square error loss:
 
 .. math:: \mathcal{L}_{MSE} = \frac{1}{n}\sum_{i=1}^n(y_i-\hat{y_i})^2
 
