@@ -436,10 +436,12 @@ Conclusion
 
 If you made it this far, then congratulations - you have the patience of
 a monk. You should now also understand how to load neuromorphic datasets
-using Tonic and then train a network using snnTorch. `In the next
-tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
-we will learn more advanced techniques, such as introducing long-term
-temporal dynamics into our SNNs.
+using Tonic and then train a network using snnTorch. 
+
+This concludes the deep-dive tutorial series. 
+Check out the `advanced tutorials <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__ 
+to learn more advanced techniques, such as introducing long-term temporal dynamics into our SNNs, 
+population coding, or accelerating on Intelligence Processing Units.
 
 If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
 
