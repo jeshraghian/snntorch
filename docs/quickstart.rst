@@ -81,9 +81,9 @@ Define Network with snnTorch.
    undefined, the relevant gradient term is simply set to the output
    spike itself (1/0) by default.
 
-The problem with ``nn.Sequential`` is that each hidden layer can only
-pass one tensor to subsequent layers, whereas most spiking neurons
-return their spikes and hidden state(s). To handle this:
+By default, each LIF neuron returns two values: the spike and hidden state. 
+But neurons chained together in ``nn.Sequential`` expect only one value. 
+To handle this:
 
 -  ``init_hidden`` initializes the hidden states (e.g., membrane
    potential) as instance variables to be processed in the background.
@@ -98,9 +98,9 @@ tensors:
     from snntorch import surrogate
     
     beta = 0.9  # neuron decay rate 
-    spike_grad = surrogate.fast_sigmoid()
+    spike_grad = surrogate.fast_sigmoid() # fast sigmoid surrogate gradient
     
-    #  Initialize Network
+    #  Initialize Convolutional SNN
     net = nn.Sequential(nn.Conv2d(1, 8, 5),
                         nn.MaxPool2d(2),
                         snn.Leaky(beta=beta, spike_grad=spike_grad, init_hidden=True),
@@ -127,12 +127,12 @@ Now define the forward pass over multiple time steps of simulation.
     from snntorch import utils 
     
     def forward_pass(net, data, num_steps):  
-      spk_rec = []
-      utils.reset(net)  # resets hidden states for all LIF neurons in net
+      spk_rec = [] # record spikes over time
+      utils.reset(net)  # reset/initialize hidden states for all LIF neurons in net
     
-      for step in range(num_steps): 
-          spk_out, mem_out = net(data)
-          spk_rec.append(spk_out)
+      for step in range(num_steps): # loop over time
+          spk_out, mem_out = net(data) # one time step of the forward-pass
+          spk_rec.append(spk_out) # record spikes
       
       return torch.stack(spk_rec)
 
@@ -178,11 +178,11 @@ same syntax as with PyTorch.
 
 ::
 
-    num_epochs = 1
+    num_epochs = 1 # run for 1 epoch - each data sample is seen only once
     num_steps = 25  # run for 25 time steps 
     
-    loss_hist = []
-    acc_hist = []
+    loss_hist = [] # record loss over iterations 
+    acc_hist = [] # record accuracy over iterations
     
     # training loop
     for epoch in range(num_epochs):
@@ -190,17 +190,13 @@ same syntax as with PyTorch.
             data = data.to(device)
             targets = targets.to(device)
     
-            net.train()
-            spk_rec = forward_pass(net, data, num_steps)
-            loss_val = loss_fn(spk_rec, targets)
-    
-            # Gradient calculation + weight update
-            optimizer.zero_grad()
-            loss_val.backward()
-            optimizer.step()
-    
-            # Store loss history for future plotting
-            loss_hist.append(loss_val.item())
+            net.train() 
+            spk_rec = forward_pass(net, data, num_steps) # forward-pass
+            loss_val = loss_fn(spk_rec, targets) # loss calculation
+            optimizer.zero_grad() # null gradients
+            loss_val.backward() # calculate gradients
+            optimizer.step() # update weights
+            loss_hist.append(loss_val.item()) # store loss
     
             # print every 25 iterations
             if i % 25 == 0:
@@ -215,55 +211,6 @@ same syntax as with PyTorch.
             # if i == 150:
             #     break
     
-
-Automating Backprop
--------------------
-
-Alternatively, we can automate the backprop through time training
-process using the ``BPTT`` method available in ``snntorch.backprop``.
-All model updates take place within the ``backprop.BPTT`` function call.
-The specified number of steps in ``num_steps`` will be simulated just as
-before.
-
-::
-
-    from snntorch import backprop
-    
-    num_epochs = 3
-    
-    # training loop
-    for epoch in range(num_epochs):
-    
-        avg_loss = backprop.BPTT(net, train_loader, num_steps=num_steps,
-                              optimizer=optimizer, criterion=loss_fn, time_var=False, device=device)
-    
-        print(f"Epoch {epoch}, Train Loss: {avg_loss.item():.2f}")
-
-Let’s see the accuracy on the full test set, again using
-``SF.accuracy_rate``.
-
-::
-
-    def test_accuracy(data_loader, net, num_steps):
-      with torch.no_grad():
-        total = 0
-        acc = 0
-        net.eval()
-    
-        data_loader = iter(data_loader)
-        for data, targets in data_loader:
-          data = data.to(device)
-          targets = targets.to(device)
-          spk_rec = forward_pass(net, data, num_steps)
-    
-          acc += SF.accuracy_rate(spk_rec, targets) * spk_rec.size(1)
-          total += spk_rec.size(1)
-    
-      return acc/total
-
-::
-
-    print(f"Test set accuracy: {test_accuracy(test_loader, net, num_steps)*100:.3f}%")
 
 More control over your model
 ----------------------------
@@ -290,41 +237,34 @@ decay rate. The decay is clipped between [0,1].
         def __init__(self):
             super().__init__()
     
-            num_inputs = 784
-            num_hidden = 300
-            num_outputs = 10
-            spike_grad = surrogate.fast_sigmoid()
-    
-            # global decay rate for all leaky neurons in layer 1
-            beta1 = 0.9
-            # independent decay rate for each leaky neuron in layer 2: [0, 1)
-            beta2 = torch.rand((num_outputs), dtype = torch.float) #.to(device)
-    
-            # Init layers
+            num_inputs = 784 # number of inputs
+            num_hidden = 300 # number of hidden neurons 
+            num_outputs = 10 # number of classes (i.e., output neurons)
+
+            beta1 = 0.9 # global decay rate for all leaky neurons in layer 1
+            beta2 = torch.rand((num_outputs), dtype = torch.float) # independent decay rate for each leaky neuron in layer 2: [0, 1)
+
+            # Initialize layers
             self.fc1 = nn.Linear(num_inputs, num_hidden)
-            self.lif1 = snn.Leaky(beta=beta1, spike_grad=spike_grad, learn_beta=True)
+            self.lif1 = snn.Leaky(beta=beta1) # not a learnable decay rate
             self.fc2 = nn.Linear(num_hidden, num_outputs)
-            self.lif2 = snn.Leaky(beta=beta2, spike_grad=spike_grad,learn_beta=True)
-    
+            self.lif2 = snn.Leaky(beta=beta2, learn_beta=True) # learnable decay rate
+
         def forward(self, x):
-    
-            # reset hidden states and outputs at t=0
-            mem1 = self.lif1.init_leaky()
-            mem2 = self.lif2.init_leaky()
-    
-            # Record the final layer
-            spk2_rec = []
-            mem2_rec = []
-    
-            for step in range(num_steps):
+            mem1 = self.lif1.init_leaky() # reset/init hidden states at t=0
+            mem2 = self.lif2.init_leaky() # reset/init hidden states at t=0
+            spk2_rec = [] # record output spikes
+            mem2_rec = [] # record output hidden states
+
+            for step in range(num_steps): # loop over time
                 cur1 = self.fc1(x.flatten(1))
                 spk1, mem1 = self.lif1(cur1, mem1)
                 cur2 = self.fc2(spk1)
                 spk2, mem2 = self.lif2(cur2, mem2)
-    
-                spk2_rec.append(spk2)
-                mem2_rec.append(mem2)
-    
+
+                spk2_rec.append(spk2) # record spikes
+                mem2_rec.append(mem2) # record membrane
+
             return torch.stack(spk2_rec), torch.stack(mem2_rec)
     
     # Load the network onto CUDA if available
@@ -335,11 +275,11 @@ decay rate. The decay is clipped between [0,1].
     optimizer = torch.optim.Adam(net.parameters(), lr=2e-3, betas=(0.9, 0.999))
     loss_fn = SF.mse_count_loss(correct_rate=0.8, incorrect_rate=0.2)
     
-    num_epochs = 1
-    num_steps = 100  # run for 25 time steps 
-    
-    loss_hist = []
-    acc_hist = []
+    num_epochs = 1 # run for 1 epoch - each data sample is seen only once
+    num_steps = 25  # run for 25 time steps 
+
+    loss_hist = [] # record loss over iterations 
+    acc_hist = [] # record accuracy over iterations
     
     # training loop
     for epoch in range(num_epochs):
@@ -347,17 +287,13 @@ decay rate. The decay is clipped between [0,1].
             data = data.to(device)
             targets = targets.to(device)
     
-            net.train()
-            spk_rec, _ = net(data)
-            loss_val = loss_fn(spk_rec, targets)
-    
-            # Gradient calculation + weight update
-            optimizer.zero_grad()
-            loss_val.backward()
-            optimizer.step()
-    
-            # Store loss history for future plotting
-            loss_hist.append(loss_val.item())
+            net.train() 
+            spk_rec, _ = net(data) # forward-pass
+            loss_val = loss_fn(spk_rec, targets) # loss calculation
+            optimizer.zero_grad() # null gradients
+            loss_val.backward() # calculate gradients
+            optimizer.step() # update weights
+            loss_hist.append(loss_val.item()) # store loss
     
             # print every 25 iterations
             if i % 25 == 0:
@@ -382,6 +318,7 @@ decay rate. The decay is clipped between [0,1].
 
 ::
 
+    # function to measure accuracy on full test set
     def test_accuracy(data_loader, net, num_steps):
       with torch.no_grad():
         total = 0
