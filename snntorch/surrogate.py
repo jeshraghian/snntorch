@@ -169,7 +169,7 @@ class ATan(torch.autograd.Function):
         .. math::
 
                 S&≈\\frac{1}{π}\\text{arctan}(πU \\frac{α}{2}) \\\\
-                \\frac{∂S}{∂U}&=\\frac{1}{π}\\frac{1}{(1+(πU\\frac{α}{2})^2}
+                \\frac{∂S}{∂U}&=\\frac{1}{π}\\frac{1}{(1+(πU\\frac{α}{2})^2)}
 
 
     α defaults to 2, and can be modified by calling \

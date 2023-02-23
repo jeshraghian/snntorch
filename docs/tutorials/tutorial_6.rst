@@ -27,10 +27,9 @@ Introduction
 
 In this tutorial, you will: 
 
-* Learn how to use surrogate gradient descent to overcome the dead neuron problem 
+* Learn how to modify surrogate gradient descent to overcome the dead neuron problem 
 * Construct and train a convolutional spiking neural network 
 * Use a sequential container, ``nn.Sequential`` to simplify model construction 
-* Use the ``snn.backprop`` module to reduce the time it takes to design a neural network
 
 ..
 
@@ -88,14 +87,9 @@ because of the non-differentiability of spikes:
 
 where :math:`\Theta(\cdot)` is the Heaviside step function, and
 :math:`\delta(\cdot)` is the Dirac-Delta function. We previously
-overcame this using the *Spike-Operator* approach, by assigning the
-spike to the derivative term:
-:math:`\partial \tilde{S}/\partial U \leftarrow S \in \{0, 1\}`. Another
-approach is to smooth the Heaviside function during the backward pass,
-which correspondingly smooths out the gradient of the Heaviside
-function.
+overcame this using the threshold-shifted *ArcTangent* function on the backward pass instead. 
 
-Common smoothing functions include the sigmoid function, or the fast
+Other common smoothing functions include the sigmoid function, or the fast
 sigmoid function. The sigmoidal functions must also be shifted such that
 they are centered at the threshold :math:`U_{\rm thr}.` Defining the
 overdrive of the membrane potential as :math:`U_{OD} = U - U_{\rm thr}`:
@@ -128,7 +122,7 @@ To summarize:
 
    -  Pass :math:`U` into :math:`(4)` to calculate the derivative term
 
-In the same way the *Spike Operator* approach was used in `Tutorial 5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_, 
+In the same way the *ArcTangent* approach was used in `Tutorial 5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_, 
 the gradient of the fast sigmoid function can override the Dirac-Delta function in a Leaky Integrate-and-Fire
 (LIF) neuron model:
 
@@ -137,6 +131,8 @@ the gradient of the fast sigmoid function can override the Dirac-Delta function 
     # Leaky neuron model, overriding the backward pass with a custom function
     class LeakySigmoidSurrogate(nn.Module):
       def __init__(self, beta, threshold=1.0, k=25):
+
+          # Leaky_Surrogate is defined in the previous tutorial and not used here
           super(Leaky_Surrogate, self).__init__()
     
           # initialize decay rate beta and threshold
@@ -191,15 +187,11 @@ here. <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html>`__
 2.1 DataLoaders
 ~~~~~~~~~~~~~~~~~
 
-Note that ``utils.data_subset()`` is called to reduce the size of the dataset by a
-factor of 10 to speed up training.
-
 ::
 
     # dataloader arguments
     batch_size = 128
     data_path='/data/mnist'
-    subset=10
     
     dtype = torch.float
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -215,11 +207,7 @@ factor of 10 to speed up training.
     
     mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
     mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
-    
-    # reduce datasets by 10x to speed up training
-    utils.data_subset(mnist_train, subset)
-    utils.data_subset(mnist_test, subset)
-    
+
     # Create DataLoaders
     train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
@@ -423,55 +411,67 @@ DataLoader object:
     >>> print(f"The total accuracy on the test set is: {test_acc * 100:.2f}%")
     The total accuracy on the test set is: 8.59%
 
-3.3 Training Automation Using snn.backprop
+3.3 Training Loop
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Training SNNs can become arduous even with simple networks, so the
-``snn.backprop`` module is here to reduce some of this effort.
-
-The ``backprop.BPTT`` function automatically performs a single epoch of training, 
-where you need only provide the training parameters, dataloader, and several other arguments. 
-The average loss across iterations is returned. 
-The argument ``time_var`` indicates whether the
-input data is time-varying. As we are using the MNIST dataset, we
-explicitly specify ``time_var=False``.
-
-The following code block may take a while to run. If you are not
-connected to GPU, then consider reducing ``num_epochs``.
+The following training loop is qualitatively similar to the previous tutorial.
 
 ::
 
     optimizer = torch.optim.Adam(net.parameters(), lr=1e-2, betas=(0.9, 0.999))
-    num_epochs = 10
+    num_epochs = 1
+    loss_hist = []
     test_acc_hist = []
-    
-    # training loop
+    counter = 0
+
+    # Outer training loop
     for epoch in range(num_epochs):
-    
-        avg_loss = backprop.BPTT(net, train_loader, optimizer=optimizer, criterion=loss_fn, 
-                                num_steps=num_steps, time_var=False, device=device)
-        
-        print(f"Epoch {epoch}, Train Loss: {avg_loss.item():.2f}")
-    
-        # Test set accuracy
-        test_acc = batch_accuracy(test_loader, net, num_steps)
-        test_acc_hist.append(test_acc)
-    
-        print(f"Epoch {epoch}, Test Acc: {test_acc * 100:.2f}%\n")
+
+        # Training loop
+        for data, targets in iter(train_loader):
+            data = data.to(device)
+            targets = targets.to(device)
+
+            # forward pass
+            net.train()
+            spk_rec, _ = forward_pass(net, num_steps, data)
+
+            # initialize the loss & sum over time
+            loss_val = loss_fn(spk_rec, targets)
+
+            # Gradient calculation + weight update
+            optimizer.zero_grad()
+            loss_val.backward()
+            optimizer.step()
+
+            # Store loss history for future plotting
+            loss_hist.append(loss_val.item())
+
+            # Test set
+            if counter % 50 == 0:
+            with torch.no_grad():
+                net.eval()
+
+                # Test set forward pass
+                test_acc = batch_accuracy(test_loader, net, num_steps)
+                print(f"Iteration {counter}, Test Acc: {test_acc * 100:.2f}%\n")
+                test_acc_hist.append(test_acc.item())
+
+            counter += 1
 
 
 The output should look something like this:
 
 ::
 
-    Epoch 0, Train Loss: 1.72
-    Epoch 0, Test Acc: 93.38%
+    Iteration 0, Test Acc: 9.82%
 
-    Epoch 1, Train Loss: 1.52
-    Epoch 1, Test Acc: 95.77%
+    Iteration 50, Test Acc: 91.98%
 
-    Epoch 2, Train Loss: 1.50
-    Epoch 2, Test Acc: 96.48%
+    Iteration 100, Test Acc: 94.90%
+
+    Iteration 150, Test Acc: 95.70%
+
 
 Despite having selected some fairly generic values and architectures,
 the test set accuracy should be fairly competitive given the brief

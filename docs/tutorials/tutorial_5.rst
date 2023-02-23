@@ -184,33 +184,18 @@ approximations. This is commonly known as the *surrogate gradient*
 approach.
 
 A variety of options exist to using surrogate gradients, and we will
-dive into more detail on these methods in `Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_. For now,
-a simple approximation is applied where
-:math:`\partial \tilde{S}/\partial U` is set to :math:`S` itself.
+dive into more detail on these methods in `Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_. 
+The default method in snnTorch (as of v0.6.0) is to smooth the Heaviside function with the arctangent function. 
+The backward-pass derivative used is:
 
-If :math:`S` does not spike, then the spike-gradient term is :math:`0`. If
-:math:`S` spikes, then the gradient term is :math:`1`. This simply looks like
-the gradient of a ReLU function shifted to the threshold. This method is
-known as the *Spike-Operator* approach and is described in more detail
-in the following paper:
-
-   Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
-   Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
-   Spiking Neural Networks Using Lessons From Deep Learning”. arXiv,
-   2021.
-
-Inutitively, *Spike Operator* splits the gradient calculation into two
-chunks: one where the neuron is spiking, and one where it is silent: 
-
-* **Silent:** If the neuron is silent, then the spike response can be obtained by scaling the membrane by 0: :math:`S = U \times 0 \implies \partial \tilde{S}/\partial U = 0`. 
-* **Spiking:** If the neuron is spiking, then assume :math:`U \approx U_{\rm thr}`, normalize :math:`U_{\rm thr}=1`, and the spike response can be obtained by scaling the membrane by 1: :math:`S = U \times 1 \implies \partial \tilde{S}/\partial U = 1`, where the tilde above :math:`\tilde{S}` implies an approximation. 
-
-This is summarized as follows:
 
 .. math::
+    
+    \frac{\partial \tilde{S}}{\partial U} \leftarrow \frac{1}{π}\frac{1}{(1+[Uπ]^2)}
 
-   \frac{\partial \tilde{S}}{\partial U} \leftarrow S = \begin{cases} 1, &\text{if}~U> U_{\rm thr} \\
-   0, &\text{otherwise}\end{cases} 
+
+$$ \frac{\partial \tilde{S}}{\partial U} \leftarrow \frac{1}{\pi}\frac{1}{(1+[U\pi]^2)}$$
+
 
 where the left arrow denotes substitution.
 
@@ -229,29 +214,29 @@ condensed into one line of code using snnTorch in a moment:
           # initialize decay rate beta and threshold
           self.beta = beta
           self.threshold = threshold
-          self.spike_op = self.SpikeOperator.apply
+          self.spike_gradient = self.ATan.apply
       
       # the forward function is called each time we call Leaky
       def forward(self, input_, mem):
-        spk = self.spike_op((mem-self.threshold))  # call the Heaviside function
-        reset = (spk * self.threshold).detach()  # removes spike_op gradient from reset
+        spk = self.spike_gradient((mem-self.threshold))  # call the Heaviside function
+        reset = (self.beta * spk * self.threshold).detach()  # remove reset from computational graph
         mem = self.beta * mem + input_ - reset  # Eq (1)
         return spk, mem
     
       # Forward pass: Heaviside function
-      # Backward pass: Override Dirac Delta with the Spike itself
+      # Backward pass: Override Dirac Delta with the derivative of the ArcTan function 
       @staticmethod
-      class SpikeOperator(torch.autograd.Function):
+      class ATan(torch.autograd.Function):
           @staticmethod
           def forward(ctx, mem):
               spk = (mem > 0).float() # Heaviside on the forward pass: Eq(2)
-              ctx.save_for_backward(spk)  # store the spike for use in the backward pass
+              ctx.save_for_backward(mem)  # store the membrane for use in the backward pass
               return spk
     
           @staticmethod
           def backward(ctx, grad_output):
-              (spk,) = ctx.saved_tensors  # retrieve the spike 
-              grad = grad_output * spk # scale the gradient by the spike: 1/0
+              (spk,) = ctx.saved_tensors  # retrieve the membrane potential 
+              grad = 1 / (1 + (np.pi * mem).pow_(2)) * grad_output # Eqn 5
               return grad
 
 Note that the reset mechanism is detached from the computational graph, as the surrogate gradient should only be applied to :math:`\partial S/\partial U`, and not :math:`\partial R/\partial U`.
@@ -268,7 +253,7 @@ keeps track of the gradient in the background.
 
 The same thing can be accomplished by calling
 the ``snn.Leaky`` neuron. In fact, every time you call any neuron model
-from snnTorch, the *Spike Operator* surrogate gradient is applied to it
+from snnTorch, the *ATan* surrogate gradient is applied to it
 by default:
 
 ::
@@ -318,7 +303,7 @@ influence of :math:`W[t-1]` on the loss can be written as:
 
    \frac{\partial \mathcal{L}[t]}{\partial W[t-1]} = 
    \frac{\partial \mathcal{L}[t]}{\partial S[t]}
-   \underbrace{\frac{\partial \tilde{S}[t]}{\partial U[t]}}_{S[t]}
+   \underbrace{\frac{\partial \tilde{S}[t]}{\partial U[t]}}_{Eq.~(5)}
    \underbrace{\frac{\partial U[t]}{\partial U[t-1]}}_\beta
    \underbrace{\frac{\partial U[t-1]}{\partial I[t-1]}}_1
    \underbrace{\frac{\partial I[t-1]}{\partial W[t-1]}}_{X[t-1]} \tag{7}
