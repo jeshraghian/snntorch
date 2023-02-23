@@ -172,11 +172,12 @@ For a quick example to run snnTorch, see the following snippet, or test the quic
   import torch, torch.nn as nn
   import snntorch as snn
   from snntorch import surrogate
+  from snntorch import utils
 
   num_steps = 25 # number of time steps
   batch_size = 1 
   beta = 0.5  # neuron decay rate 
-  spike_grad = surrogate.fast_sigmoid()
+  spike_grad = surrogate.fast_sigmoid() # surrogate gradient
 
   net = nn.Sequential(
         nn.Conv2d(1, 8, 5),
@@ -190,14 +191,13 @@ For a quick example to run snnTorch, see the following snippet, or test the quic
         snn.Leaky(beta=beta, init_hidden=True, spike_grad=spike_grad, output=True)
         )
 
-  # random input data
-  data_in = torch.rand(num_steps, batch_size, 1, 28, 28)
+  data_in = torch.rand(num_steps, batch_size, 1, 28, 28) # random input data
+  spike_recording = [] # record spikes over time
+  utils.reset(net) # reset/initialize hidden states for all neurons
 
-  spike_recording = []
-
-  for step in range(num_steps):
-      spike, state = net(data_in[step])
-      spike_recording.append(spike)
+  for step in range(num_steps): # loop over time
+      spike, state = net(data_in[step]) # one time step of forward-pass
+      spike_recording.append(spike) # record spikes in list
 
 
 A Deep Dive into SNNs
