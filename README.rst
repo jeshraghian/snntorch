@@ -54,16 +54,12 @@ snnTorch contains the following components:
      - Description
    * - `snntorch <https://snntorch.readthedocs.io/en/latest/snntorch.html>`_
      - a spiking neuron library like torch.nn, deeply integrated with autograd
-   * - `snntorch.backprop <https://snntorch.readthedocs.io/en/latest/snntorch.backprop.html>`_
-     - variations of backpropagation commonly used with SNNs
    * - `snntorch.functional <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html>`_
      - common arithmetic operations on spikes, e.g., loss, regularization etc.
    * - `snntorch.spikegen <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`_
      - a library for spike generation and data conversion
    * - `snntorch.spikeplot <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`_
      - visualization tools for spike-based data using matplotlib and celluloid
-   * - `snntorch.spikevision <https://snntorch.readthedocs.io/en/latest/snntorch.spikevision.html>`_
-     - contains popular neuromorphic datasets
    * - `snntorch.surrogate <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html>`_
      - optional surrogate gradient functions
    * - `snntorch.utils <https://snntorch.readthedocs.io/en/latest/snntorch.utils.html>`_
@@ -202,23 +198,6 @@ For a quick example to run snnTorch, see the following snippet, or test the quic
   for step in range(num_steps):
       spike, state = net(data_in[step])
       spike_recording.append(spike)
-
-
-If you're feeling lazy and want the training process to be taken care of:
-
-.. code-block:: python
-    
-    import snntorch.functional as SF
-    from snntorch import backprop
-
-    # correct class should fire 80% of the time
-    loss_fn = SF.mse_count_loss(correct_rate=0.8, incorrect_rate=0.2)
-    optimizer = torch.optim.Adam(net.parameters(), lr=1e-3, betas=(0.9, 0.999))
-
-    # train for one epoch using the backprop through time algorithm
-    # assume train_loader is a DataLoader with time-varying input
-    avg_loss = backprop.BPTT(net, train_loader, optimizer=optimizer, 
-                            num_steps=num_steps, criterion=loss_fn)  
 
 
 A Deep Dive into SNNs
