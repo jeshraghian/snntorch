@@ -132,10 +132,10 @@ An example of this is shown below::
          spk_out, mem_out = net(data)
 
 
-Setting the hidden states to instance variables is necessary for calling the backpropagation methods available in :mod:`snntorch.backprop`, or for calling :mod:`nn.Sequential` from PyTorch.
+Setting the hidden states to instance variables is necessary for calling :mod:`nn.Sequential` from PyTorch.
 
 Whenever a neuron is instantiated, it is added as a list item to the class variable :mod:`LIF.instances`. 
-This helps the functions in :mod:`snntorch.backprop` keep track of what neurons are being used in the network, and when they must be detached from the computation graph. 
+This allows you to keep track of what neurons are being used in the network, and to detach neurons from the computation graph. 
 
 In the above examples, the decay rate of membrane potential :mod:`beta` is treated as a hyperparameter. 
 But it can also be configured as a learnable parameter, as shown below::

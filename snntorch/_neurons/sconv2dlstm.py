@@ -131,8 +131,8 @@ class SConv2dLSTM(SpikingNeuron):
         generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
-    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to a
-        straight-through-estimator
+    :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to
+        ATan surrogate gradient
     :type spike_grad: surrogate gradient function from snntorch.surrogate,
         optional
 

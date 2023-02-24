@@ -67,7 +67,7 @@ class Leaky(LIF):
     :type threshold: float, optional
 
     :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to
-        None (corresponds to Heaviside surrogate gradient. See
+        None (corresponds to ATan surrogate gradient. See
         `snntorch.surrogate` for more options)
     :type spike_grad: surrogate gradient function from snntorch.surrogate,
         optional
