@@ -293,10 +293,7 @@ class SLSTM(SpikingNeuron):
         return state_fn
 
     def _reshape_input(self, input_):
-        if input_.is_cuda:
-            device = "cuda"
-        else:
-            device = "cpu"
+        device = input_.device
         b, _ = input_.size()
         return torch.zeros(b, self.hidden_size).to(device)
 

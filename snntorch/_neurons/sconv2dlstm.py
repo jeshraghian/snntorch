@@ -428,10 +428,7 @@ class SConv2dLSTM(SpikingNeuron):
         return mem, syn
 
     def _reshape_input(self, input_):
-        if input_.is_cuda:
-            device = "cuda"
-        else:
-            device = "cpu"
+        device = input_.device
         b, _, h, w = input_.size()
         return torch.zeros(b, self.out_channels, h, w).to(device)
 
