@@ -457,10 +457,7 @@ def _SpikeTorchConv(*args, input_):
     ):  # if only one hidden state, make it iterable
         args = (args,)
     for arg in args:
-        if arg.is_cuda:
-            arg = arg.to("cpu")
-        elif arg.is_mps:
-            arg = arg.to("cpu")
+        arg = arg.to("cpu")
         arg = torch.Tensor(arg)  # wash away the SpikeTensor class
         arg = torch.zeros_like(input_, requires_grad=True)
         states.append(arg)
