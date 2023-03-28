@@ -110,8 +110,9 @@ class SConv2dLSTM(SpikingNeuron):
                 num_steps = x.size()[1]
 
                 for step in range(num_steps):
-                    spk1, syn1, mem1 = self.lif1(x, syn1, mem1)
-                    spk2, syn2, mem2 = self.lif1(spk1, syn2, mem2)
+                    x_step = x[:, step, :, :, :]
+                    spk1, syn1, mem1 = self.sclstm1(x_step, syn1, mem1)
+                    spk2, syn2, mem2 = self.sclstm2(spk1, syn2, mem2)
                     cur = self.fc1(spk2.flatten(1))
                     spk3, mem3 = self.lif1(cur, mem3)
 
