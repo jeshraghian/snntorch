@@ -58,7 +58,6 @@ class SConv2dLSTM(SpikingNeuron):
         import torch.nn as nn
         import snntorch as snn
 
-        beta = 0.5
 
         # Define Network
         class Net(nn.Module):
@@ -67,7 +66,6 @@ class SConv2dLSTM(SpikingNeuron):
 
                 in_channels = 1
                 out_channels = 8
-                out_channels = 16
                 kernel_size = 3
                 max_pool = 2
                 avg_pool = 2
@@ -75,33 +73,47 @@ class SConv2dLSTM(SpikingNeuron):
                 num_outputs = 10
                 beta = 0.5
 
-                spike_grad_lstm = surrogate.straight_through_estimator()
-                spike_grad_fc = surrogate.fast_sigmoid(slope=5)
+                spike_grad_lstm = snn.surrogate.straight_through_estimator()
+                spike_grad_fc = snn.surrogate.fast_sigmoid(slope=5)
 
                 # initialize layers
-                self.sclstm1 = snn.SConv2dLSTM(in_channels, out_channels,
-                kernel_size, max_pool=max_pool, spike_grad=spike_grad_lstm)
-                self.sclstm2 = snn.SConv2dLSTM(out_channels, out_channels,
-                kernel_size, avg_pool=avg_pool, spike_grad=spike_grad_lstm)
-                self.fc2 = nn.Linear(flattened_input, num_outputs)
-                self.lif2 = snn.Leaky(beta=beta, spike_grad=spike_grad_fc)
+                self.sclstm1 = snn.SConv2dLSTM(
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    max_pool=max_pool,
+                    spike_grad=spike_grad_lstm,
+                )
+                self.sclstm2 = snn.SConv2dLSTM(
+                    out_channels,
+                    out_channels,
+                    kernel_size,
+                    avg_pool=avg_pool,
+                    spike_grad=spike_grad_lstm,
+                )
+                self.fc1 = nn.Linear(flattened_input, num_outputs)
+                self.lif1 = snn.Leaky(beta=beta, spike_grad=spike_grad_fc)
 
-            def forward(self, x, mem1, spk1, mem2):
+            def forward(self, x):
                 # Initialize hidden states and outputs at t=0
                 syn1, mem1 = self.lif1.init_sconv2dlstm()
-                syn2, mem2 = self.lif2.init_sconv2dlstm()
+                syn2, mem2 = self.lif1.init_sconv2dlstm()
                 mem3 = self.lif3.init_leaky()
 
                 # Record the final layer
                 spk3_rec = []
                 mem3_rec = []
 
+                # Number of steps assuming x is [N, T, C, H, W] with
+                # N = Batches, T = Time steps, C = Channels,
+                # H = Height, W = Width
+                num_steps = x.size()[1]
 
                 for step in range(num_steps):
                     spk1, syn1, mem1 = self.lif1(x, syn1, mem1)
-                    spk2, syn2, mem2 = self.lif2(spk1, syn2, h2)
+                    spk2, syn2, mem2 = self.lif1(spk1, syn2, mem2)
                     cur = self.fc1(spk2.flatten(1))
-                    spk3, mem3 = self.lif3(cur, mem3)
+                    spk3, mem3 = self.lif1(cur, mem3)
 
                     spk3_rec.append(spk3)
                     mem3_rec.append(mem3)
