@@ -323,6 +323,10 @@ something like this for a single neuron:
 But thankfully, PyTorch’s autodiff takes care of that in the background for
 us.
 
+
+.. note::
+  The reset mechanism has been omitted from the above figure. In snnTorch, reset is included in the forward-pass, but detached from the backward pass.
+
 4. Setting up the Loss / Output Decoding
 -------------------------------------------
 

@@ -279,7 +279,7 @@ This exponential decay seems to match what we expected!
 
 This similarity between nerve membranes and RC circuits was observed by
 `Louis Lapicque in
-1907 <https://core.ac.uk/download/pdf/21172797.pdf>`__. He stimulated
+1907 <https://pubmed.ncbi.nlm.nih.gov/17968583/>`__. He stimulated
 the nerve fiber of a frog with a brief electrical pulse, and found that neuron
 membranes could be approximated as a capacitor with a leakage. We pay
 homage to his findings by naming the basic LIF neuron model in snnTorch

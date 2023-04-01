@@ -291,7 +291,6 @@ The membrane potential reset is slightly weaker: i.e., it uses a *soft reset*.
 This has been done intentionally because it enables better performance on a few deep learning benchmarks. 
 The equation used instead is:
 
-$$U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{\beta S[t]U_{\rm thr}}_\text{soft reset} \tag{11}$$
 .. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{\beta S[t]U_{\rm thr}}_\text{soft reset} \tag{11}
 
 

@@ -178,11 +178,11 @@ class ce_max_membrane_loss(LossFunctions):
         loss_fn = SF.ce_max_membrane_loss()
         loss = loss_fn(outputs, targets)
 
-    :param mem_out: The output tensor of the SNN's membrane potential, of the dimension
-        timestep * batch_size * num_output_neurons
+    :param mem_out: The output tensor of the SNN's membrane potential,
+        of the dimension timestep * batch_size * num_output_neurons
     :type mem_out: torch.Tensor
-    :param targets: The tensor containing the targets of the current mini-batch, of the
-        dimension batch_size
+    :param targets: The tensor containing the targets of the current
+        mini-batch, of the dimension batch_size
     :type targets: torch.Tensor
 
     :return: Loss
@@ -789,7 +789,7 @@ class ce_temporal_loss:
         loss = loss_fn(spk_out, targets)
 
     :param inverse: Specify how to invert output before taking cross
-        enrtopy. Either scale by (-1 * x) with ``inverse='negate'`` or take the
+        entropy. Either scale by (-1 * x) with ``inverse='negate'`` or take the
         reciprocal (1/x) with ``inverse='reciprocal'``. Defaults to ``negate``
     :type inverse: str, optional
 
