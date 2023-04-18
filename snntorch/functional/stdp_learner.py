@@ -207,47 +207,14 @@ def stdp_conv1d_single_step(
 
     return trace_pre, trace_post, delta_w
 
-
-def stdp_multi_step(
-    layer: Union[nn.Linear, nn.Conv1d, nn.Conv2d],
-    in_spike: torch.Tensor, out_spike: torch.Tensor,
-    trace_pre: Union[float, torch.Tensor, None],
-    trace_post: Union[float, torch.Tensor, None],
-    tau_pre: float, tau_post: float,
-    f_pre: Callable = lambda x: x, f_post: Callable = lambda x: x
-):
-    weight = layer.weight.data
-    delta_w = torch.zeros_like(weight)
-    T = in_spike.shape[0]
-
-    if isinstance(layer, nn.Linear):
-        stdp_single_step = stdp_linear_single_step
-
-    elif isinstance(layer, nn.Conv1d):
-        stdp_single_step = stdp_conv1d_single_step
-
-    elif isinstance(layer, nn.Conv2d):
-        stdp_single_step = stdp_conv2d_single_step
-
-    for t in range(T):
-        trace_pre, trace_post, dw = stdp_single_step(
-            layer, in_spike[t], out_spike[t], trace_pre, trace_post,
-            tau_pre, tau_post, f_pre, f_post
-        )
-        delta_w += dw
-
-    return trace_pre, trace_post, delta_w
-
-
 class STDPLearner(nn.Module):
     def __init__(
-        self, step_mode: str,
+        self,
         synapse: Union[nn.Conv2d, nn.Linear], sn,
         tau_pre: float, tau_post: float,
         f_pre: Callable = lambda x: x, f_post: Callable = lambda x: x
     ):
         super().__init__()
-        self.step_mode = step_mode
         self.tau_pre = tau_pre
         self.tau_post = tau_post
         self.f_pre = f_pre
@@ -274,23 +241,15 @@ class STDPLearner(nn.Module):
     def step(self, on_grad: bool = True, scale: float = 1.):
         length = self.in_spike_monitor.records.__len__()
         delta_w = None
-
-        if self.step_mode == 's':
-            if isinstance(self.synapse, nn.Linear):
-                stdp_f = stdp_linear_single_step
-            elif isinstance(self.synapse, nn.Conv2d):
-                stdp_f = stdp_conv2d_single_step
-            elif isinstance(self.synapse, nn.Conv1d):
-                stdp_f = stdp_conv1d_single_step
-            else:
-                raise NotImplementedError(self.synapse)
-        elif self.step_mode == 'm':
-            if isinstance(self.synapse, (nn.Linear, nn.Conv1d, nn.Conv2d)):
-                stdp_f = stdp_multi_step
-            else:
-                raise NotImplementedError(self.synapse)
+        
+        if isinstance(self.synapse, nn.Linear):
+            stdp_f = stdp_linear_single_step
+        elif isinstance(self.synapse, nn.Conv2d):
+            stdp_f = stdp_conv2d_single_step
+        elif isinstance(self.synapse, nn.Conv1d):
+            stdp_f = stdp_conv1d_single_step
         else:
-            raise ValueError(self.step_mode)
+            raise NotImplementedError(self.synapse)
 
         for _ in range(length):
             in_spike = self.in_spike_monitor.records.pop(0)  # [batch_size, N_in]
