@@ -116,6 +116,8 @@ class OutputMonitor(BaseMonitor):
     ):
         super().__init__()
         self.function_on_output = function_on_output
+        if instance is None:
+            instance = type(net)
         for name, m in net.named_modules():
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
@@ -200,6 +202,8 @@ class InputMonitor(BaseMonitor):
     ):
         super().__init__()
         self.function_on_input = function_on_input
+        if instance is None:
+            instance = type(net)
         for name, m in net.named_modules():
             if isinstance(m, instance):
                 self.monitored_layers.append(name)
