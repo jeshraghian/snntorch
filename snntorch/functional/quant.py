@@ -8,13 +8,8 @@ class StateQuant(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input_, levels):
 
-        # device = "cpu"
-        # if input_.is_cuda:
-        #     device = "cuda"
         device = input_.device
-
         levels = levels.to(device)
-
         size = input_.size()
         input_ = input_.flatten()
 
@@ -137,7 +132,6 @@ def state_quant(
             num_levels,
         )
 
-        print("levels are:", levels)
 
     # exponential / non-uniform quantization
     else:
@@ -162,27 +156,20 @@ def state_quant(
         # asymmetric: shifted to threshold
         if thr_centered:
             max_val = threshold + (threshold * upper_limit)  # maximum level that can be reached
-            # print("max val is: ", max_val)
             min_val = -(threshold + (threshold * lower_limit))  # minimum level that can be reached
-            # print("min val is: ", min_val)
 
             num_levels = 2 << num_bits - 1  # total number of levels
 
             overall_range = max_val - min_val  # range of number of levels
-            # print("overall range is: ", overall_range)
 
             lower_range = threshold - min_val  # levels below the threshold
-            # print("lower range is: ", lower_range)
             upper_range = max_val - threshold  # levels above the threshold
-            # print("upper range is: ", upper_range)
 
             lower_percent = lower_range / overall_range  # percent +66 the threshold
             upper_percent = upper_range / overall_range  # percent above the threshold
 
             lower_bits = math.floor(num_levels * lower_percent)  # how many levels lower than the threshold
-            # print("lower_bits:", lower_bits)
             upper_bits = num_levels - lower_bits  # how many bits above the threshold
-            # print("upper_bits:", upper_bits)
 
             lower_summation = 0
             store_val = []
@@ -190,13 +177,9 @@ def state_quant(
 
                 for j in reversed(range(lower_bits - 1)):  # figure out how much the summation travels
                     lower_curr = (multiplier ** j)
-                    # print("curr is: ", curr)
                     lower_summation += (multiplier ** j)
 
-                # print("sum is: ", lower_summation)
                 lower_room = lower_summation / lower_range
-                # print("lower room is:", lower_room)
-
                 min_temp_sum = min_val
                 store_val.append(min_temp_sum)
 
@@ -213,15 +196,12 @@ def state_quant(
                     upper_summation += (multiplier ** j)
 
                 upper_room = upper_summation / upper_range
-                # print("upper room is:", upper_room)
-                # print("upper summation is: ", upper_summation)
 
                 max_temp_sum = threshold
                 diff_store_val = []
                 # store_val.append(max_temp_sum)
                 for j in reversed(range(upper_bits)):
                     upper_curr = multiplier ** j
-                    # print("upper_curr is: ", upper_curr)
                     max_temp_sum += (upper_curr / upper_room)
                     store_val.append(max_temp_sum)
 
@@ -232,27 +212,20 @@ def state_quant(
         # centered about zero
         else:
             max_val = threshold + (threshold * upper_limit)  # maximum level that can be reached
-            # print("max val is: ", max_val)
             min_val = -(threshold + (threshold * lower_limit))  # minimum level that can be reached
-            # print("min val is: ", min_val)
 
             num_levels = 2 << num_bits - 1  # total number of levels
 
             overall_range = max_val - min_val  # range of number of levels
-            # print("overall range is: ", overall_range)
 
             lower_range = 0 - min_val  # levels below the threshold
-            # print("lower range is: ", lower_range)
             upper_range = max_val - 0  # levels above the threshold
-            # print("upper range is: ", upper_range)
 
             lower_percent = lower_range / overall_range  # percent +66 the threshold
             upper_percent = upper_range / overall_range  # percent above the threshold
 
             lower_bits = math.floor(num_levels * lower_percent)  # how many levels lower than the threshold
-            # print("lower_bits:", lower_bits)
             upper_bits = num_levels - lower_bits  # how many bits above the threshold
-            # print("upper_bits:", upper_bits)
 
             lower_summation = 0
             store_val = []
@@ -261,12 +234,9 @@ def state_quant(
 
                 for j in reversed(range(lower_bits)):  # figure out how much the summation travels
                     lower_curr = (multiplier ** j)
-                    # print("curr is: ", curr)
                     lower_summation += (multiplier ** j)
 
-                # print("sum is: ", lower_summation)
                 lower_room = lower_summation / lower_range
-                # print("lower room is:", lower_room)
 
                 min_temp_sum = min_val
                 store_val.append(min_temp_sum)
@@ -284,15 +254,12 @@ def state_quant(
                     upper_summation += (multiplier ** j)
 
                 upper_room = upper_summation / upper_range
-                # print("upper room is:", upper_room)
-                # print("upper summation is: ", upper_summation)
 
                 max_temp_sum = 0
                 diff_store_val = []
                 store_val.append(max_temp_sum)
                 for j in reversed(range(upper_bits - 1)):
                     upper_curr = multiplier ** j
-                    # print("upper_curr is: ", upper_curr)
                     max_temp_sum += (upper_curr / upper_room)
                     store_val.append(max_temp_sum)
 
