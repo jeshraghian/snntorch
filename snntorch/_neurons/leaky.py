@@ -103,21 +103,21 @@ class Leaky(LIF):
 
     Inputs: \\input_, mem_0
         - **input_** of shape `(batch, input_size)`: tensor containing input
-        features
+            features
         - **mem_0** of shape `(batch, input_size)`: tensor containing the
-        initial membrane potential for each element in the batch.
+            initial membrane potential for each element in the batch.
 
-    Outputs: spk, syn_1, mem_1
+    Outputs: spk, mem_1
         - **spk** of shape `(batch, input_size)`: tensor containing the
-        output spikes.
+            output spikes.
         - **mem_1** of shape `(batch, input_size)`: tensor containing the
-        next membrane potential for each element in the batch
+            next membrane potential for each element in the batch
 
     Learnable Parameters:
         - **Leaky.beta** (torch.Tensor) - optional learnable weights must be
-        manually passed in, of shape `1` or (input_size).
+            manually passed in, of shape `1` or (input_size).
         - **Leaky.threshold** (torch.Tensor) - optional learnable thresholds
-        must be manually passed in, of shape `1` or`` (input_size).
+            must be manually passed in, of shape `1` or`` (input_size).
 
     """
 
