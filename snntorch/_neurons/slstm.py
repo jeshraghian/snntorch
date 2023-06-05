@@ -99,6 +99,11 @@ class SLSTM(SpikingNeuron):
     :type spike_grad: surrogate gradient function from snntorch.surrogate,
         optional
 
+    :param surrogate_disable: Disables surrogate gradients regardless of
+        `spike_grad` argument. Useful for ONNX compatibility. Defaults
+        to False
+    :type surrogate_disable: bool, Optional
+
     :param learn_threshold: Option to enable learnable threshold. Defaults
         to False
     :type learn_threshold: bool, optional
@@ -162,6 +167,7 @@ class SLSTM(SpikingNeuron):
         bias=True,
         threshold=1.0,
         spike_grad=None,
+        surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
         learn_threshold=False,
@@ -173,6 +179,7 @@ class SLSTM(SpikingNeuron):
         super().__init__(
             threshold,
             spike_grad,
+            surrogate_disable,
             init_hidden,
             inhibition,
             learn_threshold,

@@ -147,6 +147,11 @@ class RLeaky(LIF):
     :type spike_grad: surrogate gradient function from snntorch.surrogate,
         optional
 
+    :param surrogate_disable: Disables surrogate gradients regardless of
+        `spike_grad` argument. Useful for ONNX compatibility. Defaults
+        to False
+    :type surrogate_disable: bool, Optional
+
     :param init_hidden: Instantiates state variables as instance variables.
         Defaults to False :type init_hidden: bool, optional
 
@@ -227,6 +232,7 @@ class RLeaky(LIF):
         kernel_size=None,
         threshold=1.0,
         spike_grad=None,
+        surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
         learn_beta=False,
@@ -240,6 +246,7 @@ class RLeaky(LIF):
             beta,
             threshold,
             spike_grad,
+            surrogate_disable,
             init_hidden,
             inhibition,
             learn_beta,

@@ -33,6 +33,7 @@ class SpikingNeuron(nn.Module):
         self,
         threshold=1.0,
         spike_grad=None,
+        surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
         learn_threshold=False,
@@ -63,6 +64,8 @@ class SpikingNeuron(nn.Module):
             self.spike_grad = self.ATan.apply
         else:
             self.spike_grad = spike_grad
+        if surrogate_disable:
+            self.spike_grad = self._surrogate_bypass
 
         self.state_quant = state_quant
 
@@ -222,6 +225,10 @@ class SpikingNeuron(nn.Module):
         Intended for use where hidden state variables are global variables."""
         for state in args:
             state = torch.zeros_like(state)
+
+    @staticmethod
+    def _surrogate_bypass(input_):
+        return (input_ > 0).float()
 
     @staticmethod
     class ATan(torch.autograd.Function):
