@@ -37,8 +37,8 @@ def rate(
         spikegen.rate(c, num_steps=1)
         >>> tensor([0., 1., 0., 1.])
 
-        # Increasing num_steps will increase the length of the first
-        dimension (time-first)
+        # Increasing num_steps will increase the length of
+        # the first dimension (time-first)
         print(c.size())
         >>> torch.Size([1, 4])
 
@@ -344,10 +344,10 @@ def delta(
 
         a = torch.Tensor([1, 2, 2.9, 3, 3.9])
         spikegen.delta(a, threshold=1)
-        >>> tensor([1., 1., 0., 1., 0.])
+        >>> tensor([1., 1., 0., 0., 0.])
 
         spikegen.delta(a, threshold=1, padding=True)
-        >>> tensor([0., 1., 0., 1., 0.])
+        >>> tensor([0., 1., 0., 0., 0.])
 
         b = torch.Tensor([1, 2, 0, 2, 2.9])
         spikegen.delta(b, threshold=1, off_spike=True)
