@@ -49,6 +49,7 @@ class SpikingNeuron(nn.Module):
         self.init_hidden = init_hidden
         self.inhibition = inhibition
         self.output = output
+        self.surrogate_disable = surrogate_disable
 
         self._snn_cases(reset_mechanism, inhibition)
         self._snn_register_buffer(
@@ -64,7 +65,8 @@ class SpikingNeuron(nn.Module):
             self.spike_grad = self.ATan.apply
         else:
             self.spike_grad = spike_grad
-        if surrogate_disable:
+
+        if self.surrogate_disable:
             self.spike_grad = self._surrogate_bypass
 
         self.state_quant = state_quant
@@ -299,6 +301,7 @@ class LIF(SpikingNeuron):
         beta,
         threshold=1.0,
         spike_grad=None,
+        surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
         learn_beta=False,
@@ -312,6 +315,7 @@ class LIF(SpikingNeuron):
         super().__init__(
             threshold,
             spike_grad,
+            surrogate_disable,
             init_hidden,
             inhibition,
             learn_threshold,
@@ -328,11 +332,13 @@ class LIF(SpikingNeuron):
         )
         self._reset_mechanism = reset_mechanism
 
-        # TO-DO: Needs a tutorial change too
         if spike_grad is None:
             self.spike_grad = self.ATan.apply
         else:
             self.spike_grad = spike_grad
+
+        if self.surrogate_disable:
+            self.spike_grad = self._surrogate_bypass
 
     def _lif_register_buffer(
         self,
