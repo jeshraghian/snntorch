@@ -73,8 +73,8 @@ class Leaky(LIF):
         optional
 
     :param surrogate_disable: Disables surrogate gradients regardless of
-    `spike_grad` argument. Useful for ONNX compatibility. Defaults
-    to False
+        `spike_grad` argument. Useful for ONNX compatibility. Defaults
+        to False
     :type surrogate_disable: bool, Optional
 
     :param init_hidden: Instantiates state variables as instance variables.
