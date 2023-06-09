@@ -1,5 +1,5 @@
 from .neurons import _SpikeTensor, _SpikeTorchConv, LIF
-
+import torch
 
 class Leaky(LIF):
     """
@@ -139,6 +139,8 @@ class Leaky(LIF):
         reset_mechanism="subtract",
         state_quant=False,
         output=False,
+        graded_spikes_factor=1.0,
+        learn_graded_spikes_factor=False,
     ):
         super(Leaky, self).__init__(
             beta,
@@ -152,7 +154,12 @@ class Leaky(LIF):
             reset_mechanism,
             state_quant,
             output,
+            graded_spikes_factor=1.0,
+            learn_graded_spikes_factor=False,
         )
+        
+        self.graded_spikes_factor = torch.as_tensor(graded_spikes_factor)
+        self.learn_graded_spikes_factor = learn_graded_spikes_factor
 
         if self.init_hidden:
             self.mem = self.init_leaky()
