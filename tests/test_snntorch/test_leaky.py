@@ -42,6 +42,13 @@ def leaky_hidden_reset_none_instance():
     return snn.Leaky(beta=0.5, init_hidden=True, reset_mechanism="none")
 
 
+@pytest.fixture(scope="module")
+def leaky_hidden_learn_graded_instance():
+    return snn.Leaky(
+        beta=0.5, init_hidden=True, learn_graded_spikes_factor=True
+    )
+
+
 class TestLeaky:
     def test_leaky(self, leaky_instance, input_):
         mem = leaky_instance.init_leaky()
@@ -117,3 +124,10 @@ class TestLeaky:
     def test_leaky_cases(self, leaky_hidden_instance, input_):
         with pytest.raises(TypeError):
             leaky_hidden_instance(input_, input_)
+
+    def test_leaky_hidden_learn_graded_instance(
+            self, leaky_hidden_learn_graded_instance
+    ):
+        factor = leaky_hidden_learn_graded_instance.graded_spikes_factor
+
+        assert factor.requires_grad
