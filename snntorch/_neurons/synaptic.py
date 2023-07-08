@@ -49,7 +49,7 @@ class Synaptic(LIF):
 
         # Define Network
         class Net(nn.Module):
-            def __init__(self):
+            def __init__(self, num_inputs, num_hidden, num_outputs):
                 super().__init__()
 
                 # initialize layers
