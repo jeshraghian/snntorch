@@ -19,6 +19,8 @@ requirements = [
     "pandas",
     "matplotlib",
     "numpy>=1.17",
+    "nir",
+    "nirtorch",
 ]
 
 

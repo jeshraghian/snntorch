@@ -104,6 +104,8 @@ The following packages need to be installed to use snnTorch:
 * pandas
 * matplotlib
 * math
+* nir
+* nirtorch
 
 They are automatically installed if snnTorch is installed using the pip command. Ensure the correct version of torch is installed for your system to enable CUDA compatibility. 
 
