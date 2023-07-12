@@ -12,6 +12,7 @@ snnTorch Documentation
    installation
    snntorch
    snntorch.backprop
+   snntorch.export
    snntorch.functional
    snntorch.spikegen
    snntorch.spikeplot
