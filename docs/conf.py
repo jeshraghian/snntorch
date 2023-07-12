@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 
 # fmt: off
-__version__ = '0.6.4'
+__version__ = '0.7.0'
 # fmt: on
 
 
