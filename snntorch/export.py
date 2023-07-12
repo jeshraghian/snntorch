@@ -66,7 +66,7 @@ def to_nir(
     :type sample_data: torch.Tensor
 
     :param model_name: name of library used to train model, default: "snntorch"
-    :param model_name: str, optional
+    :type model_name: str, optional
 
     :return: NIR computational graph where torch modules are represented as NIR nodes
     :rtype: NIRGraph
