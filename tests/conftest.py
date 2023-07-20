@@ -90,11 +90,42 @@ class EnergyEfficiencyNetTest2(nn.Module):
 
     def forward(self, x: torch.Tensor):
         cur1 = self.fc1(x)
-        spk1, mem1 = self.lif1(cur1, self.mem1)
+        spk1, self.mem1 = self.lif1(cur1, self.mem1)
         cur2 = self.fc2(spk1)
-        spk2, mem2 = self.lif2(cur2, self.mem2)
+        spk2, self.mem2 = self.lif2(cur2, self.mem2)
 
-        return spk2, mem2
+        return spk2, self.mem2
+
+    def reset(self):
+        # Initialize the hidden states of LIFs
+        self.mem1 = self.lif1.init_leaky()
+        self.mem2 = self.lif2.init_leaky()
+
+
+class EnergyEfficiencyNetTest3(nn.Module):
+    def __init__(self, beta: float):
+        super().__init__()
+        self.fc1 = nn.Linear(1, 1)
+        self.lif1 = snn.Leaky(beta=beta, threshold=0.5)
+        self.fc2 = nn.Linear(1, 1)
+        self.lif2 = snn.Leaky(beta=beta, threshold=0.25)
+        self.reset()
+
+    def forward(self, x: torch.Tensor):
+        cur1 = self.fc1(x)
+        spk1, self.mem1 = self.lif1(cur1, self.mem1)
+        cur2 = self.fc2(spk1)
+        spk2, self.mem2 = self.lif2(cur2, self.mem2)
+
+        return spk2, self.mem2
+
+    def forward_full(self, x: torch.Tensor):
+        cur1 = self.fc1(x)
+        spk1, self.mem1 = self.lif1(cur1, self.mem1)
+        cur2 = self.fc2(spk1)
+        spk2, self.mem2 = self.lif2(cur2, self.mem2)
+
+        return spk1, self.mem1, spk2, self.mem2
 
     def reset(self):
         # Initialize the hidden states of LIFs

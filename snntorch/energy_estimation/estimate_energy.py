@@ -87,8 +87,15 @@ def forward_pass(model: nn.Module, fwd_inp: torch.Tensor, devices : List[DeviceP
     # TODO: calculations done only for evaluation/inference, as on kerasSpiking (training will be
     #                                                                            much more difficult todo )
     model.eval()
-    with torch.no_grad():
-        out = model(fwd_inp)
+    if first_dim_is_time:
+        fwd_inp_single = torch.stack([fwd_inp[0]])
+        with torch.no_grad():
+            out = model(fwd_inp_single)
+    else:
+        with torch.no_grad():
+            out = model(fwd_inp)
+
+
 
     set_children_layers(summary_list)
     set_the_synapses_neurons_for_recursive_layers(summary_list)
