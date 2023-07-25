@@ -6,6 +6,7 @@ from .layer_info import LayerInfo, get_children_layers
 from .FormattingOptions import *
 from .model_statistics import *
 from .device_profile_registry import DeviceProfileRegistry
+from .energy_estimation_network_interface import EnergyEstimationNetworkInterface
 from snntorch.utils import reset
 import sys
 
@@ -27,7 +28,7 @@ def prod(num_list: Iterable[int] | torch.Size) -> int:
     return result
 
 
-def estimate_energy(model: nn.Module,
+def estimate_energy(model: nn.Module | EnergyEstimationNetworkInterface,
                     devices: DeviceProfile | List[DeviceProfile | str] | str | None = "cpu",
                     input_size: Union[Sequence[int]] | None = None,
                     input_data: Union[torch.Tensor | np.ndarray | Sequence[float]] | None = None,
@@ -55,7 +56,7 @@ def estimate_energy(model: nn.Module,
     return results
 
 
-def validate_user_parameters(model: nn.Module,
+def validate_user_parameters(model: nn.Module | EnergyEstimationNetworkInterface,
                              input_size: Union[Sequence[int]] | None = None,
                              input_data: Union[torch.Tensor | np.ndarray | Sequence[float]] | None = None,
                              input_size_proportion_of_one: float = 1.0):
@@ -80,8 +81,8 @@ def create_input_for_network_from_size(input_data: Union[torch.Tensor | np.ndarr
         return input_data
 
 
-def forward_pass(model: nn.Module, fwd_inp: torch.Tensor, devices : List[DeviceProfile], first_dim_is_time: bool,
-                 include_bias_term_in_events):
+def forward_pass(model: nn.Module | EnergyEstimationNetworkInterface, fwd_inp: torch.Tensor,
+                 devices: List[DeviceProfile], first_dim_is_time: bool, include_bias_term_in_events):
     model_name = model.__class__.__name__
     summary_list, global_layer_info, hooks = apply_hooks(model_name, model, fwd_inp, include_bias_term_in_events)
     # TODO: calculations done only for evaluation/inference, as on kerasSpiking (training will be
@@ -94,8 +95,6 @@ def forward_pass(model: nn.Module, fwd_inp: torch.Tensor, devices : List[DeviceP
     else:
         with torch.no_grad():
             out = model(fwd_inp)
-
-
 
     set_children_layers(summary_list)
     set_the_synapses_neurons_for_recursive_layers(summary_list)
@@ -111,14 +110,21 @@ def forward_pass(model: nn.Module, fwd_inp: torch.Tensor, devices : List[DeviceP
         # set the information about the devices to calculate the contributing energy
         layer_info.setup_device_profiles(devices)
 
-    reset(model)
+    # TODO : this probably needs to be done better
+    if isinstance(model, EnergyEstimationNetworkInterface):
+        model.reset()
+    else:
+        # TODO : does this work as expected ? weird results ?
+        reset(model)
 
     # trickier case
     if first_dim_is_time:
         T = fwd_inp.size()[0]
         for t in range(T):
             inp = torch.stack([fwd_inp[t]])
-            model(inp)
+            out = model(inp)
+            #print(out)
+            #print("-"*64)
 
     # pretty straightforward, just run it once
     else:
@@ -130,7 +136,7 @@ def forward_pass(model: nn.Module, fwd_inp: torch.Tensor, devices : List[DeviceP
     return summary_list
 
 
-def set_the_synapses_neurons_for_recursive_layers(summary_list : List[LayerInfo]):
+def set_the_synapses_neurons_for_recursive_layers(summary_list: List[LayerInfo]):
     # set the synapses correctly
     for layer in reversed(summary_list):
         if layer.neuron_count is None:
@@ -151,13 +157,15 @@ def set_the_synapses_neurons_for_recursive_layers(summary_list : List[LayerInfo]
         if len(layer.children) > 0:
             layer.firing_rate = layer.children[-1].firing_rate
 
-def calculate_total_energies_recursively(summary_list : List[LayerInfo]):
+
+def calculate_total_energies_recursively(summary_list: List[LayerInfo]):
     # always add the energy contributions for the
     for layer in summary_list:
         total_energy = np.array(layer.total_energy_contributions, dtype=float)
         for child in layer.children:
             total_energy += np.array(child.total_energy_contributions, dtype=float)
         layer.total_energy_contributions = total_energy
+
 
 def construct_pre_hook(global_layer_info,
                        summary_list,
@@ -194,7 +202,7 @@ def construct_hook(global_layer_info, batch_dim):
             info.output_bytes = elem_bytes * prod(info.output_size)
             info.executed = True
             # TODO: doesn't work
-            # info.calculate_macs()
+            info.calculate_macs()
         else:
             info.calculate_events(inputs, outputs)
 

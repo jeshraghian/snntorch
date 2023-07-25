@@ -342,7 +342,6 @@ class LayerInfo:
         # Only calculate the neuron and synapse counts for leafs (few basic torch layers).
         # Recursive layers (nn.Modules consisting of basic layers will be updated later, once
         # children are set up )
-
         # TODO: make it more modular to support on future other type of layers
         if self.module.__class__ == nn.Linear:
             # TODO : make sure that's correct
@@ -350,22 +349,29 @@ class LayerInfo:
                 val = torch.Tensor(inputs[0])
             else:
                 val = torch.Tensor(inputs)
-            self.firing_rate = float(torch.mean(val).detach().cpu())
             self.synapse_count = self.trainable_params
             self.neuron_count = 0
 
         elif self.module.__class__ == snntorch.Leaky:
             val = torch.Tensor(outputs[0])
-            self.firing_rate = float(torch.mean(val).detach().cpu())
             self.synapse_count = 0
             self.neuron_count = prod(outputs[0].shape[1:])
             self.is_synaptic = False
+
+        elif self.module.__class__ == nn.Conv1d:
+            self.synapse_count = self.trainable_params
+            self.neuron_count = 0
+
+        elif self.module.__class__ == nn.Conv2d:
+            self.synapse_count = self.trainable_params
+            self.neuron_count = 0
 
     def calculate_events(self, inputs: torch.Tensor, outputs: torch.Tensor) -> None:
 
         if isinstance(self.module, nn.Linear):
             current_spiking_events = (float(torch.sum(inputs[0]).detach().cpu()) + self.include_bias_in_events) * \
                                      outputs[0].shape[0]
+
             self.spiking_events += current_spiking_events
 
             current_total_events = (prod(inputs[0].size()) + self.include_bias_in_events) * outputs[0].shape[0]

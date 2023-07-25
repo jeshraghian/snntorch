@@ -2,6 +2,7 @@ import pytest
 import snntorch as snn
 import torch
 import torch.nn as nn
+from snntorch.energy_estimation.energy_estimation_network_interface import EnergyEstimationNetworkInterface
 
 
 # class Net(nn.Module):
@@ -102,7 +103,7 @@ class EnergyEfficiencyNetTest2(nn.Module):
         self.mem2 = self.lif2.init_leaky()
 
 
-class EnergyEfficiencyNetTest3(nn.Module):
+class EnergyEfficiencyNetTest3(EnergyEstimationNetworkInterface):
     def __init__(self, beta: float):
         super().__init__()
         self.fc1 = nn.Linear(1, 1)
@@ -123,6 +124,41 @@ class EnergyEfficiencyNetTest3(nn.Module):
         cur1 = self.fc1(x)
         spk1, self.mem1 = self.lif1(cur1, self.mem1)
         cur2 = self.fc2(spk1)
+        spk2, self.mem2 = self.lif2(cur2, self.mem2)
+
+        return spk1, self.mem1, spk2, self.mem2
+
+    def reset(self):
+        # Initialize the hidden states of LIFs
+        self.mem1 = self.lif1.init_leaky()
+        self.mem2 = self.lif2.init_leaky()
+
+
+class EnergyEfficiencyNetTest4(EnergyEstimationNetworkInterface):
+    def __init__(self, beta: float):
+        super().__init__()
+        self.cnn1 = nn.Conv2d(1, 1, kernel_size=3, padding=0)
+        self.lif1 = snn.Leaky(beta=beta, threshold=0.5)
+        self.fc2 = nn.Linear(9, 1)
+        self.lif2 = snn.Leaky(beta=beta, threshold=0.25)
+        self.reset()
+
+    def forward(self, x: torch.Tensor):
+        cur1 = self.cnn1(x)
+        spk1, self.mem1 = self.lif1(cur1, self.mem1)
+        spk1 = spk1.reshape(spk1.shape[0], -1)
+        cur2 = self.fc2(spk1)
+        spk2, self.mem2 = self.lif2(cur2, self.mem2)
+
+        return spk2, self.mem2
+
+    def forward_full(self, x: torch.Tensor):
+        cur1 = self.cnn1(x)
+        spk1, self.mem1 = self.lif1(cur1, self.mem1)
+        spk1 = spk1.reshape(spk1.shape[0], -1)
+        print(spk1.shape)
+        cur2 = self.fc2(spk1)
+        print(cur2.shape)
         spk2, self.mem2 = self.lif2(cur2, self.mem2)
 
         return spk1, self.mem1, spk2, self.mem2

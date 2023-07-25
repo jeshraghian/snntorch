@@ -4,6 +4,7 @@ import snntorch.backprop as bp
 from snntorch.energy_estimation.estimate_energy import *
 from snntorch.energy_estimation.device_profile_registry import *
 from tests.conftest import *
+from snntorch.utils import reset
 from unittest import mock
 import torch
 
@@ -87,7 +88,7 @@ def test_estimate_energy_network2_energies_for_two_new_devices():
     assert pytest.approx(expected_values[1], rel=0.01) == energies[1]
 
 
-def test_estimate_energy_network1_for_neuromorphic():
+def test_estimate_energy_network3_for_neuromorphic():
     inp_test = torch.Tensor([[0, 0, 0, 0, 0, 1, 0, 0, 0, 0]]).T
     # create the network (the "device under test")
     v = EnergyEfficiencyNetTest3(beta=0.5)
@@ -122,15 +123,15 @@ def test_estimate_energy_network1_for_neuromorphic():
     assert len(energies) == 2
     assert pytest.approx(neuromorphic_expected, rel=0.01) == energies[
         0], f"The network consisting of single synapses/neurons " \
-            f"was not within tolerance (was {expected_value}, " \
+            f"was not within tolerance (was {neuromorphic_expected}, " \
             f"is {energies[0]})"
     assert pytest.approx(von_neunmann_expected, rel=0.01) == energies[
         1], f"The network consisting of single synapses/neurons " \
-            f"was not within tolerance (was {expected_value}, " \
+            f"was not within tolerance (was {von_neunmann_expected}, " \
             f"is {energies[0]})"
 
 
-def test_estimate_energy_network1_for_neuromorphic2():
+def test_estimate_energy_network3_for_neuromorphic2():
     inp_test = torch.Tensor([[0, 0, 0, 0, 0, 1, 0, 0, 0, 0]]).T
     # create the network (the "device under test")
     v = EnergyEfficiencyNetTest3(beta=0.5)
@@ -165,15 +166,21 @@ def test_estimate_energy_network1_for_neuromorphic2():
     assert len(energies) == 2
     assert pytest.approx(neuromorphic_expected, rel=0.01) == energies[
         0], f"The network consisting of single synapses/neurons " \
-            f"was not within tolerance (was {expected_value}, " \
+            f"was not within tolerance (was {neuromorphic_expected}, " \
             f"is {energies[0]})"
     assert pytest.approx(von_neunmann_expected, rel=0.01) == energies[
         1], f"The network consisting of single synapses/neurons " \
-            f"was not within tolerance (was {expected_value}, " \
+            f"was not within tolerance (was {von_neunmann_expected}, " \
             f"is {energies[0]})"
 
 
-def test_estimate_energy_network1_for_neuromorphic3():
+def test_estimate_energy_network3_for_neuromorphic3():
+    """
+            Input spikes         :     1  0  0  0  1  0  0  0  0  0
+            Spiking activation 1 :     1  0  0  0  1  0  0  0  0  0
+            Spiking activation 2 :     1  0  0  0  1  0  0  0  0  0
+
+    """
     inp_test = torch.Tensor([[1, 0, 0, 0, 1, 0, 0, 0, 0, 0]]).T
     # create the network (the "device under test")
     v = EnergyEfficiencyNetTest3(beta=0.75)
@@ -183,7 +190,7 @@ def test_estimate_energy_network1_for_neuromorphic3():
     v.fc2.bias.data = torch.Tensor([[0]])
     v.reset()
 
-    #Debug, see whether the number checks out
+    # Debug, see whether the number checks out
     print()
     for t in inp_test:
         spk = torch.stack([t])
@@ -208,6 +215,119 @@ def test_estimate_energy_network1_for_neuromorphic3():
     # therefore expected energy is 2e-9 (1e-9 for each synapse and 0 for each neuron)
     # in comparison (in non spiking / von neunmann computing), although we have mostly zeros, energy will constantly
     # be needed to perform operation
+    neuromorphic_expected = (2 + 2 + 2 + 2) * 1e-9
+    von_neunmann_expected = 4 * 10 * 1e-9
+    energies = summary_list.total_energies
+    print(summary_list)
+
+    assert len(energies) == 2
+    assert pytest.approx(neuromorphic_expected, rel=0.01) == energies[
+        0], f"The network consisting of single synapses/neurons " \
+            f"was not within tolerance (was {neuromorphic_expected}, " \
+            f"is {energies[0]})"
+    assert pytest.approx(von_neunmann_expected, rel=0.01) == energies[
+        1], f"The network consisting of single synapses/neurons " \
+            f"was not within tolerance (was {von_neunmann_expected}, " \
+            f"is {energies[0]})"
+
+
+def test_estimate_energy_network3_for_neuromorphic4():
+    """
+            Input spikes         :     1  0  0  0  1  0  0  0  0  0
+            Spiking activation 1 :     1  0  0  0  1  0  0  0  0  0
+            Spiking activation 2 :     1  0  0  0  1  0  0  0  0  0
+
+    """
+    inp_test = torch.Tensor([[1, 0, 0, 0, 1, 0, 0, 0, 0, 0]]).T
+    # create the network (the "device under test")
+    v = EnergyEfficiencyNetTest3(beta=0.75)
+    v.fc1.weight.data = torch.Tensor([[1]])
+    v.fc1.bias.data = torch.Tensor([[0]])
+    v.fc2.weight.data = torch.Tensor([[0.5]])
+    v.fc2.bias.data = torch.Tensor([[0]])
+    v.reset()
+
+    # Debug, see whether the number checks out
+    print()
+    for t in inp_test:
+        spk = torch.stack([t])
+        dat = v.forward_full(spk)
+        print([dat[idx].item() for idx in range(4)])
+    v.reset()
+
+    # on input 3 spikes, in layer 1 we have 4 spikes, in final layer 5 spikes
+    # - 3 synapse events (on layer 1)
+    # - 4 neuron events in layer 1 activation
+    # - 4 synapse events in layer 2
+    # - 5 neuron events in layer 2 activation
+    DeviceProfileRegistry.add_device("neuromorphic-test4", 1e-9, 0, True)
+    DeviceProfileRegistry.add_device("vn-against-neuromorphic-test4", 1e-9, 0, False)
+
+    summary_list = estimate_energy(model=v, input_data=inp_test, devices=["neuromorphic-test4",
+                                                                          "vn-against-neuromorphic-test4"],
+                                   include_bias_term_in_events=False)
+
+    # see that the numbers differ a lot for devices that are truely spiking or not (by
+    # writing on paper, or checking on code, this set of weights will generate only one spike at time t=6)
+    # therefore expected energy is 2e-9 (1e-9 for each synapse and 0 for each neuron)
+    # in comparison (in non spiking / von neunmann computing), although we have mostly zeros, energy will constantly
+    # be needed to perform operation
+    neuromorphic_expected = (2 + 2) * 1e-9
+    von_neunmann_expected = 2 * 10 * 1e-9
+    energies = summary_list.total_energies
+    print(summary_list)
+
+    assert len(energies) == 2
+    assert pytest.approx(neuromorphic_expected, rel=0.01) == energies[
+        0], f"The network consisting of single synapses/neurons " \
+            f"was not within tolerance (was {neuromorphic_expected}, " \
+            f"is {energies[0]})"
+    assert pytest.approx(von_neunmann_expected, rel=0.01) == energies[
+        1], f"The network consisting of single synapses/neurons " \
+            f"was not within tolerance (was {von_neunmann_expected}, " \
+            f"is {energies[0]})"
+
+
+def test_estimate_energy_network3_for_neuromorphic5():
+    """
+            Input spikes         :     1  0  1  0  1  0  0  0  0  0
+            Spiking activation 1 :     1  0  1  1  1  0  0  0  0  0
+            Spiking activation 2 :     1  0  1  1  1  1  0  0  0  0
+    """
+    inp_test = torch.Tensor([[1, 0, 1, 0, 1, 0, 0, 0, 0, 0]]).T
+    # create the network (the "device under test")
+    v = EnergyEfficiencyNetTest3(beta=0.75)
+    v.fc1.weight.data = torch.Tensor([[1]])
+    v.fc1.bias.data = torch.Tensor([[0]])
+    v.fc2.weight.data = torch.Tensor([[0.5]])
+    v.fc2.bias.data = torch.Tensor([[0]])
+    v.reset()
+
+    # Debug, see whether the number checks out
+    print()
+    for t in inp_test:
+        spk = torch.stack([t])
+        dat = v.forward_full(spk)
+        print([dat[idx].item() for idx in range(4)])
+    v.reset()
+
+    # on input 3 spikes, in layer 1 we have 4 spikes, in final layer 5 spikes
+    # - 3 synapse events (on layer 1)
+    # - 4 neuron events in layer 1 activation
+    # - 4 synapse events in layer 2
+    # - 5 neuron events in layer 2 activation
+    DeviceProfileRegistry.add_device("neuromorphic-test5", 1e-9, 1e-9, True)
+    DeviceProfileRegistry.add_device("vn-against-neuromorphic-test5", 1e-9, 1e-9, False)
+
+    summary_list = estimate_energy(model=v, input_data=inp_test, devices=["neuromorphic-test5",
+                                                                          "vn-against-neuromorphic-test5"],
+                                   include_bias_term_in_events=False)
+
+    # see that the numbers differ a lot for devices that are truely spiking or not (by
+    # writing on paper, or checking on code, this set of weights will generate only one spike at time t=6)
+    # therefore expected energy is 2e-9 (1e-9 for each synapse and 0 for each neuron)
+    # in comparison (in non spiking / von neunmann computing), although we have mostly zeros, energy will constantly
+    # be needed to perform operation
     neuromorphic_expected = (3 + 4 + 4 + 5) * 1e-9
     von_neunmann_expected = 4 * 10 * 1e-9
     energies = summary_list.total_energies
@@ -218,7 +338,112 @@ def test_estimate_energy_network1_for_neuromorphic3():
         0], f"The network consisting of single synapses/neurons " \
             f"was not within tolerance (was {neuromorphic_expected}, " \
             f"is {energies[0]})"
-    #assert pytest.approx(von_neunmann_expected, rel=0.01) == energies[
-    #    1], f"The network consisting of single synapses/neurons " \
-    #        f"was not within tolerance (was {expected_value}, " \
-    #        f"is {energies[0]})"
+    assert pytest.approx(von_neunmann_expected, rel=0.01) == energies[
+        1], f"The network consisting of single synapses/neurons " \
+            f"was not within tolerance (was {von_neunmann_expected}, " \
+            f"is {energies[0]})"
+
+
+def test_estimate_energy_network3_for_neuromorphic6():
+    """
+            Input spikes         :     1  0  1  0  1  0  0  0  0  0
+            Spiking activation 1 :     1  0  1  1  1  0  0  0  0  0
+            Spiking activation 2 :     1  0  1  1  1  1  0  0  0  0
+    """
+    inp_test = torch.Tensor([[1, 0, 1, 0, 1, 0, 0, 0, 0, 0]]).T
+    # create the network (the "device under test")
+    v = EnergyEfficiencyNetTest3(beta=0.75)
+    v.fc1.weight.data = torch.Tensor([[1]])
+    v.fc1.bias.data = torch.Tensor([[0]])
+    v.fc2.weight.data = torch.Tensor([[0.5]])
+    v.fc2.bias.data = torch.Tensor([[0]])
+    v.reset()
+
+    # Debug, see whether the number checks out
+    print()
+    for t in inp_test:
+        spk = torch.stack([t])
+        dat = v.forward_full(spk)
+        print([dat[idx].item() for idx in range(4)])
+    v.reset()
+
+    # on input 3 spikes, in layer 1 we have 4 spikes, in final layer 5 spikes
+    # - 3 synapse events (on layer 1)
+    # - 4 neuron events in layer 1 activation
+    # - 4 synapse events in layer 2
+    # - 5 neuron events in layer 2 activation
+    DeviceProfileRegistry.add_device("neuromorphic-test6", 1e-9, 0e-9, True)
+    DeviceProfileRegistry.add_device("vn-against-neuromorphic-test6", 1e-9, 0e-9, False)
+
+    summary_list = estimate_energy(model=v, input_data=inp_test, devices=["neuromorphic-test6",
+                                                                          "vn-against-neuromorphic-test6"],
+                                   include_bias_term_in_events=False)
+
+    # see that the numbers differ a lot for devices that are truely spiking or not (by
+    # writing on paper, or checking on code, this set of weights will generate only one spike at time t=6)
+    # therefore expected energy is 2e-9 (1e-9 for each synapse and 0 for each neuron)
+    # in comparison (in non spiking / von neunmann computing), although we have mostly zeros, energy will constantly
+    # be needed to perform operation
+    neuromorphic_expected = (3 + 4) * 1e-9
+    von_neunmann_expected = 2 * 10 * 1e-9
+    energies = summary_list.total_energies
+    print(summary_list)
+
+    assert len(energies) == 2
+    assert pytest.approx(neuromorphic_expected, rel=0.01) == energies[
+        0], f"The network consisting of single synapses/neurons " \
+            f"was not within tolerance (was {neuromorphic_expected}, " \
+            f"is {energies[0]})"
+    assert pytest.approx(von_neunmann_expected, rel=0.01) == energies[
+        1], f"The network consisting of single synapses/neurons " \
+            f"was not within tolerance (was {von_neunmann_expected}, " \
+            f"is {energies[0]})"
+
+
+def test_estimate_energy_network4_for_neuromorphic7():
+    """
+            CNN test
+
+            pattern 1 (p1) = [[1 0 1]
+                              [0 1 0]
+                              [1 0 1]]
+
+            pattern 2 (p2) = [[0 1 0]
+                             [1 0 1]
+                             [0 1 0]]
+
+            Input spikes         :     p1  p2
+    """
+
+    p1 = [[1, 0, 0, 0, 1],
+          [0, 1, 0, 1, 0],
+          [0, 0, 1, 0, 0],
+          [0, 1, 0, 1, 0],
+          [1, 0, 0, 0, 1]]
+    p2 = [[0, 1, 1, 1, 0],
+          [1, 0, 0, 0, 1],
+          [1, 0, 0, 0, 1],
+          [1, 0, 0, 0, 1],
+          [0, 1, 1, 1, 0]]
+
+    inp_test = torch.Tensor([p1, p2])
+    # inp_test = inp_test.permute(1, 2, 0)
+
+    # create the network (the "device under test")
+    v = EnergyEfficiencyNetTest4(beta=0.75)
+    v.reset()
+
+    # Debug, see whether the number checks out
+    for t in inp_test:
+        spk = torch.stack([t])
+        dat = v.forward_full(spk)
+        # print([dat[idx] for idx in range(4)])
+    v.reset()
+
+    DeviceProfileRegistry.add_device("neuromorphic-test7", 1e-9, 0e-9, True)
+    DeviceProfileRegistry.add_device("vn-against-neuromorphic-test7", 1e-9, 0e-9, False)
+    summary_list = estimate_energy(model=v, input_data=inp_test, devices=["neuromorphic-test7",
+                                                                          "vn-against-neuromorphic-test7"],
+                                   include_bias_term_in_events=False)
+
+    print(summary_list)
