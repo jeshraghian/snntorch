@@ -8,6 +8,8 @@ import snntorch
 import torch
 from torch import nn
 from torch.jit import ScriptModule
+from snntorch.energy_estimation.layer_parameter_event_calculator import LayerParameterEventCalculator
+import logging
 
 from .enums import ColumnSettings
 
@@ -66,8 +68,8 @@ class LayerInfo:
         self.num_params = 0
         self.param_bytes = 0
 
-        self.spiking_events = 0
-        self.total_events = 0
+        self.spiking_events = None
+        self.total_events = None
 
         self.output_bytes = 0
         self.macs = 0
@@ -342,59 +344,40 @@ class LayerInfo:
         # Only calculate the neuron and synapse counts for leafs (few basic torch layers).
         # Recursive layers (nn.Modules consisting of basic layers will be updated later, once
         # children are set up )
-        # TODO: make it more modular to support on future other type of layers
-        if self.module.__class__ == nn.Linear:
-            # TODO : make sure that's correct
-            if len(inputs) == 1:
-                val = torch.Tensor(inputs[0])
-            else:
-                val = torch.Tensor(inputs)
-            self.synapse_count = self.trainable_params
-            self.neuron_count = 0
+        count_func = LayerParameterEventCalculator.get_calculate_synapse_neuron_count_for(
+            self.module.__class__.__name__)
 
-        elif self.module.__class__ == snntorch.Leaky:
-            val = torch.Tensor(outputs[0])
-            self.synapse_count = 0
-            self.neuron_count = prod(outputs[0].shape[1:])
-            self.is_synaptic = False
-
-        elif self.module.__class__ == nn.Conv1d:
-            self.synapse_count = self.trainable_params
-            self.neuron_count = 0
-
-        elif self.module.__class__ == nn.Conv2d:
-            self.synapse_count = self.trainable_params
-            self.neuron_count = 0
+        # TODO: handle properly unrecognized layers
+        if count_func is None:
+            logging.warning(f"Couldn't calculate the synapses and neurons for layer with classname : "
+                            f"{self.module.__class__.__name__}")
+            self.synapse_count, self.neuron_count = None, None
+        else:
+            self.synapse_count, self.neuron_count = count_func(self, inputs, outputs)
 
     def calculate_events(self, inputs: torch.Tensor, outputs: torch.Tensor) -> None:
 
-        if isinstance(self.module, nn.Linear):
-            current_spiking_events = (float(torch.sum(inputs[0]).detach().cpu()) + self.include_bias_in_events) * \
-                                     outputs[0].shape[0]
+        event_counter = LayerParameterEventCalculator.get_event_counter_for(self.module.__class__.__name__)
+        if event_counter is not None:
+            if self.spiking_events is None:
+                self.spiking_events = 0
 
+            if self.total_events is None:
+                self.total_events = 0
+
+            current_spiking_events, current_total_events = event_counter(self, inputs, outputs)
             self.spiking_events += current_spiking_events
-
-            current_total_events = (prod(inputs[0].size()) + self.include_bias_in_events) * outputs[0].shape[0]
             self.total_events += current_total_events
 
             for i, device in enumerate(self.device_profiles):
+                energy_per_event = device.energy_per_neuron_event
+                if self.is_synaptic:
+                    energy_per_event = device.energy_per_synapse_event
+
                 if device.is_spiking_architecture:
-                    self.total_energy_contributions[i] += current_spiking_events * device.energy_per_synapse_event
+                    self.total_energy_contributions[i] += current_spiking_events * energy_per_event
                 else:
-                    self.total_energy_contributions[i] += current_total_events * device.energy_per_synapse_event
-
-        elif isinstance(self.module, snntorch.Leaky):
-            current_spiking_events = float(torch.sum(outputs[0]).detach().cpu())
-            self.spiking_events += current_spiking_events
-
-            current_total_events = prod(outputs[0].size())
-            self.total_events += current_total_events
-
-            for i, device in enumerate(self.device_profiles):
-                if device.is_spiking_architecture:
-                    self.total_energy_contributions[i] += current_spiking_events * device.energy_per_neuron_event
-                else:
-                    self.total_energy_contributions[i] += current_total_events * device.energy_per_neuron_event
+                    self.total_energy_contributions[i] += current_total_events * energy_per_event
 
 
 def nested_list_size(inputs: Sequence[Any] | torch.Tensor) -> tuple[list[int], int]:

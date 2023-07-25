@@ -33,6 +33,9 @@ def test_estimate_energy_network1():
     DeviceProfileRegistry.add_device("cpu-test1", 8.6e-9, 8.6e-9, False)
     summary_list = estimate_energy(model=v, input_data=inp_test, devices="cpu-test1",
                                    include_bias_term_in_events=False)
+    print()
+    print(summary_list)
+    print()
 
     expected_value = 3.44e-8
     energies = summary_list.total_energies
@@ -54,6 +57,10 @@ def test_estimate_energy_network2():
     v = EnergyEfficiencyNetTest2(beta=0.9)
     summary_list = estimate_energy(model=v, input_data=inp_test, devices="cpu-test2",
                                    include_bias_term_in_events=False)
+
+    print()
+    print(summary_list)
+    print()
 
     expected_value = 2.38e-5
     energies = summary_list.total_energies
@@ -79,6 +86,10 @@ def test_estimate_energy_network2_energies_for_two_new_devices():
     summary_list = estimate_energy(model=v, input_data=inp_test, devices=["cpu-test3", "cpu-test4"],
                                    include_bias_term_in_events=False)
     energies = summary_list.total_energies
+
+    print()
+    print(summary_list)
+    print()
 
     # calculate it for two devices
     expected_values = [2.70e-5, 3.43e-6]
@@ -110,6 +121,10 @@ def test_estimate_energy_network3_for_neuromorphic():
     summary_list = estimate_energy(model=v, input_data=inp_test, devices=["neuromorphic-test1",
                                                                           "vn-against-neuromorphic-test1"],
                                    include_bias_term_in_events=False)
+
+    print()
+    print(summary_list)
+    print()
 
     # see that the numbers differ a lot for devices that are truely spiking or not (by
     # writing on paper, or checking on code, this set of weights will generate only one spike at time t=6)
@@ -153,7 +168,9 @@ def test_estimate_energy_network3_for_neuromorphic2():
     summary_list = estimate_energy(model=v, input_data=inp_test, devices=["neuromorphic-test2",
                                                                           "vn-against-neuromorphic-test2"],
                                    include_bias_term_in_events=False)
-
+    print()
+    print(summary_list)
+    print()
     # see that the numbers differ a lot for devices that are truely spiking or not (by
     # writing on paper, or checking on code, this set of weights will generate only one spike at time t=6)
     # therefore expected energy is 2e-9 (1e-9 for each synapse and 0 for each neuron)
@@ -191,12 +208,12 @@ def test_estimate_energy_network3_for_neuromorphic3():
     v.reset()
 
     # Debug, see whether the number checks out
-    print()
-    for t in inp_test:
-        spk = torch.stack([t])
-        dat = v.forward_full(spk)
-        print([dat[idx].item() for idx in range(4)])
-    v.reset()
+    #print()
+    #for t in inp_test:
+    #    spk = torch.stack([t])
+    #    dat = v.forward_full(spk)
+    #    print([dat[idx].item() for idx in range(4)])
+    #v.reset()
 
     # on input 3 spikes, in layer 1 we have 4 spikes, in final layer 5 spikes
     # - 3 synapse events (on layer 1)
@@ -218,7 +235,9 @@ def test_estimate_energy_network3_for_neuromorphic3():
     neuromorphic_expected = (2 + 2 + 2 + 2) * 1e-9
     von_neunmann_expected = 4 * 10 * 1e-9
     energies = summary_list.total_energies
+    print()
     print(summary_list)
+    print()
 
     assert len(energies) == 2
     assert pytest.approx(neuromorphic_expected, rel=0.01) == energies[
@@ -248,12 +267,12 @@ def test_estimate_energy_network3_for_neuromorphic4():
     v.reset()
 
     # Debug, see whether the number checks out
-    print()
-    for t in inp_test:
-        spk = torch.stack([t])
-        dat = v.forward_full(spk)
-        print([dat[idx].item() for idx in range(4)])
-    v.reset()
+    #print()
+    #for t in inp_test:
+    #    spk = torch.stack([t])
+    #    dat = v.forward_full(spk)
+    #    print([dat[idx].item() for idx in range(4)])
+    #v.reset()
 
     # on input 3 spikes, in layer 1 we have 4 spikes, in final layer 5 spikes
     # - 3 synapse events (on layer 1)
@@ -266,6 +285,9 @@ def test_estimate_energy_network3_for_neuromorphic4():
     summary_list = estimate_energy(model=v, input_data=inp_test, devices=["neuromorphic-test4",
                                                                           "vn-against-neuromorphic-test4"],
                                    include_bias_term_in_events=False)
+    print()
+    print(summary_list)
+    print()
 
     # see that the numbers differ a lot for devices that are truely spiking or not (by
     # writing on paper, or checking on code, this set of weights will generate only one spike at time t=6)
@@ -304,12 +326,12 @@ def test_estimate_energy_network3_for_neuromorphic5():
     v.reset()
 
     # Debug, see whether the number checks out
-    print()
-    for t in inp_test:
-        spk = torch.stack([t])
-        dat = v.forward_full(spk)
-        print([dat[idx].item() for idx in range(4)])
-    v.reset()
+    #print()
+    #for t in inp_test:
+    #    spk = torch.stack([t])
+    #    dat = v.forward_full(spk)
+    #    print([dat[idx].item() for idx in range(4)])
+    #v.reset()
 
     # on input 3 spikes, in layer 1 we have 4 spikes, in final layer 5 spikes
     # - 3 synapse events (on layer 1)
@@ -322,6 +344,9 @@ def test_estimate_energy_network3_for_neuromorphic5():
     summary_list = estimate_energy(model=v, input_data=inp_test, devices=["neuromorphic-test5",
                                                                           "vn-against-neuromorphic-test5"],
                                    include_bias_term_in_events=False)
+    print()
+    print(summary_list)
+    print()
 
     # see that the numbers differ a lot for devices that are truely spiking or not (by
     # writing on paper, or checking on code, this set of weights will generate only one spike at time t=6)
@@ -360,12 +385,12 @@ def test_estimate_energy_network3_for_neuromorphic6():
     v.reset()
 
     # Debug, see whether the number checks out
-    print()
-    for t in inp_test:
-        spk = torch.stack([t])
-        dat = v.forward_full(spk)
-        print([dat[idx].item() for idx in range(4)])
-    v.reset()
+    #print()
+    #for t in inp_test:
+    #    spk = torch.stack([t])
+    #    dat = v.forward_full(spk)
+    #    print([dat[idx].item() for idx in range(4)])
+    #v.reset()
 
     # on input 3 spikes, in layer 1 we have 4 spikes, in final layer 5 spikes
     # - 3 synapse events (on layer 1)
@@ -378,6 +403,10 @@ def test_estimate_energy_network3_for_neuromorphic6():
     summary_list = estimate_energy(model=v, input_data=inp_test, devices=["neuromorphic-test6",
                                                                           "vn-against-neuromorphic-test6"],
                                    include_bias_term_in_events=False)
+
+    print()
+    print(summary_list)
+    print()
 
     # see that the numbers differ a lot for devices that are truely spiking or not (by
     # writing on paper, or checking on code, this set of weights will generate only one spike at time t=6)
@@ -403,16 +432,35 @@ def test_estimate_energy_network3_for_neuromorphic6():
 def test_estimate_energy_network4_for_neuromorphic7():
     """
             CNN test
-
-            pattern 1 (p1) = [[1 0 1]
-                              [0 1 0]
-                              [1 0 1]]
-
-            pattern 2 (p2) = [[0 1 0]
-                             [1 0 1]
-                             [0 1 0]]
-
             Input spikes         :     p1  p2
+
+            pattern 1 (p1) = [[1 0 0 0 1]
+                              [0 1 0 1 0]
+                              [0 0 1 0 0]
+                              [0 1 0 1 0]
+                              [1 0 0 0 1]]
+
+            pattern 2 (p2) = [[0 1 1 1 0]
+                              [1 0 0 0 1]
+                              [1 0 0 0 1]
+                              [1 0 0 0 1]
+                              [0 1 1 1 0]]
+
+
+            CNN spike counts for the CNN layer:
+            p1 : [[3 3 3]
+                  [3 5 3]
+                  [3 3 3]]
+
+            total spiking events (sum ) : 29
+
+            p2 :  [[4 3 4]
+                   [3 0 3]
+                   [4 3 4]]
+
+            total spiking events (sum) : 28
+
+            expected total spiking events in 2D CNN = 29 + 28 = 57
     """
 
     p1 = [[1, 0, 0, 0, 1],
@@ -434,11 +482,11 @@ def test_estimate_energy_network4_for_neuromorphic7():
     v.reset()
 
     # Debug, see whether the number checks out
-    for t in inp_test:
-        spk = torch.stack([t])
-        dat = v.forward_full(spk)
-        # print([dat[idx] for idx in range(4)])
-    v.reset()
+    #for t in inp_test:
+    #    spk = torch.stack([t])
+    #    dat = v.forward_full(spk)
+    #    # print([dat[idx] for idx in range(4)])
+    #v.reset()
 
     DeviceProfileRegistry.add_device("neuromorphic-test7", 1e-9, 0e-9, True)
     DeviceProfileRegistry.add_device("vn-against-neuromorphic-test7", 1e-9, 0e-9, False)

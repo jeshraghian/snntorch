@@ -8,6 +8,7 @@ from .model_statistics import *
 from .device_profile_registry import DeviceProfileRegistry
 from .energy_estimation_network_interface import EnergyEstimationNetworkInterface
 from snntorch.utils import reset
+from .utils import *
 import sys
 
 
@@ -18,14 +19,6 @@ def set_children_layers(summary_list: list[LayerInfo]) -> None:
         idx[layer.depth] = idx.get(layer.depth, 0) + 1
         layer.depth_index = idx[layer.depth]
         layer.children = get_children_layers(summary_list, i)
-
-
-def prod(num_list: Iterable[int] | torch.Size) -> int:
-    result = 1
-    if isinstance(num_list, Iterable):
-        for item in num_list:
-            result *= prod(item) if isinstance(item, Iterable) else item
-    return result
 
 
 def estimate_energy(model: nn.Module | EnergyEstimationNetworkInterface,
@@ -123,8 +116,6 @@ def forward_pass(model: nn.Module | EnergyEstimationNetworkInterface, fwd_inp: t
         for t in range(T):
             inp = torch.stack([fwd_inp[t]])
             out = model(inp)
-            #print(out)
-            #print("-"*64)
 
     # pretty straightforward, just run it once
     else:
@@ -151,12 +142,6 @@ def set_the_synapses_neurons_for_recursive_layers(summary_list: List[LayerInfo])
                 s += child.synapse_count
             layer.synapse_count = s
 
-        # set the firing rate of composed layer to
-        # the firing rate of last basic layer
-        # TODO: does this make sense ?
-        if len(layer.children) > 0:
-            layer.firing_rate = layer.children[-1].firing_rate
-
 
 def calculate_total_energies_recursively(summary_list: List[LayerInfo]):
     # always add the energy contributions for the
@@ -165,6 +150,21 @@ def calculate_total_energies_recursively(summary_list: List[LayerInfo]):
         for child in layer.children:
             total_energy += np.array(child.total_energy_contributions, dtype=float)
         layer.total_energy_contributions = total_energy
+
+        if layer.total_events is None:
+            total_events = 0
+            for child in layer.children:
+                if child.total_events is not None:
+                    total_events += child.total_events
+            layer.total_events = None if total_events == 0 else total_events
+
+        if layer.spiking_events is None:
+            spiking_events = 0
+            for child in layer.children:
+                if child.spiking_events is not None:
+                    spiking_events += child.spiking_events
+
+            layer.spiking_events = None if spiking_events == 0 else spiking_events
 
 
 def construct_pre_hook(global_layer_info,
@@ -248,7 +248,7 @@ def traverse_input_data(
 ) -> Any:
     """
     Traverses any type of nested input data. On a tensor, returns the action given by
-    action_fn, and afterwards aggregates the results using aggregate_fn.
+    action_fn, and afterward aggregates the results using aggregate_fn.
     """
     if isinstance(data, torch.Tensor):
         result = action_fn(data)

@@ -141,7 +141,7 @@ class FormattingOptions:
             ColumnSettings.OUTPUT_SIZE: self.str_(layer_info.output_size),
             ColumnSettings.NUMBER_OF_SYNAPSES: self.str_(layer_info.synapse_count),
             ColumnSettings.NUMBER_OF_NEURONS: self.str_(layer_info.neuron_count),
-            ColumnSettings.SPIKING_EVENTS: self.str_(int(layer_info.spiking_events)),
+            ColumnSettings.SPIKING_EVENTS: self.str_(layer_info.spiking_events),
             ColumnSettings.TOTAL_EVENTS: self.str_(layer_info.total_events),
             ColumnSettings.AVERAGE_FIRING_RATE: self.str_(round(layer_info.firing_rate, 4)),
             ColumnSettings.NUM_PARAMS: layer_info.num_params_to_str(reached_max_depth),
