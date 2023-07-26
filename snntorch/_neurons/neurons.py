@@ -482,11 +482,11 @@ class NoisyLIF(SpikingNeuron):
         if noise_type == 'gaussian':
             self.spike_grad = self.Gaussian.apply
         elif noise_type == 'logistic':
-            pass
+            self.spike_grad = self.Logistic.apply
         elif noise_type == 'triangular':
-            pass
+            self.spike_grad = self.Triangular.apply
         elif noise_type == 'uniform':
-            pass
+            self.spike_grad = self.Uniform.apply
         elif noise_type == 'atan':
             pass
         else:
@@ -606,7 +606,6 @@ class NoisyLIF(SpikingNeuron):
         Gaussian noise. This is the original and default type because the iterative form is derived
           from an Ito SDE. Let us denote the cumulative distribution function of the noise by CDF, 
           its probability density function as PDF. 
-    
 
         **Forward pass:** Probabilistic firing .
 
@@ -620,7 +619,7 @@ class NoisyLIF(SpikingNeuron):
             .. math::
                     \\frac{∂S}{∂U}&= PDF$_{\\rm noise}$ (U-\\text{threshold})
 
-        Adapted from:
+        Refer to:
 
         Ma et al. Exploiting Noise as a Resource for Computation and Learning in Spiking Neural 
         Networks. Patterns. Cell Press. 2023. 
@@ -631,10 +630,10 @@ class NoisyLIF(SpikingNeuron):
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.sigma = sigma
-            out = 1/2 * (
+            p_spike = 1/2 * (
                 1 + torch.erf((input_ - mu) / (sigma * math.sqrt(2)))
             )
-            return out
+            return torch.bernoulli(p_spike)
 
         @staticmethod
         def backward(ctx, grad_output):
@@ -645,6 +644,92 @@ class NoisyLIF(SpikingNeuron):
                 1 / (math.sqrt(2*math.pi) * ctx.sigma)
             ) * torch.exp(
                 -0.5 * ((input_ - ctx.mu) / ctx.sigma).pow_(2)
+            )
+            return grad_input*temp, None, None
+    
+    @staticmethod
+    class Logistic(torch.autograd.Function):
+        r"""
+        Logistic neuronal noise. The resulting noise-driven learning covers the sigmoidal surrogate
+        gradients in training conventional deterministic spiking models. 
+
+        Refer to: 
+
+        Ma et al. Exploiting Noise as a Resource for Computation and Learning in Spiking Neural 
+        Networks. Patterns. Cell Press. 2023. 
+        """
+        @staticmethod
+        def forward(ctx, input_, mu, scale):
+            ctx.save_for_backward(input_)
+            ctx.mu = mu
+            ctx.scale = scale
+            """ p_spike = 1 / (
+                1 + torch.exp(-(input_ - ctx.mu) / ctx.scale)
+            ).clamp(0, 1) """
+            p_spike = torch.special.expit((input_ - ctx.mu + 1e-8) / (ctx.scale + 1e-8)).nan_to_num_()
+            return torch.bernoulli(p_spike)
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            (input_,) = ctx.saved_tensors
+            grad_input = grad_output.clone()
+
+            temp = torch.exp(
+                -(input_ - ctx.mu) / ctx.scale
+            ) / ctx.scale / (1 + torch.exp(-(input_ - ctx.mu) / ctx.scale)).pow_(2)
+            return grad_input*temp, None, None
+        
+    @staticmethod
+    class Triangular(torch.autograd.Function):
+        r"""
+        Triangular neuronal noise. The resulting noise-driven learning covers the triangular 
+        surrogate gradients in training conventional deterministic spiking models. 
+        """
+        @staticmethod
+        def forward(ctx, input_, mu, a):
+            ctx.save_for_backward(input_)
+            ctx.mu = mu
+            ctx.a = a
+            mask1 = (input_ < -a).int()
+            mask2 = (input_ >= a).int()
+            mask3 = ((input_ >= 0) & (input_ < a)).int()
+            p_spike = mask2 + \
+                (1-mask1)*(1-mask2)*(1-mask3) * (input_ + a)**2 / 2 / a**2 + \
+                mask3 * (1 - (input_ - a)**2 / 2 / a**2)
+            return torch.bernoulli(p_spike)
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            (input_,) = ctx.saved_tensors
+            grad_input = grad_output.clone()
+
+            mask1 = (input_ < -ctx.a).int()
+            mask2 = (input_ >= ctx.a).int()
+            temp = (1-mask1)*(1-mask2) * (ctx.a - input_.abs()) / ctx.a**2
+            return grad_input*temp, None, None
+        
+    @staticmethod
+    class Uniform(torch.autograd.Function):
+        r"""
+        Uniform neuronal noise. The resulting noise-driven learning covers the Gate (rectangular) 
+        surrogate gradients. 
+        """
+        @staticmethod
+        def forward(ctx, input_, mu, a):
+            ctx.save_for_backward(input_)
+            ctx.mu = mu
+            ctx.a = a
+
+            p_spike = ((input_ - -ctx.a) / (a - -ctx.a)).clamp(0, 1)
+            return torch.bernoulli(p_spike)
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            (input_,) = ctx.saved_tensors
+            grad_input = grad_output.clone()
+
+            temp = ((input_ >= -ctx.a).int() & (input_ <= ctx.a).int()) * (
+                1 / (ctx.a - -ctx.a)
             )
             return grad_input*temp, None, None
 

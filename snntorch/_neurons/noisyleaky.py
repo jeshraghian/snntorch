@@ -4,7 +4,7 @@
 # Created Date: 2023-07-26 18:11:31
 # Author: Gehua Ma
 # -----
-# Last Modified: 2023-07-26 19:26:58
+# Last Modified: 2023-07-26 20:01:27
 # Modified By: Gehua Ma
 # -----
 ###
@@ -14,15 +14,19 @@ import torch
 class NoisyLeaky(NoisyLIF):
     """
     Noisy leaky integrate-and-fire neuron model with noisy neuronal dynamics and probabilistic firing.
-    Input is assumed to be a current injection. Membrane potential decays exponentially with rate beta.
+    Input is assumed to be a current injection. 
+    Membrane potential decays exponentially with rate beta.
     
-    Refer to `Exploiting Noise as a Resource for Computation and Learning in Spiking Neural Networks <https://arxiv.org/abs/2305.16044>`.
-    This study introduces the noisy spiking neural network (NSNN) and the noise-driven learning
-    rule (NDL) by incorporating noisy neuronal dynamics to exploit the computational advantages of 
-    noisy neural processing. NSNN provides a theoretical framework that yields scalable, flexible, 
-    and reliable computation. We demonstrate that NSNN leads to spiking neural models with 
-    competitive performance, improved robustness against challenging perturbations than deterministic 
-    SNNs, and better reproducing probabilistic neural computation in neural coding. 
+    Refer to `[1] <https://arxiv.org/abs/2305.16044>`. This study introduces the noisy spiking 
+    neural network (NSNN) and the noise-driven learning rule (NDL) by incorporating noisy neuronal 
+    dynamics to exploit the computational advantages of noisy neural processing. NSNN provides a 
+    theoretical SNN framework that yields scalable, flexible, and reliable computation. It demonstrates
+    that NSNN leads to spiking neural models with competitive performance, improved robustness 
+    against challenging perturbations than deterministic SNNs, and better reproducing probabilistic 
+    computations in neural coding. 
+
+    [1] Ma et al. Exploiting Noise as a Resource for Computation and Learning in Spiking Neural 
+    Networks. Patterns. Cell Press. 2023. 
 
     If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
     `threshold` subtracted from it whenever the neuron emits a spike:
@@ -64,7 +68,7 @@ class NoisyLeaky(NoisyLIF):
 
                 # initialize layers
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.NoisyLeaky(beta=beta, noise_type=nt, noise_scales=ns)
+                self.lif1 = snn.NoisyLeaky(beta=beta, noise_type=nt, noise_scale=ns)
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
                 self.lif2 = snn.NoisyLeaky(beta=beta, noisy_type=nt, noise_scale=ns)
 
@@ -87,7 +91,8 @@ class NoisyLeaky(NoisyLIF):
     :type threshold: float, optional
 
     :param noise_type: Neuronal membrane noise (eps) type. Note that the noise should satisfies 
-        eps = -eps to make the theoretical results valid. 
+        eps = -eps to make the theoretical derivations valid. Implemented types are: "gaussian", 
+        "logistic", "triangular", and "uniform". 
     :type noise_type: str, optional 
 
     :param noise_scale: Neuronal noise scale. For instance, std for the gaussian noise, scale for 
@@ -178,7 +183,7 @@ class NoisyLeaky(NoisyLIF):
         if self.init_hidden:
             self.mem = self.init_leaky()
         
-        print('Using Noisy LIF neuron ...')
+        print('Using Noisy LIF neurons with {} neuronal noise. '.format(noise_type))
 
     def forward(self, input_, mem=False):
 
