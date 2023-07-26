@@ -2,6 +2,8 @@ from warnings import warn
 import torch
 import torch.nn as nn
 
+import math
+
 
 __all__ = [
     "SpikingNeuron",
@@ -435,6 +437,216 @@ class LIF(SpikingNeuron):
         mem = _SpikeTensor(init_flag=False)
 
         return syn_exc, syn_inh, mem
+    
+
+class NoisyLIF(SpikingNeuron):
+    """Parent class for noisy leaky integrate and fire neuron models."""
+
+    def __init__(
+        self,
+        beta,
+        threshold=1.0,
+        noise_type='gaussian',
+        noise_scale=0.3,
+        init_hidden=False,
+        inhibition=False,
+        learn_beta=False,
+        learn_threshold=False,
+        reset_mechanism="subtract",
+        state_quant=False,
+        output=False,
+        graded_spikes_factor=1.0,
+        learn_graded_spikes_factor=False,
+    ):
+        super().__init__(
+            threshold,
+            None,
+            False,
+            init_hidden,
+            inhibition,
+            learn_threshold,
+            reset_mechanism,
+            state_quant,
+            output,
+            graded_spikes_factor,
+            learn_graded_spikes_factor,
+        )
+
+        self._lif_register_buffer(
+            beta,
+            learn_beta,
+        )
+        self._reset_mechanism = reset_mechanism
+        self._noise_scale = noise_scale
+
+        if noise_type == 'gaussian':
+            self.spike_grad = self.Gaussian.apply
+        elif noise_type == 'logistic':
+            pass
+        elif noise_type == 'triangular':
+            pass
+        elif noise_type == 'uniform':
+            pass
+        elif noise_type == 'atan':
+            pass
+        else:
+            raise ValueError("Invalid noise type. Valid options: gaussian, logistic, triangular, \
+                             uniform, atan")
+
+        if self.surrogate_disable:
+            self.spike_grad = self._surrogate_bypass
+
+    def _lif_register_buffer(
+        self,
+        beta,
+        learn_beta,
+    ):
+        """Set variables as learnable parameters else register them in the
+        buffer."""
+        self._beta_buffer(beta, learn_beta)
+
+    def _beta_buffer(self, beta, learn_beta):
+        if not isinstance(beta, torch.Tensor):
+            beta = torch.as_tensor(beta)  # TODO: or .tensor() if no copy
+        if learn_beta:
+            self.beta = nn.Parameter(beta)
+        else:
+            self.register_buffer("beta", beta)
+
+    def _V_register_buffer(self, V, learn_V):
+        if V is not None:
+            if not isinstance(V, torch.Tensor):
+                V = torch.as_tensor(V)
+        if learn_V:
+            self.V = nn.Parameter(V)
+        else:
+            self.register_buffer("V", V)
+
+    @staticmethod
+    def init_leaky():
+        """
+        Used to initialize mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
+        """
+        mem = _SpikeTensor(init_flag=False)
+
+        return mem
+
+    @staticmethod
+    def init_rleaky():
+        """
+        Used to initialize spk and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
+        """
+        spk = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
+
+        return spk, mem
+
+    @staticmethod
+    def init_synaptic():
+        """Used to initialize syn and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
+        """
+
+        syn = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
+
+        return syn, mem
+
+    @staticmethod
+    def init_rsynaptic():
+        """
+        Used to initialize spk, syn and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
+        """
+        spk = _SpikeTensor(init_flag=False)
+        syn = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
+
+        return spk, syn, mem
+
+    @staticmethod
+    def init_lapicque():
+        """
+        Used to initialize mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
+        """
+
+        return LIF.init_leaky()
+
+    @staticmethod
+    def init_alpha():
+        """Used to initialize syn_exc, syn_inh and mem as an empty SpikeTensor.
+        ``init_flag`` is used as an attribute in the forward pass to convert
+        the hidden states to the same as the input.
+        """
+        syn_exc = _SpikeTensor(init_flag=False)
+        syn_inh = _SpikeTensor(init_flag=False)
+        mem = _SpikeTensor(init_flag=False)
+
+        return syn_exc, syn_inh, mem
+
+    def mem_reset(self, mem):
+        """Generates detached reset signal if mem > threshold.
+        Returns reset."""
+        mem_shift = mem - self.threshold
+        reset = self.spike_grad(mem_shift, 0, self._noise_scale).clone().detach()
+
+        return reset
+    
+    @staticmethod
+    class Gaussian(torch.autograd.Function):
+        r"""
+        Gaussian noise. This is the original and default type because the iterative form is derived
+          from an Ito SDE. Let us denote the cumulative distribution function of the noise by CDF, 
+          its probability density function as PDF. 
+    
+
+        **Forward pass:** Probabilistic firing .
+
+            .. math::
+
+                S &~ \\text{Bernoulli}(P(\\text{spiking})) \\\\
+                P(\\text{firing}) = CDF$_{\\rm noise}$
+
+        **Backward pass:** Noise-driven learning corresponds to the specified membrane noise.
+
+            .. math::
+                    \\frac{∂S}{∂U}&= PDF$_{\\rm noise}$ (U-\\text{threshold})
+
+        Adapted from:
+
+        Ma et al. Exploiting Noise as a Resource for Computation and Learning in Spiking Neural 
+        Networks. Patterns. Cell Press. 2023. 
+        """
+
+        @staticmethod
+        def forward(ctx, input_, mu, sigma):
+            ctx.save_for_backward(input_)
+            ctx.mu = mu
+            ctx.sigma = sigma
+            out = 1/2 * (
+                1 + torch.erf((input_ - mu) / (sigma * math.sqrt(2)))
+            )
+            return out
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            (input_,) = ctx.saved_tensors
+            grad_input = grad_output.clone()
+
+            temp = (
+                1 / (math.sqrt(2*math.pi) * ctx.sigma)
+            ) * torch.exp(
+                -0.5 * ((input_ - ctx.mu) / ctx.sigma).pow_(2)
+            )
+            return grad_input*temp, None, None
 
 
 class _SpikeTensor(torch.Tensor):
