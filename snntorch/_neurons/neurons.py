@@ -488,7 +488,7 @@ class NoisyLIF(SpikingNeuron):
         elif noise_type == 'uniform':
             self.spike_grad = self.Uniform.apply
         elif noise_type == 'atan':
-            pass
+            self.spike_grad = self.Arctangent.apply
         else:
             raise ValueError("Invalid noise type. Valid options: gaussian, logistic, triangular, \
                              uniform, atan")
@@ -604,7 +604,8 @@ class NoisyLIF(SpikingNeuron):
     class Gaussian(torch.autograd.Function):
         r"""
         Gaussian noise. This is the original and default type because the iterative form is derived
-          from an Ito SDE. Let us denote the cumulative distribution function of the noise by CDF, 
+          from an Ito SDE. The noise is drawn from Gaus(mu, sigma**2).
+          Let us denote the cumulative distribution function of the noise by CDF, 
           its probability density function as PDF. 
 
         **Forward pass:** Probabilistic firing.
@@ -626,7 +627,7 @@ class NoisyLIF(SpikingNeuron):
         """
 
         @staticmethod
-        def forward(ctx, input_, mu, sigma):
+        def forward(ctx, input_, mu=0, sigma=0.3):
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.sigma = sigma
@@ -651,7 +652,8 @@ class NoisyLIF(SpikingNeuron):
     class Logistic(torch.autograd.Function):
         r"""
         Logistic neuronal noise. The resulting noise-driven learning covers the sigmoidal surrogate
-        gradients in training conventional deterministic spiking models. 
+        gradients in training conventional deterministic spiking models. The noise parameter mu 
+        should be zero, and the scale denotes the noise scale. 
 
         Refer to: 
 
@@ -659,13 +661,11 @@ class NoisyLIF(SpikingNeuron):
         Networks. Patterns. Cell Press. 2023. 
         """
         @staticmethod
-        def forward(ctx, input_, mu, scale):
+        def forward(ctx, input_, mu=0, scale=0.4):
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.scale = scale
-            """ p_spike = 1 / (
-                1 + torch.exp(-(input_ - ctx.mu) / ctx.scale)
-            ).clamp(0, 1) """
+
             p_spike = torch.special.expit((input_ - ctx.mu + 1e-8) / (ctx.scale + 1e-8)).nan_to_num_()
             return torch.bernoulli(p_spike)
 
@@ -682,11 +682,12 @@ class NoisyLIF(SpikingNeuron):
     @staticmethod
     class Triangular(torch.autograd.Function):
         r"""
-        Triangular neuronal noise. The resulting noise-driven learning covers the triangular 
-        surrogate gradients in training conventional deterministic spiking models. 
+        Triangular (symmetric) neuronal noise. The resulting noise-driven learning covers the 
+        triangular  surrogate gradients in training conventional deterministic spiking models. 
+        The noise avg (mu) is zero. 
         """
         @staticmethod
-        def forward(ctx, input_, mu, a):
+        def forward(ctx, input_, mu=0, a=1):
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.a = a
@@ -711,16 +712,17 @@ class NoisyLIF(SpikingNeuron):
     @staticmethod
     class Uniform(torch.autograd.Function):
         r"""
-        Uniform neuronal noise. The resulting noise-driven learning covers the Gate (rectangular) 
-        surrogate gradients. 
+        Uniform (continuous uniform distrib.) neuronal noise. The resulting noise-driven learning 
+        covers the Gate (rectangular) surrogate gradients. The noise parameters a (left), b (right),
+        here we use a=(right-left)/2 to denote the noise scale, the noise avg (mu) should be zero.  
         """
         @staticmethod
-        def forward(ctx, input_, mu, a):
+        def forward(ctx, input_, mu=0, a=0.5):
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.a = a
 
-            p_spike = ((input_ - -ctx.a) / (a - -ctx.a)).clamp(0, 1)
+            p_spike = ((input_ - -a) / (a - -a)).clamp(0, 1)
             return torch.bernoulli(p_spike)
 
         @staticmethod
@@ -730,6 +732,31 @@ class NoisyLIF(SpikingNeuron):
 
             temp = ((input_ >= -ctx.a).int() & (input_ <= ctx.a).int()) * (
                 1 / (ctx.a - -ctx.a)
+            )
+            return grad_input*temp, None, None
+        
+    @staticmethod
+    class Arctangent(torch.autograd.Function):
+        r"""
+        Arctangent noise. The resulting noise-driven learning covers the ATan surrogate gradients. 
+        The noise parameters are phi, which should be 0, and lambda, which denotes its scale.
+        """
+        @staticmethod
+        def forward(ctx, input_, phi=0, lmbd=5):
+            ctx.save_for_backward(input_)
+            ctx.phi = phi
+            ctx.lmbd = lmbd
+
+            p_spike = 1/math.pi * torch.atan(0.5*math.pi*lmbd*input_) + 0.5
+            return torch.bernoulli(p_spike)
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            (input_,) = ctx.saved_tensors
+            grad_input = grad_output.clone()
+
+            temp = ctx.lmbd / (
+                2 * (1 + (0.5*math.pi*ctx.lmbd*input_)**2)
             )
             return grad_input*temp, None, None
 
