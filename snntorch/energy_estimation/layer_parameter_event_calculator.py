@@ -53,8 +53,14 @@ def synapse_neuron_count_for_conv(layer_info, inputs: torch.Tensor, outputs: tor
 
 
 def count_events_for_conv(layer_info, inputs: torch.Tensor, outputs: torch.Tensor) -> Tuple[int, int]:
-    connections = layer_info.trainable_params - layer_info.include_bias_in_events * prod(layer_info.module.bias.shape)
-    current_total_events = connections * prod(outputs.shape)
+    connections = layer_info.trainable_params - (1 - layer_info.include_bias_in_events) * prod(layer_info.module.bias.shape)
+
+    # get input and output channels
+    in_channels, out_channels, kernel_size, bias_size = (layer_info.module.in_channels, layer_info.module.out_channels,
+                                                        layer_info.module.kernel_size, layer_info.module.bias.data.shape)
+
+    current_total_events = (in_channels * prod(outputs.shape) *
+                            (prod(kernel_size) + layer_info.include_bias_in_events * prod(bias_size)))
 
     # TODO : seems like a very ugly solution, make it more elegant
     ones_conv = deepcopy(layer_info.module)
