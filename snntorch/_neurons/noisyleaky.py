@@ -4,7 +4,7 @@
 # Created Date: 2023-07-26 18:11:31
 # Author: Gehua Ma
 # -----
-# Last Modified: 2023-07-27 17:02:20
+# Last Modified: 2023-07-27 19:44:24
 # Modified By: Gehua Ma
 # -----
 ###
@@ -92,7 +92,7 @@ class NoisyLeaky(NoisyLIF):
 
     :param noise_type: Neuronal membrane noise (eps) type. Note that the noise should satisfies 
         eps = -eps to make the theoretical derivations valid. Implemented types are: "gaussian", 
-        "logistic", "triangular", and "uniform". 
+        "logistic", "triangular", "uniform", and "atan". 
     :type noise_type: str, optional 
 
     :param noise_scale: Neuronal noise scale. For instance, std for the gaussian noise, scale for 
