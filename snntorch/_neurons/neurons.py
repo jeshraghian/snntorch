@@ -607,7 +607,7 @@ class NoisyLIF(SpikingNeuron):
           from an Ito SDE. Let us denote the cumulative distribution function of the noise by CDF, 
           its probability density function as PDF. 
 
-        **Forward pass:** Probabilistic firing .
+        **Forward pass:** Probabilistic firing.
 
             .. math::
 

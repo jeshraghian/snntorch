@@ -4,7 +4,7 @@
 # Created Date: 2023-07-26 18:11:31
 # Author: Gehua Ma
 # -----
-# Last Modified: 2023-07-26 20:01:27
+# Last Modified: 2023-07-27 17:02:20
 # Modified By: Gehua Ma
 # -----
 ###
@@ -242,15 +242,16 @@ class NoisyLeaky(NoisyLIF):
         P(firing) = P(mem+noise > threshold) = P(noise < mem-threshold) = CDF(noise)
 
         spk ~ Bernoulli(P(firing))
+        :param mem: membrane voltage 
+        
+        Returns spk
         """
-
         if self.state_quant:
             mem = self.state_quant(mem)
 
         mem_shift = mem - self.threshold
-
+        # the spike_grad function for noisy lif is called using (mem_shift, mean=0, noise_scale)
         spk = self.spike_grad(mem_shift, 0, self._noise_scale)
-
         spk = spk * self.graded_spikes_factor
 
         return spk
