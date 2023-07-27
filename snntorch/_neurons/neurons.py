@@ -687,7 +687,7 @@ class NoisyLIF(SpikingNeuron):
         The noise avg (mu) is zero. 
         """
         @staticmethod
-        def forward(ctx, input_, mu=0, a=1):
+        def forward(ctx, input_, mu=0, a=0.3):
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.a = a
