@@ -613,7 +613,7 @@ class NoisyLIF(SpikingNeuron):
             .. math::
 
                 S &~ \\text{Bernoulli}(P(\\text{spiking})) \\\\
-                P(\\text{firing}) = CDF$_{\\rm noise}$
+                P(\\text{firing}) = CDF$_{\\rm noise}$ (U-\\text{threshold})
 
         **Backward pass:** Noise-driven learning corresponds to the specified membrane noise.
 

@@ -4,7 +4,7 @@
 # Created Date: 2023-07-26 18:11:31
 # Author: Gehua Ma
 # -----
-# Last Modified: 2023-07-27 19:44:24
+# Last Modified: 2023-07-28 20:55:00
 # Modified By: Gehua Ma
 # -----
 ###
@@ -239,7 +239,7 @@ class NoisyLeaky(NoisyLIF):
         Generate a spike using the probabilistic firing mechanism, i.e., if we still use mem to denote 
         the noise-free membrane potential, the firing probability is given by
         
-        P(firing) = P(mem+noise > threshold) = P(noise < mem-threshold) = CDF(noise)
+        P(firing) = P(mem+noise > threshold) = P(noise < mem-threshold) = CDF_noise(mem-threshold)
 
         spk ~ Bernoulli(P(firing))
         :param mem: membrane voltage 
