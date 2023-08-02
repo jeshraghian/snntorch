@@ -175,18 +175,19 @@ def state_quant(
             store_val = []
             if lower_bits != 0:
 
-                for j in reversed(range(lower_bits - 1)):  # figure out how much the summation travels
+                for j in reversed(range(lower_bits)):  # figure out how much the summation travels
                     lower_curr = (multiplier ** j)
                     lower_summation += (multiplier ** j)
 
                 lower_room = lower_summation / lower_range
                 min_temp_sum = min_val
-                store_val.append(min_temp_sum)
+                # store_val.append(min_temp_sum)
 
-                for j in (range(lower_bits - 1)):
+                for j in (range(lower_bits)):
                     lower_curr = multiplier ** j
-                    min_temp_sum += (lower_curr / lower_room)
                     store_val.append(min_temp_sum)
+                    min_temp_sum += (lower_curr / lower_room)
+                    # store_val.append(min_temp_sum)
 
             if upper_bits != 0:
 
@@ -202,11 +203,11 @@ def state_quant(
                 # store_val.append(max_temp_sum)
                 for j in reversed(range(upper_bits)):
                     upper_curr = multiplier ** j
+                    # store_val.append(max_temp_sum)
                     max_temp_sum += (upper_curr / upper_room)
                     store_val.append(max_temp_sum)
 
-                store_val.append(max_temp_sum)
-
+                # store_val.append(max_temp_sum)
             levels = torch.tensor([x for x in store_val])
 
         # centered about zero
@@ -239,12 +240,14 @@ def state_quant(
                 lower_room = lower_summation / lower_range
 
                 min_temp_sum = min_val
-                store_val.append(min_temp_sum)
+                # store_val.append(min_temp_sum)
 
-                for j in (range(lower_bits - 1)):
+                for j in (range(lower_bits)):
                     lower_curr = multiplier ** j
-                    min_temp_sum += (lower_curr / lower_room)
                     store_val.append(min_temp_sum)
+                    min_temp_sum += (lower_curr / lower_room)
+
+                    # store_val.append(min_temp_sum)
 
             if upper_bits != 0:
 
@@ -257,8 +260,8 @@ def state_quant(
 
                 max_temp_sum = 0
                 diff_store_val = []
-                store_val.append(max_temp_sum)
-                for j in reversed(range(upper_bits - 1)):
+                # store_val.append(max_temp_sum)
+                for j in reversed(range(upper_bits)):
                     upper_curr = multiplier ** j
                     max_temp_sum += (upper_curr / upper_room)
                     store_val.append(max_temp_sum)
