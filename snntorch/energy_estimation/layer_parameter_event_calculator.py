@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from typing import Callable, Tuple, Dict, TypeVar, ClassVar, List
+from typing import Callable, Tuple, Dict, TypeVar, ClassVar, List, Type
+from .device_profile import DeviceProfile
 from copy import deepcopy
 
 import snntorch
@@ -12,7 +13,8 @@ event_counter_signature = TypeVar("event_counter_signature",
                                   bound=Callable[[ClassVar, torch.Tensor, torch.Tensor], Tuple[int, int]])
 
 custom_energy_contribution_signature = TypeVar("custom_energy_contribution_signature",
-                                               bound=Callable[[ClassVar, torch.Tensor, torch.Tensor], List[float]])
+                                               bound=Callable[[ClassVar, torch.Tensor, torch.Tensor, DeviceProfile],
+                                               float])
 
 
 def synapse_neuron_count_for_linear(layer_info, inputs: torch.Tensor, outputs: torch.Tensor) -> Tuple[int, int]:
@@ -21,20 +23,31 @@ def synapse_neuron_count_for_linear(layer_info, inputs: torch.Tensor, outputs: t
         val = torch.Tensor(inputs[0])
     else:
         val = torch.Tensor(inputs)
+
     return layer_info.trainable_params, 0
 
 
 def count_events_for_linear(layer_info, inputs: torch.Tensor, outputs: torch.Tensor) -> Tuple[int, int]:
     current_spiking_events = (float(torch.sum(inputs[0]).detach().cpu()) + layer_info.include_bias_in_events) * \
-                             outputs[0].shape[0]
-    current_total_events = (prod(inputs[0].size()) + layer_info.include_bias_in_events) * outputs[0].shape[0]
-    return int(current_spiking_events), current_total_events
+                             prod(outputs[0].shape)
+    current_total_events = (prod(inputs[0].size()) + layer_info.include_bias_in_events) * prod(outputs[0].shape)
+
+    # in the above calculations the is included twice (these values scales quadratically rather than linearly)
+    # to solve this, get the batch size value (shape[1] or shape[0], depending on whether
+    # network_requires_first_dim_as_time is True or False ) and divide both values by it
+
+    if layer_info.network_requires_first_dim_as_time:
+        batch_size = inputs[0].shape[1]
+    else:
+        batch_size = inputs[0].shape[0]
+
+    return int(current_spiking_events / batch_size), int(current_total_events / batch_size)
 
 
 def synapse_neuron_count_for_snn_neuron(layer_info, inputs: torch.Tensor, outputs: torch.Tensor) -> Tuple[int, int]:
     val = torch.Tensor(outputs[0])
     layer_info.is_synaptic = False
-    return 0, prod(outputs[0].shape[1:])
+    return 0, prod(outputs[0].shape[2:])
 
 
 def count_events_for_snn_neuron(layer_info, inputs: torch.Tensor, outputs: torch.Tensor) -> Tuple[int, int]:
@@ -62,7 +75,7 @@ def count_events_for_conv(layer_info, inputs: torch.Tensor, outputs: torch.Tenso
     current_total_events = (in_channels * prod(outputs.shape) *
                             (prod(kernel_size) + layer_info.include_bias_in_events * prod(bias_size)))
 
-    # TODO : seems like a very ugly solution, make it more elegant
+    # TODO : seems like a very ugly solution, maybe make it more elegant ?
     ones_conv = deepcopy(layer_info.module)
     # remove all the hooks from a copy of this layer
     ones_conv._forward_hooks = {}
@@ -86,13 +99,14 @@ class LayerParameterEventCalculator(object):
             nn.Linear.__name__: (synapse_neuron_count_for_linear, count_events_for_linear, None),
             snntorch.Leaky.__name__: (synapse_neuron_count_for_snn_neuron, count_events_for_snn_neuron, None),
             nn.Conv2d.__name__: (synapse_neuron_count_for_conv, count_events_for_conv, None),
-            nn.Conv1d.__name__: (synapse_neuron_count_for_conv, None, None)
+            nn.Conv1d.__name__: (synapse_neuron_count_for_conv, count_events_for_conv, None)
         }
 
     @staticmethod
-    def register_new_layer(layer: torch.nn.Module,
+    def register_new_layer(layer: Type[torch.nn.Module],
                            synapse_neuron_count_lambda: synapse_neuron_count_signature,
                            event_counter_lambda: event_counter_signature,
+                           custom_energy_contribution : custom_energy_contribution_signature = None,
                            override_layer_info: bool = False):
 
         if layer.__class__.__name__ in LayerParameterEventCalculator._recognized_layers:
@@ -100,6 +114,10 @@ class LayerParameterEventCalculator(object):
                 pass
             else:
                 raise Exception("overriding layer information, and override_layer_info was set to False!")
+
+        LayerParameterEventCalculator._recognized_layers[layer.__name__] = (synapse_neuron_count_lambda,
+                                                                                      event_counter_lambda,
+                                                                                      custom_energy_contribution)
 
     @staticmethod
     def get_calculate_synapse_neuron_count_for(name: str,

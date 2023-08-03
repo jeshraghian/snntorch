@@ -11,7 +11,6 @@ from snntorch.utils import reset
 from .utils import *
 import sys
 
-
 def set_children_layers(summary_list: list[LayerInfo]) -> None:
     """Populates the children and depth_index fields of all LayerInfo."""
     idx: dict[int, int] = {}
@@ -30,6 +29,7 @@ def estimate_energy(model: nn.Module | EnergyEstimationNetworkInterface,
                     depth=1,
                     col_width: int = 25,
                     first_dim_is_time=True,
+                    network_requires_first_dim_as_time=True,
                     include_bias_term_in_events=True):
     # to make forward pass, we need to have either input data or input size
     # assert input_data is not None or input_size is not None, "To run estimate energy"
@@ -39,7 +39,8 @@ def estimate_energy(model: nn.Module | EnergyEstimationNetworkInterface,
                                                     first_dim_is_time)
 
     devices = _resolve_devices(devices)
-    summary_list = forward_pass(model, input_data, devices, first_dim_is_time, include_bias_term_in_events)
+    summary_list = forward_pass(model, input_data, devices, first_dim_is_time,
+                                network_requires_first_dim_as_time, include_bias_term_in_events)
 
     columns = [ColumnSettings.OUTPUT_SIZE, ColumnSettings.NUMBER_OF_SYNAPSES, ColumnSettings.NUMBER_OF_NEURONS,
                ColumnSettings.AVERAGE_FIRING_RATE, ColumnSettings.TOTAL_EVENTS, ColumnSettings.SPIKING_EVENTS]
@@ -71,23 +72,27 @@ def create_input_for_network_from_size(input_data: Union[torch.Tensor | np.ndarr
         return torch.bernoulli(prob_mat)
     else:
         # TODO
-        return input_data
-
+        if first_dim_is_time:
+            return input_data
+        else:
+            return torch.stack([input_data])
 
 def forward_pass(model: nn.Module | EnergyEstimationNetworkInterface, fwd_inp: torch.Tensor,
-                 devices: List[DeviceProfile], first_dim_is_time: bool, include_bias_term_in_events):
+                 devices: List[DeviceProfile], first_dim_is_time: bool, network_requires_first_dim_as_time: bool,
+                 include_bias_term_in_events: bool):
     model_name = model.__class__.__name__
-    summary_list, global_layer_info, hooks = apply_hooks(model_name, model, fwd_inp, include_bias_term_in_events)
-    # TODO: calculations done only for evaluation/inference, as on kerasSpiking (training will be
-    #                                                                            much more difficult todo )
+    summary_list, global_layer_info, hooks = apply_hooks(model_name, model, fwd_inp, include_bias_term_in_events,
+                                                         network_requires_first_dim_as_time)
+    # TODO: calculations done only for evaluation/inference (training will be much more difficult todo )
     model.eval()
-    if first_dim_is_time:
+
+    if network_requires_first_dim_as_time:
         fwd_inp_single = torch.stack([fwd_inp[0]])
         with torch.no_grad():
-            out = model(fwd_inp_single)
+            model(fwd_inp_single)
     else:
         with torch.no_grad():
-            out = model(fwd_inp)
+            model(fwd_inp[0])
 
     set_children_layers(summary_list)
     set_the_synapses_neurons_for_recursive_layers(summary_list)
@@ -110,17 +115,15 @@ def forward_pass(model: nn.Module | EnergyEstimationNetworkInterface, fwd_inp: t
         # TODO : does this work as expected ? weird results ?
         reset(model)
 
-    # trickier case
-    if first_dim_is_time:
-        T = fwd_inp.size()[0]
-        for t in range(T):
-            inp = torch.stack([fwd_inp[t]])
-            out = model(inp)
 
-    # pretty straightforward, just run it once
-    else:
-        pass
-    # assume that the first
+    T = fwd_inp.size()[0]
+
+    for t in range(T):
+        if network_requires_first_dim_as_time:
+            inp = torch.stack([fwd_inp[t]])
+        else:
+            inp = fwd_inp[t]
+        model(inp)
 
     calculate_total_energies_recursively(summary_list)
 
@@ -129,17 +132,23 @@ def forward_pass(model: nn.Module | EnergyEstimationNetworkInterface, fwd_inp: t
 
 def set_the_synapses_neurons_for_recursive_layers(summary_list: List[LayerInfo]):
     # set the synapses correctly
-    for layer in reversed(summary_list):
+    for layer in summary_list:
         if layer.neuron_count is None:
-            n = 0
+            n = None
             for child in layer.children:
-                n += child.neuron_count
+                if child.neuron_count is not None:
+                    if n is None:
+                        n = 0
+                    n += child.neuron_count
             layer.neuron_count = n
 
         if layer.synapse_count is None:
-            s = 0
+            s = None
             for child in layer.children:
-                s += child.synapse_count
+                if child.synapse_count is not None:
+                    if s is None:
+                        s = 0
+                    s += child.synapse_count
             layer.synapse_count = s
 
 
@@ -154,17 +163,27 @@ def calculate_total_energies_recursively(summary_list: List[LayerInfo]):
         if layer.total_events is None:
             total_events = 0
             for child in layer.children:
+
+                # watch out for layers/children that were not recognized (i.e. the total events is none)
                 if child.total_events is not None:
                     total_events += child.total_events
             layer.total_events = None if total_events == 0 else total_events
 
         if layer.spiking_events is None:
-            spiking_events = 0
+            spiking_events = None
             for child in layer.children:
+
+                # watch out for layers/children that were not recognized (i.e. the spiking events is none)
                 if child.spiking_events is not None:
+                    if spiking_events is None:
+                        spiking_events = 0
                     spiking_events += child.spiking_events
 
-            layer.spiking_events = None if spiking_events == 0 else spiking_events
+            layer.spiking_events = None if spiking_events is None else spiking_events
+
+        # set the firing rate to the spiking_events / total_events
+        if layer.spiking_events is not None and layer.total_events is not None and layer.firing_rate is None:
+            layer.firing_rate = layer.spiking_events / layer.total_events
 
 
 def construct_pre_hook(global_layer_info,
@@ -173,12 +192,15 @@ def construct_pre_hook(global_layer_info,
                        var_name,
                        curr_depth,
                        parent_info,
-                       include_bias_term_in_events=True):
+                       include_bias_term_in_events,
+                       network_requires_first_dim_as_time):
     def pre_hook(module: nn.Module, inputs) -> None:
         """Create a Layer info object to aggregate layer information"""
         del inputs
 
-        info = LayerInfo(var_name, module, curr_depth, parent_info, include_bias_in_events=include_bias_term_in_events)
+        info = LayerInfo(var_name, module, curr_depth, parent_info,
+                         include_bias_term_in_events,
+                         network_requires_first_dim_as_time)
         info.calculate_num_params()
         info.check_recursive(layer_ids)
         summary_list.append(info)
@@ -209,7 +231,8 @@ def construct_hook(global_layer_info, batch_dim):
     return hook
 
 
-def apply_hooks(model_name: str, model: nn.Module, fwd_inp: torch.Tensor, include_bias_term_in_events=True):
+def apply_hooks(model_name: str, model: nn.Module, fwd_inp: torch.Tensor, include_bias_term_in_events: bool,
+                network_requires_first_dim_as_time : bool):
     """
         recursively adds hooks to all layers of the model
     """
@@ -226,7 +249,9 @@ def apply_hooks(model_name: str, model: nn.Module, fwd_inp: torch.Tensor, includ
         global_layer_info[module_id] = LayerInfo(module_name, layer, curr_depth, parent_info)
 
         pre_hook = construct_pre_hook(global_layer_info, summary_list, layers_ids, module_name, curr_depth,
-                                      parent_info, include_bias_term_in_events=include_bias_term_in_events)
+                                      parent_info, include_bias_term_in_events=include_bias_term_in_events,
+                                      network_requires_first_dim_as_time=network_requires_first_dim_as_time
+                                      )
 
         # register the hook using the last layer that uses this module
         if module_id in hooks:

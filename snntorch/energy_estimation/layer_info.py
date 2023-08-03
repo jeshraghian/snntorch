@@ -35,7 +35,8 @@ class LayerInfo:
         module: nn.Module,
         depth: int,
         parent_info: LayerInfo | None = None,
-        include_bias_in_events: bool = True
+        include_bias_in_events: bool = True,
+        network_requires_first_dim_as_time : bool = True
     ) -> None:
         # Identifying information
         self.layer_id = id(module)
@@ -58,6 +59,7 @@ class LayerInfo:
         self.device_profiles: List[DeviceProfile] = []
         self.total_energy_contributions: List[float] = []
         self.include_bias_in_events = include_bias_in_events
+        self.network_requires_first_dim_as_time = network_requires_first_dim_as_time
 
         # Statistics
         self.is_recursive = False
@@ -73,7 +75,9 @@ class LayerInfo:
 
         self.output_bytes = 0
         self.macs = 0
-        self.firing_rate = 1
+        self.firing_rate = None
+        self.timestep = 0
+
         self.neuron_count = None
         self.synapse_count = None
         self.calculate_energy_mode = False
@@ -355,6 +359,12 @@ class LayerInfo:
         else:
             self.synapse_count, self.neuron_count = count_func(self, inputs, outputs)
 
+            # take into account the batch size : Each layer will have some number of trainable parameters, however,
+            # in hardware if batch size is not 1, they will have to be duplicated `batch_size` times
+            batch_size = inputs[0].shape[1]
+            self.synapse_count *= batch_size
+            self.neuron_count  *= batch_size
+
     def calculate_events(self, inputs: torch.Tensor, outputs: torch.Tensor) -> None:
 
         event_counter = LayerParameterEventCalculator.get_event_counter_for(self.module.__class__.__name__)
@@ -365,19 +375,50 @@ class LayerInfo:
             if self.total_events is None:
                 self.total_events = 0
 
+            # get the number of spiking and total events for current timestep, for this layer
             current_spiking_events, current_total_events = event_counter(self, inputs, outputs)
+
+            # update the spiking and total events
             self.spiking_events += current_spiking_events
             self.total_events += current_total_events
 
-            for i, device in enumerate(self.device_profiles):
-                energy_per_event = device.energy_per_neuron_event
-                if self.is_synaptic:
-                    energy_per_event = device.energy_per_synapse_event
+            # record the number of passes through a particular layer
+            self.timestep += 1
 
-                if device.is_spiking_architecture:
-                    self.total_energy_contributions[i] += current_spiking_events * energy_per_event
+            # update the firing rate to mean across the timesteps firing rate
+            # here the firing rate is defined as spiking_events / total_events
+            self.firing_rate = self.spiking_events / self.total_events
+
+            # check if there is overriden energy contribution for this layer
+            custom_energy_contribution = LayerParameterEventCalculator.get_custom_energy_contribution_for(
+                self.module.__class__.__name__)
+
+            for i, deviceProfile in enumerate(self.device_profiles):
+
+                if custom_energy_contribution is not None:
+                    # execute the function for a Layer, taking particular 'inputs' and producing 'outputs', given
+                    # the device characteristic
+                    dEnergy = custom_energy_contribution(self, inputs, outputs, deviceProfile)
+                    self.total_energy_contributions[i] += dEnergy
+
+                # default loop : add to total energy per layer, the contribution from current timestep with
+                # recognizing whether layer is synaptic or not (which then multiplies energy of synapse operation or
+                # energy of neuron operation) and is the architecture truly spiking or not (if spiking architecture,
+                # add only the spiking events, if not, add energy contribution, even if value produced is not a spike)
                 else:
-                    self.total_energy_contributions[i] += current_total_events * energy_per_event
+                    # if layer is synaptic, get the energy per synapse event to add to total contribution, otherwise
+                    # get the energy per neuron event
+                    energy_per_event = deviceProfile.energy_per_neuron_event
+                    if self.is_synaptic:
+                        energy_per_event = deviceProfile.energy_per_synapse_event
+
+                    # if spiking architecture, add only energy when spike was generated
+                    if deviceProfile.is_spiking_architecture:
+                        self.total_energy_contributions[i] += current_spiking_events * energy_per_event
+
+                    # not a spiking architecture, always add energy
+                    else:
+                        self.total_energy_contributions[i] += current_total_events * energy_per_event
 
 
 def nested_list_size(inputs: Sequence[Any] | torch.Tensor) -> tuple[list[int], int]:
