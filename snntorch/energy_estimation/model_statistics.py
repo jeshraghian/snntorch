@@ -6,6 +6,9 @@ from .FormattingOptions import CONVERSION_FACTORS, FormattingOptions
 from .layer_info import LayerInfo
 from .device_profile import DeviceProfile
 
+"""
+    Model statistics has been taken from torchinfo project https://github.com/TylerYep/torchinfo
+"""
 
 class ModelStatistics:
     """Class for storing results of the summary."""

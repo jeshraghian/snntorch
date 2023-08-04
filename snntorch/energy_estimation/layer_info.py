@@ -13,6 +13,11 @@ import logging
 
 from .enums import ColumnSettings
 
+
+"""
+    Layer info has been adjusted from torchinfo project https://github.com/TylerYep/torchinfo
+"""
+
 try:
     from torch.nn.parameter import is_lazy
 except ImportError:

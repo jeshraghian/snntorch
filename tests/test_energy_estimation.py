@@ -1073,3 +1073,53 @@ def test_nested_network():
             assert data[1 + offset + 3 * i + 2].synapse_count == 0
             assert data[1 + offset + 3 * i + 2].neuron_count == neurons[count_idx]
             assert data[1 + offset + 3 * i + 2].total_events == neurons[count_idx]
+
+
+def test_nested_network_depth1():
+    """
+        test whether the numbers are as expected for a pytorch network consisting of few, nested nn.modules.
+        We set the depth to 1, and get only information about two blocks (however the number of parameters should be
+        the same for these blocks as in test above)
+
+    """
+
+
+    p1 = np.ones((1, 128))
+
+    inp_test = torch.Tensor([p1])
+    v = EnergyEfficiencyNestedNetworkTest()
+    v.reset()
+
+    n = EnergyEfficiencyNestedNetworkTestUnfolded()
+    synapses = [8256, 2080, 528, 544, 2112, 8320]
+    neurons = [64, 32, 16, 32, 64, 128]
+
+    energy_per_neuron, energy_per_synapse = 1e-9, 1e-9
+    predicted_energy = (sum(synapses) - sum(neurons)) * energy_per_synapse + sum(neurons) * energy_per_neuron
+    DeviceProfileRegistry.add_device("nested-network-test", energy_per_synapse,
+                                     energy_per_neuron, False)
+
+    # do a forward pass, where we have a "UnrecognizedLeafTestLayer" (which under the hood is linear layer)
+    # the values for these layers should be unrecognized (None). Assert that these values are None
+    summary_list = estimate_energy(model=v, input_data=inp_test, include_bias_term_in_events=False,
+                                   depth=1, devices="nested-network-test")
+
+    data = summary_list.summary_list
+
+    # assert that the energy is as predicted
+    assert pytest.approx(predicted_energy, rel=0.01) == summary_list.total_energies[0]
+
+    assert data[0].synapse_count == sum(synapses)
+    assert data[0].neuron_count == sum(neurons)
+    assert data[0].total_events == sum(synapses) # this is valid when bias is not included, however when bias is included
+                                                 # it should be sum(synapses) + sum(neurons)
+
+    # first block (module -> module -> module)
+    assert data[1].synapse_count == sum(synapses[:3])
+    assert data[1].neuron_count == sum(neurons[:3])
+    assert data[1].total_events == sum(synapses[:3])
+
+    # second block (module -> module -> module)
+    assert data[11].synapse_count == sum(synapses[3:])
+    assert data[11].neuron_count == sum(neurons[3:])
+    assert data[11].total_events == sum(synapses[3:])

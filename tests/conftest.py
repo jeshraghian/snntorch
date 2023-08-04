@@ -40,7 +40,6 @@ class Net(nn.Module):
         return self.lif1.spk, self.lif1.mem
 
 
-# net = Net().to(device)
 class EnergyEfficiencyNetTest1(nn.Module):
     def __init__(self, beta: float, num_timesteps: int | None = None):
         super().__init__()

@@ -1,5 +1,10 @@
 from enum import Enum, IntEnum, unique
 
+"""
+    Enums below has been mostly taken from torchinfo project https://github.com/TylerYep/torchinfo, all credits for
+    displaying very nicely architectures goes there
+"""
+
 @unique
 class Units(str, Enum):
     """Enum containing all available bytes units."""

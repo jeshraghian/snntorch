@@ -11,6 +11,11 @@ from torch import nn
 from torch.jit import ScriptModule
 from .enums import *
 
+"""
+    FormattingOptions didn't change much from torchinfo project https://github.com/TylerYep/torchinfo, all credits for
+    displaying very nicely architectures goes there
+"""
+
 try:
     from torch.nn.parameter import is_lazy
 except ImportError:
