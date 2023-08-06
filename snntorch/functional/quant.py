@@ -71,7 +71,7 @@ def state_quant(
         q_lif = quant.state_quant(num_bits=4, uniform=True, threshold=thr)
 
         # specifying state_quant applies state-quantization to the
-        hidden state(s) automatically
+        # hidden state(s) automatically
         lif = snn.Leaky(beta=beta, threshold=thr, state_quant=q_lif)
 
         rand_input = torch.rand(1)
