@@ -6,3 +6,5 @@ matplotlib
 celluloid
 numpy>=1.17
 tqdm
+nir
+nirtorch

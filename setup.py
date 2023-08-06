@@ -11,7 +11,7 @@ with open("README.rst", encoding="utf-8") as readme_file:
 #     history = history_file.read()
 
 # fmt: off
-__version__ = '0.6.4'
+__version__ = '0.7.0'
 # fmt: on
 
 requirements = [
@@ -19,6 +19,8 @@ requirements = [
     "pandas",
     "matplotlib",
     "numpy>=1.17",
+    "nir",
+    "nirtorch",
 ]
 
 
