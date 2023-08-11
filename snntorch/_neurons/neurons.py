@@ -513,12 +513,6 @@ class NoisyLIF(SpikingNeuron):
         else:
             self.register_buffer("beta", beta)
 
-    def triang_distrib(x, a):
-        fc = 0.5
-        mask = (x < fc).int()
-        return (-a * mask + (2 * a**2 * mask * x).sqrt()) + \
-            ((1-mask) * a - (2 * a**2 * (1-mask) * (1 - x)).sqrt())
-
     @staticmethod
     def init_noisyleaky():
         """
