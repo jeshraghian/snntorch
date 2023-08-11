@@ -513,17 +513,14 @@ class NoisyLIF(SpikingNeuron):
         else:
             self.register_buffer("beta", beta)
 
-    def _V_register_buffer(self, V, learn_V):
-        if V is not None:
-            if not isinstance(V, torch.Tensor):
-                V = torch.as_tensor(V)
-        if learn_V:
-            self.V = nn.Parameter(V)
-        else:
-            self.register_buffer("V", V)
+    def triang_distrib(x, a):
+        fc = 0.5
+        mask = (x < fc).int()
+        return (-a * mask + (2 * a**2 * mask * x).sqrt()) + \
+            ((1-mask) * a - (2 * a**2 * (1-mask) * (1 - x)).sqrt())
 
     @staticmethod
-    def init_leaky():
+    def init_noisyleaky():
         """
         Used to initialize mem as an empty SpikeTensor.
         ``init_flag`` is used as an attribute in the forward pass to convert
@@ -532,65 +529,6 @@ class NoisyLIF(SpikingNeuron):
         mem = _SpikeTensor(init_flag=False)
 
         return mem
-
-    @staticmethod
-    def init_rleaky():
-        """
-        Used to initialize spk and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        spk = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return spk, mem
-
-    @staticmethod
-    def init_synaptic():
-        """Used to initialize syn and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-
-        syn = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return syn, mem
-
-    @staticmethod
-    def init_rsynaptic():
-        """
-        Used to initialize spk, syn and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        spk = _SpikeTensor(init_flag=False)
-        syn = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return spk, syn, mem
-
-    @staticmethod
-    def init_lapicque():
-        """
-        Used to initialize mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-
-        return LIF.init_leaky()
-
-    @staticmethod
-    def init_alpha():
-        """Used to initialize syn_exc, syn_inh and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        syn_exc = _SpikeTensor(init_flag=False)
-        syn_inh = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return syn_exc, syn_inh, mem
 
     def mem_reset(self, mem):
         """Generates detached reset signal if mem > threshold.
@@ -628,6 +566,7 @@ class NoisyLIF(SpikingNeuron):
 
         @staticmethod
         def forward(ctx, input_, mu=0, sigma=0.3):
+            input_ += -torch.normal(torch.ones_like(input_) * mu, sigma)  
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.sigma = sigma
@@ -662,6 +601,9 @@ class NoisyLIF(SpikingNeuron):
         """
         @staticmethod
         def forward(ctx, input_, mu=0, scale=0.4):
+            noise = torch.zeros_like(input_).uniform_(0, 1)
+            noise = mu + scale * (torch.log((noise+1e-8) / (1-noise+1e-8)))
+            input_ += noise
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.scale = scale
@@ -678,7 +620,8 @@ class NoisyLIF(SpikingNeuron):
                 -(input_ - ctx.mu) / ctx.scale
             ) / ctx.scale / (1 + torch.exp(-(input_ - ctx.mu) / ctx.scale)).pow_(2)
             return grad_input*temp, None, None
-        
+
+    
     @staticmethod
     class Triangular(torch.autograd.Function):
         r"""
@@ -688,6 +631,13 @@ class NoisyLIF(SpikingNeuron):
         """
         @staticmethod
         def forward(ctx, input_, mu=0, a=0.3):
+            fc = 0.5
+            noise = torch.zeros_like(input_).uniform_(0, 1)
+            mask = (noise < fc).int()
+            noise = (-a * mask + (2 * a**2 * mask * noise).sqrt()) + \
+                ((1-mask) * a - (2 * a**2 * (1-mask) * (1 - noise)).sqrt())
+            input_ += noise
+
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.a = a
@@ -718,6 +668,7 @@ class NoisyLIF(SpikingNeuron):
         """
         @staticmethod
         def forward(ctx, input_, mu=0, a=0.5):
+            input_ += -torch.zeros_like(input_).uniform_(a, a)
             ctx.save_for_backward(input_)
             ctx.mu = mu
             ctx.a = a
@@ -735,31 +686,6 @@ class NoisyLIF(SpikingNeuron):
             )
             return grad_input*temp, None, None
         
-    @staticmethod
-    class Arctangent(torch.autograd.Function):
-        r"""
-        Arctangent noise. The resulting noise-driven learning covers the ATan surrogate gradients. 
-        The noise parameters are phi, which should be 0, and lambda, which denotes its scale.
-        """
-        @staticmethod
-        def forward(ctx, input_, phi=0, lmbd=5):
-            ctx.save_for_backward(input_)
-            ctx.phi = phi
-            ctx.lmbd = lmbd
-
-            p_spike = 1/math.pi * torch.atan(0.5*math.pi*lmbd*input_) + 0.5
-            return torch.bernoulli(p_spike)
-
-        @staticmethod
-        def backward(ctx, grad_output):
-            (input_,) = ctx.saved_tensors
-            grad_input = grad_output.clone()
-
-            temp = ctx.lmbd / (
-                2 * (1 + (0.5*math.pi*ctx.lmbd*input_)**2)
-            )
-            return grad_input*temp, None, None
-
 
 class _SpikeTensor(torch.Tensor):
     """Inherits from torch.Tensor with additional attributes.

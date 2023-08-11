@@ -4,7 +4,7 @@
 # Created Date: 2023-07-26 18:11:31
 # Author: Gehua Ma
 # -----
-# Last Modified: 2023-07-28 20:55:00
+# Last Modified: 2023-08-11 14:12:38
 # Modified By: Gehua Ma
 # -----
 ###
@@ -48,6 +48,7 @@ class NoisyLeaky(NoisyLIF):
     * :math:`R` - Reset mechanism: if active, :math:`R = 1`, otherwise \
         :math:`R = 0`
     * :math:`β` - Membrane potential decay rate
+    * :math:`\\epsilon` - Membrane noise term
 
     Example::
 
@@ -68,15 +69,15 @@ class NoisyLeaky(NoisyLIF):
 
                 # initialize layers
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
-                self.lif1 = snn.NoisyLeaky(beta=beta, noise_type=nt, noise_scale=ns)
+                self.nlif1 = snn.NoisyLeaky(beta=beta, noise_type=nt, noise_scale=ns)
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
-                self.lif2 = snn.NoisyLeaky(beta=beta, noisy_type=nt, noise_scale=ns)
+                self.nlif2 = snn.NoisyLeaky(beta=beta, noise_type=nt, noise_scale=ns)
 
             def forward(self, x, mem1, spk1, mem2):
                 cur1 = self.fc1(x)
-                spk1, mem1 = self.lif1(cur1, mem1)
+                spk1, mem1 = self.nlif1(cur1, mem1)
                 cur2 = self.fc2(spk1)
-                spk2, mem2 = self.lif2(cur2, mem2)
+                spk2, mem2 = self.nlif2(cur2, mem2)
                 return mem1, spk1, mem2, spk2
 
 
@@ -90,13 +91,18 @@ class NoisyLeaky(NoisyLIF):
         generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
-    :param noise_type: Neuronal membrane noise (eps) type. Note that the noise should satisfies 
-        eps = -eps to make the theoretical derivations valid. Implemented types are: "gaussian", 
-        "logistic", "triangular", "uniform", and "atan". 
+    :param noise_type: Neuronal membrane noise (ε) type.  
+        Implemented types are: "gaussian", "logistic", "triangular", and "uniform". 
+        For developers who want to add their own implementations of other kinds of noise: 
+        The noise must be continuous, zero-mean, and its probability density function is symmetric 
+        about the y-axis to meet the assumptions in the original literature 
+        (doi.org/10.48550/arXiv.2305.16044).
     :type noise_type: str, optional 
 
-    :param noise_scale: Neuronal noise scale. For instance, std for the gaussian noise, scale for 
-        the logistic noise, etc.
+    :param noise_scale: The noise scale is a parameter of the noise distribution. The larger the 
+        noise scale, the more spread out the noise distribution will be. For example, if you are 
+        using the "gaussian" noise type, the noise scale represents its standard deviation in our 
+        implementation.
     :type noise_scale: float, optional
 
     :param init_hidden: Instantiates state variables as instance variables.
@@ -147,7 +153,6 @@ class NoisyLeaky(NoisyLIF):
             must be manually passed in, of shape `1` or`` (input_size).
 
     """
-
     def __init__(
         self,
         beta,
@@ -181,9 +186,7 @@ class NoisyLeaky(NoisyLIF):
         )
 
         if self.init_hidden:
-            self.mem = self.init_leaky()
-        
-        print('Using Noisy LIF neurons with {} neuronal noise. '.format(noise_type))
+            self.mem = self.init_noisyleaky()
 
     def forward(self, input_, mem=False):
 
