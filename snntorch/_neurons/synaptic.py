@@ -270,7 +270,7 @@ class Synaptic(LIF):
 
     def _base_state_function_hidden(self, input_):
         base_fn_syn = self.alpha.clamp(0, 1) * self.syn + input_
-        base_fn_mem = self.beta.clamp(0, 1) * self.mem + input_
+        base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return base_fn_syn, base_fn_mem
 
     def _base_state_reset_zero_hidden(self, input_):
