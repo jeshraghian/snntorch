@@ -1,3 +1,5 @@
+# import the | for compatibility with python 3.7.*
+from __future__ import annotations
 from typing import Iterable
 import torch
 

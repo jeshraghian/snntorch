@@ -1,3 +1,5 @@
+# import the | for compatibility with python 3.7.*
+from __future__ import annotations
 import torch
 import torch.nn as nn
 from typing import Callable, Tuple, Dict, TypeVar, ClassVar, List, Type
@@ -9,13 +11,19 @@ from .utils import *
 
 # signature for functions
 synapse_neuron_count_signature = TypeVar("synapse_neuron_count_signature",
-                                         bound=Callable[[ClassVar, torch.Tensor, torch.Tensor], Tuple[int, int]])
+                                         bound=Callable[[object, torch.Tensor, torch.Tensor], Tuple[int, int]])
+#                                                       TODO: passing object is not a good solution probably in typing
+#                                                        This most likely should be LayerInfo (or some base class of it)
 event_counter_signature = TypeVar("event_counter_signature",
-                                  bound=Callable[[ClassVar, torch.Tensor, torch.Tensor], Tuple[int, int]])
+                                  bound=Callable[[object, torch.Tensor, torch.Tensor], Tuple[int, int]])
+#                                                       TODO: passing object is not a good solution probably in typing
+#                                                        This most likely should be LayerInfo (or some base class of it)
 
 custom_energy_contribution_signature = TypeVar("custom_energy_contribution_signature",
-                                               bound=Callable[[ClassVar, torch.Tensor, torch.Tensor, DeviceProfile],
+                                               bound=Callable[[object, torch.Tensor, torch.Tensor, DeviceProfile],
                                                float])
+#                                                       TODO: passing object is not a good solution probably in typing
+#                                                        This most likely should be LayerInfo (or some base class of it)
 
 
 # calculate the neuron and synapse count for Linear layer

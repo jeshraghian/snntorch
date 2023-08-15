@@ -709,7 +709,7 @@ def test_network_large():
     """
     p1 = np.ones((1, 32, 32))
 
-    inp_test = torch.Tensor([[p1]])
+    inp_test = torch.Tensor(np.array([[p1]]))
     v = EnergyEfficiencyNetTest5Large()
     v.reset()
 
@@ -802,7 +802,7 @@ def test_network_1D_conv():
     """
     p1 = np.ones((1, 32))
 
-    inp_test = torch.Tensor([p1])
+    inp_test = torch.Tensor(np.array([p1]))
     v = EnergyEfficiencyNet1DConv()
     v.reset()
 
@@ -852,7 +852,7 @@ def test_network_unrecognized_leaf_layers():
     """
     p1 = np.ones((1, 128))
 
-    inp_test = torch.Tensor([p1])
+    inp_test = torch.Tensor(np.array([p1]))
     v = EnergyEfficiencyNetUnrecognizedLayers()
     v.reset()
 
@@ -1019,7 +1019,7 @@ def test_nested_network():
 
     p1 = np.ones((1, 128))
 
-    inp_test = torch.Tensor([p1])
+    inp_test = torch.Tensor(np.array([p1]))
     v = EnergyEfficiencyNestedNetworkTest()
     v.reset()
 
@@ -1086,7 +1086,7 @@ def test_nested_network_depth1():
 
     p1 = np.ones((1, 128))
 
-    inp_test = torch.Tensor([p1])
+    inp_test = torch.Tensor(np.array([p1]))
     v = EnergyEfficiencyNestedNetworkTest()
     v.reset()
 

@@ -1,10 +1,11 @@
+# import the | for compatibility with python 3.7.*
+from __future__ import annotations
 import pytest
 import snntorch as snn
 import torch
 import torch.nn as nn
 import math
 from snntorch.energy_estimation.energy_estimation_network_interface import EnergyEstimationNetworkInterface
-
 
 # class Net(nn.Module):
 #     def __init__(self):
