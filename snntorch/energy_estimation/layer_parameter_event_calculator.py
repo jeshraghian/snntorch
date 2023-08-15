@@ -1,8 +1,6 @@
-# import the | for compatibility with python 3.7.*
-from __future__ import annotations
 import torch
 import torch.nn as nn
-from typing import Callable, Tuple, Dict, TypeVar, ClassVar, List, Type
+from typing import Callable, Tuple, Dict, TypeVar, ClassVar, List, Type, Union
 from .device_profile import DeviceProfile
 from copy import deepcopy
 
@@ -143,7 +141,7 @@ class LayerParameterEventCalculator(object):
     # - third optional element returning a float representing energy required to perform the operation (function, if
     # specified should have signature custom_energy_contribution_signature )
     _recognized_layers: Dict[str, Tuple[
-        synapse_neuron_count_signature, event_counter_signature, custom_energy_contribution_signature | None]] = \
+        synapse_neuron_count_signature, event_counter_signature, Union[custom_energy_contribution_signature, None]]] = \
         {
             nn.Linear.__name__: (synapse_neuron_count_for_linear, count_events_for_linear, None),
             snntorch.Leaky.__name__: (synapse_neuron_count_for_snn_neuron, count_events_for_snn_neuron, None),
@@ -170,7 +168,7 @@ class LayerParameterEventCalculator(object):
 
     @staticmethod
     def get_calculate_synapse_neuron_count_for(name: str,
-                                               ignore_not_recognized: bool = True) -> synapse_neuron_count_signature | None:
+                                               ignore_not_recognized: bool = True) -> Union[synapse_neuron_count_signature , None]:
 
         if name not in LayerParameterEventCalculator._recognized_layers:
             if ignore_not_recognized:
@@ -182,7 +180,7 @@ class LayerParameterEventCalculator(object):
         return LayerParameterEventCalculator._recognized_layers[name][0]
 
     @staticmethod
-    def get_event_counter_for(name: str, ignore_not_recognized: bool = True) -> event_counter_signature | None:
+    def get_event_counter_for(name: str, ignore_not_recognized: bool = True) -> Union[event_counter_signature , None]:
         if name not in LayerParameterEventCalculator._recognized_layers:
             if ignore_not_recognized:
                 return None
@@ -193,7 +191,7 @@ class LayerParameterEventCalculator(object):
         return LayerParameterEventCalculator._recognized_layers[name][1]
 
     @staticmethod
-    def get_custom_energy_contribution_for(name: str) -> custom_energy_contribution_signature | None:
+    def get_custom_energy_contribution_for(name: str) -> Union[custom_energy_contribution_signature , None]:
         if name not in LayerParameterEventCalculator._recognized_layers:
             return None
         return LayerParameterEventCalculator._recognized_layers[name][2]

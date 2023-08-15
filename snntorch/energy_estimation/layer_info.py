@@ -39,7 +39,7 @@ class LayerInfo:
         var_name: str,
         module: nn.Module,
         depth: int,
-        parent_info: LayerInfo | None = None,
+        parent_info: Union[LayerInfo, None] = None,
         include_bias_in_events: bool = True,
         network_requires_first_dim_as_time : bool = True
     ) -> None:
@@ -54,7 +54,7 @@ class LayerInfo:
         # {layer name: {col_name: value_for_row}}
         self.inner_layers: dict[str, dict[ColumnSettings, Any]] = {}
         self.depth = depth
-        self.depth_index: int | None = None  # set at the very end
+        self.depth_index: Union[int , None] = None  # set at the very end
         self.children: list[LayerInfo] = []  # set at the very end
         self.executed = False
         self.parent_info = parent_info
@@ -119,7 +119,7 @@ class LayerInfo:
 
     @staticmethod
     def calculate_size(
-        inputs: DETECTED_INPUT_OUTPUT_TYPES, batch_dim: int | None
+        inputs: DETECTED_INPUT_OUTPUT_TYPES, batch_dim: Union[int , None]
     ) -> tuple[list[int], int]:
         """
         Set input_size or output_size using the model's inputs.
@@ -188,10 +188,10 @@ class LayerInfo:
         return param.nelement(), name
 
     @staticmethod
-    def get_kernel_size(module: nn.Module) -> int | list[int] | None:
+    def get_kernel_size(module: nn.Module) -> Union[int , list[int] , None]:
         if hasattr(module, "kernel_size"):
             k = module.kernel_size
-            kernel_size: int | list[int]
+            kernel_size: Union[int , list[int]]
             if isinstance(k, Iterable):
                 kernel_size = list(k)
             elif isinstance(k, int):
@@ -426,7 +426,7 @@ class LayerInfo:
                         self.total_energy_contributions[i] += current_total_events * energy_per_event
 
 
-def nested_list_size(inputs: Sequence[Any] | torch.Tensor) -> tuple[list[int], int]:
+def nested_list_size(inputs: Union[Sequence[Any] , torch.Tensor]) -> tuple[list[int], int]:
     """Flattens nested list size."""
     if hasattr(inputs, "tensors"):
         size, elem_bytes = nested_list_size(inputs.tensors)
@@ -454,7 +454,7 @@ def nested_list_size(inputs: Sequence[Any] | torch.Tensor) -> tuple[list[int], i
     return size, elem_bytes
 
 
-def prod(num_list: Iterable[int] | torch.Size) -> int:
+def prod(num_list: Union[Iterable[int] , torch.Size]) -> int:
     result = 1
     if isinstance(num_list, Iterable):
         for item in num_list:
@@ -462,7 +462,7 @@ def prod(num_list: Iterable[int] | torch.Size) -> int:
     return result
 
 
-def rgetattr(module: nn.Module, attr: str) -> torch.Tensor | None:
+def rgetattr(module: nn.Module, attr: str) -> Union[torch.Tensor , None]:
     """Get the tensor submodule called attr from module."""
     for attr_i in attr.split("."):
         if not hasattr(module, attr_i):

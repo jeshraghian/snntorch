@@ -1,5 +1,3 @@
-# import the | for compatibility with python 3.7.*
-from __future__ import annotations
 import numpy as np
 import torch
 import torch.nn as nn
@@ -19,10 +17,10 @@ import sys
 """
 
 
-def estimate_energy(model: nn.Module | EnergyEstimationNetworkInterface,
-                    devices: DeviceProfile | List[DeviceProfile | str] | str | None = "cpu",
-                    input_size: Union[Sequence[int] | None] = None,
-                    input_data: Union[torch.Tensor | np.ndarray | Sequence[float]] | None = None,
+def estimate_energy(model: Union[nn.Module , EnergyEstimationNetworkInterface],
+                    devices: Union[DeviceProfile , List[Union[DeviceProfile , str]] , str , None] = "cpu",
+                    input_size: Union[Sequence[int] , None] = None,
+                    input_data: Union[Union[torch.Tensor , np.ndarray , Sequence[float]] , None] = None,
                     input_size_proportion_of_one: float = 1.0,
                     verbose: Verbosity = Verbosity.VERBOSE,
                     depth=1,
@@ -112,9 +110,9 @@ def estimate_energy(model: nn.Module | EnergyEstimationNetworkInterface,
     return results
 
 
-def validate_user_parameters(model: nn.Module | EnergyEstimationNetworkInterface,
-                             input_size: Union[Sequence[int]] | None = None,
-                             input_data: Union[torch.Tensor | np.ndarray | Sequence[float]] | None = None,
+def validate_user_parameters(model: Union[nn.Module , EnergyEstimationNetworkInterface],
+                             input_size: Union[Sequence[int] , None] = None,
+                             input_data: Union[torch.Tensor, np.ndarray, Sequence[float], None] = None,
                              input_size_proportion_of_one: float = 1.0):
     """
         Function which takes information about the data (either input_size or input_data) and does some basic sanity
@@ -131,8 +129,8 @@ def validate_user_parameters(model: nn.Module | EnergyEstimationNetworkInterface
             "energy estimates")
 
 
-def create_input_for_network_from_size(input_data: Union[torch.Tensor | np.ndarray | Sequence[float]] | None = None,
-                                       input_size: Union[Sequence[int]] | None = None,
+def create_input_for_network_from_size(input_data: Union[torch.Tensor , np.ndarray , Sequence[float], None] = None,
+                                       input_size: Union[Sequence[int], None] = None,
                                        input_size_proportion_of_one: float = 1.0,
                                        first_dim_is_time: bool = True) -> torch.Tensor:
     """
@@ -152,7 +150,7 @@ def create_input_for_network_from_size(input_data: Union[torch.Tensor | np.ndarr
             return torch.stack([input_data])
 
 
-def forward_pass(model: nn.Module | EnergyEstimationNetworkInterface, fwd_inp: torch.Tensor,
+def forward_pass(model: Union[nn.Module , EnergyEstimationNetworkInterface], fwd_inp: torch.Tensor,
                  devices: List[DeviceProfile], first_dim_is_time: bool, network_requires_first_dim_as_time: bool,
                  include_bias_term_in_events: bool):
     # get the class name of the model
@@ -439,14 +437,14 @@ def get_total_memory_used(data) -> int:
     return cast(int, result)
 
 
-def _resolve_devices_base_case(device: str | DeviceProfile):
+def _resolve_devices_base_case(device: Union[str , DeviceProfile]):
     if isinstance(device, DeviceProfile):
         return device
     elif isinstance(device, str):
         return DeviceProfileRegistry.get_device(device.lower())
 
 
-def _resolve_devices(devices: str | DeviceProfile | List[str | DeviceProfile]) -> List[DeviceProfile]:
+def _resolve_devices(devices: Union[str , DeviceProfile , List[Union[str , DeviceProfile]]]) -> List[DeviceProfile]:
     if devices is None or len(devices) == 0:
         return []
 
@@ -459,7 +457,7 @@ def _resolve_devices(devices: str | DeviceProfile | List[str | DeviceProfile]) -
     return resolved_devices
 
 
-def set_children_layers(summary_list: list[LayerInfo]) -> None:
+def set_children_layers(summary_list: List[LayerInfo]) -> None:
     """Populates the children and depth_index fields of all LayerInfo."""
     idx: dict[int, int] = {}
     for i, layer in enumerate(summary_list):

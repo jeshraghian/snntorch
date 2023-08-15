@@ -1,11 +1,10 @@
-# import the | for compatibility with python 3.7.*
-from __future__ import annotations
 import pytest
 import snntorch as snn
 import torch
 import torch.nn as nn
 import math
 from snntorch.energy_estimation.energy_estimation_network_interface import EnergyEstimationNetworkInterface
+from typing import Union
 
 # class Net(nn.Module):
 #     def __init__(self):
@@ -42,7 +41,7 @@ class Net(nn.Module):
 
 
 class EnergyEfficiencyNetTest1(nn.Module):
-    def __init__(self, beta: float, num_timesteps: int | None = None):
+    def __init__(self, beta: float, num_timesteps: Union[int , None] = None):
         super().__init__()
         self.fc1 = nn.Linear(1, 1)
         self.lif1 = snn.Leaky(beta=beta)
@@ -51,7 +50,7 @@ class EnergyEfficiencyNetTest1(nn.Module):
 
         self.num_timesteps = num_timesteps
 
-    def forward(self, x: torch.Tensor, num_timesteps: int | None = None):
+    def forward(self, x: torch.Tensor, num_timesteps: Union[int, None] = None):
         assert num_timesteps is not None or self.num_timesteps is not None, "please specify the number of timestep for this testing network!"
 
         # specifying timesteps in forward will override the self.num_timesteps
