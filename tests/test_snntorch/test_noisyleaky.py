@@ -63,7 +63,9 @@ class TestNoisyLeaky:
             spk_rec.append(spk)
 
         assert mem_rec[1] == mem_rec[0] * 0.5 + input_[1]
-        assert spk_rec[0] == spk_rec[1]
+        # The firing mechanism is probabilistic and cannot guarantee that the spike output will be
+        # the same.
+        # assert spk_rec[0] == spk_rec[1]
 
     def test_noisyleaky_reset(
         self,
@@ -96,8 +98,9 @@ class TestNoisyLeaky:
         for i in range(2):
             spk = noisyleaky_hidden_instance(input_[i])
             spk_rec.append(spk)
-
-        assert spk_rec[0] == spk_rec[1]
+        # The firing mechanism is probabilistic and cannot guarantee that the spike output will be
+        # the same.
+        # assert spk_rec[0] == spk_rec[1]
 
     def test_noisyleaky_init_hidden_reset_zero(
         self, noisyleaky_hidden_reset_zero_instance, input_
@@ -108,8 +111,9 @@ class TestNoisyLeaky:
         for i in range(2):
             spk = noisyleaky_hidden_reset_zero_instance(input_[i])
             spk_rec.append(spk)
-
-        assert spk_rec[0] == spk_rec[1]
+        # The firing mechanism is probabilistic and cannot guarantee that the spike output will be
+        # the same.
+        # assert spk_rec[0] == spk_rec[1]
 
     def test_noisyleaky_init_hidden_reset_none(
         self, noisyleaky_hidden_reset_none_instance, input_
@@ -121,7 +125,9 @@ class TestNoisyLeaky:
             spk = noisyleaky_hidden_reset_none_instance(input_[i])
             spk_rec.append(spk)
 
-        assert spk_rec[0] == spk_rec[1]
+        # The firing mechanism is probabilistic and cannot guarantee that the spike output will be
+        # the same.
+        # assert spk_rec[0] == spk_rec[1]
 
     def test_noisyleaky_cases(self, noisyleaky_hidden_instance, input_):
         with pytest.raises(TypeError):
