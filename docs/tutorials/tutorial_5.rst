@@ -190,9 +190,6 @@ The backward-pass derivative used is:
 
 
 .. math::
-    
-    \frac{\partial \tilde{S}}{\partial U} \leftarrow \frac{1}{π}\frac{1}{(1+[Uπ]^2)}
-
 
     \frac{\partial \tilde{S}}{\partial U} \leftarrow \frac{1}{\pi}\frac{1}{(1+[U\pi]^2)}
 
