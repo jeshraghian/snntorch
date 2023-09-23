@@ -581,6 +581,25 @@ def SFS(slope=25, B=1):
 
 
 class CustomSurrogate(torch.autograd.Function):
+    """Custom surrogate gradient wrapper function."""
+    @staticmethod
+    def forward(ctx, input_, custom_surrogate_function):
+        out = (input_ > 0).float()
+        ctx.save_for_backward(input_, out)
+        ctx.custom_surrogate_function = custom_surrogate_function
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input_, out = ctx.saved_tensors
+        custom_surrogate_function = ctx.custom_surrogate_function
+
+        grad_input = grad_output.clone()
+        grad = custom_surrogate_function(input_, grad_input, out)
+        return grad, None
+
+
+def custom_surrogate(custom_surrogate_function):
     """
     Surrogate gradient of the Heaviside step function.
 
@@ -595,12 +614,15 @@ class CustomSurrogate(torch.autograd.Function):
 
     **Backward pass:** Custom surrogate gradient function.
 
-    The custom Surrogate gradient function defined by the user is passed
-    to the forward staticmethod and then is used in the backward staticmethod.
-    The arguments of the custom surrogate gradient function always are
-    The input of the forward pass (input_), the gradient of the input
-    (grad_input) and the output of the the forward pass (out) respectively.
-    ** Important Note: The hyperparameters of the custom Surrogate gradient
+    The user defines the custom surrogate gradient in a separate function.
+    It is passed in the forward static method and used in the backward
+    static method.
+
+    The arguments of the custom surrogate gradient function are always
+    the input of the forward pass (input_), the gradient of the input 
+    (grad_input) and the output of the forward pass (out).
+    
+    ** Important Note: The hyperparameters of the custom surrogate gradient
     function have to be defined inside of the function itself. **
 
     Example::
@@ -638,61 +660,6 @@ class CustomSurrogate(torch.autograd.Function):
 
     """
 
-    @staticmethod
-    def forward(ctx, input_, custom_surrogate_function):
-        out = (input_ > 0).float()
-        ctx.save_for_backward(input_, out)
-        ctx.custom_surrogate_function = custom_surrogate_function
-        return out
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        input_, out = ctx.saved_tensors
-        custom_surrogate_function = ctx.custom_surrogate_function
-
-        grad_input = grad_output.clone()
-        grad = custom_surrogate_function(input_, grad_input, out)
-        return grad, None
-
-
-def custom_surrogate(custom_surrogate_function):
-    """Custom surrogate gradient enclosed
-    ** Important Note: The hyperparameters of the custom Surrogate gradient
-    function have to be defined inside of the function itself. **
-
-    Example::
-
-        import torch
-        import torch.nn as nn
-        import snntorch as snn
-        from snntorch import Surrogate
-
-        def custom_fast_sigmoid(input_, grad_input, spikes):
-            ## The hyperparameter slope is defined inside the function.
-            slope = 25
-            grad = grad_input / (slope * torch.abs(input_) + 1.0) ** 2
-            return grad
-
-        spike_grad = surrogate.custom_surrogate(custom_fast_sigmoid)
-
-        net_seq = nn.Sequential(nn.Conv2d(1, 12, 5),
-                    nn.MaxPool2d(2),
-                    snn.Leaky(beta=beta,
-                            spike_grad=spike_grad,
-                            init_hidden=True),
-                    nn.Conv2d(12, 64, 5),
-                    nn.MaxPool2d(2),
-                    snn.Leaky(beta=beta,
-                            spike_grad=spike_grad,
-                            init_hidden=True),
-                    nn.Flatten(),
-                    nn.Linear(64*4*4, 10),
-                    snn.Leaky(beta=beta,
-                            spike_grad=spike_grad,
-                            init_hidden=True, output=True)
-                    ).to(device)
-
-    """
     func = custom_surrogate_function
 
     def inner(data):
