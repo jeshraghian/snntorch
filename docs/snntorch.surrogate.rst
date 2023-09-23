@@ -113,7 +113,10 @@ Example::
 
     net = Net().to(device)
 
-    
+
+List of surrogate gradients
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. automodule:: snntorch.surrogate
    :members:
    :undoc-members:
