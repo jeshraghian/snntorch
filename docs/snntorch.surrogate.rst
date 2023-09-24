@@ -3,7 +3,7 @@ snntorch.surrogate
 
 By default, PyTorch's autodifferentiation tools are unable to calculate the analytical derivative of the spiking neuron graph. 
 The discrete nature of spikes makes it difficult for ``torch.autograd`` to calculate a gradient that facilitates learning.
-:mod:`snntorch` overrides the default gradient by using :mod:`snntorch.LIF.Heaviside`.
+:mod:`snntorch` overrides the default gradient by using :mod:`snntorch.surrogate.ATan`.
 
 Alternative gradients are also available in the :mod:`snntorch.surrogate` module. 
 These represent either approximations of the backward pass or probabilistic models of firing as a function of the membrane potential.
@@ -29,7 +29,7 @@ How to use surrogate
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 The surrogate gradient must be passed as the ``spike_grad`` argument to the neuron model. 
-If ``spike_grad`` is left unspecified, it defaults to :mod:`snntorch.neurons.Heaviside`.
+If ``spike_grad`` is left unspecified, it defaults to :mod:`snntorch.surrogate.ATan`.
 In the following example, we apply the fast sigmoid surrogate to :mod:`snntorch.Synaptic`.
 
 Example::
