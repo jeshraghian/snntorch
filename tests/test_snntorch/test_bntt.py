@@ -8,9 +8,21 @@ import torch
 
 
 @pytest.fixture(scope="module")
-def input1d_():
-    # 2 time_steps, 2, batch size, 2 features
+def input2d_():
+    # 2 time_steps, 2, batch size, 4 features
     return torch.rand(2, 2, 4)
+
+
+@pytest.fixture(scope="module")
+def input3d_():
+    # 2 time_steps, 2, batch size, 4 features, 5 sequence length
+    return torch.rand(2, 2, 4, 5)
+
+
+@pytest.fixture(scope="module")
+def input4d_():
+    # 2 time_steps, 2, batch size, 4 features, height 2, width 2
+    return torch.rand(2, 2, 4, 2, 2)
 
 
 @pytest.fixture(scope="module")
@@ -35,21 +47,25 @@ class TestBatchNormTT1d:
             assert module.affine
             assert module.bias is None
 
-    def test_batchnormtt1d_output(
+    def test_batchnormtt1d_with_2d_input(
         self,
         batchnormtt1d_instance,
-        input1d_
+        input2d_
     ):
         for step, batchnormtt1d_module in enumerate(batchnormtt1d_instance):
-            out = batchnormtt1d_module(input1d_[step])
+            out = batchnormtt1d_module(input2d_[step])
 
-            assert out.shape == input1d_[step].shape
+            assert out.shape == input2d_[step].shape
 
+    def test_batchnormtt1d_with_3d_input(
+        self,
+        batchnormtt1d_instance,
+        input3d_
+    ):
+        for step, batchnormtt1d_module in enumerate(batchnormtt1d_instance):
+            out = batchnormtt1d_module(input3d_[step])
 
-@pytest.fixture(scope="module")
-def input2d_():
-    # 2 time_steps, 2, batch size, 2 features
-    return torch.rand(2, 2, 4, 2, 2)
+            assert out.shape == input3d_[step].shape
 
 
 @pytest.fixture(scope="module")
@@ -74,12 +90,12 @@ class TestBatchNormTT2d:
             assert module.affine
             assert module.bias is None
 
-    def test_batchnormtt1d_output(
+    def test_batchnormtt2d_with_4d_input(
         self,
         batchnormtt2d_instance,
-        input2d_
+        input4d_
     ):
         for step, batchnormtt2d_module in enumerate(batchnormtt2d_instance):
-            out = batchnormtt2d_module(input2d_[step])
+            out = batchnormtt2d_module(input4d_[step])
 
-            assert out.shape == input2d_[step].shape
+            assert out.shape == input4d_[step].shape
