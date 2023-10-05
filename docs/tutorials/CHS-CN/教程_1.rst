@@ -38,12 +38,12 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 虽然使用非脉冲输入也很常见（如后续教程 3 所示），但数据编码的魅力部分来自三个 S：
 脉冲（Spikes）、稀疏性（Sparsity）和静态抑制（Static suppression）。
 
-1. **脉冲**: 
+1. **脉冲** : 
     (a-b) 生物神经元通过脉冲进行处理和交流，脉冲是振幅约为 100 mV 的
     电脉冲信号。(c) 许多神经元计算模型将这种电压脉冲简化为离散的单比特事件："1 "或 "0"。
     这比高精度值更容易用硬件表示。
 
-2. **稀疏性**: 
+2. **稀疏性** : 
     (c) 神经元的大部分时间都处于静息状态，在任何给定时间内，
     大部分激活都会沉默为零。稀疏向量/张量（包含大量零）不仅存储成本低，而且
     我们需要将稀疏激活与突触权重（synaptic weights）相乘。如果大多数值都乘以 "0"，
@@ -119,10 +119,8 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
     # mnist_train = datasets.MNIST(root = './', train=True, download=True, transform=transform)
 
 虽然已经下载了，但是在真正开始训练网络之前，我们不需要巨量数据。
- ``snntorch.utils`` 中有一些可以帮我们编辑数据集的函数. 
-你可以应用 ``data_subset`` 函数来裁剪数据集，
-裁剪后的大小基于变量 ``subset``的值. 比如说，当 ``subset=10``, a
-包含60,000个数据的训练集将减少到 6,000 个。
+``snntorch.utils``中有一些可以帮我们编辑数据集的函数。你可以应用 ``data_subset``函数来裁剪数据集，
+裁剪后的大小基于变量 ``subset``的值. 比如说，当 ``subset=10``, 包含60,000个数据的训练集将减少到 6,000 个。
 
 ::
 
@@ -179,7 +177,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 第一种方法十分简单，但是并没有充分利用SNN的时间动态（temporal dynamics）。
 因此我们将详细展开第二种方法中数据到脉冲的转换（编码）。
 
-``snntorch.spikegen`` 模块（脉冲生成模块）包含一系列可以简化这个转换过程的功能。
+``snntorch.spikegen``模块（脉冲生成模块）包含一系列可以简化这个转换过程的功能。
 现在我们在 ``snntorch``库中有三个选择可用于脉冲编码:
 
 1. 脉冲率编码（Rate coding）:
@@ -189,7 +187,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 3. 增量调制（Delta modulation）:
    `spikegen.delta <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html#snntorch.spikegen.delta>`__
 
-How do these differ?
+这些方法有何不同？
 
 1. *脉冲率编码* 用输入特征来确定 **脉冲频率**
 2. *延迟编码* 利用输入特征来确定 **脉冲时长**
@@ -431,8 +429,9 @@ MNIST具有灰度图像, 而其中的白色文本保证100%在每个时间段都
 但是大伙都不相信周围感官全都是基于脉冲率的。几个令人信服的里有包括：
 
 -  **功耗:** 大自然会优化效率（能耗比）。完成任何类型的任务都需要几个脉冲，
-    而每个脉冲都要消耗能量。事实上, `Olshausen与Field的 “What is the
-   other 85% of V1 doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`
+    而每个脉冲都要消耗能量。事实上, `Olshausen和Field的 “What is the
+   other 85% of V1
+   doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`__
     中证明脉冲率编码最多只能解释 初级视觉皮层 （V1） 中 15% 的神经元的活动。
     不太可能是脑内唯一的机制，因为大脑是出了名的 资源有限且效率高。
 
