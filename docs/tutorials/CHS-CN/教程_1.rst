@@ -119,8 +119,8 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
     # mnist_train = datasets.MNIST(root = './', train=True, download=True, transform=transform)
 
 虽然已经下载了，但是在真正开始训练网络之前，我们不需要巨量数据。
-``snntorch.utils``中有一些可以帮我们编辑数据集的函数。你可以应用 ``data_subset``函数来裁剪数据集，
-裁剪后的大小基于变量 ``subset``的值. 比如说，当 ``subset=10``, 包含60,000个数据的训练集将减少到 6,000 个。
+``snntorch.utils`` 中有一些可以帮我们编辑数据集的函数。你可以应用 ``data_subset`` 函数来裁剪数据集，
+裁剪后的大小基于变量 ``subset`` 的值. 比如说，当 ``subset=10`` , 包含60,000个数据的训练集将减少到 6,000 个。
 
 ::
 
@@ -141,7 +141,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 上面创建的数据集对象会将数据加载到内存中，而
 数据加载器将分批提供数据。PyTorch 中的数据加载器是一个
 方便的接口，用于将数据传递到网络中。它们返回一个
-被分成大小为 ``batch_size``的迭代器。
+被分成大小为 ``batch_size`` 的迭代器。
 
 ::
 
@@ -153,12 +153,12 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 -----------------
 
 脉冲神经网络（SNN） 旨在利用时变数据（time-varing data）。 
-然而，MNIST不是一个时变数据集。将MNIST与SNN一起使用有两种选择：
+然而, MNIST不是一个时变数据集。将MNIST与SNN一起使用有两种选择: 
 
 1. 在每个时间段（time step）内，重复地将相同的训练样本
    :math:`\mathbf{X}\in\mathbb{R}^{m\times n}` 传递给神经网络。
    这就像把MNIST数据集转化为静态不变的视频。训练样本中的每个元素
-    :math:`\mathbf{X}` 都可以取一个在0和1 之间归一化（Normalized）的高精度值：
+    :math:`\mathbf{X}` 都可以取一个在0和1 之间归一化（Normalized）的高精度值: 
     :math:`X_{ij}\in [0, 1]`.
    
 
@@ -166,15 +166,15 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
             :align: center
             :width: 800
 
-2. 将输入转换成长度为 ``num_steps``的脉冲序列, 
+2. 将输入转换成长度为 ``num_steps`` 的脉冲序列, 
     其每个特征/像素都有一个位于 :math:`X_{i,j} \in \{0, 1\}`之间的离散值. 
-    在这种情况下，MNIST数据集被转化为了一个 与原始图像有关的 时变脉冲序列。
+    在这种情况下, MNIST数据集被转化为了一个 与原始图像有关的 时变脉冲序列。
 
     .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial1/1_2_2_spikeinput.png?raw=true
               :align: center
               :width: 800
 
-第一种方法十分简单，但是并没有充分利用SNN的时间动态（temporal dynamics）。
+第一种方法十分简单, 但是并没有充分利用SNN的时间动态（temporal dynamics）。
 因此我们将详细展开第二种方法中数据到脉冲的转换（编码）。
 
 ``snntorch.spikegen``模块（脉冲生成模块）包含一系列可以简化这个转换过程的功能。
@@ -516,7 +516,7 @@ fire together, wire together” <https://doi.org/10.2307/1418888>`__。
 
 向量 ``spike_times`` 包含脉冲触发的时间, 而不是包含脉冲本身（1 和 0）的稀疏张量。
 在运行 SNN 仿真时，我们需要使用 1/0 表示来获得使用脉冲的所有优点。
-整个过程可以使用 ``spikegen.latency``自动完成, 只需我们给 `data_it`传递一个来自MNIST数据集的迷你批次:
+整个过程可以使用 ``spikegen.latency`` 自动完成, 只需我们给 `data_it`传递一个来自MNIST数据集的迷你批次:
 
 ::
 
