@@ -177,8 +177,8 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 第一种方法十分简单, 但是并没有充分利用SNN的时间动态（temporal dynamics）。
 因此我们将详细展开第二种方法中数据到脉冲的转换（编码）。
 
-``snntorch.spikegen``模块（脉冲生成模块）包含一系列可以简化这个转换过程的功能。
-现在我们在 ``snntorch``库中有三个选择可用于脉冲编码:
+``snntorch.spikegen`` 模块（脉冲生成模块）包含一系列可以简化这个转换过程的功能。
+现在我们在 ``snntorch`` 库中有三个选择可用于脉冲编码:
 
 1. 脉冲率编码（Rate coding）:
    `spikegen.rate <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html#snntorch.spikegen.rate>`__
@@ -225,7 +225,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
     >>> print(f"The output is spiking {rate_coded_vector.sum()*100/len(rate_coded_vector):.2f}% of the time.")
     The output is spiking 60.00% of the time.
 
-增加 ``raw_vector``的长度，再试一次:
+增加 ``raw_vector`` 的长度，再试一次:
 
 ::
 
@@ -239,7 +239,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
     >>> print(f"The output is spiking {rate_coded_vector.sum()*100/len(rate_coded_vector):.2f}% of the time.")
     The output is spiking 48.00% of the time.
  
-当 ``num_steps``\ :math:`\rightarrow\infty`, 脉冲的比例（脉冲率）将接近原始值
+当 ``num_steps`` \ :math:`\rightarrow\infty`, 脉冲的比例（脉冲率）将接近原始值
 
 对于一个MNIST图像, 此概率意味着其像素的值。一个白色像素对应100%的脉冲概率，
 而一个黑色像素对应0%。也许下图能给你更多的关于概率编码的灵感。
@@ -297,7 +297,7 @@ snnTorch中有一个让可视化过程变得非常简单的模块:
     >>> print(spike_data_sample.size())
     torch.Size([100, 28, 28])
 
-``spikeplot.animator`` r模块使得动画化2D数据非常简单, 
+``spikeplot.animator`` 模块使得动画化2D数据非常简单, 
 但是请注意: 如果你选择在本地运行这个函数, 你需要先安装ffmpeg用作视频格式的转换。
 然后取消注释并编辑你ffmpeg.exe的路径。
 
@@ -328,7 +328,7 @@ snnTorch中有一个让可视化过程变得非常简单的模块:
     The corresponding target is: 7
 
 MNIST具有灰度图像, 而其中的白色文本保证100%在每个时间段都会发生脉冲。
-因此，让我们再次执行此操作，但减少脉冲频率。这可以通过设置参数 ``gain``来实现。
+因此，让我们再次执行此操作，但减少脉冲频率。这可以通过设置参数 ``gain`` 来实现。
 在这里, 我们将把脉冲频率降低到25%.
 
 ::
@@ -372,14 +372,14 @@ MNIST具有灰度图像, 而其中的白色文本保证100%在每个时间段都
         :align: center
         :width: 300
 
- ``gain=0.25`` 时生成的图片颜色明显比 ``gain=1``时生成的浅, 
+ ``gain=0.25`` 时生成的图片颜色明显比 ``gain=1`` 时生成的浅, 
  因为脉冲率降低了 :math:`\times 4`倍。
 
 2.2.2 栅格图
 ^^^^^^^^^^^^^^^^^^
 
 或者, 我们也可以选择生成输入样本的栅格图（raster plot）。这需要将样本重塑为2D张量, 
-其中“时间”是第一维度。将样本传递到 ``spikeplot.raster``模块。
+其中“时间”是第一维度。将样本传递到 ``spikeplot.raster`` 模块。
 
 ::
 
@@ -431,12 +431,12 @@ MNIST具有灰度图像, 而其中的白色文本保证100%在每个时间段都
 -  **功耗:** 大自然会优化效率（能耗比）。完成任何类型的任务都需要几个脉冲，
     而每个脉冲都要消耗能量。事实上, `Olshausen和Field的 “What is the
    other 85% of V1
-   doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`__
+   doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`__ 
     中证明脉冲率编码最多只能解释 初级视觉皮层 （V1） 中 15% 的神经元的活动。
     不太可能是脑内唯一的机制，因为大脑是出了名的 资源有限且效率高。
 
 -  **响应时间:** 我们知道人类的反应时间大约是250毫秒。
-    如果神经元的平均脉冲率在人脑中是10Hz的数量级，那么在反应时间范围内，
+    如果神经元的平均脉冲率在人脑中是10Hz的数量级, 那么在反应时间范围内, 
     人类只能处理约 2 个脉冲。
 
 那么，如果速率码在能效或延迟方面不是最佳的，我们为什么还要使用它们呢？
@@ -556,7 +556,7 @@ fire together, wire together” <https://doi.org/10.2307/1418888>`__。
 
 对数代码加上缺乏不同的输入值（即缺乏中间色调/灰度特征）导致图中两个区域出现明显的聚类（clustering）, 
 换句话说就是咱这图片非黑即白，太极端了。亮像素在运行开始时激活，而暗像素则在运行结束时激活。 
-我们可以增加 ``tau`` 来减慢脉冲时间, 或者通过设置可选参数 ``linear=True``来线性化脉冲时间。
+我们可以增加 ``tau`` 来减慢脉冲时间, 或者通过设置可选参数 ``linear=True`` 来线性化脉冲时间。
 
 ::
 
@@ -609,7 +609,7 @@ fire together, wire together” <https://doi.org/10.2307/1418888>`__。
 在上图所示的场景中，大部分脉冲发生在最后一个时间步长，此时输入特征低于阈值。
 从某种意义上说, MNIST 样本的深色背景并不包含有用的信息。
 
-我们可以通过设置 ``clip=True``来去除这些冗余特征。
+我们可以通过设置 ``clip=True`` 来去除这些冗余特征。
 
 ::
 
@@ -669,8 +669,7 @@ fire together, wire together” <https://doi.org/10.2307/1418888>`__。
     tensor(4, device='cuda:0')
 
 
-这就是 ``spikegen.latency`` 函数。更多信息可以在
-`这些文档 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__中找到。
+这就是 ``spikegen.latency`` 函数。更多信息可以在 `这些文档 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__中找到。
 
 2.4 增量调制
 ~~~~~~~~~~~~~~~~~~~~
@@ -781,7 +780,7 @@ Sensor <https://ieeexplore.ieee.org/abstract/document/7128412/>`__.
 
 以上就是三个主要的尖峰转换功能！本教程没有详细介绍这三种转换技术的其他功能。
 特别是，我们只研究了输入数据的编码，还没有考虑如何对目标进行编码，以及何时需要进行编码。
-我们建议您参考 `相关文档进行深入了解 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__.
+我们建议您参考 `相关文档进行深入了解 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__。
 
 3. 脉冲的生成 (选读)
 ------------------------------
@@ -845,7 +844,7 @@ Sensor <https://ieeexplore.ieee.org/abstract/document/7128412/>`__.
 如果你喜欢这个项目，请考虑在 GitHub 上的 点亮星星⭐。因为这是最简单、最好的支持方式。
 
 作为参考,  `spikegen文档在这里 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__
-还有 `spikeplot文档在这 <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`__.
+, 还有 `spikeplot文档在这 <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`__.
 
 `在下一篇教程中 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__, 
 您将学习脉冲神经元的基础知识以及如何使用它们。
