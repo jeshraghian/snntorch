@@ -83,4 +83,4 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
      -       —
 
 
-Future tutorials on spiking neurons and training are under construction. 
+Future tutorials on spiking neurons and training are under development. 
