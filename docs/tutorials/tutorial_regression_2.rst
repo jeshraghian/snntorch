@@ -305,7 +305,7 @@ Instantiate the network below:
 ::
 
     hidden = 128
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
     model = Net(timesteps=num_steps, hidden=hidden, beta=0.9).to(device)
 
 4. Construct Training Loop
@@ -332,7 +332,7 @@ temporal data is an exercise left to the reader/coder.
 ::
 
     batch_size = 128
-    data_path='/data/mnist'
+    data_path='/tmp/data/mnist'
     
     # Define a transform
     transform = transforms.Compose([

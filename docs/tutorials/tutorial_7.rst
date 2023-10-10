@@ -235,7 +235,7 @@ previous tutorial. The convolutional network architecture to be used is:
 
 ::
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
     
     # neuron and simulation parameters
     spike_grad = surrogate.atan()

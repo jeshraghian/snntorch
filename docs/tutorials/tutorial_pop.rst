@@ -62,8 +62,8 @@ Define variables for dataloading.
 ::
 
     batch_size = 128
-    data_path='/data/fmnist'
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    data_path='/tmp/data/fmnist'
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
 Load FashionMNIST dataset.
 

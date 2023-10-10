@@ -62,7 +62,7 @@ Load in the MNIST dataset.
     from torchvision import datasets, transforms
 
     batch_size = 128
-    data_path='/data/mnist'
+    data_path='/tmp/data/mnist'
     
     # Define a transform
     transform = transforms.Compose([

@@ -161,7 +161,7 @@ Much of the following code has already been explained in the first two tutorials
 
   # Training Parameters
   batch_size=128
-  data_path='/data/mnist'
+  data_path='/tmp/data/mnist'
 
   # Temporal Dynamics
   num_steps = 25

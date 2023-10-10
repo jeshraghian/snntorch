@@ -95,7 +95,7 @@ Install the latest PyPi distribution of snnTorch:
 
     # Training Parameters
     batch_size=128
-    data_path='/data/mnist'
+    data_path='/tmp/data/mnist'
     num_classes = 10  # MNIST has 10 output classes
     
     # Torch Variables

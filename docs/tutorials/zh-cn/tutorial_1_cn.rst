@@ -85,7 +85,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 
     # Training Parameters
     batch_size=128
-    data_path='/data/mnist'
+    data_path='/tmp/data/mnist'
     num_classes = 10  # MNIST has 10 output classes
     
     # Torch Variables
