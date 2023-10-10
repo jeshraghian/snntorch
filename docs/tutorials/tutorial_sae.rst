@@ -25,12 +25,9 @@
    find these resources or code useful in your work, please consider
    citing the following source:
 
-      `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor
-      Lenz, Girish Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei
-      D. Lu. "Training Spiking Neural Networks Using Lessons From Deep
-      Learning". arXiv preprint arXiv:2109.12894, September
-      2021. <https://arxiv.org/abs/2109.12894>`__
-
+    `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
+    Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
+    Spiking Neural Networks Using Lessons From Deep Learning”. Proceedings of the IEEE, 111(9) September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 .. container:: cell markdown
 
    In this tutorial, you will learn how to use snnTorch to:
