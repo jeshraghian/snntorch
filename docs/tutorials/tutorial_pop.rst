@@ -13,8 +13,7 @@ The snnTorch tutorial series is based on the following paper. If you find these 
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
-    Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
-    September 2021. <https://arxiv.org/abs/2109.12894>`_
+    Spiking Neural Networks Using Lessons From Deep Learning”. Proceedings of the IEEE, 111(9) September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 .. note::
   This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
