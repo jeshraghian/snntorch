@@ -9,8 +9,14 @@ from tests.conftest import Net
 from unittest import mock
 import torch
 
-device = (
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+device = device = (
+    torch.device("cuda")
+    if torch.cuda.is_available()
+    else (
+        torch.device("mps")
+        if torch.backends.mps.is_available()
+        else torch.device("cpu")
+    )
 )
 
 
