@@ -332,7 +332,7 @@ temporal data is an exercise left to the reader/coder.
 ::
 
     batch_size = 128
-    data_path='/data/mnist'
+    data_path='/tmp/data/mnist'
     
     # Define a transform
     transform = transforms.Compose([

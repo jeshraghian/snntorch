@@ -48,7 +48,7 @@ Define variables for dataloading.
 ::
 
     batch_size = 128
-    data_path='/data/mnist'
+    data_path='/tmp/data/mnist'
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
 Load MNIST dataset.
