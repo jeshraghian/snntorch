@@ -318,7 +318,7 @@ Instantiate the network below:
 ::
 
     hidden = 128
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
     model = Net(timesteps=num_steps, hidden=hidden).to(device)
 
 
