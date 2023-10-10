@@ -13,22 +13,21 @@ def _create_rnn_subgraph(module: torch.nn.Module, lif: Union[nir.LIF, nir.CubaLI
     """Create NIR Graph for RNN, from the snnTorch module and the extracted LIF/CubaLIF node."""
     if module.all_to_all:
         lif_shape = module.recurrent.weight.shape[0]
-        weight_rec = module.recurrent.weight.data.detach().numpy()
-        if module.recurrent.bias is not None:
-            assert np.allclose(module.recurrent.bias.detach().numpy(), 0), 'bias not supported'
+        w_rec = module.recurrent.weight.data.detach().numpy()
+        b = None if module.recurrent.bias is None else module.recurrent.bias.data.detach().numpy()
     else:
         if len(module.recurrent.V.shape) == 0:
             lif_shape = None
-            weight_rec = np.eye(1) * module.recurrent.V.data.detach().numpy()
+            w_rec = np.eye(1) * module.recurrent.V.data.detach().numpy()
         else:
             lif_shape = module.recurrent.V.shape[0]
-            weight_rec = np.diag(module.recurrent.V.data.detach().numpy())
+            w_rec = np.diag(module.recurrent.V.data.detach().numpy())
 
     return nir.NIRGraph(
         nodes={
             'input': nir.Input(input_type=[lif_shape]),
             'lif': lif,
-            'w_rec': nir.Linear(weight=weight_rec),
+            'w_rec': nir.Linear(weight=w_rec) if b is None else nir.Affine(weight=w_rec, bias=b),
             'output': nir.Output(output_type=[lif_shape])
         },
         edges=[('input', 'lif'), ('lif', 'w_rec'), ('w_rec', 'lif'), ('lif', 'output')]
@@ -137,7 +136,8 @@ def to_nir(
 
     # NOTE: this is a hack to make sure all input and output types are set correctly
     for node_key, node in nir_graph.nodes.items():
-        input_undef = node.input_type.get('input', [None]) == [None]
+        inp_type = node.input_type.get('input', [None])
+        input_undef = len(inp_type) == 0 or inp_type[0] is None
         if isinstance(node, nir.Input) and input_undef and '.' in node_key:
             print('WARNING: subgraph input type not set, inferring from previous node')
             key = '.'.join(node_key.split('.')[:-1])
