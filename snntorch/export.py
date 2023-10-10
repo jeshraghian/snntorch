@@ -11,10 +11,12 @@ from snntorch import Leaky, Synaptic, RLeaky, RSynaptic
 
 def _create_rnn_subgraph(module: torch.nn.Module, lif: Union[nir.LIF, nir.CubaLIF]) -> nir.NIRGraph:
     """Create NIR Graph for RNN, from the snnTorch module and the extracted LIF/CubaLIF node."""
+    b = None
     if module.all_to_all:
         lif_shape = module.recurrent.weight.shape[0]
         w_rec = module.recurrent.weight.data.detach().numpy()
-        b = None if module.recurrent.bias is None else module.recurrent.bias.data.detach().numpy()
+        if module.recurrent.bias is not None:
+            b = module.recurrent.bias.data.detach().numpy()
     else:
         if len(module.recurrent.V.shape) == 0:
             lif_shape = None
