@@ -3,38 +3,87 @@ from numbers import Number
 
 import torch
 import nir
+import numpy as np
 from nirtorch import extract_nir_graph
 
-from snntorch import Leaky, Synaptic
+from snntorch import Leaky, Synaptic, RLeaky, RSynaptic
+
+
+def _create_rnn_subgraph(module: torch.nn.Module, lif: Union[nir.LIF, nir.CubaLIF]) -> nir.NIRGraph:
+    """Create NIR Graph for RNN, from the snnTorch module and the extracted LIF/CubaLIF node."""
+    if module.all_to_all:
+        lif_shape = module.recurrent.weight.shape[0]
+        weight_rec = module.recurrent.weight.data.detach().numpy()
+        if module.recurrent.bias is not None:
+            assert np.allclose(module.recurrent.bias.detach().numpy(), 0), 'bias not supported'
+    else:
+        if len(module.recurrent.V.shape) == 0:
+            lif_shape = None
+            weight_rec = np.eye(1) * module.recurrent.V.data.detach().numpy()
+        else:
+            lif_shape = module.recurrent.V.shape[0]
+            weight_rec = np.diag(module.recurrent.V.data.detach().numpy())
+
+    return nir.NIRGraph(
+        nodes={
+            'input': nir.Input(input_type=[lif_shape]),
+            'lif': lif,
+            'w_rec': nir.Linear(weight=weight_rec),
+            'output': nir.Output(output_type=[lif_shape])
+        },
+        edges=[('input', 'lif'), ('lif', 'w_rec'), ('w_rec', 'lif'), ('lif', 'output')]
+    )
+
 
 # eqn is assumed to be: v_t+1 = (1-1/tau)*v_t + 1/tau * v_leak + I_in / C
-def _extract_snntorch_module(module:torch.nn.Module) -> Optional[nir.NIRNode]:
+def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
     if isinstance(module, Leaky):
         return nir.LIF(
-            tau = 1 / (1 - module.beta).detach(),
-            v_threshold = module.threshold.detach(),
-            v_leak = torch.zeros_like(module.beta),
-            r = module.beta.detach(),
+            tau=1 / (1 - module.beta).detach(),
+            v_threshold=module.threshold.detach(),
+            v_leak=torch.zeros_like(module.beta),
+            r=module.beta.detach(),
         )
 
-    if isinstance(module, Synaptic):
+    elif isinstance(module, RSynaptic):
+        lif = nir.CubaLIF(
+            tau_syn=1 / (1 - module.beta).detach(),
+            tau_mem=1 / (1 - module.alpha).detach(),
+            v_threshold=module.threshold.detach(),
+            v_leak=torch.zeros_like(module.beta),
+            r=module.beta.detach(),
+        )
+        return _create_rnn_subgraph(module, lif)
+
+    elif isinstance(module, RLeaky):
+        lif = nir.LIF(
+            tau=1 / (1 - module.beta).detach(),
+            v_threshold=module.threshold.detach(),
+            v_leak=torch.zeros_like(module.beta),
+            r=module.beta.detach(),
+        )
+        return _create_rnn_subgraph(module, lif)
+
+    elif isinstance(module, Synaptic):
         return nir.CubaLIF(
-            tau_syn = 1 / (1 - module.beta).detach(),
-            tau_mem = 1 / (1 - module.alpha).detach(),
-            v_threshold = module.threshold.detach(),
-            v_leak = torch.zeros_like(module.beta),
-            r = module.beta.detach(),
+            tau_syn=1 / (1 - module.beta).detach(),
+            tau_mem=1 / (1 - module.alpha).detach(),
+            v_threshold=module.threshold.detach(),
+            v_leak=torch.zeros_like(module.beta),
+            r=module.beta.detach(),
         )
 
     elif isinstance(module, torch.nn.Linear):
-        if module.bias is None: # Add zero bias if none is present
+        if module.bias is None:  # Add zero bias if none is present
             return nir.Affine(
                 module.weight.detach(), torch.zeros(*module.weight.shape[:-1])
             )
         else:
             return nir.Affine(module.weight.detach(), module.bias.detach())
 
-    return None
+    else:
+        print(f'[WARNING] unknown module type: {type(module).__name__} (ignored)')
+        return None
 
 
 def to_nir(
@@ -81,6 +130,22 @@ def to_nir(
     :rtype: NIRGraph
 
     """
-    return extract_nir_graph(
-        module, _extract_snntorch_module, sample_data, model_name=model_name
+    nir_graph = extract_nir_graph(
+        module, _extract_snntorch_module, sample_data, model_name=model_name,
+        ignore_submodules_of=[RLeaky, RSynaptic]
     )
+
+    # NOTE: this is a hack to make sure all input and output types are set correctly
+    for node_key, node in nir_graph.nodes.items():
+        input_undef = node.input_type.get('input', [None]) == [None]
+        if isinstance(node, nir.Input) and input_undef and '.' in node_key:
+            print('WARNING: subgraph input type not set, inferring from previous node')
+            key = '.'.join(node_key.split('.')[:-1])
+            prev_keys = [edge[0] for edge in nir_graph.edges if edge[1] == key]
+            assert len(prev_keys) == 1, 'multiple previous nodes not supported'
+            prev_node = nir_graph.nodes[prev_keys[0]]
+            cur_type = prev_node.output_type['output']
+            node.input_type['input'] = cur_type
+            nir_graph.nodes[f'{key}.output'].output_type['output'] = cur_type
+
+    return nir_graph
