@@ -77,10 +77,10 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
     elif isinstance(module, torch.nn.Linear):
         if module.bias is None:  # Add zero bias if none is present
             return nir.Affine(
-                module.weight.detach(), torch.zeros(*module.weight.shape[:-1])
+                module.weight.detach().numpy(), np.zeros(*module.weight.shape[:-1])
             )
         else:
-            return nir.Affine(module.weight.detach(), module.bias.detach())
+            return nir.Affine(module.weight.detach().numpy(), module.bias.detach().numpy())
 
     else:
         print(f'[WARNING] unknown module type: {type(module).__name__} (ignored)')
@@ -149,5 +149,20 @@ def to_nir(
             cur_type = prev_node.output_type['output']
             node.input_type['input'] = cur_type
             nir_graph.nodes[f'{key}.output'].output_type['output'] = cur_type
+
+    # NOTE: hack to remove recurrent connections of subgraph to itself
+    for edge in nir_graph.edges:
+        if edge[0] not in nir_graph.nodes and edge[1] not in nir_graph.nodes:
+            nir_graph.edges.remove(edge)
+
+    # NOTE: hack to rename input and output nodes of subgraphs
+    for edge in nir_graph.edges:
+        if edge[1] not in nir_graph.nodes:
+            nir_graph.edges.remove(edge)
+            nir_graph.edges.append((edge[0], f'{edge[1]}.input'))
+    for edge in nir_graph.edges:
+        if edge[0] not in nir_graph.nodes:
+            nir_graph.edges.remove(edge)
+            nir_graph.edges.append((f'{edge[0]}.output', edge[1]))
 
     return nir_graph
