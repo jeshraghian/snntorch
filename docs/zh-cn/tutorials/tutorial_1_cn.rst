@@ -431,7 +431,7 @@ MNIST具有灰度图像, 而其中的白色文本保证100%在每个时间段都
 -  **功耗:** 大自然会优化效率（能耗比）。完成任何类型的任务都需要几个脉冲，
     而每个脉冲都要消耗能量。事实上, `Olshausen和Field的 “What is the
    other 85% of V1
-   doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`__ 
+   doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`__
     中证明脉冲率编码最多只能解释 初级视觉皮层 （V1） 中 15% 的神经元的活动。
     不太可能是脑内唯一的机制，因为大脑是出了名的 资源有限且效率高。
 
