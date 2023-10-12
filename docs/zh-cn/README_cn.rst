@@ -28,7 +28,8 @@
         :width: 700
 
 
-text-align: center:: `English <https://snntorch.readthedocs.io/en/latest/readme.html>`_
+.. text:: `English <https://snntorch.readthedocs.io/en/latest/readme.html>`_
+        :align: center
 
 The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
 snnTorch is a Python package for performing gradient-based learning with spiking neural networks.
