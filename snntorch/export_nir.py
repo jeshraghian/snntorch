@@ -1,5 +1,4 @@
 from typing import Union, Optional
-from numbers import Number
 
 import torch
 import nir
@@ -9,7 +8,9 @@ from nirtorch import extract_nir_graph
 from snntorch import Leaky, Synaptic, RLeaky, RSynaptic
 
 
-def _create_rnn_subgraph(module: torch.nn.Module, lif: Union[nir.LIF, nir.CubaLIF]) -> nir.NIRGraph:
+def _create_rnn_subgraph(
+        module: torch.nn.Module, lif: Union[nir.LIF, nir.CubaLIF], n_neurons=-1
+) -> nir.NIRGraph:
     """Create NIR Graph for RNN, from the snnTorch module and the extracted LIF/CubaLIF node."""
     b = None
     if module.all_to_all:
@@ -18,9 +19,12 @@ def _create_rnn_subgraph(module: torch.nn.Module, lif: Union[nir.LIF, nir.CubaLI
         if module.recurrent.bias is not None:
             b = module.recurrent.bias.data.detach().numpy()
     else:
-        if len(module.recurrent.V.shape) == 0:
+        if len(module.recurrent.V.shape) == 0 and n_neurons == -1:
             lif_shape = None
             w_rec = np.eye(1) * module.recurrent.V.data.detach().numpy()
+        elif n_neurons != -1:
+            lif_shape = n_neurons
+            w_rec = np.eye(n_neurons) * module.recurrent.V.data.detach().numpy()
         else:
             lif_shape = module.recurrent.V.shape[0]
             w_rec = np.diag(module.recurrent.V.data.detach().numpy())
@@ -36,42 +40,83 @@ def _create_rnn_subgraph(module: torch.nn.Module, lif: Union[nir.LIF, nir.CubaLI
     )
 
 
+def _get_neuron_count(module: torch.nn.Module) -> int:
+    if isinstance(module, RLeaky) or isinstance(module, RSynaptic):
+        if module.all_to_all:
+            return module.linear_features
+        elif isinstance(module.recurrent.V, torch.Tensor) and len(module.recurrent.V.shape) > 0:
+            return module.recurrent.V.shape[0]
+        elif module.init_hidden is True:
+            return module.mem.shape[0]
+        else:
+            # not implemented
+            return -1
+    else:
+        # not implemented
+        return -1
+
+
 # eqn is assumed to be: v_t+1 = (1-1/tau)*v_t + 1/tau * v_leak + I_in / C
 def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
+    """
+    NOTE: it might leave the NIR node of neurons with an incompatible shape. This must be fixed.
+    """
     if isinstance(module, Leaky):
+        # TODO
+        tau = 1 / (1 - module.beta.detach().numpy())
+        r = module.beta.detach().numpy()
+        threshold = module.threshold.detach().numpy()
         return nir.LIF(
-            tau=1 / (1 - module.beta).detach(),
-            v_threshold=module.threshold.detach(),
-            v_leak=torch.zeros_like(module.beta),
-            r=module.beta.detach(),
+            tau=tau,
+            v_threshold=threshold,
+            v_leak=torch.zeros_like(tau),
+            r=r,
         )
 
     elif isinstance(module, RSynaptic):
+        alpha = module.alpha.detach().numpy()
+        beta = module.beta.detach().numpy()
+        threshold = module.threshold.detach().numpy()
+        n_neurons = _get_neuron_count(module)
+        if len(alpha.shape) == 0 and n_neurons != -1:
+            alpha = np.ones(n_neurons) * alpha
+        if len(beta.shape) == 0 and n_neurons != -1:
+            beta = np.ones(n_neurons) * beta
+        if len(threshold.shape) == 0 and n_neurons != -1:
+            threshold = np.ones(n_neurons) * threshold
         lif = nir.CubaLIF(
-            tau_syn=1 / (1 - module.beta).detach(),
-            tau_mem=1 / (1 - module.alpha).detach(),
-            v_threshold=module.threshold.detach(),
-            v_leak=torch.zeros_like(module.beta),
-            r=module.beta.detach(),
+            tau_syn=1 / (1 - beta),
+            tau_mem=1 / (1 - alpha),
+            v_threshold=threshold,
+            v_leak=np.zeros_like(beta),
+            r=beta,
         )
-        return _create_rnn_subgraph(module, lif)
+        return _create_rnn_subgraph(module, lif, n_neurons=n_neurons)
 
     elif isinstance(module, RLeaky):
+        beta = module.beta.detach().numpy()
+        threshold = module.threshold.detach().numpy()
+        n_neurons = _get_neuron_count(module)
+        if len(beta.shape) == 0 and n_neurons != -1:
+            beta = np.ones(n_neurons) * beta
+        if len(threshold.shape) == 0 and n_neurons != -1:
+            threshold = np.ones(n_neurons) * threshold
         lif = nir.LIF(
-            tau=1 / (1 - module.beta).detach(),
-            v_threshold=module.threshold.detach(),
-            v_leak=torch.zeros_like(module.beta),
-            r=module.beta.detach(),
+            tau=1 / (1 - beta),
+            v_threshold=threshold,
+            v_leak=np.zeros_like(beta),
+            r=beta,
         )
-        return _create_rnn_subgraph(module, lif)
+        return _create_rnn_subgraph(module, lif, n_neurons=n_neurons)
 
     elif isinstance(module, Synaptic):
+        # TODO
         return nir.CubaLIF(
-            tau_syn=1 / (1 - module.beta).detach(),
-            tau_mem=1 / (1 - module.alpha).detach(),
-            v_threshold=module.threshold.detach(),
-            v_leak=torch.zeros_like(module.beta),
-            r=module.beta.detach(),
+            tau_syn=1 / (1 - module.alpha).detach().numpy(),
+            tau_mem=1 / (1 - module.beta).detach().numpy(),
+            v_threshold=module.threshold.detach().numpy(),
+            v_leak=np.zeros_like(module.beta),
+            r=module.beta.detach().numpy(),  # NOTE: is this right?
         )
 
     elif isinstance(module, torch.nn.Linear):
@@ -136,7 +181,7 @@ def to_nir(
         ignore_submodules_of=[RLeaky, RSynaptic]
     )
 
-    # NOTE: this is a hack to make sure all input and output types are set correctly
+    # NOTE: hack to define subgraph I/O types
     for node_key, node in nir_graph.nodes.items():
         inp_type = node.input_type.get('input', [None])
         input_undef = len(inp_type) == 0 or inp_type[0] is None
@@ -154,15 +199,5 @@ def to_nir(
     for edge in nir_graph.edges:
         if edge[0] not in nir_graph.nodes and edge[1] not in nir_graph.nodes:
             nir_graph.edges.remove(edge)
-
-    # # NOTE: hack to rename input and output nodes of subgraphs (not needed)
-    # for edge in nir_graph.edges:
-    #     if edge[1] not in nir_graph.nodes:
-    #         nir_graph.edges.remove(edge)
-    #         nir_graph.edges.append((edge[0], f'{edge[1]}.input'))
-    # for edge in nir_graph.edges:
-    #     if edge[0] not in nir_graph.nodes:
-    #         nir_graph.edges.remove(edge)
-    #         nir_graph.edges.append((f'{edge[0]}.output', edge[1]))
 
     return nir_graph
