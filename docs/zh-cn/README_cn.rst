@@ -294,7 +294,7 @@ Quickstart
 智能处理单元 (IPU) 加速
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-snnTorch已经针对 `Graphcore's IPU 加速器 <https://www.graphcore.ai/>`_进行了优化 
+snnTorch已经针对 `Graphcore's IPU 加速器 <https://www.graphcore.ai/>`_ 进行了优化 
 
 安装基于IPU的snnTorch::
 
@@ -321,9 +321,7 @@ A tutorial for training SNNs is provided `here <https://snntorch.readthedocs.io/
 
 发电
 ^^^^^^^^^^^^^^^^^^^^^^^^
-如果你想对snnTorch动动手脚, 可以在 `这里`_ 找到一些指导。
-
-.. _这里: https://snntorch.readthedocs.io/en/latest/contributing.html
+如果你想对snnTorch动动手脚, 可以在 `这里 <https://snntorch.readthedocs.io/en/latest/contributing.html>`_ 找到一些指导。
 
 项目信息
 ^^^^^^^^^^^^^^^^^^^^^^^^
