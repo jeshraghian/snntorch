@@ -155,14 +155,14 @@ def to_nir(
         if edge[0] not in nir_graph.nodes and edge[1] not in nir_graph.nodes:
             nir_graph.edges.remove(edge)
 
-    # NOTE: hack to rename input and output nodes of subgraphs
-    for edge in nir_graph.edges:
-        if edge[1] not in nir_graph.nodes:
-            nir_graph.edges.remove(edge)
-            nir_graph.edges.append((edge[0], f'{edge[1]}.input'))
-    for edge in nir_graph.edges:
-        if edge[0] not in nir_graph.nodes:
-            nir_graph.edges.remove(edge)
-            nir_graph.edges.append((f'{edge[0]}.output', edge[1]))
+    # # NOTE: hack to rename input and output nodes of subgraphs (not needed)
+    # for edge in nir_graph.edges:
+    #     if edge[1] not in nir_graph.nodes:
+    #         nir_graph.edges.remove(edge)
+    #         nir_graph.edges.append((edge[0], f'{edge[1]}.input'))
+    # for edge in nir_graph.edges:
+    #     if edge[0] not in nir_graph.nodes:
+    #         nir_graph.edges.remove(edge)
+    #         nir_graph.edges.append((f'{edge[0]}.output', edge[1]))
 
     return nir_graph
