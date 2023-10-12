@@ -28,7 +28,7 @@
         :width: 700
 
 
-.. centered:: `English <https://snntorch.readthedocs.io/en/latest/readme.html>`_
+* `English <https://snntorch.readthedocs.io/en/latest/readme.html>`_
 
 
 想要开发更高效的神经网络, 大脑是寻找灵感的绝佳场所。snnTorch 是一个 Python 软件包, 用于利用脉冲神经网络执行基于梯度的学习。
@@ -39,7 +39,7 @@
         :align: center
         :width: 800
 
-如果你喜欢这个项目，请考虑在Github上点亮星星⭐。因为这是最简单、最好的支持方式。
+如果你喜欢这个项目, 请考虑在Github上点亮星星⭐。因为这是最简单、最好的支持方式。
 
 如果您有关于脉冲神经网络训练的问题、意见或建议，可以在我们的 `discord <https://discord.gg/cdZb5brajb>`_ 中讨论.
 
@@ -101,9 +101,9 @@ September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 如果您在任何有趣的工作、研究或博客中使用了 snnTorch, 请告诉我们, 我们很乐意听到更多相关信息！请发送电子邮件至 snntorch@gmail.com。
 
-要求 
+环境配置 
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The following packages need to be installed to use snnTorch:
+需要安装以下库来使用snnTorch:
 
 * torch >= 1.1.0
 * numpy >= 1.17
@@ -143,7 +143,7 @@ The following packages need to be installed to use snnTorch:
 
 API & 案例 
 ^^^^^^^^^^^^^^^^^^^^^^^^
-一个完整的API在 `这里 <https://snntorch.readthedocs.io/>`__获取。其中也有提供案例、教程和 Colab 笔记本。
+一个完整的API在 `这里 <https://snntorch.readthedocs.io/>`_ 获取。其中也有提供案例、教程和 Colab 笔记本。
 
 
 
@@ -338,4 +338,4 @@ snnTorch目前由 `UCSC Neuromorphic Computing Group <https://ncg.ucsc.edu>`_ �
 许可和版权
 ^^^^^^^^^^^^^^^^^^^^^^^^
 snnTorch 源代码根据 MIT 许可条款发布。
-snnTorch 的文档采用知识共享 署名-相同方式共享 3.0 未本地化许可协议进行许可。 (`CC BY-SA 3.0 <https://creativecommons.org/licenses/by-sa/3.0/>`_).
+snnTorch 的文档采用 署名-非商业性使用-相同方式共享 协议文本进行许可。 (`CC BY-SA 3.0 <https://creativecommons.org/licenses/by-sa/3.0/>`_).
