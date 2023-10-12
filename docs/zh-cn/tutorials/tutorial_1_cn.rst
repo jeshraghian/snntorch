@@ -8,7 +8,7 @@
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_1_spikegen.ipynb
 
-snnTorch 教程系列基于以下论文。如果您发现这些资源或代码对您的工作有用，请考虑引用以下来源：
+snnTorch 教程系列基于以下论文。如果您发现这些资源或代码对您的工作有用，请考虑引用以下文献：
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
@@ -841,7 +841,7 @@ Sensor <https://ieeexplore.ieee.org/abstract/document/7128412/>`__.
 
 本文讨论了脉冲转换和生成。这种方法不仅适用于图像，还适用于单维和多维的张量。
 
-如果你喜欢这个项目，请考虑在 GitHub 上的 点亮星星⭐。因为这是最简单、最好的支持方式。
+如果你喜欢这个项目，请考虑在 GitHub 上点亮星星⭐。因为这是最简单、最好的支持方式。
 
 作为参考,  `spikegen文档在这里 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__
 , 还有 `spikeplot文档在这 <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`__.

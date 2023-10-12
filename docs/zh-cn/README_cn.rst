@@ -28,61 +28,57 @@
         :width: 700
 
 
-
-* `English <https://snntorch.readthedocs.io/en/latest/readme.html>`_
-
+.. centered:: `English <https://snntorch.readthedocs.io/en/latest/readme.html>`_
 
 
-The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
-snnTorch is a Python package for performing gradient-based learning with spiking neural networks.
-It extends the capabilities of PyTorch, taking advantage of its GPU accelerated tensor 
-computation and applying it to networks of spiking neurons. Pre-designed spiking neuron models are seamlessly integrated within the PyTorch framework and can be treated as recurrent activation units. 
-
+想要开发更高效的神经网络, 大脑是寻找灵感的绝佳场所。snnTorch 是一个 Python 软件包, 用于利用脉冲神经网络执行基于梯度的学习。
+它扩展了 PyTorch 的功能，利用其 GPU 加速张量计算的优势，并将其应用于脉冲神经元网络。
+预先设计的脉冲神经元模型可无缝集成到 PyTorch 框架中，并可被视为递归激活单元。
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/spike_excite_alpha_ps2.gif?raw=true
         :align: center
         :width: 800
 
-If you like this project, please consider starring ⭐ this repo as it is the easiest and best way to support it.
+如果你喜欢这个项目，请考虑在Github上点亮星星⭐。因为这是最简单、最好的支持方式。
 
-If you have issues, comments, or are looking for advice on training spiking neural networks, you can open an issue, a discussion, or chat in our `discord <https://discord.gg/cdZb5brajb>`_ channel.
+如果您有关于脉冲神经网络训练的问题、意见或建议，可以在我们的 `discord <https://discord.gg/cdZb5brajb>`_ 中讨论.
 
-snnTorch Structure
+snnTorch的结构
 ^^^^^^^^^^^^^^^^^^^^^^^^
-snnTorch contains the following components: 
+snnTorch包含以下组件: 
 
 .. list-table::
    :widths: 20 60
    :header-rows: 1
 
-   * - Component
-     - Description
+   * - 组件
+     - 描述
    * - `snntorch <https://snntorch.readthedocs.io/en/latest/snntorch.html>`_
-     - a spiking neuron library like torch.nn, deeply integrated with autograd
+     - 类似 torch.nn 的脉冲神经元库，与 autograd 深度集成
    * - `snntorch.export <https://snntorch.readthedocs.io/en/latest/snntorch.export.html>`_
-     - enables cross-compatibility with other SNN libraries via `NIR <https://nnir.readthedocs.io/en/latest/>`_
+     - 通过 `NIR <https://nnir.readthedocs.io/en/latest/>`_ 实现与其他 SNN 库的交叉兼容
    * - `snntorch.functional <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html>`_
-     - common arithmetic operations on spikes, e.g., loss, regularization etc.
+     - 对脉冲进行常见的算术运算，如损耗、正则化等。
    * - `snntorch.spikegen <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`_
-     - a library for spike generation and data conversion
+     - 脉冲生成和数据转换库
    * - `snntorch.spikeplot <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`_
-     - visualization tools for spike-based data using matplotlib and celluloid
+     - 使用 matplotlib 和 Celluloid 实现基于脉冲数据的可视化工具
    * - `snntorch.surrogate <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html>`_
-     - optional surrogate gradient functions
+     - 可选的梯度替代函数
    * - `snntorch.utils <https://snntorch.readthedocs.io/en/latest/snntorch.utils.html>`_
-     - dataset utility functions
+     - 数据集效用函数
 
-snnTorch is designed to be intuitively used with PyTorch, as though each spiking neuron were simply another activation in a sequence of layers. 
-It is therefore agnostic to fully-connected layers, convolutional layers, residual connections, etc. 
+snnTorch 的设计旨在与 PyTorch 配合使用，就好像每个脉冲神经元只是层序列中的另一个激活。
+因此，它与全连接层、卷积层、残差连接等无关。
 
-At present, the neuron models are represented by recursive functions which removes the need to store membrane potential traces for all neurons in a system in order to calculate the gradient. 
-The lean requirements of snnTorch enable small and large networks to be viably trained on CPU, where needed. 
-Provided that the network models and tensors are loaded onto CUDA, snnTorch takes advantage of GPU acceleration in the same way as PyTorch. 
+目前，神经元模型由递归函数表示，因此无需存储系统中所有神经元的膜电位轨迹来计算梯度。
+snnTorch 的精简要求使小型和大型网络都能根据需要在 CPU 上进行可行的训练。
+只要将网络模型和张量加载到 CUDA 上, snnTorch 就能像 PyTorch 一样利用 GPU 加速。
 
 
-Citation 
+引用 
 ^^^^^^^^^^^^^^^^^^^^^^^^
-If you find snnTorch useful in your work, please cite the following source:
+如果您发现这些资源或代码对您的工作有用，请考虑引用以下文献:
 
 `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
 Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu “Training
@@ -103,9 +99,9 @@ September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
           year    = {2023}
   }
 
-Let us know if you are using snnTorch in any interesting work, research or blogs, as we would love to hear more about it! Reach out at snntorch@gmail.com.
+如果您在任何有趣的工作、研究或博客中使用了 snnTorch, 请告诉我们, 我们很乐意听到更多相关信息！请发送电子邮件至 snntorch@gmail.com。
 
-Requirements 
+要求 
 ^^^^^^^^^^^^^^^^^^^^^^^^
 The following packages need to be installed to use snnTorch:
 
@@ -117,37 +113,37 @@ The following packages need to be installed to use snnTorch:
 * nir
 * nirtorch
 
-They are automatically installed if snnTorch is installed using the pip command. Ensure the correct version of torch is installed for your system to enable CUDA compatibility. 
+如果使用 pip 命令安装了 snnTorch, 它们会自动安装。请确保为系统安装了正确版本的 torch, 以实现 CUDA 兼容性。
 
-Installation
+安装
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run the following to install:
+运行以下pip代码来安装:
 
 .. code-block:: bash
 
   $ python
   $ pip install snntorch
 
-To install snnTorch from source instead::
+要从源代码安装 snnTorch, 请运行::
 
   $ git clone https://github.com/jeshraghian/snnTorch
   $ cd snntorch
   $ python setup.py install
 
 
-To install snntorch with conda::
+使用Conda安装::
 
     $ conda install -c conda-forge snntorch
 
-To install for an Intelligent Processing Units (IPU) based build using Graphcore's accelerators::
+使用 Graphcore 的加速器安装基于智能处理单元 (IPU) 的构建::
 
   $ pip install snntorch-ipu
     
 
-API & Examples 
+API & 案例 
 ^^^^^^^^^^^^^^^^^^^^^^^^
-A complete API is available `here <https://snntorch.readthedocs.io/>`__. Examples, tutorials and Colab notebooks are provided.
+一个完整的API在 `这里 <https://snntorch.readthedocs.io/>`__获取。其中也有提供案例、教程和 Colab 笔记本。
 
 
 
@@ -159,24 +155,24 @@ Quickstart
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
 
 
-Here are a few ways you can get started with snnTorch:
+以下是开始使用 snnTorch 的几种方法：
 
 
-* `Quickstart Notebook (Opens in Colab)`_
+* `快速入门笔记 (Colab)`_
 
-* `The API Reference`_ 
+* `API参考`_ 
 
-* `Examples`_
+* `案例`_
 
-* `Tutorials`_
+* `教程`_
 
-.. _Quickstart Notebook (Opens in Colab): https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
-.. _The API Reference: https://snntorch.readthedocs.io/
-.. _Examples: https://snntorch.readthedocs.io/en/latest/examples.html
-.. _Tutorials: https://snntorch.readthedocs.io/en/latest/tutorials/index.html
+.. _快速入门笔记 (Colab): https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/quickstart.ipynb
+.. _API参考: https://snntorch.readthedocs.io/
+.. _案例: https://snntorch.readthedocs.io/en/latest/examples.html
+.. _教程: https://snntorch.readthedocs.io/en/latest/tutorials/index.html
 
 
-For a quick example to run snnTorch, see the following snippet, or test the quickstart notebook:
+有关运行 snnTorch 的快速示例，请参阅以下代码，或测试 快速入门笔记：
 
 
 .. code-block:: python
@@ -212,10 +208,10 @@ For a quick example to run snnTorch, see the following snippet, or test the quic
       spike_recording.append(spike) # record spikes in list
 
 
-A Deep Dive into SNNs
+深入了解 SNN
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you wish to learn all the fundamentals of training spiking neural networks, from neuron models, to the neural code, up to backpropagation, the snnTorch tutorial series is a great place to begin.
-It consists of interactive notebooks with complete explanations that can get you up to speed.
+如果您想学习训练脉冲神经网络的所有基础知识, 从神经元模型到神经代码, 直至反向传播, snnTorch 系列教程是您开始学习的好地方。
+它由交互式笔记本组成，配有完整的解释，可以让你快速掌握。
 
 
 .. list-table::
@@ -295,49 +291,51 @@ It consists of interactive notebooks with complete explanations that can get you
    * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
      -       —
 
-Intelligent Processing Unit (IPU) Acceleration
+智能处理单元 (IPU) 加速
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-snnTorch has been optimized for `Graphcore's IPU accelerators <https://www.graphcore.ai/>`_. 
-To install an IPU based build of snnTorch::
+snnTorch已经针对 `Graphcore's IPU 加速器 <https://www.graphcore.ai/>`_进行了优化 
+
+安装基于IPU的snnTorch::
 
   $ pip install snntorch-ipu
 
-Low-level custom operations for IPU compatibility will be automatically compiled when :code:`import snntorch` is called for the first time. 
+首次调用 :code:`import snntorch` 时, 将自动编译与 IPU 兼容的低级自定义操作。
 
-When updating the Poplar SDK, these operations may need to be recompiled. 
-This can be done by reinstalling :code:`snntorch-ipu`, or deleting files in the base directory with an .so extension.
 
-The :code:`snntorch.backprop` module, and several functions from :code:`snntorch.functional` and :code:`snntorch.surrogate`, are incompatible with IPUs, but can be recreated using PyTorch primitives.
+更新 Poplar SDK 时，这些操作可能需要重新编译。
+这可以通过重新安装 :code:`snntorch-ipu`，或删除基本目录中扩展名为 .so 的文件来实现。
 
-Additional requirements include:
+:code:`snntorch.backprop` 模块以及 :code:`snntorch.functional` 和 :code:`snntorch.surrogate` 中的几个函数与 IPU 不兼容，但可以使用 PyTorch 基元重新创建。
+
+更多要求包括:
 
 * poptorch 
 * The Poplar SDK 
 
-Refer to `Graphcore's documentation <https://github.com/graphcore/poptorch>`_ for installation instructions of poptorch and the Poplar SDK.
+参考 `Graphcore的文档 <https://github.com/graphcore/poptorch>`_ 以获取 poptorch 和 Poplar SDK 的安装说明。
 
 The homepage for the snnTorch IPU project can be found `here <https://github.com/vinniesun/snntorch-ipu>`__.
 A tutorial for training SNNs is provided `here <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`__.
 
 
-Contributing
+发电
 ^^^^^^^^^^^^^^^^^^^^^^^^
-If you're ready to contribute to snnTorch, instructions to do so can be `found here`_.
+如果你想对snnTorch动动手脚, 可以在 `这里`_ 找到一些指导。
 
-.. _found here: https://snntorch.readthedocs.io/en/latest/contributing.html
+.. _这里: https://snntorch.readthedocs.io/en/latest/contributing.html
 
-Acknowledgments
+项目信息
 ^^^^^^^^^^^^^^^^^^^^^^^^
-snnTorch is currently maintained by the `UCSC Neuromorphic Computing Group <https://ncg.ucsc.edu>`_. It was initially developed by `Jason K. Eshraghian`_ in the `Lu Group (University of Michigan)`_. 
+snnTorch目前由 `UCSC Neuromorphic Computing Group <https://ncg.ucsc.edu>`_ 维护。它最初是由 `Jason K. Eshraghian`_ 于 `Lu Group (University of Michigan)`_开发的
 
-Additional contributions were made by `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, `Alexander Henkes <https://github.com/ahenkes1>`_, Xinxin Wang, Sreyes Venkatesh, and Emre Neftci.
+其他贡献者包括 `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, `Alexander Henkes <https://github.com/ahenkes1>`_, Xinxin Wang, Sreyes Venkatesh, and Emre Neftci.
 
 .. _Jason K. Eshraghian: https://jasoneshraghian.com
 .. _Lu Group (University of Michigan): https://lugroup.engin.umich.edu/
 
 
-License & Copyright
+许可和版权
 ^^^^^^^^^^^^^^^^^^^^^^^^
-snnTorch source code is published under the terms of the MIT License. 
-snnTorch's documentation is licensed under a Creative Commons Attribution-Share Alike 3.0 Unported License (`CC BY-SA 3.0 <https://creativecommons.org/licenses/by-sa/3.0/>`_).
+snnTorch 源代码根据 MIT 许可条款发布。
+snnTorch 的文档采用知识共享 署名-相同方式共享 3.0 未本地化许可协议进行许可。 (`CC BY-SA 3.0 <https://creativecommons.org/licenses/by-sa/3.0/>`_).
