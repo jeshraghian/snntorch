@@ -430,8 +430,7 @@ MNIST具有灰度图像, 而其中的白色文本保证100%在每个时间段都
 
 -  **功耗:** 大自然会优化效率（能耗比）。完成任何类型的任务都需要几个脉冲，
     而每个脉冲都要消耗能量。事实上, `Olshausen和Field的 “What is the
-   other 85% of V1
-   doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`__
+   other 85% of V1 doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`_ 
     中证明脉冲率编码最多只能解释 初级视觉皮层 （V1） 中 15% 的神经元的活动。
     不太可能是脑内唯一的机制，因为大脑是出了名的 资源有限且效率高。
 
@@ -669,7 +668,7 @@ fire together, wire together” <https://doi.org/10.2307/1418888>`__。
     tensor(4, device='cuda:0')
 
 
-这就是 ``spikegen.latency`` 函数。更多信息可以在 `这些文档 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__中找到。
+这就是 ``spikegen.latency`` 函数。更多信息可以在 `这些文档 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`_ 中找到。
 
 2.4 增量调制
 ~~~~~~~~~~~~~~~~~~~~
