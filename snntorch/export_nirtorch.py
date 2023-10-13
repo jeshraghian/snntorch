@@ -1,5 +1,4 @@
-from typing import Union, Optional
-
+from typing import Optional
 import torch
 import nir
 import numpy as np
@@ -25,17 +24,12 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
     elif isinstance(module, snn.RLeaky):
         if module.all_to_all:
-            w = module.recurrent.weight.data.detach().numpy()
-            n_neurons = w.shape[0]
-            print(module.linear_features, w.shape)
-            if module.recurrent.bias is None:
-                w_rec = nir.Linear(weight=w)
-            else:
-                b = module.recurrent.bias.data.detach().numpy()
-                w_rec = nir.Affine(weight=w, bias=b)
+            w_rec = _extract_snntorch_module(module.recurrent)
+            n_neurons = w_rec.weight.shape[0]
         else:
-            # TODO: handle this better - if V is a scalar, then the weight has wrong shape
-            assert len(module.recurrent.V.shape) == 1, 'V must be a vector'
+            if len(module.recurrent.V.shape) == 0:
+                # TODO: handle this better - if V is a scalar, then the weight has wrong shape
+                raise ValueError('V must be a vector, cannot infer layer size for scalar V')
             n_neurons = module.recurrent.V.shape[0]
             w = np.diag(module.recurrent.V.data.detach().numpy())
             w_rec = nir.Linear(weight=w)
