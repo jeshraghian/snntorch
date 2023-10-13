@@ -8,6 +8,7 @@ import snntorch as snn
 def _replace_rnn_subgraph_with_nirgraph(graph: nir.NIRGraph) -> nir.NIRGraph:
     """Take a NIRGraph and replace any RNN subgraphs with a single NIRGraph node."""
     if len([e for e in graph.nodes.values() if isinstance(e, nir.Input)]) > 1:
+        print('found RNN subgraph, trying to parse')
         cand_sg_nk = [e[1] for e in graph.edges if e[1] not in graph.nodes]
         print('detected subgraph! candidates:', cand_sg_nk)
         assert len(cand_sg_nk) == 1, 'only one subgraph allowed'
@@ -79,7 +80,6 @@ def _nir_to_snntorch_module(node: nir.NIRNode) -> torch.nn.Module:
         vthr = node.v_threshold
         beta = 1 - (dt / node.tau)
         w_scale = node.r * dt / node.tau
-        breakpoint()
         if np.alltrue(w_scale == 1.) or np.unique(w_scale).size == 1:
             # HACK to avoid scaling the inputs
             print('[warning] scaling weights to avoid scaling inputs')
