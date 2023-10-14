@@ -24,7 +24,7 @@ requirements = [
 ]
 
 
-test_requirements = ["pytest>=3"]
+test_requirements = ["pytest>=6"]
 
 version = __version__
 
