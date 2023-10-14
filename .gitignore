@@ -90,6 +90,7 @@ celerybeat-schedule
 venv/
 ENV/
 snnenv/
+snnenv-rog/
 
 # Spyder project settings
 .spyderproject
@@ -109,22 +110,4 @@ snnenv/
 .idea/
 
 # Additional Files
-tbptt_test/
-test.ipynb
-test_1.py
-temp/
-jupyter/
-jup-colab.cmd
-checkpoint.pt
-great_lakes/
-neural_sampling_machines/
-torchneuromorphic/
 dataset/
-debug.py
-test_dvsgesture.ipynb
-test_nmnist.ipynb
-test_shd.ipynb
-temp.py
-batch_flag.ipynb
-examples_2/
-rram-snn/
