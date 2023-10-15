@@ -10,7 +10,7 @@
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_2_lif_neuron.ipynb
 
-snnTorch 教程系列基于以下论文。如果您发现这些资源或代码对您的工作有用，请考虑引用以下来源：
+snnTorch 教程系列基于以下论文。如果您发现这些资源或代码对您的工作有用, 请考虑引用以下来源：
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
@@ -26,7 +26,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 简介
 -------------
 
-在本教程中，你将: 
+在本教程中, 你将: 
 
 * 学习leaky integrate-and-fire (LIF) 神经元模型的基础知识
 * 使用snntorch实现一阶LIF神经元
@@ -54,22 +54,22 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 1. 神经元模型的分类
 ---------------------------------------
 
-神经元模型种类繁多，从精确的生物物理模型(比如说Hodgkin-Huxley模型)
-到极其简单的人工神经元，它们遍及现代深度学习的所有方面。
+神经元模型种类繁多, 从精确的生物物理模型(比如说Hodgkin-Huxley模型)
+到极其简单的人工神经元, 它们遍及现代深度学习的所有方面。
 
 **Hodgkin-Huxley Neuron Models**\ :math:`-`\ 虽然生物物理模型可以高度准确地
-再现电生理结果，但其复杂性使其目前难以使用。
+再现电生理结果, 但其复杂性使其目前难以使用。
 
 **Artificial Neuron Model**\ :math:`-`\ 人工神经元则是另一方面。
-输入乘以相应的权重，然后通过激活函数。这种简化使深度学习研究人员在计算机视觉、
+输入乘以相应的权重, 然后通过激活函数。这种简化使深度学习研究人员在计算机视觉、
 自然语言处理和许多其他机器学习领域的任务中取得了令人难以置信的成就。
 
-**Leaky Integrate-and-Fire Neuron Models**\ :math:`-`\ 渗漏累加-激活（LIF）
-神经元模型处于两者之间的中间位置。它接收加权输入的总和，与人工神经元非常相似。
-但它并不直接将输入传递给激活函数，而是在一段时间内通过泄漏对输入进行累积，
-这与 RC 电路非常相似。如果积分值超过阈值，那么 LIF 神经元就会发出电压脉冲。
+**Leaky Integrate-and-Fire Neuron Models**\ :math:`-`\ 渗漏累加-放电（LIF）
+神经元模型处于两者之间的中间位置。它接收加权输入的总和, 与人工神经元非常相似。
+但它并不直接将输入传递给激活函数, 而是在一段时间内通过泄漏对输入进行累积, 
+这与 RC 电路非常相似。如果积分值超过阈值, 那么 LIF 神经元就会发出电压脉冲。
 LIF 神经元会提取出输出脉冲的形状和轮廓；它只是将其视为一个离散事件。
-因此，信息并不是存储在脉冲中，而是存储在脉冲的时长（或频率）中。
+因此, 信息并不是存储在脉冲中, 而是存储在脉冲的时长（或频率）中。
 简单的脉冲神经元模型为神经代码、记忆、网络动力学以及最近的深度学习提供了很多启示。
 LIF 神经元介于生物合理性和实用性之间。
 
@@ -89,21 +89,21 @@ LIF 神经元介于生物合理性和实用性之间。
 当然也包含一些非LIF脉冲神经元。
 本教程主要介绍其中的第一个模型。它将被用来建立 `以下其他模型 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_.
 
-2. 渗透累加-激活（LIF） 神经元模型
+2. 渗透累加-放电（LIF） 神经元模型
 --------------------------------------------------
 
 2.1 脉冲神经元: 灵感
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 在我们的大脑中, 一个神经元可能与1000 - 10000个其他神经元相连。
-如果一个神经元脉冲，所有下坡神经元都可能感受到。但是，是什么决定了
+如果一个神经元脉冲, 所有下坡神经元都可能感受到。但是, 是什么决定了
 神经元是否会出现峰值呢？过去一个世纪的实验表明, 如果神经元在输入时受到
-*足够的* 刺激, 那么它可能会变得兴奋，并发出自己的脉冲。
+*足够的* 刺激, 那么它可能会变得兴奋, 并发出自己的脉冲。
 
 这种刺激从何而来？它可以来自：
 
 * 外围感官, 
-* 一种侵入性的电极人工地刺激神经元，或者在多数情况下，
+* 一种侵入性的电极人工地刺激神经元, 或者在多数情况下, 
 * 来自突触前神经元。
 
 
@@ -111,20 +111,20 @@ LIF 神经元介于生物合理性和实用性之间。
         :align: center
         :width: 600
 
-考虑到这些脉冲电位是非常短的电位爆发，
+考虑到这些脉冲电位是非常短的电位爆发, 
 不太可能所有输入尖峰电位都精确一致地到达神经元体。这表明有时间动态在
 ‘维持’ 输入脉冲, 就像是延迟.
 
 2.2 被动细胞膜
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-与所有细胞一样，神经元周围也有一层薄薄的膜。这层膜是一层脂质双分子层，
-将神经元内的导电生理盐水，与细胞外介质隔离开来。
-在电学上，被绝缘体隔开的两种导电溶液就像一个电容器。
+与所有细胞一样, 神经元周围也有一层薄薄的膜。这层膜是一层脂质双分子层, 
+将神经元内的导电生理盐水, 与细胞外介质隔离开来。
+在电学上, 被绝缘体隔开的两种导电溶液就像一个电容器。
 
 这层膜的另一个作用是控制进出细胞的物质 (比如说钠离子\ :math:`^+`). 
-神经元膜通常不让离子渗透过去，这就阻止了离子进出神经元体。但是，
-膜上有一些特定的通道，当电流注入神经元时，这些通道就会被触发打开。
+神经元膜通常不让离子渗透过去, 这就阻止了离子进出神经元体。但是, 
+膜上有一些特定的通道, 当电流注入神经元时, 这些通道就会被触发打开。
 这种电荷移动用电阻器来模拟。
 
 
@@ -140,11 +140,11 @@ LIF 神经元介于生物合理性和实用性之间。
 **选读: LIF神经元模型的推导**
 
 现在假设一些任意的时变电流 :math:`I_{\rm in}(t)` 注入了神经元, 
-可能是通过电刺激，也可能是来自其他神经元。 电路中的总电流是守恒的，所以：
+可能是通过电刺激, 也可能是来自其他神经元。 电路中的总电流是守恒的, 所以：
 
 .. math:: I_{\rm in}(t) = I_{R} + I_{C}
 
-根据欧姆定律，神经元内外测得的膜电位 :math:`U_{\rm mem}` 与通过电阻的电流成正比:
+根据欧姆定律, 神经元内外测得的膜电位 :math:`U_{\rm mem}` 与通过电阻的电流成正比:
 
 .. math:: I_{R}(t) = \frac{U_{\rm mem}(t)}{R}
 
@@ -174,7 +174,7 @@ LIF 神经元介于生物合理性和实用性之间。
 函数的导数要与原函数的形式相同, 即, :math:`\frac{dU_{\rm mem}(t)}{dt} \propto U_{\rm mem}(t)`, 
 这意味着方程的解是带有时间常数 :math:`\tau`的指数函数。
 
-假设神经元从某个值 :math:`U_{0}` 开始，也没什么进一步的输入, 
+假设神经元从某个值 :math:`U_{0}` 开始, 也没什么进一步的输入, 
 即 :math:`I_{\rm in}(t)=0.` 其线性微分方程的解最终是：
 
 .. math:: U_{\rm mem}(t) = U_0e^{-\frac{t}{\tau}}
@@ -190,10 +190,10 @@ LIF 神经元介于生物合理性和实用性之间。
 
 **选读: 前向欧拉法解LIF神经元模型**
 
-我们设法找到了 LIF 神经元的解析解，但还不清楚这在神经网络中会有什么用处。
-这一次，让我们改用前向欧拉法来求解之前的线性常微分方程（ODE）。
-这种方法看似繁琐，但却能为我们提供 LIF 神经元的离散、递归形式。
-一旦我们得到这种解法，它就可以直接应用于神经网络。与之前一样，描述 RC 电路的线性 ODE 为：
+我们设法找到了 LIF 神经元的解析解, 但还不清楚这在神经网络中会有什么用处。
+这一次, 让我们改用前向欧拉法来求解之前的线性常微分方程（ODE）。
+这种方法看似繁琐, 但却能为我们提供 LIF 神经元的离散、递归形式。
+一旦我们得到这种解法, 它就可以直接应用于神经网络。与之前一样, 描述 RC 电路的线性 ODE 为：
 
 .. math:: \tau \frac{dU(t)}{dt} = -U(t) + RI_{\rm in}(t)
 
@@ -205,7 +205,7 @@ LIF 神经元介于生物合理性和实用性之间。
 .. math:: \tau \frac{U(t+\Delta t)-U(t)}{\Delta t} = -U(t) + RI_{\rm in}(t)
 
 对于足够小的 :math:`\Delta t`, 这给出了连续时间积分的一个足够好的近似值。
-在下一时间段隔离膜，得出
+在下一时间段隔离膜, 得出
 
 .. math:: U(t+\Delta t) = U(t) + \frac{\Delta t}{\tau}\big(-U(t) + RI_{\rm in}(t)\big)
 
@@ -221,7 +221,7 @@ LIF 神经元介于生物合理性和实用性之间。
 默认参数设置为 :math:`R=50 M\Omega` 与
 :math:`C=100pF` (i.e., :math:`\tau=5ms`). 这与真实的生物神经元相差无几。
 
-现在循环这个函数，每次迭代一个时间段。
+现在循环这个函数, 每次迭代一个时间段。
 膜电位初始化为 :math:`U=0.9 V`, 也假设没有任何注入电流 :math:`I_{\rm in}=0 A`.
 在以毫秒 :math:`\Delta t=1\times 10^{-3}`\ s 为精度的条件下执行模拟。
 
@@ -249,8 +249,8 @@ LIF 神经元介于生物合理性和实用性之间。
 --------------------------------
 
 `路易-拉皮克（Louis Lapicque）在 1907 年 <https://pubmed.ncbi.nlm.nih.gov/17968583/>`__ 
-观察到神经膜和 RC 电路之间的这种相似性。他用短暂的电脉冲刺激青蛙的神经纤维，
-发现神经元膜可以近似为具有漏电的电容器。我们以他的名字命名 snnTorch 中的基本 LIF 神经元模型，
+观察到神经膜和 RC 电路之间的这种相似性。他用短暂的电脉冲刺激青蛙的神经纤维, 
+发现神经元膜可以近似为具有漏电的电容器。我们以他的名字命名 snnTorch 中的基本 LIF 神经元模型, 
 以此向他的发现表示敬意。
 
 Lapicque 模型中的大多数概念都可以应用到其他 LIF 神经元模型中。
@@ -300,7 +300,7 @@ Lapicque 模型中的大多数概念都可以应用到其他 LIF 神经元模型
     # A list to store a recording of membrane potential
     mem_rec = [mem]
 
-是时候运行模拟了! 在每个时间段， ``mem`` 都会被更新并保存在 ``mem_rec``中:
+是时候运行模拟了! 在每个时间段,  ``mem`` 都会被更新并保存在 ``mem_rec``中:
 
 ::
 
@@ -321,53 +321,50 @@ Lapicque 模型中的大多数概念都可以应用到其他 LIF 神经元模型
         :align: center
         :width: 300
 
-The membrane potential decays over time in the absence of any input
-stimuli.
+在没有任何输入刺激的情况下, 膜电位会随时间衰减。
 
-3.2 Lapicque: Step Input
+3.2 Lapicque: 阶跃输入
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now apply a step current :math:`I_{\rm in}(t)` that switches on at
-:math:`t=t_0`. Given the linear first-order differential equation:
+现在应用一个在 :math:`t=t_0` 时切换的阶跃电流 :math:`I_{\rm in}(t)`。
+根据线性一阶微分方程：
 
 .. math::  \tau \frac{dU_{\rm mem}}{dt} = -U_{\rm mem} + RI_{\rm in}(t),
 
-the general solution is:
+一般解为：
 
 .. math:: U_{\rm mem}=I_{\rm in}(t)R + [U_0 - I_{\rm in}(t)R]e^{-\frac{t}{\tau}}
 
-If the membrane potential is initialized to
-:math:`U_{\rm mem}(t=0) = 0 V`, then:
+如果膜电位初始化为 :math:`U_{\rm mem}(t=0) = 0 V`, 那么：
 
 .. math:: U_{\rm mem}(t)=I_{\rm in}(t)R [1 - e^{-\frac{t}{\tau}}]
 
-Based on this explicit time-dependent form, we expect
-:math:`U_{\rm mem}` to relax exponentially towards :math:`I_{\rm in}R`.
-Let’s visualize what this looks like by triggering a current pulse of
-:math:`I_{in}=100mA` at :math:`t_0 = 10ms`.
+基于这个明确的时间依赖形式, 我们期望 :math:`U_{\rm mem}` 会指数级地
+向 :math:`I_{\rm in}R` 收敛。让我们通过在 :math:`t_0 = 10ms` 时
+触发电流脉冲来可视化这是什么样子。
 
 ::
 
-    # Initialize input current pulse
-    cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.1), 0)  # input current turns on at t=10
+    # 初始化输入电流脉冲
+    cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.1), 0)  # 输入电流在 t=10 时打开
     
-    # Initialize membrane, output and recordings
-    mem = torch.zeros(1)  # membrane potential of 0 at t=0
-    spk_out = torch.zeros(1)  # neuron needs somewhere to sequentially dump its output spikes
+    # 初始化膜、输出和记录
+    mem = torch.zeros(1)  # t=0 时膜电位为0
+    spk_out = torch.zeros(1)  # 神经元需要一个地方顺序存储输出的脉冲
     mem_rec = [mem]
 
-This time, the new values of ``cur_in`` are passed to the neuron:
+这一次, 新的 ``cur_in`` 值传递给了神经元：
 
 ::
 
     num_steps = 200
     
-    # pass updated value of mem and cur_in[step] at every time step
+    # 在每个时间步骤中传递 mem 和 cur_in[step] 的更新值
     for step in range(num_steps):
       spk_out, mem = lif1(cur_in[step], mem)
       mem_rec.append(mem)
     
-    # crunch -list- of tensors into one tensor
+    # 将张量列表合并成一个张量
     mem_rec = torch.stack(mem_rec)
     
     plot_step_current_response(cur_in, mem_rec, 10)
@@ -376,41 +373,40 @@ This time, the new values of ``cur_in`` are passed to the neuron:
         :align: center
         :width: 450
 
-As :math:`t\rightarrow \infty`, the membrane potential
-:math:`U_{\rm mem}` exponentially relaxes to :math:`I_{\rm in}R`:
+当 :math:`t\rightarrow \infty` 时, 膜电位 :math:`U_{\rm mem}` 指数级地收敛到 :math:`I_{\rm in}R`：
 
 ::
 
-    >>> print(f"The calculated value of input pulse [A] x resistance [Ω] is: {cur_in[11]*lif1.R} V")
-    >>> print(f"The simulated value of steady-state membrane potential is: {mem_rec[200][0]} V")
+    >>> print(f"计算得到的输入脉冲 [A] x 电阻 [Ω] 的值为: {cur_in[11]*lif1.R} V")
+    >>> print(f"模拟得到的稳态膜电位值为: {mem_rec[200][0]} V")
     
-    The calculated value of input pulse [A] x resistance [Ω] is: 0.5 V
-    The simulated value of steady-state membrane potential is: 0.4999999403953552 V
+    计算得到的输入脉冲 [A] x 电阻 [Ω] 的值为: 0.5 V
+    模拟得到的稳态膜电位值为: 0.4999999403953552 V
 
-Close enough!
+足够接近了！
 
-3.3 Lapicque: Pulse Input
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+3.3 Lapicque: 冲激输入
+~~~~~~~~~~~~~~~~~~~~~~
 
-Now what if the step input was clipped at :math:`t=30ms`?
+那么如果阶跃输入在 :math:`t=30ms` 处被截断会怎么样呢？
 
 ::
 
-    # Initialize current pulse, membrane and outputs
-    cur_in1 = torch.cat((torch.zeros(10), torch.ones(20)*(0.1), torch.zeros(170)), 0)  # input turns on at t=10, off at t=30
+    # 初始化电流脉冲、膜电位和输出
+    cur_in1 = torch.cat((torch.zeros(10), torch.ones(20)*(0.1), torch.zeros(170)), 0)  # 输入在 t=10 开始, t=30 结束
     mem = torch.zeros(1)
     spk_out = torch.zeros(1)
     mem_rec1 = [mem]
 
 ::
 
-    # neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       spk_out, mem = lif1(cur_in1[step], mem)
       mem_rec1.append(mem)
     mem_rec1 = torch.stack(mem_rec1)
     
-    plot_current_pulse_response(cur_in1, mem_rec1, "Lapicque's Neuron Model With Input Pulse", 
+    plot_current_pulse_response(cur_in1, mem_rec1, "Lapicque神经元模型的输入脉冲", 
                                 vline1=10, vline2=30)
 
 
@@ -418,29 +414,27 @@ Now what if the step input was clipped at :math:`t=30ms`?
         :align: center
         :width: 450
 
-:math:`U_{\rm mem}` rises just as it did for the step input, but now it
-decays with a time constant of :math:`\tau` as in our first simulation.
+:math:`U_{\rm mem}` 就像对于阶跃输入一样上升, 
+但现在它会像在我们的第一个模拟中那样以 :math:`\tau` 的时间常数下降。
 
-Let’s deliver approximately the same amount of charge
-:math:`Q = I \times t` to the circuit in half the time. This means the
-input current amplitude must be increased by a little, and the
-time window must be decreased.
+让我们在半个时间内提供大致相同的电荷 :math:`Q = I \times t` 给电路。
+这意味着必须稍微增加输入电流的幅度, 缩小时间窗口。
 
 ::
 
-    # Increase amplitude of current pulse; half the time.
-    cur_in2 = torch.cat((torch.zeros(10), torch.ones(10)*0.111, torch.zeros(180)), 0)  # input turns on at t=10, off at t=20
+    # 增加电流脉冲的幅度；时间减半。
+    cur_in2 = torch.cat((torch.zeros(10), torch.ones(10)*0.111, torch.zeros(180)), 0)  # 输入在 t=10 开始, t=20 结束
     mem = torch.zeros(1)
     spk_out = torch.zeros(1)
     mem_rec2 = [mem]
     
-    # neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       spk_out, mem = lif1(cur_in2[step], mem)
       mem_rec2.append(mem)
     mem_rec2 = torch.stack(mem_rec2)
     
-    plot_current_pulse_response(cur_in2, mem_rec2, "Lapicque's Neuron Model With Input Pulse: x1/2 pulse width",
+    plot_current_pulse_response(cur_in2, mem_rec2, "Lapicque神经元模型的输入脉冲：x1/2 脉宽",
                                 vline1=10, vline2=20)
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/lapicque_pulse2.png?raw=true
@@ -448,24 +442,23 @@ time window must be decreased.
         :width: 450
 
 
-Let’s do that again, but with an even faster input pulse and higher
-amplitude:
+让我们再来一次, 但使用更快的输入脉冲和更大的幅度：
 
 ::
 
-    # Increase amplitude of current pulse; quarter the time.
-    cur_in3 = torch.cat((torch.zeros(10), torch.ones(5)*0.147, torch.zeros(185)), 0)  # input turns on at t=10, off at t=15
+    # 增加电流脉冲的幅度；时间缩短四分之一。
+    cur_in3 = torch.cat((torch.zeros(10), torch.ones(5)*0.147, torch.zeros(185)), 0)  # 输入在 t=10 开始, t=15 结束
     mem = torch.zeros(1)
     spk_out = torch.zeros(1)
     mem_rec3 = [mem]
     
-    # neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       spk_out, mem = lif1(cur_in3[step], mem)
       mem_rec3.append(mem)
     mem_rec3 = torch.stack(mem_rec3)
     
-    plot_current_pulse_response(cur_in3, mem_rec3, "Lapicque's Neuron Model With Input Pulse: x1/4 pulse width",
+    plot_current_pulse_response(cur_in3, mem_rec3, "Lapicque神经元模型的输入脉冲：x1/4 脉宽",
                                 vline1=10, vline2=15)
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/lapicque_pulse3.png?raw=true
@@ -473,38 +466,36 @@ amplitude:
         :width: 450
 
 
-Now compare all three experiments on the same plot:
-
+现在将所有三个实验在同一图上进行比较：
 
 ::
 
     compare_plots(cur_in1, cur_in2, cur_in3, mem_rec1, mem_rec2, mem_rec3, 10, 15, 
-                  20, 30, "Lapicque's Neuron Model With Input Pulse: Varying inputs")
+                  20, 30, "Lapicque神经元模型的输入脉冲：不同的输入")
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/compare_pulse.png?raw=true
         :align: center
         :width: 450
 
-As the input current pulse amplitude increases, the rise time of the
-membrane potential speeds up. In the limit of the input current pulse
-width becoming infinitesimally small, :math:`T_W \rightarrow 0s`, the
-membrane potential will jump straight up in virtually zero rise time:
+随着输入电流脉冲幅度的增加, 膜电位的上升时间加快。
+当输入电流脉冲的宽度趋于无穷小时, :math:`T_W \rightarrow 0s`, 
+膜电位将在几乎零上升时间内迅速上升：
 
 ::
 
-    # Current spike input
-    cur_in4 = torch.cat((torch.zeros(10), torch.ones(1)*0.5, torch.zeros(189)), 0)  # input only on for 1 time step
+    # 当前脉冲输入
+    cur_in4 = torch.cat((torch.zeros(10), torch.ones(1)*0.5, torch.zeros(189)), 0)  # 输入仅在1个时间步上打开
     mem = torch.zeros(1) 
     spk_out = torch.zeros(1)
     mem_rec4 = [mem]
     
-    # neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       spk_out, mem = lif1(cur_in4[step], mem)
       mem_rec4.append(mem)
     mem_rec4 = torch.stack(mem_rec4)
     
-    plot_current_pulse_response(cur_in4, mem_rec4, "Lapicque's Neuron Model With Input Spike", 
+    plot_current_pulse_response(cur_in4, mem_rec4, "Lapicque神经元模型的输入脉冲",
                                 vline1=10, ylim_max1=0.6)
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/lapicque_spike.png?raw=true
@@ -512,79 +503,73 @@ membrane potential will jump straight up in virtually zero rise time:
         :width: 450
 
 
-The current pulse width is now so short, it effectively looks like a
-spike. That is to say, charge is delivered in an infinitely short period
-of time, :math:`I_{\rm in}(t) = Q/t_0` where :math:`t_0 \rightarrow 0`.
-More formally:
+当前脉冲的宽度现在如此短, 实际上看起来像脉冲。
+也就是说, 电荷在无限短的时间内传递, :math:`I_{\rm in}(t) = Q/t_0`, 
+其中 :math:`t_0 \rightarrow 0`。
+更正式地：
 
 .. math:: I_{\rm in}(t) = Q \delta (t-t_0),
 
-where :math:`\delta (t-t_0)` is the Dirac-Delta function. Physically, it
-is impossible to ‘instantaneously’ deposit charge. But integrating
-:math:`I_{\rm in}` gives a result that makes physical sense, as we can
-obtain the charge delivered:
+其中 :math:`\delta (t-t_0)` 是狄拉克-δ函数。从物理角度来看, 不可能“瞬间”存放电荷。
+但积分 :math:`I_{\rm in}` 给出了一个在物理上有意义的结果, 
+因为我们可以得到传递的电荷：
 
 .. math:: 1 = \int^{t_0 + a}_{t_0 - a}\delta(t-t_0)dt
 
 .. math:: f(t_0) = \int^{t_0 + a}_{t_0 - a}f(t)\delta(t-t_0)dt
 
-Here,
-:math:`f(t_0) = I_{\rm in}(t_0=10) = 0.5A \implies f(t) = Q = 0.5C`.
+在这里, 
+:math:`f(t_0) = I_{\rm in}(t_0=10) = 0.5A \implies f(t) = Q = 0.5C`。
 
-Hopefully you have a good feel of how the membrane potential leaks at
-rest, and integrates the input current. That covers the ‘leaky’ and
-‘integrate’ part of the neuron. How about the fire?
+希望您对膜电位在静息状态下泄漏并积分输入电流有了一个很好的感觉。
+这涵盖了神经元的“泄漏”和“积分”部分。那么如何引发“放电”呢？
 
-3.4 Lapicque: Firing
+3.4 Lapicque: 放电
 ~~~~~~~~~~~~~~~~~~~~~~
 
-So far, we have only seen how a neuron will react to spikes at the
-input. For a neuron to generate and emit its own spikes at the output,
-the passive membrane model must be combined with a threshold.
+到目前为止, 我们只看到神经元对输入的脉冲作出反应。
+要使神经元在输出端产生并发出自己的脉冲, 必须将被动膜模型与阈值结合起来。
 
-If the membrane potential exceeds this threshold, then a voltage spike
-will be generated, external to the passive membrane model.
+如果膜电位超过此阈值, 则会在被动膜模型外部生成一个电压脉冲。
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_4_spiking.png?raw=true
         :align: center
         :width: 400
 
-Modify the ``leaky_integrate_neuron`` function from before to add
-a spike response.
+修改之前的 ``leaky_integrate_neuron`` 函数以添加脉冲响应。
 
 ::
 
-    # R=5.1, C=5e-3 for illustrative purposes
+    # 用于说明的 R=5.1, C=5e-3
     def leaky_integrate_and_fire(mem, cur=0, threshold=1, time_step=1e-3, R=5.1, C=5e-3):
       tau_mem = R*C
-      spk = (mem > threshold) # if membrane exceeds threshold, spk=1, else, 0
+      spk = (mem > threshold) # 如果膜超过阈值, 则 spk=1, 否则为0
       mem = mem + (time_step/tau_mem)*(-mem + cur*R)
       return mem, spk
 
-Set ``threshold=1``, and apply a step current to get this neuron
-spiking.
+设置 ``threshold=1``, 并应用阶跃电流以使该神经元发放脉冲。
 
 ::
 
-    # Small step current input
+    # 小步电流输入
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.2), 0)
     mem = torch.zeros(1)
     mem_rec = []
     spk_rec = []
     
-    # neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       mem, spk = leaky_integrate_and_fire(mem, cur_in[step])
       mem_rec.append(mem)
       spk_rec.append(spk)
     
-    # convert lists to tensors
+    # 将列表转换为张量
     mem_rec = torch.stack(mem_rec)
     spk_rec = torch.stack(spk_rec)
     
     plot_cur_mem_spk(cur_in, mem_rec, spk_rec, thr_line=1, vline=109, ylim_max2=1.3, 
-                     title="LIF Neuron Model With Uncontrolled Spiking")
+                     title="带无控制放电的LIF神经元模型")
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/lif_uncontrolled.png?raw=true
@@ -592,194 +577,181 @@ spiking.
         :width: 450
 
 
-Oops - the output spikes have gone out of control! This is
-because we forgot to add a reset mechanism. In reality, each time a
-neuron fires, the membrane potential hyperpolarizes back to its resting
-potential.
+哎呀 - 输出脉冲失控了！这是因为我们忘记了添加复位机制。
+实际上, 每当神经元放电时, 膜电位都应该超极化（hyperpolarizes）回到其静息电位。
 
-Implementing this reset mechanism into our neuron:
+将此复位机制实施到我们的神经元中：
 
 ::
 
-    # LIF w/Reset mechanism
+    # 带复位机制的LIF
     def leaky_integrate_and_fire(mem, cur=0, threshold=1, time_step=1e-3, R=5.1, C=5e-3):
       tau_mem = R*C
       spk = (mem > threshold)
-      mem = mem + (time_step/tau_mem)*(-mem + cur*R) - spk*threshold  # every time spk=1, subtract the threhsold
+      mem = mem + (time_step/tau_mem)*(-mem + cur*R) - spk*threshold  # 每次 spk=1 时, 减去阈值
       return mem, spk
 
 ::
 
-    # Small step current input
+    # 小步电流输入
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.2), 0)
     mem = torch.zeros(1)
     mem_rec = []
     spk_rec = []
     
-    # neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       mem, spk = leaky_integrate_and_fire(mem, cur_in[step])
       mem_rec.append(mem)
       spk_rec.append(spk)
     
-    # convert lists to tensors
+    # 将列表转换为张量
     mem_rec = torch.stack(mem_rec)
     spk_rec = torch.stack(spk_rec)
     
     plot_cur_mem_spk(cur_in, mem_rec, spk_rec, thr_line=1, vline=109, ylim_max2=1.3, 
-                     title="LIF Neuron Model With Reset")
+                     title="带复位的LIF神经元模型")
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/reset_2.png?raw=true
         :align: center
         :width: 450
 
-Bam. We now have a functional leaky integrate-and-fire neuron model!
+现在我们有了一个功能完善的漏放电并发放的神经元模型, 好耶！
 
-Note that if :math:`I_{\rm in}=0.2 A` and :math:`R<5 \Omega`, then
-:math:`I\times R < 1 V`. If ``threshold=1``, then no spiking would
-occur. Feel free to go back up, change the values, and test it out.
+请注意, 如果 :math:`I_{\rm in}=0.2 A` 并且 :math:`R<5 \Omega`, 那么 :math:`I\times R < 1 V`。如果 ``threshold=1``, 则不会发生放电。请随意返回到上面, 更改值并测试。
 
-As before, all of that code is condensed by calling the built-in Lapicque neuron model from snnTorch:
+与之前一样, 通过调用内置的snntorch中的Lapicque神经元模型, 所有这些代码都被压缩：
 
 ::
 
-    # Create the same neuron as before using snnTorch
+    # 使用snntorch创建与之前相同的神经元
     lif2 = snn.Lapicque(R=5.1, C=5e-3, time_step=1e-3)
     
-    >>> print(f"Membrane potential time constant: {lif2.R * lif2.C:.3f}s")
-    "Membrane potential time constant: 0.025s"
+    >>> print(f"膜电位时间常数: {lif2.R * lif2.C:.3f}s")
+    "膜电位时间常数: 0.025s"
 
 ::
 
-    # Initialize inputs and outputs
+    # 初始化输入和输出
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.2), 0)
     mem = torch.zeros(1)
     spk_out = torch.zeros(1) 
     mem_rec = [mem]
     spk_rec = [spk_out]
     
-    # Simulation run across 100 time steps.
+    # 在100个时间步骤内进行模拟运行。
     for step in range(num_steps):
       spk_out, mem = lif2(cur_in[step], mem)
       mem_rec.append(mem)
       spk_rec.append(spk_out)
     
-    # convert lists to tensors
+    # 将列表转换为张量
     mem_rec = torch.stack(mem_rec)
     spk_rec = torch.stack(spk_rec)
     
     plot_cur_mem_spk(cur_in, mem_rec, spk_rec, thr_line=1, vline=109, ylim_max2=1.3, 
-                     title="Lapicque Neuron Model With Step Input")
+                     title="带阶跃输入的Lapicque神经元模型")
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/lapicque_reset.png?raw=true
         :align: center
         :width: 450
 
-The membrane potential exponentially rises and then hits the threshold,
-at which point it resets. We can roughly see this occurs between
-:math:`105ms < t_{\rm spk} < 115ms`. As a matter of curiousity, let’s
-see what the spike recording actually consists of:
+膜电位呈指数上升, 然后达到阈值, 此时膜电位复位。我们大致可以看到这发生在 :math:`105ms < t_{\rm spk} < 115ms` 之间。出于好奇, 让我们看看脉冲记录实际包括什么内容：
 
 ::
 
     >>> print(spk_rec[105:115].view(-1))
     tensor([0., 0., 0., 0., 1., 0., 0., 0., 0., 0.])
 
-The absence of a spike is represented by :math:`S_{\rm out}=0`, and the
-occurrence of a spike is :math:`S_{\rm out}=1`. Here, the spike occurs
-at :math:`S_{\rm out}[t=109]=1`. If you are wondering why each of these entries is stored as a tensor, it
-is because in future tutorials we will simulate large scale neural
-networks. Each entry will contain the spike responses of many neurons,
-and tensors can be loaded into GPU memory to speed up the training
-process.
+脉冲的缺失由 :math:`S_{\rm out}=0` 表示, 
+而脉冲的发生由 :math:`S_{\rm out}=1` 表示。在这里, 
+脉冲发生在 :math:`S_{\rm out}[t=109]=1`。
+如果您想知道为什么每个这些条目都被存储为张量, 那是因为在未来的教程中, 
+我们将模拟大规模的神经网络。每个条目将包含许多神经元的脉冲响应, 
+并且可以将张量加载到GPU内存以加速训练过程。
 
-If :math:`I_{\rm in}` is increased, then the membrane potential
-approaches the threshold :math:`U_{\rm thr}` faster:
+如果增加 :math:`I_{\rm in}`, 则膜电位会更快地接近阈值 :math:`U_{\rm thr}`：
 
 ::
 
-    # Initialize inputs and outputs
-    cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.3), 0)  # increased current
+    # 初始化输入和输出
+    cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.3), 0)  # 增加电流
     mem = torch.zeros(1)
     spk_out = torch.zeros(1) 
     mem_rec = [mem]
     spk_rec = [spk_out]
     
-    # neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       spk_out, mem = lif2(cur_in[step], mem)
       mem_rec.append(mem)
       spk_rec.append(spk_out)
     
-    # convert lists to tensors
+    # 将列表转换为张量
     mem_rec = torch.stack(mem_rec)
     spk_rec = torch.stack(spk_rec)
     
     
     plot_cur_mem_spk(cur_in, mem_rec, spk_rec, thr_line=1, ylim_max2=1.3, 
-                     title="Lapicque Neuron Model With Periodic Firing")
+                     title="带周期性放电的Lapicque神经元模型")
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/periodic.png?raw=true
         :align: center
         :width: 450
 
-A similar increase in firing frequency can also be induced by decreasing
-the threshold. This requires initializing a new neuron model, but the
-rest of the code block is the exact same as above:
+通过降低阈值也可以诱发类似的放电频率增加。这需要初始化一个新的神经元模型, 但上面的代码块的其余部分完全相同：
 
 ::
 
-    # neuron with halved threshold
+    # 阈值减半的神经元
     lif3 = snn.Lapicque(R=5.1, C=5e-3, time_step=1e-3, threshold=0.5)
     
-    # Initialize inputs and outputs
+    # 初始化输入和输出
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*0.3), 0) 
     mem = torch.zeros(1)
     spk_out = torch.zeros(1) 
     mem_rec = [mem]
     spk_rec = [spk_out]
     
-    # Neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       spk_out, mem = lif3(cur_in[step], mem)
       mem_rec.append(mem)
       spk_rec.append(spk_out)
     
-    # convert lists to tensors
+    # 将列表转换为张量
     mem_rec = torch.stack(mem_rec)
     spk_rec = torch.stack(spk_rec)
     
     plot_cur_mem_spk(cur_in, mem_rec, spk_rec, thr_line=0.5, ylim_max2=1.3, 
-                     title="Lapicque Neuron Model With Lower Threshold")
+                     title="带更低阈值的Lapicque神经元模型")
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/threshold.png?raw=true
         :align: center
         :width: 450
 
-That’s what happens for a constant current injection. But in both deep
-neural networks and in the biological brain, most neurons will be
-connected to other neurons. They are more likely to receive spikes,
-rather than injections of constant current.
+这是一个常数电流注入的情况。但在深度神经网络和生物大脑中, 
+大多数神经元都将连接到其他神经元。它们更有可能接收脉冲, 而不是持续电流的注入。
 
-3.5 Lapicque: Spike Inputs
+
+3.5 Lapicque: 脉冲输入
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Let’s harness some of the skills we learnt in `Tutorial
-1 <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_1_spikegen.ipynb>`__,
-and use the ``snntorch.spikegen`` module to create some randomly
-generated input spikes.
+
+让我们利用我们在 `教程1 <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_1_spikegen.ipynb>` 
+中学到的一些技能, 并使用 ``snntorch.spikegen`` 模块创建一些随机生成的输入脉冲。
 
 ::
 
-    # Create a 1-D random spike train. Each element has a probability of 40% of firing.
+    # 创建一个1-D的随机脉冲序列。每个元素有40%的概率发放。
     spk_in = spikegen.rate_conv(torch.ones((num_steps)) * 0.40)
 
-Run the following code block to see how many spikes have been generated.
+运行以下代码块以查看生成了多少脉冲。
 
 ::
 
-    >>> print(f"There are {int(sum(spk_in))} total spikes out of {len(spk_in)} time steps.")
+    >>> print(f"在{len(spk_in)}个时间步骤中, 总共生成了{int(sum(spk_in))}个脉冲。")
     There are 85 total spikes out of 200 time steps.
 
 ::
@@ -788,112 +760,106 @@ Run the following code block to see how many spikes have been generated.
     ax = fig.add_subplot(111)
     
     splt.raster(spk_in.reshape(num_steps, -1), ax, s=100, c="black", marker="|")
-    plt.title("Input Spikes")
-    plt.xlabel("Time step")
+    plt.title("输入脉冲")
+    plt.xlabel("时间步骤")
     plt.yticks([])
     plt.show()
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/spikes.png?raw=true
-        :align: center
+        :align: center:
         :width: 400
 
 ::
 
-    # Initialize inputs and outputs
+    # 初始化输入和输出
     mem = torch.ones(1)*0.5
     spk_out = torch.zeros(1)
     mem_rec = [mem]
     spk_rec = [spk_out]
     
-    # Neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       spk_out, mem = lif3(spk_in[step], mem)
       spk_rec.append(spk_out)
       mem_rec.append(mem)
     
-    # convert lists to tensors
+    # 将列表转换为张量
     mem_rec = torch.stack(mem_rec)
     spk_rec = torch.stack(spk_rec)
     
-    plot_spk_mem_spk(spk_in, mem_rec, spk_out, "Lapicque's Neuron Model With Input Spikes")
-
+    plot_spk_mem_spk(spk_in, mem_rec, spk_out, "具有输入脉冲的Lapicque神经元模型")
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/spk_mem_spk.png?raw=true
-        :align: center
+        :align: center:
         :width: 450
+
 
 3.6 Lapicque: Reset Mechanisms
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We already implemented a reset mechanism from scratch, but let’s dive a
-little deeper. This sharp drop of membrane potential promotes a
-reduction of spike generation, which supplements part of the theory on
-how brains are so power efficient. Biologically, this drop of membrane
-potential is known as ‘hyperpolarization’. Following that, it is
-momentarily more difficult to elicit another spike from the neuron.
-Here, we use a reset mechanism to model hyperpolarization.
 
-There are two ways to implement the reset mechanism:
+我们已经从头开始实现了重置机制, 但让我们再深入一点。
+膜电位的急剧下降促进了脉冲生成的减少, 这是有关大脑如何如此高效的一部分理论的补充。
+在生物学上, 膜电位的这种下降被称为“去极化”。
+在此之后, 很短的时间内很难引发神经元的另一个脉冲。
+在这里, 我们使用重置机制来模拟去极化。
 
-1. *reset by subtraction* (default) :math:`-` subtract the threshold
-   from the membrane potential each time a spike is generated;
-2. *reset to zero* :math:`-` force the membrane potential to zero each
-   time a spike is generated.
-3. *no reset* :math:`-` do nothing, and let the firing go potentially uncontrolled.
+有两种实现重置机制的方法：
+
+1. *减法重置*（默认）：每次生成脉冲时, 从膜电位中减去阈值；
+2. *归零重置*：每次生成脉冲时, 将膜电位强制归零。
+3. *不重置*：不采取任何措施, 让脉冲潜在地不受控制。
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_5_reset.png?raw=true
         :align: center
         :width: 400
 
-Instantiate another neuron model to demonstrate how to alternate
-between reset mechanisms. By default, snnTorch neuron models use ``reset_mechanism = "subtract"``.
-This can be explicitly overridden by passing the argument
-``reset_mechanism =  "zero"``.
+实例化另一个神经元模型, 以演示如何在重置机制之间切换。默认情况下, 
+snnTorch神经元模型使用 ``reset_mechanism = "subtract"``。
+可以通过传递参数 ``reset_mechanism = "zero"`` 来明确覆盖默认设置。
 
 ::
 
-    # Neuron with reset_mechanism set to "zero"
+    # 重置机制设置为“zero”的神经元
     lif4 = snn.Lapicque(R=5.1, C=5e-3, time_step=1e-3, threshold=0.5, reset_mechanism="zero")
-    
-    # Initialize inputs and outputs
+        
+    # 初始化输入和输出
     spk_in = spikegen.rate_conv(torch.ones((num_steps)) * 0.40)
     mem = torch.ones(1)*0.5
     spk_out = torch.zeros(1)
     mem_rec0 = [mem]
     spk_rec0 = [spk_out]
-    
-    # Neuron simulation
+        
+    # 神经元模拟
     for step in range(num_steps):
       spk_out, mem = lif4(spk_in[step], mem)
       spk_rec0.append(spk_out)
       mem_rec0.append(mem)
-    
-    # convert lists to tensors
+        
+    # 将列表转换为张量
     mem_rec0 = torch.stack(mem_rec0)
     spk_rec0 = torch.stack(spk_rec0)
-    
+
     plot_reset_comparison(spk_in, mem_rec, spk_rec, mem_rec0, spk_rec0)
+
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/comparison.png?raw=true
         :align: center
         :width: 550
 
-Pay close attention to the evolution of the membrane potential,
-especially in the moments after it reaches the threshold. You may notice
-that for “Reset to Zero”, the membrane potential is forced back to zero
-after each spike.
 
-So which one is better? Applying ``"subtract"`` (the default value in
-``reset_mechanism``) is less lossy, because it does not ignore how much
-the membrane exceeds the threshold by.
+请特别关注膜电位的演变, 尤其是在它达到阈值后的瞬间。
+您可能会注意到, “重置为零”后, 膜电位被迫在每次脉冲后归零。
 
-On the other hand, applying a hard reset with ``"zero"`` promotes
-sparsity and potentially less power consumption when running on
-dedicated neuromorphic hardware. Both options are available for you to
-experiment with.
+那么哪种方法更好？应用 ``"subtract"``（重置机制的默认值）更不会丢失信息, 
+因为它不会忽略膜电位超过阈值的程度。
 
-That covers the basics of a LIF neuron model!
+另一方面, 采用 ``"zero"`` 的强制重置会促进稀疏性, 
+并在专用的神经形态硬件上运行时可能降低功耗。您可以尝试使用这两种选项。
+
+这涵盖了LIF神经元模型的基础知识！
+
 
 Conclusion
 ---------------

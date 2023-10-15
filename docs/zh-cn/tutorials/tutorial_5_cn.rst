@@ -1,14 +1,14 @@
 ===========================================================
-Tutorial 5 - Training Spiking Neural Networks with snntorch
+教程（五） - 使用snnTorch训练脉冲神经网络
 ===========================================================
 
-Tutorial written by Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
+本教程出自 Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_5_FCN.ipynb
 
-The snnTorch tutorial series is based on the following paper. If you find these resources or code useful in your work, please consider citing the following source:
+snnTorch 教程系列基于以下论文。如果您发现这些资源或代码对您的工作有用，请考虑引用以下来源：
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
@@ -16,38 +16,33 @@ The snnTorch tutorial series is based on the following paper. If you find these 
     September 2021. <https://arxiv.org/abs/2109.12894>`_
 
 .. note::
-  This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
+  本教程是不可编辑的静态版本。交互式可编辑版本可通过以下链接获取：
     * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_5_FCN.ipynb>`_
     * `Local Notebook (download via GitHub) <https://github.com/jeshraghian/snntorch/tree/master/examples>`_
 
 
-Introduction
+简介
 ---------------
 
-In this tutorial, you will: 
+在本教程中，你将：
 
-* Learn how spiking neurons are implemented as a recurrent network 
-* Understand backpropagation through time, and the associated challenges in SNNs such as the non-differentiability of spikes 
-* Train a fully-connected network on the static MNIST dataset
+* 了解脉冲神经元如何作为递归网络实现
+* 通过时间了解反向传播，以及 SNN 中的相关挑战，如脉冲的不可微分性
+* 在静态 MNIST 数据集上训练全连接网络
 
 
 ..
 
-   Part of this tutorial was inspired by Friedemann Zenke’s extensive
-   work on SNNs. Check out his repo on surrogate gradients
-   `here <https://github.com/fzenke/spytorch>`__, and a favourite paper
-   of mine: E. O. Neftci, H. Mostafa, F. Zenke, `Surrogate Gradient
-   Learning in Spiking Neural Networks: Bringing the Power of
-   Gradient-based optimization to spiking neural
-   networks. <https://ieeexplore.ieee.org/document/8891809>`__ IEEE
-   Signal Processing Magazine 36, 51–63.
+本教程的部分灵感来自 Friedemann Zenke 在 SNN 方面的大量工作。
+请查看他关于替代梯度的资料库 `here <https://github.com/fzenke/spytorch>`__, 
+以及我最喜欢的一篇论文： E. O. Neftci, H. Mostafa, F. Zenke,
+ `SNN中的替代梯度学习： 将基于梯度的优化功能引入SNN。<https://ieeexplore.ieee.org/document/8891809>`__ IEEE Signal Processing Magazine 36, 51-63.
 
-At the end of the tutorial, a basic supervised learning algorithm will
-be implemented. We will use the original static MNIST dataset and train
-a multi-layer fully-connected spiking neural network using gradient
-descent to perform image classification.
+在教程的最后，我们将实施一种基本的监督学习算法。
+我们将使用原始静态 MNIST 数据集，并使用梯度下降法训练
+多层 全连接 脉冲神经网络 来执行图像分类。
 
-Install the latest PyPi distribution of snnTorch:
+安装 snnTorch 的最新 PyPi 发行版:
 
 ::
 
@@ -69,20 +64,18 @@ Install the latest PyPi distribution of snnTorch:
     import numpy as np
     import itertools
 
-1. A Recurrent Representation of SNNs
+1. 脉冲神经网络的递归表示
 ----------------------------------------
 
-In `Tutorial 3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_, we derived a recursive representation of a leaky
-integrate-and-fire (LIF) neuron:
+在 `教程 3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中，
+我们推导出了泄漏整合-发射（LIF）神经元的递归表示:
 
 .. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{R[t]}_\text{reset} \tag{1}
 
-where input synaptic current is interpreted as
-:math:`I_{\rm in}[t] = WX[t]`, and :math:`X[t]` may be some arbitrary
-input of spikes, a step/time-varying voltage, or unweighted
-step/time-varying current. Spiking is represented with the following
-equation, where if the membrane potential exceeds the threshold, a spike
-is emitted:
+其中，输入突触电流解释为 :math:`I_{\rm in}[t] = WX[t]`，
+而 :math:`X[t]` 可以是任意输入的脉冲、
+阶跃/时变电压或非加权阶跃/时变电流。
+脉冲用下式表示，如果膜电位超过阈值，就会发出一个脉冲：
 
 .. math::
 
@@ -92,61 +85,51 @@ is emitted:
 .. math::
    \tag{2}
 
-This formulation of a spiking neuron in a discrete, recursive form is
-almost perfectly poised to take advantage of the developments in
-training recurrent neural networks (RNNs) and sequence-based models.
-This is illustrated using an *implicit* recurrent connection for the
-decay of the membrane potential, and is distinguished from *explicit*
-recurrence where the output spike :math:`S_{\rm out}` is fed back to the
-input. In the figure below, the connection weighted by :math:`-U_{\rm thr}` 
-represents the reset mechanism :math:`R[t]`.
+这种离散递归形式的脉冲神经元表述几乎可以完美利用训练递归神经网络（RNN）
+和基于序列模型的发展。我们使用一个*隐式*递归连接来说明膜电位的衰减，
+并将其与*显式*递归区分开来，在*显式*递归中，
+输出脉冲 :math:`S_{\rm out}`被反馈回输入。
+在下图中, 权重为 :math:`U_{\rm thr}`的连接代表着复位机制:math:`R[t]`。
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial5/unrolled_2.png?raw=true
         :align: center
         :width: 600
 
-The benefit of an unrolled graph is that it provides an explicit
-description of how computations are performed. The process of unfolding
-illustrates the flow of information forward in time (from left to right)
-to compute outputs and losses, and backward in time to compute
-gradients. The more time steps that are simulated, the deeper the graph
-becomes.
+展开图的好处在于，它明确描述了计算是如何进行的。
+展开过程说明了信息流在时间上的前向（从左到右），以计算输出和损失，
+以及在时间上的后向，以计算梯度。模拟的时间步数越多，图形就越深。
 
-Conventional RNNs treat :math:`\beta` as a learnable parameter.
-This is also possible for SNNs, though by default, they are treated as
-hyperparameters. This replaces the vanishing and exploding gradient
-problems with a hyperparameter search. A future tutorial will describe how to
-make :math:`\beta` a learnable parameter.
+传统的 RNN 将 :math:`\beta` 视为可学习的参数。
+这对 SNN 也是可行的, 不过默认情况下, 它们被视为超参数（hyperparameters）。
+这就用超参数搜索取代了梯度消失和梯度爆炸问题。
+未来的教程将介绍如何使 :math:`\beta` 成为可学习参数。
 
-2. The Non-Differentiability of Spikes
+2. 脉冲的不可微分性
 -----------------------------------------
 
-2.1 Training Using the Backprop Algorithm
+2.1 使用反向传播算法进行训练
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-An alternative way to represent the relationship between :math:`S` and
-:math:`U` in :math:`(2)` is:
+表示 :math:`S` 和 :math:`U` 之间关系的另一种方法是:
 
 .. math:: S[t] = \Theta(U[t] - U_{\rm thr}) \tag{3}
 
-where :math:`\Theta(\cdot)` is the Heaviside step function:
+其中 :math:`\Theta(\cdot)` 是 Heaviside 阶跃函数（其实就是在原点发生阶跃的函数）:
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/3_2_spike_descrip.png?raw=true
         :align: center
         :width: 600
 
-Training a network in this form poses some serious challenges. Consider a single, isolated time step of the computational
-graph from the previous figure titled *"Recurrent representation of spiking neurons"*, as
-shown in the *forward pass* below:
+以这种形式训练网络会带来一些严峻的挑战。
+考虑上图中题为 *"脉冲神经元的递归表示"* 的计算图的一个单独的时间步，
+如下图 *前向传递* 所示：
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial5/non-diff.png?raw=true
         :align: center
         :width: 400
 
-The goal is to train the network using the gradient of the loss with
-respect to the weights, such that the weights are updated to minimize
-the loss. The backpropagation algorithm achieves this using the chain
-rule:
+我们的目标是利用损失相对于权重的梯度来训练网络，从而更新权重，使损失最小化。
+反向传播算法利用链式规则实现了这一目标：
 
 .. math::
 
@@ -156,37 +139,32 @@ rule:
    \frac{\partial U}{\partial I}\
    \frac{\partial I}{\partial W}\ \tag{4}
 
-From :math:`(1)`,  :math:`\partial I/\partial W=X`, and
-:math:`\partial U/\partial I=1`. While a loss function is yet to be defined, 
-we can assume :math:`\partial \mathcal{L}/\partial S` has an
-analytical solution, in a similar form to the cross-entropy or
-mean-square error loss (more on that shortly).
+从 :math:`(1)`, :math:`/partial I//partial W=X`, 
+以及 :math:`partial U//partial I=1`。
+虽然没定义损失函数, 我们还是可以假设 :math:`\partial \mathcal{L}/\partial S` 
+有一个解析解，有一个类似于交叉熵或均方误差损失（稍后会详细介绍）的解析解。
 
-However, the term that we are going to grapple with is
-:math:`\partial S/\partial U`. The derivative of the
-Heaviside step function from :math:`(3)` is the Dirac Delta
-function, which evaluates to :math:`0` everywhere, except at the threshold
-:math:`U_{\rm thr} = \theta`, where it tends to infinity. This means the
-gradient will almost always be nulled to zero (or saturated if :math:`U`
-sits precisely at the threshold), and no learning can take place. This
-is known as the **dead neuron problem**.
+我们真正要处理的项是 :math:`\partial S/\partial U`。
+(3)中的Heaviside阶跃函数的导数是狄拉克-德尔塔函数，
+它在任何地方都求值为 :math:`0`，
+但在阈值处除外 :math:`U_{\rm thr} = \theta`，
+在这里它趋于无穷大。这意味着 梯度几乎总是归零
+（如果 :math:`U` 恰好位于阈值处，则为饱和而不是归零），
+无法进行学习。这被称为 **死神经元问题** 。
 
-2.2 Overcoming the Dead Neuron Problem
+2.2 克服死神经元问题
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The most common way to address the dead neuron problem is to keep the
-Heaviside function as it is during the forward pass, but swap the
-derivative term :math:`\partial S/\partial U` for something that does
-not kill the learning process during the backward pass, which will be
-denoted :math:`\partial \tilde{S}/\partial U`. This might sound odd, but
-it turns out that neural networks are quite robust to such
-approximations. This is commonly known as the *surrogate gradient*
-approach.
+解决死神经元问题的最常见方法是在前向传递过程中保持Heaviside函数的原样，
+但将导数项 :math:`\partial S/\partial U` 
+换成在后向传递过程中不会扼杀学习过程的导数项，
+即 :math:`\partial \tilde{S}/\partial U`。这听起来可能有些奇怪，
+但事实证明，神经网络对这种近似是相当稳健的。这就是通常所说的 *替代梯度* 方法。
 
-A variety of options exist to using surrogate gradients, and we will
-dive into more detail on these methods in `Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_. 
-The default method in snnTorch (as of v0.6.0) is to smooth the Heaviside function with the arctangent function. 
-The backward-pass derivative used is:
+使用替代梯度有多种选择，
+我们将在 `教程 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_" 中详细介绍这些方法。
+snnTorch 的默认方法（截至 v0.6.0）是用反正切函数平滑 Heaviside 函数。
+使用的后向导数为
 
 
 .. math::
@@ -194,12 +172,11 @@ The backward-pass derivative used is:
     \frac{\partial \tilde{S}}{\partial U} \leftarrow \frac{1}{\pi}\frac{1}{(1+[U\pi]^2)}
 
 
-where the left arrow denotes substitution.
+其中左箭头表示替换。
 
-The same neuron model described in :math:`(1)-(2)` (a.k.a.,
-``snn.Leaky`` neuron from Tutorial 3) is implemented in PyTorch below.
-Don’t worry if you don’t understand this. This will be
-condensed into one line of code using snnTorch in a moment:
+下面用 PyTorch 实现了 :math:`(1)-(2)` 中描述的同一个神经元模型
+（又名教程 3 中的 `snn.Leaky` 神经元）。如果您不理解，请不要担心。
+稍后我们将使用 snnTorch 将其浓缩为一行代码：
 
 ::
 
@@ -236,22 +213,20 @@ condensed into one line of code using snnTorch in a moment:
               grad = 1 / (1 + (np.pi * mem).pow_(2)) * grad_output # Eqn 5
               return grad
 
-Note that the reset mechanism is detached from the computational graph, as the surrogate gradient should only be applied to :math:`\partial S/\partial U`, and not :math:`\partial R/\partial U`.
+请注意，重置机制是与计算图分离的，因为替代梯度只应用于 :math:`\partial S/\partial U` 而不是 :math:`\partial R/\partial U`。
 
-The above neuron is instantiated using:
+以上神经元可以这样实现：
 
 ::
 
     lif1 = LeakySurrogate(beta=0.9)
 
-This neuron can be simulated using a for-loop, just as in previous
-tutorials, while PyTorch’s automatic differentation (autodiff) mechanism
-keeps track of the gradient in the background.
+这个神经元可以用 for 循环来模拟，就像之前的教程一样。
+PyTorch 的自动差异化（autodiff）机制会在后台跟踪梯度。
 
-The same thing can be accomplished by calling
-the ``snn.Leaky`` neuron. In fact, every time you call any neuron model
-from snnTorch, the *ATan* surrogate gradient is applied to it
-by default:
+调用 ``snn.Leaky`` 神经元也能实现同样的效果。
+事实上，每次从 snnTorch 调用任何神经元模型时， 
+*ATan*  替代梯度都会默认应用于该神经元：
 
 ::
 
@@ -261,127 +236,104 @@ If you would like to explore how this neuron behaves, then refer to
 `Tutorial
 3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__.
 
-3. Backprop Through Time 
---------------------------
+3. 通过时间反向传播（BPTT）
+----------------------
 
-Equation :math:`(4)` only calculates the
-gradient for one single time step (referred to as the *immediate
-influence* in the figure below), but the backpropagation through time
-(BPTT) algorithm calculates the gradient from the loss to *all*
-descendants and sums them together.
+方程 :math:`(4)` 仅计算一个单一时间步的梯度（在下图中称为 *即时影响*），
+但是通过时间反向传播（BPTT）算法计算 从损失到 *所有* 后代（descendants）的梯度并将它们相加。
 
-The weight :math:`W` is applied at every time step, and so imagine a
-loss is also calculated at every time step. The influence of the weight
-on present and historical losses must be summed together to define the
-global gradient:
+权重 :math:`W` 在每个时间步都应用，因此可以想象在每个时间步也计算了损失。
+权重对当前和历史损失的影响必须相加在一起以定义全局梯度：
 
 .. math::
 
    \frac{\partial \mathcal{L}}{\partial W}=\sum_t \frac{\partial\mathcal{L}[t]}{\partial W} = 
    \sum_t \sum_{s\leq t} \frac{\partial\mathcal{L}[t]}{\partial W[s]}\frac{\partial W[s]}{\partial W} \tag{5} 
 
-The point of :math:`(5)` is to ensure causality: by constraining
-:math:`s\leq t`, we only account for the contribution of immediate and
-prior influences of :math:`W` on the loss. A recurrent system constrains
-the weight to be shared across all steps: :math:`W[0]=W[1] =~... ~ = W`.
-Therefore, a change in :math:`W[s]` will have the same effect on all
-:math:`W`, which implies that :math:`\partial W[s]/\partial W=1`:
+方程 :math:`(5)` 的目的是确保因果关系：
+通过限制 :math:`s\leq t`，我们只考虑了权重 :math:`W` 对损失的即时和先前影响的贡献。
+循环系统将权重限制为在所有步骤中共享：:math:`W[0]=W[1] =~... ~ = W`。
+因此，对于所有的 :math:`W`，改变 :math:`W[s]` 将对所有 :math:`W` 产生相同的影响，
+这意味着 :math:`\partial W[s]/\partial W=1`：
 
 .. math::
 
    \frac{\partial \mathcal{L}}{\partial W}=
    \sum_t \sum_{s\leq t} \frac{\partial\mathcal{L}[t]}{\partial W[s]} \tag{6} 
 
-As an example, isolate the prior influence due to :math:`s = t-1` *only*; this
-means the backward pass must track back in time by one step. The
-influence of :math:`W[t-1]` on the loss can be written as:
+举个例子，隔离由于 :math:`s = t-1` *仅* 导致的先前影响；
+这意味着反向传递必须回溯一步。可以将 :math:`W[t-1]` 对损失的影响写成：
 
 .. math::
 
    \frac{\partial \mathcal{L}[t]}{\partial W[t-1]} = 
    \frac{\partial \mathcal{L}[t]}{\partial S[t]}
-   \underbrace{\frac{\partial \tilde{S}[t]}{\partial U[t]}}_{Eq.~(5)}
+   \underbrace{\frac{\partial \tilde{S}[t]}{\partial U[t]}}_{方程~(5)}
    \underbrace{\frac{\partial U[t]}{\partial U[t-1]}}_\beta
    \underbrace{\frac{\partial U[t-1]}{\partial I[t-1]}}_1
    \underbrace{\frac{\partial I[t-1]}{\partial W[t-1]}}_{X[t-1]} \tag{7}
 
-We have already dealt with all of these terms from :math:`(4)`, except
-for :math:`\partial U[t]/\partial U[t-1]`. From :math:`(1)`, this
-temporal derivative term simply evaluates to :math:`\beta`. So if we
-really wanted to, we now know enough to painstakingly calculate the
-derivative of every weight at every time step by hand, and it’d look
-something like this for a single neuron:
+我们已经处理了来自方程 :math:`(4)` 的所有这些项，
+除了 :math:`\partial U[t]/\partial U[t-1]`。
+根据方程 :math:`(1)`，这个时间导数项简单地等于 :math:`\beta`。
+因此，如果我们真的想，我们现在已经知道足够的信息来手动（且痛苦地）
+计算每个时间步的每个权重的导数，对于单个神经元，它会看起来像这样：
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial5/bptt.png?raw=true
         :align: center
         :width: 600
 
-
-But thankfully, PyTorch’s autodiff takes care of that in the background for
-us.
-
+但幸运的是，PyTorch 的自动微分在后台为我们处理这些。
 
 .. note::
-  The reset mechanism has been omitted from the above figure. In snnTorch, reset is included in the forward-pass, but detached from the backward pass.
+  以上图中省略了重置机制。在 snnTorch 中，重置包含在前向传递中，但与反向传递分离。
 
-4. Setting up the Loss / Output Decoding
--------------------------------------------
 
-In a conventional, non-spiking neural network, a supervised, multi-class
-classification problem takes the neuron with the highest activation
-and treats that as the predicted class.
+4. 设置损失函数 / 输出解码
+------------------------------------------
 
-In a spiking neural net, there are several options to interpreting the output spikes. The most common approaches are:
+在传统的非脉冲神经网络中，有监督的多类分类问题会选取
+激活度最高的神经元，并将其作为预测类别。
 
-* **Rate coding:** Take the neuron with the highest firing rate (or spike count) as the predicted class 
-* **Latency coding:** Take the neuron that fires *first* as the predicted class
+在脉冲神经网络中，有多种解释输出脉冲的方式。最常见的方法包括：
 
-This might feel familiar to `Tutorial 1 on neural
-encoding <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__.
-The difference is that, here, we are interpreting (decoding) the output
-spikes, rather than encoding/converting raw input data into spikes.
+* **脉冲率编码：** 选择具有最高脉冲率（或脉冲计数）的神经元作为预测类别
+* **延迟编码：** 选择首先发放脉冲的神经元作为预测类别
 
-Let’s focus on a rate code. When input data is passed to the network, we
-want the correct neuron class to emit the most spikes over the course of
-the simulation run. This corresponds to the highest average firing
-frequency. One way to achieve this is to increase the membrane
-potential of the correct class to :math:`U>U_{\rm thr}`, and that of
-incorrect classes to :math:`U<U_{\rm thr}`. Applying the target to
-:math:`U` serves as a proxy for modulating spiking behavior from
-:math:`S`.
+这可能会让你联想到关于 `教程（一）神经编码 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__。不同之处在于，在这里，我们是在解释（解码）输出脉冲，而不是将原始输入数据编码/转换成脉冲。
 
-This can be implemented by taking the softmax of the membrane potential
-for output neurons, where :math:`C` is the number of output classes:
+让我们专注于脉冲率编码。当输入数据传递到网络时，
+我们希望正确的神经元类别在仿真运行的过程中发射最多的脉冲。
+这对应于最高的平均脉冲频率。实现这一目标的一种方法是增加正确类别的膜电位至 :math:`U>U_{\rm thr}`，
+并将不正确类别的膜电位设置为 :math:`U<U_{\rm thr}`。
+将目标应用于 :math:`U` 作为调节脉冲行为从 :math:`S` 到 :math:`U` 的代理。
+
+这可以通过对输出神经元的膜电位取softmax来实现，其中 :math:`C` 是输出类别的数量：
 
 .. math:: p_i[t] = \frac{e^{U_i[t]}}{\sum_{i=0}^{C}e^{U_i[t]}} \tag{8}
 
-The cross-entropy between :math:`p_i` and the target
-:math:`y_i \in \{0,1\}^C`, which is a one-hot target vector, is obtained
-using:
+通过以下方式获取 :math:`p_i` 和目标 :math:`y_i \in \{0,1\}^C` 之间的交叉熵，
+目标是一个独热（one-hot）目标向量：
 
 .. math:: \mathcal{L}_{CE}[t] = -\sum_{i=0}^Cy_i{\rm log}(p_i[t]) \tag{9}
 
-The practical effect is that the membrane potential of the correct class
-is encouraged to increase while those of incorrect classes are reduced. In effect, this means the correct class is encouraged to fire
-at all time steps, while incorrect classes are suppressed at all steps.
-This may not be the most efficient implementation of an SNN, but
-it is among the simplest.
+实际效果是，鼓励正确类别的膜电位增加，而不正确类别的膜电位降低。
+这意味着在所有时间步中鼓励正确类别激活，且在所有时间步中抑制不正确类别。
+这可能不是脉冲神经网络的最高效实现之一，但它是其中最简单的之一。
 
-This target is applied at every time step of the simulation, thus also
-generating a loss at every step. These losses are then summed together
-at the end of the simulation:
+这个目标应用于仿真的每个时间步，因此也在每个步骤生成一个损失。
+然后在仿真结束时将这些损失相加：
 
 .. math:: \mathcal{L}_{CE} = \sum_t\mathcal{L}_{CE}[t] \tag{10}
 
-This is just one of many possible ways to apply a loss function to a
-spiking neural network. A variety of approaches are available to use in
-snnTorch (in the module ``snn.functional``), and will be the subject of
-a future tutorial.
+这只是将损失函数应用于脉冲神经网络的众多可能方法之一。
+在 snnTorch 中，有多种方法可用（在模块 ``snn.functional`` 中），
+他们将成为未来教程的主题。
 
-With all of the background theory having been taken care of, let’s finally dive into
-training a fully-connected spiking neural net.
+所有的背景理论介绍完毕，我们现在终于可以开始训练一个全连接的脉冲神经网络。
 
-5. Setting up the Static MNIST Dataset
+
+5. 配置静态MNIST数据集
 ----------------------------------------
 
 ::
@@ -411,7 +363,7 @@ training a fully-connected spiking neural net.
     train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
 
-6. Define the Network
+6. 定义网络
 ----------------------
 
 ::
@@ -461,28 +413,22 @@ training a fully-connected spiking neural net.
     # Load the network onto CUDA if available
     net = Net().to(device)
 
-The code in the ``forward()`` function will only be called once the
-input argument ``x`` is explicitly passed into ``net``.
+``forward()`` 函数中的代码将只在明确传递输入参数 ``x`` 到 ``net`` 时才被调用。
 
--  ``fc1`` applies a linear transformation to all input pixels from the
-   MNIST dataset;
--  ``lif1`` integrates the weighted input over time, emitting a spike if
-   the threshold condition is met;
--  ``fc2`` applies a linear transformation to the output spikes of
-   ``lif1``;
--  ``lif2`` is another spiking neuron layer, integrating the weighted
-   spikes over time.
+- ``fc1`` 对来自MNIST数据集的所有输入像素应用线性变换；
+- ``lif1`` 集成了随时间变化的加权输入，如果满足阈值条件，则发放脉冲；
+- ``fc2`` 对 ``lif1`` 的输出脉冲应用线性变换；
+- ``lif2`` 是另一层脉冲神经元，集成了随时间变化的加权脉冲。
 
-7. Training the SNN
+
+7. 训练SNN
 ---------------------
 
-7.1 Accuracy Metric
+7.1 准确率指标（Accuracy Metric）
 ~~~~~~~~~~~~~~~~~~~~~
 
-Below is a function that takes a batch of data, counts up all the
-spikes from each neuron (i.e., a rate code over the simulation time),
-and compares the index of the highest count with the actual target. If
-they match, then the network correctly predicted the target.
+下面这个函数会获取一批数据、统计每个神经元的所有脉冲（即模拟时间内的脉冲率代码），
+并将最高计数的索引与实际目标进行比较。如果两者匹配，则说明网络正确预测了目标。
 
 ::
 
@@ -508,31 +454,30 @@ they match, then the network correctly predicted the target.
         print_batch_accuracy(test_data, test_targets, train=False)
         print("\n")
 
-7.2 Loss Definition
+7.2 损失定义（Loss Definition）
 ~~~~~~~~~~~~~~~~~~~~~
 
-The ``nn.CrossEntropyLoss`` function in PyTorch automatically handles taking
-the softmax of the output layer as well as generating a loss at the
-output.
+PyTorch 中的 ``nn.CrossEntropyLoss`` 函数会自动处理输出层的Softmax，
+并在输出处生成损失。
 
 ::
 
     loss = nn.CrossEntropyLoss()
 
-7.3 Optimizer
+7.3 优化器（Optimizer）
 ~~~~~~~~~~~~~~~~~~~~~
 
-Adam is a robust optimizer that performs well on recurrent networks, so
-let’s use that with a learning rate of :math:`5\times10^{-4}`.
+Adam 是一个稳健的优化器，在递归网络中表现出色，
+因此我们应用Adam并将其学习率为 :math:`5\times10^{-4}`。
 
 ::
 
     optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
 
-7.4 One Iteration of Training
+7.4 一次训练迭代
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Take the first batch of data and load it onto CUDA if available.
+获取第一批数据并将其加载到CUDA（如果可以）。
 
 ::
 
@@ -540,8 +485,7 @@ Take the first batch of data and load it onto CUDA if available.
     data = data.to(device)
     targets = targets.to(device)
 
-Flatten the input data to a vector of size :math:`784` and pass it into
-the network.
+将输入数据拍扁为大小为 :math:`784` 的向量，并将其传入网络。
 
 ::
 
@@ -552,14 +496,14 @@ the network.
     >>> print(mem_rec.size())
     torch.Size([25, 128, 10])
 
-The recording of the membrane potential is taken across: 
+膜电位记录跨度为 
 
-* 25 time steps 
-* 128 samples of data 
-* 10 output neurons
+* 25 个时间步长 
+* 128 个数据样本 
+* 10 个输出神经元
 
-We wish to calculate the loss at every time step, and sum these up
-together, as per Equation :math:`(10)`:
+我们希望计算每个时间步长的损耗，并将这些损耗相加。
+我们希望按照公式 :math:`(10)` 计算出每个时间步的损失，并将这些损失相加：
 
 ::
 
@@ -575,16 +519,15 @@ together, as per Equation :math:`(10)`:
     >>> print(f"Training loss: {loss_val.item():.3f}")
     Training loss: 60.488
 
-The loss is quite large, because it is summed over 25 time
-steps. The accuracy is also bad (it should be roughly around 10%) as the
-network is untrained:
+损失相当大，因为它是 25 个时间步长的总和。
+准确率也很低（大约应在 10%左右），因为网络还未经训练：
 
 ::
 
     >>> print_batch_accuracy(data, targets, train=True)
     Train set accuracy for a single minibatch: 10.16%
 
-A single weight update is applied to the network as follows:
+对网络进行一次权重更新:
 
 ::
 
@@ -597,8 +540,7 @@ A single weight update is applied to the network as follows:
       # weight update
       optimizer.step()
 
-Now, re-run the loss calculation and accuracy after a single
-iteration:
+现在，在一次迭代后重新运行损失计算和精度:
 
 ::
 
@@ -619,16 +561,16 @@ iteration:
     Training loss: 47.384
     Train set accuracy for a single minibatch: 33.59%
 
-After only one iteration, the loss should have decreased and accuracy
-should have increased. Note how membrane potential is used to calculate the cross entropy
-loss, and spike count is used for the measure of accuracy. It is also possible to use the spike count in the loss (`see Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_)
+只经过一次迭代，不过损失应该会减少，准确率应该会提高。
+请注意膜电位是如何用于计算交叉熵损失的，而脉冲计数是如何用于衡量准确度的。
+也可以在损失中使用脉冲计数（ `参见教程 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ ）
 
 7.5 Training Loop
 ~~~~~~~~~~~~~~~~~~
 
-Let’s combine everything into a training
-loop. We will train for one epoch (though feel free to increase
-``num_epochs``), exposing our network to each sample of data once.
+让我们将所有内容整合到一个训练循环中。
+我们将训练一个epoch（尽管可以随意增加 ``num_epochs``），
+让我们的网络接触到每个数据样本一次。
 
 ::
 
@@ -686,8 +628,7 @@ loop. We will train for one epoch (though feel free to increase
                 counter += 1
                 iter_counter +=1
 
-The terminal will iteratively print out something like this every 50 iterations:
-
+终端每迭代 50 次就会打印出类似的内容：
 ::
 
     Epoch 0, Iteration 50
@@ -697,10 +638,10 @@ The terminal will iteratively print out something like this every 50 iterations:
     Test set accuracy for a single minibatch: 90.62%
 
 
-8. Results
+8. 结果
 ---------------------------
 
-8.1 Plot Training/Test Loss
+8.1 可视化训练/测试损失
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
@@ -719,13 +660,12 @@ The terminal will iteratively print out something like this every 50 iterations:
         :align: center
         :width: 550
 
-The loss curves are noisy because the losses are tracked at every iteration, rather than averaging across multiple iterations. 
+损失曲线是有噪声的，因为损失是在每次迭代时跟踪的，而不是多次迭代的平均值。
 
-8.2 Test Set Accuracy
+8.2 测试集的准确率
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-This function iterates over all minibatches to obtain a measure of
-accuracy over the full 10,000 samples in the test set.
+该函数对所有迷你批进行迭代，以获得测试集中全部 10,000 个样本的准确度。
 
 ::
 
@@ -756,27 +696,24 @@ accuracy over the full 10,000 samples in the test set.
     Total correctly classified test set images: 9387/10000
     Test Set Accuracy: 93.87%
 
-Voila! That’s it for static MNIST. Feel free to tweak the network
-parameters, hyperparameters, decay rate, using a learning rate scheduler
-etc. to see if you can improve the network performance.
+Voila！这就是要为静态 MNIST所做的全部。
+你可以随意调整网络参数、超参数、衰减率、使用学习率调度程序等，看看能否提高网络性能。
 
-Conclusion
+结论
 ------------
 
-Now you know how to construct and train a fully-connected network on a
-static dataset. The spiking neurons can also be adapted to other
-layer types, including convolutions and skip connections. Armed with
-this knowledge, you should now be able to build many different types of
-SNNs. `In the next
-tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__,
-you will learn how to train a spiking convolutional network, and simplify the amount of code required using the ``snn.backprop`` module.
+现在，你知道如何构建和训练一个静态数据集上的全连接网络。
+脉冲神经元也可以适应其他层类型，包括卷积和跳跃连接。
+掌握了这些知识，你现在应该能够构建许多不同类型的SNNs。
+在 `下一个教程 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__ 中，
+你将学习如何训练脉冲卷积网络，并简化所需的代码量，使用 ``snn.backprop`` 模块。
 
-Also, a special thanks to Bugra Kaytanli for providing valuable feedback on the tutorial.
+此外，特别感谢 Bugra Kaytanli 为本教程提供了宝贵的反馈。
 
-If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+如果你喜欢这个项目，请考虑在 GitHub 上给代码仓库点亮星星⭐，
+因为这是支持它的最简单的、最好的方式。
 
-
-Additional Resources 
+额外资源
 ---------------------
 
-- `Check out the snnTorch GitHub project here. <https://github.com/jeshraghian/snntorch>`__
+- `在这里查看 snnTorch 的 GitHub 项目。 <https://github.com/jeshraghian/snntorch>`__
