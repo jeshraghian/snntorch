@@ -16,7 +16,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
     September 2021. <https://arxiv.org/abs/2109.12894>`_
 
 .. note::
-  本教程是不可编辑的静态版本。交互式可编辑版本可通过以下链接获取：
+    本教程是不可编辑的静态版本。交互式可编辑版本可通过以下链接获取：
     * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_5_FCN.ipynb>`_
     * `Local Notebook (download via GitHub) <https://github.com/jeshraghian/snntorch/tree/master/examples>`_
 
@@ -36,7 +36,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 本教程的部分灵感来自 Friedemann Zenke 在 SNN 方面的大量工作。
 请在 `这里 <https://github.com/fzenke/spytorch>`_ 查看他关于替代梯度的资料库, 
 以及我最喜欢的一篇论文： E. O. Neftci, H. Mostafa, F. Zenke,
- `SNN中的替代梯度学习： 将基于梯度的优化功能引入SNN。<https://ieeexplore.ieee.org/document/8891809>`_ IEEE Signal Processing Magazine 36, 51-63.
+ `SNN中的替代梯度学习： 将基于梯度的优化功能引入SNN。 <https://ieeexplore.ieee.org/document/8891809>`_ IEEE Signal Processing Magazine 36, 51-63.
 
 在教程的最后，我们将实施一种基本的监督学习算法。
 我们将使用原始静态 MNIST 数据集，并使用梯度下降法训练
