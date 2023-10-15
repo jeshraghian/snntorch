@@ -18,7 +18,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
     September 2021. <https://arxiv.org/abs/2109.12894>`_
 
 .. note::
-    本教程是不可编辑的静态版本。交互式可编辑版本可通过以下链接获取：
+  本教程是不可编辑的静态版本。交互式可编辑版本可通过以下链接获取：
     * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_2_lif_neuron.ipynb>`_
     * `Local Notebook (download via GitHub) <https://github.com/jeshraghian/snntorch/tree/master/examples>`_
 
