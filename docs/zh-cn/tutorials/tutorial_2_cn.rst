@@ -4,7 +4,7 @@
 
 本教程出自 Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
 
- `English <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_2.html#>`
+ `English <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_2.html#>`_ 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
@@ -122,7 +122,7 @@ LIF 神经元介于生物合理性和实用性之间。
 将神经元内的导电生理盐水, 与细胞外介质隔离开来。
 在电学上, 被绝缘体隔开的两种导电溶液就像一个电容器。
 
-这层膜的另一个作用是控制进出细胞的物质 (比如说钠离子\ :math:`^+`). 
+这层膜的另一个作用是控制进出细胞的物质 (比如说钠离子Na\ :math:`^+`). 
 神经元膜通常不让离子渗透过去, 这就阻止了离子进出神经元体。但是, 
 膜上有一些特定的通道, 当电流注入神经元时, 这些通道就会被触发打开。
 这种电荷移动用电阻器来模拟。
@@ -162,9 +162,7 @@ LIF 神经元介于生物合理性和实用性之间。
 
 .. math:: \implies RC \frac{dU_{\rm mem}(t)}{dt} = -U_{\rm mem}(t) + RI_{\rm in}(t)
 
-等式右边的单位是电压 **\[Voltage]**. 在等式的左边, 
- :math:`\frac{dU_{\rm mem}(t)}{dt}` 这一项的单位是 
-**\[Voltage/Time]**. 为了让等式的两边的单位相等 (都为电压), 
+等式右边的单位是电压 **\[Voltage]**。在等式的左边, :math:`\frac{dU_{\rm mem}(t)}{dt}` 这一项的单位是 **\[Voltage/Time]**. 为了让等式的两边的单位相等 (都为电压), 
 :math:`RC` 的单位必须是 **\[Time]**. 我们称 :math:`\tau = RC` 为电路的时间常数：
 
 .. math:: \tau \frac{dU_{\rm mem}(t)}{dt} = -U_{\rm mem}(t) + RI_{\rm in}(t)
@@ -197,7 +195,7 @@ LIF 神经元介于生物合理性和实用性之间。
 
 .. math:: \tau \frac{dU(t)}{dt} = -U(t) + RI_{\rm in}(t)
 
- :math:`U(t)` 的下标从简省略。
+:math:`U(t)` 的下标从简省略。
 
 首先让我们来在不求极限的情况下解这个导数
 :math:`\Delta t \rightarrow 0`:
@@ -300,7 +298,7 @@ Lapicque 模型中的大多数概念都可以应用到其他 LIF 神经元模型
     # A list to store a recording of membrane potential
     mem_rec = [mem]
 
-是时候运行模拟了! 在每个时间段,  ``mem`` 都会被更新并保存在 ``mem_rec``中:
+是时候运行模拟了! 在每个时间段,  ``mem`` 都会被更新并保存在 ``mem_rec`` 中:
 
 ::
 
@@ -383,7 +381,7 @@ Lapicque 模型中的大多数概念都可以应用到其他 LIF 神经元模型
     计算得到的输入脉冲 [A] x 电阻 [Ω] 的值为: 0.5 V
     模拟得到的稳态膜电位值为: 0.4999999403953552 V
 
-足够接近了！
+足够接近！
 
 3.3 Lapicque: 冲激输入
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -739,7 +737,7 @@ Lapicque 模型中的大多数概念都可以应用到其他 LIF 神经元模型
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-让我们利用我们在 `教程1 <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_1_spikegen.ipynb>` 
+让我们利用我们在 `教程（一） <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_1_spikegen.ipynb>`_ 
 中学到的一些技能, 并使用 ``snntorch.spikegen`` 模块创建一些随机生成的输入脉冲。
 
 ::
@@ -797,7 +795,6 @@ Lapicque 模型中的大多数概念都可以应用到其他 LIF 神经元模型
 3.6 Lapicque: Reset Mechanisms
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 我们已经从头开始实现了重置机制, 但让我们再深入一点。
 膜电位的急剧下降促进了脉冲生成的减少, 这是有关大脑如何如此高效的一部分理论的补充。
 在生物学上, 膜电位的这种下降被称为“去极化”。
@@ -852,7 +849,7 @@ snnTorch神经元模型使用 ``reset_mechanism = "subtract"``。
 请特别关注膜电位的演变, 尤其是在它达到阈值后的瞬间。
 您可能会注意到, “重置为零”后, 膜电位被迫在每次脉冲后归零。
 
-那么哪种方法更好？应用 ``"subtract"``（重置机制的默认值）更不会丢失信息, 
+那么哪种方法更好？应用 ``"subtract"`` （重置机制的默认值）更不会丢失信息, 
 因为它不会忽略膜电位超过阈值的程度。
 
 另一方面, 采用 ``"zero"`` 的强制重置会促进稀疏性, 
@@ -864,20 +861,18 @@ snnTorch神经元模型使用 ``reset_mechanism = "subtract"``。
 Conclusion
 ---------------
 
-In practice, we probably wouldn’t use this neuron model to train a
-neural network. The Lapicque LIF model has added a lot of
-hyperparameters to tune: :math:`R`, :math:`C`, :math:`\Delta t`,
-:math:`U_{\rm thr}`, and the choice of reset mechanism. It’s all a
-little bit daunting. So the `next tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ will eliminate most of these
-hyperparameters, and introduce a neuron model that is better suited for
-large-scale deep learning.
+实际上，我们可能不会用这个神经元模型来训练神经网络。
+Lapicque LIF 模型增加了很多需要调整的超参数：:math:`R`, :math:`C`, :math:`\Delta t`, :math:`U_{\rm thr}`，
+以及重置机制的选择。这一切都有点令人生畏。
+因此， `下一个教程 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 将取消大部分超参数，
+并引入更适合大规模深度学习的神经元模型。
 
-If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+如果你喜欢这个项目，请考虑在 GitHub 上给代码仓库点亮星星⭐，
+因为这是支持它的最简单的、最好的方式。
 
-For reference, the documentation `can be found
-here <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__.
+参考文档在 `这里 <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__.
 
-Further Reading
+更多阅读
 ---------------
 
 -  `Check out the snnTorch GitHub project here. <https://github.com/jeshraghian/snntorch>`__

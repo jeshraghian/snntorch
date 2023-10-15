@@ -34,9 +34,9 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 ..
 
 本教程的部分灵感来自 Friedemann Zenke 在 SNN 方面的大量工作。
-请查看他关于替代梯度的资料库 `here <https://github.com/fzenke/spytorch>`__, 
+请在 `这里 <https://github.com/fzenke/spytorch>`_ 查看他关于替代梯度的资料库, 
 以及我最喜欢的一篇论文： E. O. Neftci, H. Mostafa, F. Zenke,
- `SNN中的替代梯度学习： 将基于梯度的优化功能引入SNN。<https://ieeexplore.ieee.org/document/8891809>`__ IEEE Signal Processing Magazine 36, 51-63.
+ `SNN中的替代梯度学习： 将基于梯度的优化功能引入SNN。<https://ieeexplore.ieee.org/document/8891809>`_ IEEE Signal Processing Magazine 36, 51-63.
 
 在教程的最后，我们将实施一种基本的监督学习算法。
 我们将使用原始静态 MNIST 数据集，并使用梯度下降法训练
@@ -67,7 +67,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 1. 脉冲神经网络的递归表示
 ----------------------------------------
 
-在 `教程 3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中，
+在 `教程（三） <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中，
 我们推导出了泄漏整合-发射（LIF）神经元的递归表示:
 
 .. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{R[t]}_\text{reset} \tag{1}
@@ -162,7 +162,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 但事实证明，神经网络对这种近似是相当稳健的。这就是通常所说的 *替代梯度* 方法。
 
 使用替代梯度有多种选择，
-我们将在 `教程 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_" 中详细介绍这些方法。
+我们将在 `教程（六） <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_" 中详细介绍这些方法。
 snnTorch 的默认方法（截至 v0.6.0）是用反正切函数平滑 Heaviside 函数。
 使用的后向导数为
 
@@ -232,9 +232,8 @@ PyTorch 的自动差异化（autodiff）机制会在后台跟踪梯度。
 
     lif1 = snn.Leaky(beta=0.9)
 
-If you would like to explore how this neuron behaves, then refer to
-`Tutorial
-3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__.
+如果您想了解该神经元的行为，请参阅
+`教程（三） <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__.
 
 3. 通过时间反向传播（BPTT）
 ----------------------
@@ -563,7 +562,7 @@ Adam 是一个稳健的优化器，在递归网络中表现出色，
 
 只经过一次迭代，不过损失应该会减少，准确率应该会提高。
 请注意膜电位是如何用于计算交叉熵损失的，而脉冲计数是如何用于衡量准确度的。
-也可以在损失中使用脉冲计数（ `参见教程 6 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ ）
+也可以在损失中使用脉冲计数（ `参见教程（六） <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ ）
 
 7.5 Training Loop
 ~~~~~~~~~~~~~~~~~~
