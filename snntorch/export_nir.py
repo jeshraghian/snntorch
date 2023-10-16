@@ -111,10 +111,11 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
     elif isinstance(module, Synaptic):
         # TODO
+        n_neurons = module.alpha.shape[0]
         return nir.CubaLIF(
             tau_syn=1 / (1 - module.alpha).detach().numpy(),
             tau_mem=1 / (1 - module.beta).detach().numpy(),
-            v_threshold=module.threshold.detach().numpy(),
+            v_threshold=np.ones_like(module.alpha) * module.threshold.detach().numpy(),
             v_leak=np.zeros_like(module.beta),
             r=module.beta.detach().numpy(),  # NOTE: is this right?
         )

@@ -9,7 +9,7 @@ def _replace_rnn_subgraph_with_nirgraph(graph: nir.NIRGraph) -> nir.NIRGraph:
     """Take a NIRGraph and replace any RNN subgraphs with a single NIRGraph node."""
     if len([e for e in graph.nodes.values() if isinstance(e, nir.Input)]) > 1:
         print('found RNN subgraph, trying to parse')
-        cand_sg_nk = [e[1] for e in graph.edges if e[1] not in graph.nodes]
+        cand_sg_nk = list(set([e[1] for e in graph.edges if e[1] not in graph.nodes]))
         print('detected subgraph! candidates:', cand_sg_nk)
         assert len(cand_sg_nk) == 1, 'only one subgraph allowed'
         nk = cand_sg_nk[0]
@@ -48,8 +48,8 @@ def _parse_rnn_subgraph(graph: nir.NIRGraph) -> (nir.NIRNode, nir.NIRNode, int):
         wrec_node = [n for n in sub_nodes if isinstance(n, (nir.Affine, nir.Linear))][0]
     except IndexError:
         raise ValueError('invalid RNN subgraph - could not find all required nodes')
-    lif_size = list(input_node.input_type.values())[0].size
-    assert lif_size == list(output_node.output_type.values())[0].size, 'output size mismatch'
+    lif_size = list(input_node.input_type.values())[0][0]
+    assert lif_size == list(output_node.output_type.values())[0][0], 'output size mismatch'
     assert lif_size == lif_node.v_threshold.size, 'lif size mismatch (v_threshold)'
     assert lif_size == wrec_node.weight.shape[0], 'w_rec shape mismatch'
     assert lif_size == wrec_node.weight.shape[1], 'w_rec shape mismatch'
@@ -57,38 +57,77 @@ def _parse_rnn_subgraph(graph: nir.NIRGraph) -> (nir.NIRNode, nir.NIRNode, int):
     return lif_node, wrec_node, lif_size
 
 
-def _nir_to_snntorch_module(node: nir.NIRNode) -> torch.nn.Module:
+def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Module:
     if isinstance(node, nir.Input) or isinstance(node, nir.Output):
         return None
 
     elif isinstance(node, nir.Affine):
         assert node.bias is not None, 'bias must be specified for Affine layer'
+
         mod = torch.nn.Linear(node.weight.shape[1], node.weight.shape[0])
         mod.weight.data = torch.Tensor(node.weight)
         mod.bias.data = torch.Tensor(node.bias)
+
         return mod
 
     elif isinstance(node, nir.Linear):
         mod = torch.nn.Linear(node.weight.shape[1], node.weight.shape[0], bias=False)
         mod.weight.data = torch.Tensor(node.weight)
+
         return mod
 
     elif isinstance(node, nir.LIF):
-        # NOTE: assuming that parameters are arrays of correct size
-        assert np.unique(node.v_threshold).size == 1, 'v_threshold must be same for all neurons'
         dt = 1e-4
-        vthr = node.v_threshold
+
+        assert np.allclose(node.v_leak, 0.), 'v_leak not supported'
+        assert np.unique(node.v_threshold).size == 1, 'v_threshold must be same for all neurons'
+
         beta = 1 - (dt / node.tau)
+        vthr = node.v_threshold
         w_scale = node.r * dt / node.tau
-        if np.alltrue(w_scale == 1.) or np.unique(w_scale).size == 1:
-            # HACK to avoid scaling the inputs
-            print('[warning] scaling weights to avoid scaling inputs')
-            vthr = vthr / np.unique(w_scale)[0]
-        else:
-            raise NotImplementedError('w_scale must be 1, or the same for all neurons')
+
+        if not np.alltrue(w_scale == 1.):
+            if hack_w_scale:
+                vthr = vthr / np.unique(w_scale)[0]
+                print('[warning] scaling weights to avoid scaling inputs')
+                print(f'w_scale: {w_scale}, r: {node.r}, dt: {dt}, tau: {node.tau}')
+            else:
+                raise NotImplementedError('w_scale must be 1, or the same for all neurons')
+
+        assert np.unique(vthr).size == 1, 'LIF v_thr must be same for all neurons'
+
         return snn.Leaky(
             beta=beta,
-            threshold=vthr,
+            threshold=np.unique(vthr)[0],
+            reset_mechanism='zero',
+            init_hidden=True,
+        )
+
+    elif isinstance(node, nir.CubaLIF):
+        dt = 1e-4
+
+        assert np.allclose(node.v_leak, 0), 'v_leak not supported'
+        assert np.allclose(node.r * dt / node.tau_mem, 1.), 'r not supported in CubaLIF'
+
+        alpha = 1 - (1 / node.tau_syn)
+        beta = 1 - (1 / node.tau_mem)
+        vthr = node.v_threshold
+        w_scale = node.w_in * (dt / node.tau_syn)
+
+        if not np.alltrue(w_scale == 1.):
+            if hack_w_scale:
+                vthr = vthr / w_scale
+                print('[warning] scaling weights to avoid scaling inputs')
+                print(f'w_scale: {w_scale}, w_in: {node.w_in}, dt: {dt}, tau_syn: {node.tau_syn}')
+            else:
+                raise NotImplementedError('w_scale must be 1, or the same for all neurons')
+
+        assert np.unique(vthr).size == 1, 'CubaLIF v_thr must be same for all neurons'
+
+        return snn.Synaptic(
+            alpha=alpha,
+            beta=beta,
+            threshold=np.unique(vthr)[0],
             reset_mechanism='zero',
             init_hidden=True,
         )
