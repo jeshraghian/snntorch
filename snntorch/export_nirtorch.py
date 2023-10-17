@@ -50,6 +50,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
         tau_mem = dt / (1 - beta)
         r = tau_mem / dt
         v_leak = np.zeros_like(beta)
+        w_in = tau_syn / dt
 
         return nir.CubaLIF(
             tau_syn=tau_syn,
@@ -57,6 +58,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
             v_threshold=vthr,
             v_leak=v_leak,
             r=r,
+            w_in=w_in,
         )
 
     elif isinstance(module, snn.RLeaky):
@@ -113,6 +115,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
         tau_mem = dt / (1 - beta)
         r = tau_mem / dt
         v_leak = np.zeros_like(beta)
+        w_in = tau_syn / dt
 
         return nir.NIRGraph(nodes={
             'input': nir.Input(input_type=[n_neurons]),
@@ -122,6 +125,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
                 tau_syn=tau_syn,
                 r=r,
                 v_leak=v_leak,
+                w_in=w_in,
             ),
             'w_rec': w_rec,
             'output': nir.Output(output_type=[n_neurons])

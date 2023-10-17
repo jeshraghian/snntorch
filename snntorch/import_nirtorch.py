@@ -86,7 +86,7 @@ def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Mo
         vthr = node.v_threshold
         w_scale = node.r * dt / node.tau
 
-        if not np.alltrue(w_scale == 1.):
+        if not np.allclose(w_scale, 1.):
             if hack_w_scale:
                 vthr = vthr / np.unique(w_scale)[0]
                 print('[warning] scaling weights to avoid scaling inputs')
@@ -107,14 +107,14 @@ def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Mo
         dt = 1e-4
 
         assert np.allclose(node.v_leak, 0), 'v_leak not supported'
-        assert np.allclose(node.r * dt / node.tau_mem, 1.), 'r not supported in CubaLIF'
+        assert np.allclose(node.r, node.tau_mem / dt), 'r not supported in CubaLIF'
 
-        alpha = 1 - (1 / node.tau_syn)
-        beta = 1 - (1 / node.tau_mem)
+        alpha = 1 - (dt / node.tau_syn)
+        beta = 1 - (dt / node.tau_mem)
         vthr = node.v_threshold
         w_scale = node.w_in * (dt / node.tau_syn)
 
-        if not np.alltrue(w_scale == 1.):
+        if not np.allclose(w_scale, 1.):
             if hack_w_scale:
                 vthr = vthr / w_scale
                 print('[warning] scaling weights to avoid scaling inputs')
@@ -136,6 +136,7 @@ def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Mo
         lif_node, wrec_node, lif_size = _parse_rnn_subgraph(node)
 
         if isinstance(lif_node, nir.LIF):
+            raise NotImplementedError('LIF in subgraph not supported')
             # TODO: fix neuron parameters
             rleaky = snn.RLeaky(
                 beta=1 - (1 / lif_node.tau),
@@ -151,15 +152,39 @@ def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Mo
             return rleaky
 
         elif isinstance(lif_node, nir.CubaLIF):
-            # TODO: fix neuron parameters
+            dt = 1e-4
+
+            assert np.allclose(lif_node.v_leak, 0), 'v_leak not supported'
+            assert np.allclose(lif_node.r, lif_node.tau_mem / dt), 'r not supported in CubaLIF'
+
+            alpha = 1 - (dt / lif_node.tau_syn)
+            beta = 1 - (dt / lif_node.tau_mem)
+            vthr = lif_node.v_threshold
+            w_scale = lif_node.w_in * (dt / lif_node.tau_syn)
+
+            if not np.allclose(w_scale, 1.):
+                if hack_w_scale:
+                    vthr = vthr / w_scale
+                    print(f'[warning] scaling weights to avoid scaling inputs. w_scale: {w_scale}')
+                    print(f'w_in: {lif_node.w_in}, dt: {dt}, tau_syn: {lif_node.tau_syn}')
+                else:
+                    raise NotImplementedError('w_scale must be 1, or the same for all neurons')
+
+            assert np.unique(vthr).size == 1, 'CubaLIF v_thr must be same for all neurons'
+
+            diagonal = np.array_equal(wrec_node.weight, np.diag(np.diag(wrec_node.weight)))
+
             rsynaptic = snn.RSynaptic(
-                alpha=1 - (1 / lif_node.tau_syn),
-                beta=1 - (1 / lif_node.tau_mem),
-                init_hidden=True,
+                alpha=alpha,
+                beta=beta,
+                threshold=np.unique(vthr)[0],
                 reset_mechanism='zero',
-                all_to_all=True,
+                init_hidden=True,
+                all_to_all=not diagonal,
                 linear_features=lif_size,
+                V=np.diag(wrec_node.weight) if diagonal else None,
             )
+
             rsynaptic.recurrent.weight.data = torch.Tensor(wrec_node.weight)
             if isinstance(wrec_node, nir.Affine):
                 rsynaptic.recurrent.bias.data = torch.Tensor(wrec_node.bias)
