@@ -2,7 +2,7 @@ from typing import Optional
 import torch
 import nir
 import numpy as np
-from nirtorch import extract_nir_graph
+import nirtorch
 import snntorch as snn
 
 
@@ -139,12 +139,14 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
 
 def to_nir(
-    module: torch.nn.Module, sample_data: torch.Tensor, model_name: str = "snntorch"
+    module: torch.nn.Module, sample_data: torch.Tensor, model_name: str = "snntorch",
+    model_fwd_args=[], ignore_dims=[]
 ) -> nir.NIRNode:
     """Convert an snnTorch model to the Neuromorphic Intermediate Representation (NIR).
     """
-    nir_graph = extract_nir_graph(
+    nir_graph = nirtorch.extract_nir_graph(
         module, _extract_snntorch_module, sample_data, model_name=model_name,
-        ignore_submodules_of=[snn.RLeaky, snn.RSynaptic]
+        ignore_submodules_of=[snn.RLeaky, snn.RSynaptic],
+        model_fwd_args=model_fwd_args, ignore_dims=ignore_dims
     )
     return nir_graph

@@ -5,25 +5,66 @@ import torch
 import snntorch as snn
 
 
+def _create_rnn_subgraph(graph: nir.NIRGraph, lif_nk: str, w_nk: str) -> nir.NIRGraph:
+    """Take a NIRGraph plus the node keys for a LIF and a W_rec, and return a new NIRGraph
+    which has the RNN subgraph replaced with a subgraph (i.e., a single NIRGraph node).
+    """
+    # NOTE: assuming that the LIF and W_rec have keys of form xyz.abc
+    sg_key = lif_nk.split('.')[0]  # TODO: make this more general?
+
+    # create subgraph for RNN
+    sg_edges = [
+        (lif_nk, w_nk), (w_nk, lif_nk), (lif_nk, f'{sg_key}.output'), (f'{sg_key}.input', w_nk)
+    ]
+    sg_nodes = {
+        lif_nk: graph.nodes[lif_nk],
+        w_nk: graph.nodes[w_nk],
+        f'{sg_key}.input': nir.Input(graph.nodes[lif_nk].input_type),
+        f'{sg_key}.output': nir.Output(graph.nodes[lif_nk].output_type),
+    }
+    sg = nir.NIRGraph(nodes=sg_nodes, edges=sg_edges)
+
+    # remove subgraph edges from graph
+    graph.edges = [e for e in graph.edges if e not in [(lif_nk, w_nk), (w_nk, lif_nk)]]
+    # remove subgraph nodes from graph
+    graph.nodes = {k: v for k, v in graph.nodes.items() if k not in [lif_nk, w_nk]}
+
+    # change edges of type (x, lif_nk) to (x, sg_key)
+    graph.edges = [(e[0], sg_key) if e[1] == lif_nk else e for e in graph.edges]
+    # change edges of type (lif_nk, x) to (sg_key, x)
+    graph.edges = [(sg_key, e[1]) if e[0] == lif_nk else e for e in graph.edges]
+
+    # insert subgraph into graph and return
+    graph.nodes[sg_key] = sg
+    return graph
+
+
 def _replace_rnn_subgraph_with_nirgraph(graph: nir.NIRGraph) -> nir.NIRGraph:
     """Take a NIRGraph and replace any RNN subgraphs with a single NIRGraph node."""
-    if len([e for e in graph.nodes.values() if isinstance(e, nir.Input)]) > 1:
-        print('found RNN subgraph, trying to parse')
-        cand_sg_nk = list(set([e[1] for e in graph.edges if e[1] not in graph.nodes]))
-        print('detected subgraph! candidates:', cand_sg_nk)
-        assert len(cand_sg_nk) == 1, 'only one subgraph allowed'
-        nk = cand_sg_nk[0]
-        nodes = {k: v for k, v in graph.nodes.items() if k.startswith(f'{nk}.')}
-        edges = [e for e in graph.edges if e[0].startswith(f'{nk}.') or e[1].startswith(f'{nk}.')]
-        valid_edges = all([e[0].startswith(f'{nk}.') for e in edges])
-        valid_edges = valid_edges and all([e[1].startswith(f'{nk}.') for e in edges])
-        assert valid_edges, 'subgraph edges must start with subgraph key'
-        sg_graph = nir.NIRGraph(nodes=nodes, edges=edges)
-        for k in nodes.keys():
-            graph.nodes.pop(k)
-        for e in edges:
-            graph.edges.remove(e)
-        graph.nodes[nk] = sg_graph
+    print('replace rnn subgraph with nirgraph')
+
+    if len(set(graph.edges)) != len(graph.edges):
+        print('[WARNING] duplicate edges found, removing')
+        graph.edges = list(set(graph.edges))
+
+    # find cycle of LIF <> Dense nodes
+    for edge1 in graph.edges:
+        for edge2 in graph.edges:
+            if not edge1 == edge2:
+                if edge1[0] == edge2[1] and edge1[1] == edge2[0]:
+                    lif_nk = edge1[0]
+                    lif_n = graph.nodes[lif_nk]
+                    w_nk = edge1[1]
+                    w_n = graph.nodes[w_nk]
+                    is_lif = isinstance(lif_n, (nir.LIF, nir.CubaLIF))
+                    is_dense = isinstance(w_n, (nir.Affine, nir.Linear))
+                    # check if the dense only connects to the LIF
+                    w_out_nk = [e[1] for e in graph.edges if e[0] == w_nk]
+                    w_in_nk = [e[0] for e in graph.edges if e[1] == w_nk]
+                    is_rnn = len(w_out_nk) == 1 and len(w_in_nk) == 1
+                    # check if we found an RNN - if so, then parse it
+                    if is_rnn and is_lif and is_dense:
+                        graph = _create_rnn_subgraph(graph, edge1[0], edge1[1])
     return graph
 
 
@@ -57,7 +98,9 @@ def _parse_rnn_subgraph(graph: nir.NIRGraph) -> (nir.NIRNode, nir.NIRNode, int):
     return lif_node, wrec_node, lif_size
 
 
-def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Module:
+def _nir_to_snntorch_module(
+        node: nir.NIRNode, hack_w_scale=True, init_hidden=False
+) -> torch.nn.Module:
     if isinstance(node, nir.Input) or isinstance(node, nir.Output):
         return None
 
@@ -100,7 +143,7 @@ def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Mo
             beta=beta,
             threshold=np.unique(vthr)[0],
             reset_mechanism='zero',
-            init_hidden=True,
+            init_hidden=init_hidden,
         )
 
     elif isinstance(node, nir.CubaLIF):
@@ -124,12 +167,17 @@ def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Mo
 
         assert np.unique(vthr).size == 1, 'CubaLIF v_thr must be same for all neurons'
 
+        if np.unique(alpha).size == 1:
+            alpha = float(np.unique(alpha)[0])
+        if np.unique(beta).size == 1:
+            beta = float(np.unique(beta)[0])
+
         return snn.Synaptic(
             alpha=alpha,
             beta=beta,
-            threshold=np.unique(vthr)[0],
+            threshold=float(np.unique(vthr)[0]),
             reset_mechanism='zero',
-            init_hidden=True,
+            init_hidden=init_hidden,
         )
 
     elif isinstance(node, nir.NIRGraph):
@@ -142,7 +190,7 @@ def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Mo
                 beta=1 - (1 / lif_node.tau),
                 threshold=lif_node.v_threshold,
                 reset_mechanism='zero',
-                init_hidden=True,
+                init_hidden=init_hidden,
                 all_to_all=True,
                 linear_features=lif_size,
             )
@@ -174,15 +222,25 @@ def _nir_to_snntorch_module(node: nir.NIRNode, hack_w_scale=True) -> torch.nn.Mo
 
             diagonal = np.array_equal(wrec_node.weight, np.diag(np.diag(wrec_node.weight)))
 
+            if np.unique(alpha).size == 1:
+                alpha = float(np.unique(alpha)[0])
+            if np.unique(beta).size == 1:
+                beta = float(np.unique(beta)[0])
+
+            if diagonal:
+                V = torch.from_numpy(np.diag(wrec_node.weight)).to(dtype=torch.float32)
+            else:
+                V = None
+
             rsynaptic = snn.RSynaptic(
                 alpha=alpha,
                 beta=beta,
-                threshold=np.unique(vthr)[0],
+                threshold=float(np.unique(vthr)[0]),
                 reset_mechanism='zero',
-                init_hidden=True,
+                init_hidden=init_hidden,
                 all_to_all=not diagonal,
                 linear_features=lif_size,
-                V=np.diag(wrec_node.weight) if diagonal else None,
+                V=V,
             )
 
             rsynaptic.recurrent.weight.data = torch.Tensor(wrec_node.weight)
