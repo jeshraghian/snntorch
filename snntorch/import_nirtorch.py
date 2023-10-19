@@ -185,19 +185,6 @@ def _nir_to_snntorch_module(
 
         if isinstance(lif_node, nir.LIF):
             raise NotImplementedError('LIF in subgraph not supported')
-            # TODO: fix neuron parameters
-            rleaky = snn.RLeaky(
-                beta=1 - (1 / lif_node.tau),
-                threshold=lif_node.v_threshold,
-                reset_mechanism='zero',
-                init_hidden=init_hidden,
-                all_to_all=True,
-                linear_features=lif_size,
-            )
-            rleaky.recurrent.weight.data = torch.Tensor(wrec_node.weight)
-            if isinstance(wrec_node, nir.Affine):
-                rleaky.recurrent.bias.data = torch.Tensor(wrec_node.bias)
-            return rleaky
 
         elif isinstance(lif_node, nir.CubaLIF):
             dt = 1e-4
