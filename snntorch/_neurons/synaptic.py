@@ -168,7 +168,7 @@ class Synaptic(LIF):
         reset_mechanism="subtract",
         state_quant=False,
         output=False,
-        reset_after=False,
+        reset_delay=True,
     ):
         super(Synaptic, self).__init__(
             beta,
@@ -186,10 +186,10 @@ class Synaptic(LIF):
 
         self._alpha_register_buffer(alpha, learn_alpha)
 
-        self._reset_after = reset_after
+        self.reset_delay = reset_delay
 
-        if reset_after and self.init_hidden:
-            raise NotImplementedError('reset_after only supported for init_hidden=False')
+        if not reset_delay and self.init_hidden:
+            raise NotImplementedError('no reset_delay only supported for init_hidden=False')
 
         if self.init_hidden:
             self.syn, self.mem = self.init_synaptic()
@@ -220,7 +220,7 @@ class Synaptic(LIF):
             else:
                 spk = self.fire(mem)
 
-            if self._reset_after:
+            if not self.reset_delay:
                 # reset membrane potential _right_ after spike
                 do_reset = spk / self.graded_spikes_factor - self.reset  # avoid double reset
                 if self.reset_mechanism_val == 0:  # reset by subtraction
