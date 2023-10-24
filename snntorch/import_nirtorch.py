@@ -119,6 +119,45 @@ def _nir_to_snntorch_module(
 
         return mod
 
+    elif isinstance(node, nir.Conv2d):
+        mod = torch.nn.Conv2d(
+            node.weight.shape[1],
+            node.weight.shape[0],
+            kernel_size=[*node.weight.shape[-2:]],
+            stride=node.stride,
+            padding=node.padding,
+            dilation=node.dilation,
+            groups=node.groups,
+        )
+        mod.bias.data = torch.Tensor(node.bias)
+        mod.weight.data = torch.Tensor(node.weight)
+        return mod
+
+    if isinstance(node, nir.Flatten):
+        return torch.nn.Flatten(node.start_dim, node.end_dim)
+
+    if isinstance(node, nir.SumPool2d):
+        return torch.nn.AvgPool2d(
+            kernel_size=tuple(node.kernel_size),
+            stride=tuple(node.stride),
+            padding=tuple(node.padding),
+            divisor_override=1,  # turn AvgPool into SumPool
+        )
+
+    elif isinstance(node, nir.IF):
+        assert np.unique(node.v_threshold).size == 1, 'v_threshold must be same for all neurons'
+        assert np.unique(node.r).size == 1, 'r must be same for all neurons'
+        vthr = np.unique(node.v_threshold)[0]
+        r = np.unique(node.r)[0]
+        assert r == 1, 'r != 1 not supported'
+        mod = snn.Leaky(
+            beta=0.9,
+            threshold=vthr * r,
+            init_hidden=False,
+            reset_delay=False,
+        )
+        return mod
+
     elif isinstance(node, nir.LIF):
         dt = 1e-4
 
@@ -144,6 +183,7 @@ def _nir_to_snntorch_module(
             threshold=np.unique(vthr)[0],
             reset_mechanism='zero',
             init_hidden=init_hidden,
+            reset_delay=False,
         )
 
     elif isinstance(node, nir.CubaLIF):
@@ -178,6 +218,7 @@ def _nir_to_snntorch_module(
             threshold=float(np.unique(vthr)[0]),
             reset_mechanism='zero',
             init_hidden=init_hidden,
+            reset_delay=False,
         )
 
     elif isinstance(node, nir.NIRGraph):
@@ -228,6 +269,7 @@ def _nir_to_snntorch_module(
                 all_to_all=not diagonal,
                 linear_features=lif_size,
                 V=V,
+                reset_delay=False,
             )
 
             rsynaptic.recurrent.weight.data = torch.Tensor(wrec_node.weight)
