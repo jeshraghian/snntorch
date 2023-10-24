@@ -224,9 +224,9 @@ class Synaptic(LIF):
                 # reset membrane potential _right_ after spike
                 do_reset = spk / self.graded_spikes_factor - self.reset  # avoid double reset
                 if self.reset_mechanism_val == 0:  # reset by subtraction
-                    mem -= do_reset * self.threshold
+                    mem = mem - do_reset * self.threshold
                 elif self.reset_mechanism_val == 1:  # reset to zero
-                    mem -= do_reset * mem
+                    mem = mem - do_reset * mem
 
             return spk, syn, mem
 

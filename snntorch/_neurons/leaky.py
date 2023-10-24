@@ -141,6 +141,7 @@ class Leaky(LIF):
         output=False,
         graded_spikes_factor=1.0,
         learn_graded_spikes_factor=False,
+        reset_delay=True,
     ):
         super(Leaky, self).__init__(
             beta,
@@ -157,6 +158,11 @@ class Leaky(LIF):
             graded_spikes_factor,
             learn_graded_spikes_factor,
         )
+
+        self.reset_delay = reset_delay
+
+        if not self.reset_delay and self.init_hidden:
+            raise NotImplementedError('no reset_delay only supported for init_hidden=False')
 
         if self.init_hidden:
             self.mem = self.init_leaky()
@@ -187,6 +193,13 @@ class Leaky(LIF):
                 spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
             else:
                 spk = self.fire(mem)
+
+            if not self.reset_delay:
+                do_reset = spk / self.graded_spikes_factor - self.reset  # avoid double reset
+                if self.reset_mechanism_val == 0:  # reset by subtraction
+                    mem = mem - do_reset * self.threshold
+                elif self.reset_mechanism_val == 1:  # reset to zero
+                    mem = mem - do_reset * mem
 
             return spk, mem
 
