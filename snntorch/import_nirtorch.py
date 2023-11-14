@@ -275,6 +275,8 @@ def _nir_to_snntorch_module(
             rsynaptic.recurrent.weight.data = torch.Tensor(wrec_node.weight)
             if isinstance(wrec_node, nir.Affine):
                 rsynaptic.recurrent.bias.data = torch.Tensor(wrec_node.bias)
+            else:
+                rsynaptic.recurrent.bias.data = torch.zeros_like(rsynaptic.recurrent.bias)
             return rsynaptic
 
     else:
