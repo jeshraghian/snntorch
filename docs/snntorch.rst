@@ -25,6 +25,9 @@ At present, the neurons available in :mod:`snntorch` are variants of the Leaky I
 * **Lapicque** - Lapicque's RC Neuron Model
 * **Alpha** - Alpha Membrane Model
 
+Neuron models that accelerate training require passing data in parallel. Available neurons include:
+* **LeakyParallel** - 1st Order Leaky Integrate-and-Fire Neuron
+
 Additional models include spiking-LSTMs and spiking-ConvLSTMs:
 
 * **SLSTM** - Spiking long short-term memory cell with state-thresholding 
@@ -35,7 +38,7 @@ Additional models include spiking-LSTMs and spiking-ConvLSTMs:
 How to use snnTorch's neuron models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The following arguments are common across all neuron models:
+The following arguments are common across most neuron models:
 
 * **threshold** - firing threshold of the neuron
 * **spike_grad** - surrogate gradient function (see :mod:`snntorch.surrogate`)
