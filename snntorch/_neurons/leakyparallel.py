@@ -138,6 +138,7 @@ class LeakyParallel(nn.Module):
         learn_threshold=False,
         graded_spikes_factor=1.0,
         learn_graded_spikes_factor=False,
+        diagonal_enable=False,
         device=None,
         dtype=None,
     ):
@@ -147,8 +148,16 @@ class LeakyParallel(nn.Module):
                           bias=bias, batch_first=False, dropout=dropout, device=device, dtype=dtype)
         
         self._beta_buffer(beta, learn_beta)
+        self.hidden_size = hidden_size
+
         if self.beta is not None:
-            self.beta = self.beta.clamp(0, 1) 
+            self.beta = self.beta.clamp(0, 1)
+        
+        if diagonal_enable is False:
+            # Initial gradient and weights of w_hh are made diagonal
+            self._diagonal_enable(diagonal_enable)
+            # Register a gradient hook to clamp out non-diagonal matrices in backward pass
+            self.rnn.weight_hh_l0.register_hook(self.grad_hook)
 
         if spike_grad is None:
             self.spike_grad = self.ATan.apply
@@ -164,20 +173,7 @@ class LeakyParallel(nn.Module):
         if self.surrogate_disable:
             self.spike_grad = self._surrogate_bypass
 
-        with torch.no_grad():
-            if self.beta is not None:
-                # Set all weights to the scalar value of self.beta
-                if isinstance(self.beta, float) or isinstance(self.beta, int):
-                    self.rnn.weight_hh_l0.fill_(self.beta)
-                elif isinstance(self.beta, torch.Tensor) or isinstance(self.beta, torch.FloatTensor):
-                    if len(self.beta) == 1:
-                        self.rnn.weight_hh_l0.fill_(self.beta[0])
-                elif len(self.beta) == hidden_size:
-                    # Replace each value with the corresponding value in self.beta
-                    for i in range(hidden_size):
-                        self.rnn.weight_hh_l0.data[i].fill_(self.beta[i])
-                else:
-                    raise ValueError("Beta must be either a single value or of length 'hidden_size'.")
+        self._beta_to_weight_hh()
         
         if not learn_beta:
             # Make the weights non-learnable
@@ -247,12 +243,41 @@ class LeakyParallel(nn.Module):
             )
             return grad, None
         
+    def _diagonal_enable(self, diagonal_enable):
+        if diagonal_enable is False:
+            for i in range(self.hidden_size):
+                for j in range(self.hidden_size):
+                    if i != j:
+                        self.rnn.weight_hh_l0.data[i, j] = 0
+                        # self.rnn.weight_hh_l0.grad[i, j] = 0
     
+    def grad_hook(self, grad):
+        # Create a mask that is 1 on the diagonal and 0 elsewhere
+        mask = torch.eye(self.hidden_size, self.hidden_size)
+        # Use the mask to zero out non-diagonal elements of the gradient
+        return grad * mask
+
+    def _beta_to_weight_hh(self):
+        with torch.no_grad():
+            if self.beta is not None:
+                # Set all weights to the scalar value of self.beta
+                if isinstance(self.beta, float) or isinstance(self.beta, int):
+                    self.rnn.weight_hh_l0.fill_(self.beta)
+                elif isinstance(self.beta, torch.Tensor) or isinstance(self.beta, torch.FloatTensor):
+                    if len(self.beta) == 1:
+                        self.rnn.weight_hh_l0.fill_(self.beta[0])
+                elif len(self.beta) == self.hidden_size:
+                    # Replace each value with the corresponding value in self.beta
+                    for i in range(self.hidden_size):
+                        self.rnn.weight_hh_l0.data[i].fill_(self.beta[i])
+                else:
+                    raise ValueError("Beta must be either a single value or of length 'hidden_size'.")
+                
     def _beta_buffer(self, beta, learn_beta):
         if not isinstance(beta, torch.Tensor):
             if beta is not None:
                 beta = torch.as_tensor([beta])  # TODO: or .tensor() if no copy
-            self.register_buffer("beta", beta)
+        self.register_buffer("beta", beta)
 
     def _graded_spikes_buffer(
     self, graded_spikes_factor, learn_graded_spikes_factor
