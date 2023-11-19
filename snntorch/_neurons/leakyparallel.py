@@ -252,8 +252,9 @@ class LeakyParallel(nn.Module):
                         # self.rnn.weight_hh_l0.grad[i, j] = 0
     
     def grad_hook(self, grad):
+        device = grad.device
         # Create a mask that is 1 on the diagonal and 0 elsewhere
-        mask = torch.eye(self.hidden_size, self.hidden_size)
+        mask = torch.eye(self.hidden_size, self.hidden_size, device=device)
         # Use the mask to zero out non-diagonal elements of the gradient
         return grad * mask
 
