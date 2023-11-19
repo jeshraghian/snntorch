@@ -23,6 +23,7 @@ class LeakyParallel(nn.Module):
     * :math:`β` - Membrane potential decay rate
 
     Several differences between `LeakyParallel` and `Leaky` include:
+    
     * Negative hidden states are clipped due to the forced ReLU operation in RNN
     * Linear weights are included in addition to recurrent weights
     * `beta` is clipped between [0,1] and cloned to `weight_hh_l` only upon layer initialization. It is unused otherwise
@@ -38,6 +39,11 @@ class LeakyParallel(nn.Module):
         import snntorch as snn
 
         beta = 0.5
+        num_inputs = 784
+        num_hidden = 128
+        num_outputs = 10
+        batch_size = 128
+        x = torch.rand((num_steps, batch_size, num_inputs))
 
         # Define Network
         class Net(nn.Module):
@@ -45,8 +51,8 @@ class LeakyParallel(nn.Module):
                 super().__init__()
 
                 # initialize layers
-                self.lif1 = snn.LeakyParallel(input_size=784, hidden_size=128)
-                self.lif2 = snn.LeakyParallel(input_size=128, hidden_size=10, beta=beta)
+                self.lif1 = snn.LeakyParallel(input_size=num_inputs, hidden_size=num_hidden) # randomly initialize recurrent weights
+                self.lif2 = snn.LeakyParallel(input_size=num_hidden, hidden_size=num_outputs, beta=beta, learn_beta=True) # learnable recurrent weights initialized at beta
 
             def forward(self, x):
                 spk1 = self.lif1(x)
@@ -94,9 +100,11 @@ class LeakyParallel(nn.Module):
         to False
     :type learn_threshold: bool, optional
 
-    :param weight_hh_enable: Option to set the hidden matrix to be dense or diagonal. Diagonal (i.e., False) adheres to how a LIF neuron works. Dense (True) would allow the membrane potential of one LIF neuron to influence all others, and follow the RNN default implementation. Defaults to False
+    :param weight_hh_enable: Option to set the hidden matrix to be dense or 
+        diagonal. Diagonal (i.e., False) adheres to how a LIF neuron works. 
+        Dense (True) would allow the membrane potential of one LIF neuron to 
+        influence all others, and follow the RNN default implementation. Defaults to False
     :type weight_hh_enable: bool, optional
-
 
 
     Inputs: \\input_
@@ -186,9 +194,7 @@ class LeakyParallel(nn.Module):
     def forward(self, input_):
         mem = self.rnn(input_)
         # mem[0] contains relu'd outputs, mem[1] contains final hidden state
-        mem_shift = mem[0] - self.threshold
-        # print(mem[0])
-        # print(self.rnn.weight_hh_l0)
+        mem_shift = mem[0] - self.threshold # self.rnn.weight_hh_l0
         spk = self.spike_grad(mem_shift)
         spk = spk * self.graded_spikes_factor
         return spk
