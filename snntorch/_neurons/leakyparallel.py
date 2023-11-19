@@ -145,8 +145,8 @@ class LeakyParallel(nn.Module):
         
         self.rnn = nn.RNN(input_size, hidden_size, num_layers=1, nonlinearity='relu', 
                           bias=bias, batch_first=False, dropout=dropout, device=device, dtype=dtype)
-        self.beta = beta
-        self._beta_buffer
+        
+        self._beta_buffer(beta, learn_beta)
         if self.beta is not None:
             self.beta = self.beta.clamp(0, 1) 
 
@@ -168,10 +168,10 @@ class LeakyParallel(nn.Module):
             if self.beta is not None:
                 # Set all weights to the scalar value of self.beta
                 if isinstance(self.beta, float) or isinstance(self.beta, int):
-                    self.rnn.weight_hh_10.fill_(self.beta)
+                    self.rnn.weight_hh_l0.fill_(self.beta)
                 elif isinstance(self.beta, torch.Tensor) or isinstance(self.beta, torch.FloatTensor):
                     if len(self.beta) == 1:
-                        self.rnn.weight_hh_10.fill_(self.beta)
+                        self.rnn.weight_hh_l0.fill_(self.beta[0])
                 elif len(self.beta) == hidden_size:
                     # Replace each value with the corresponding value in self.beta
                     for i in range(hidden_size):
@@ -248,11 +248,11 @@ class LeakyParallel(nn.Module):
             return grad, None
         
     
-    def _beta_buffer(self, learn_beta):
-        if not isinstance(self.beta, torch.Tensor):
-            self.beta = torch.as_tensor(self.beta)  # TODO: or .tensor() if no copy
-        if not learn_beta:
-            self.register_buffer("beta", self.beta)
+    def _beta_buffer(self, beta, learn_beta):
+        if not isinstance(beta, torch.Tensor):
+            if beta is not None:
+                beta = torch.as_tensor([beta])  # TODO: or .tensor() if no copy
+            self.register_buffer("beta", beta)
 
     def _graded_spikes_buffer(
     self, graded_spikes_factor, learn_graded_spikes_factor
