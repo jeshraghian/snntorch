@@ -78,9 +78,14 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_regression_2.ipynb
 
+   * - `Model Pruning <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
+      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+      :alt: Open In Colab
+      :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/examples/sconce_model_compression_pruning.ipynb.ipynb
 
    * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
      -       —
+
 
 
 Future tutorials on spiking neurons and training are under development. 
