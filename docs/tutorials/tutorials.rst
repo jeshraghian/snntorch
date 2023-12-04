@@ -54,7 +54,7 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_7_neuromorphic_datasets.ipynb
 
-   * - `Tutorial 8 <https://snntorch.readthedocs.io/en/latest/tutorials/sconce_model_compression_pruning.html>`_
+   * - `Tutorial 8 <https://github.com/satabios/snntorch/blob/master/examples/sconce_model_compression_pruning.ipynb>`_
      - Model Compresion: sconce + snnTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
@@ -84,10 +84,10 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_regression_2.ipynb
 
-   * - `Model Pruning <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
+   * - `Model Pruning <https://github.com/satabios/snntorch/blob/master/examples/sconce_model_compression_pruning.ipynb>`_
       - .. image:: https://colab.research.google.com/assets/colab-badge.svg
       :alt: Open In Colab
-      :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/examples/sconce_model_compression_pruning.ipynb
+      :target: https://github.com/satabios/snntorch/blob/master/examples/sconce_model_compression_pruning.ipynb
 
    * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
      -       —
