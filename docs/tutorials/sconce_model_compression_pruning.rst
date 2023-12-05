@@ -56,18 +56,6 @@ Import Libraries
     "The current runtime does not have CUDA support." \
     "Please go to menu bar (Runtime - Change runtime type) and select GPU"
 
-.. code:: ipython3
-
-    from google.colab import drive
-    drive.mount('/content/drive')
-
-
-
-.. parsed-literal::
-
-    Mounted at /content/drive
-
-
 **Spiking Neural Network Compression**
 ======================================
 
@@ -249,9 +237,12 @@ Load the pretrained weights
 
 .. code:: ipython3
 
-    snn_pretrained_model_path = "drive/MyDrive/Efficientml/Efficientml.ai/snn_model.pth"
+    snn_pretrained_model_path = "./snn_model.pth"
     snn_model.load_state_dict(torch.load(snn_pretrained_model_path))  # Model Definition
     sconces.model = snn_model
+
+Set the Optimizizer and Type of Pruning Operation to Perform on the model
+=========================================================================
 
 .. code:: ipython3
 
@@ -266,6 +257,9 @@ Load the pretrained weights
     sconces.prune_mode = "GMP"
     sconces.num_finetune_epochs = 1
 
+
+Test the Pre-Trained Model Accuracy
+===================================
 
 .. code:: ipython3
 
@@ -283,6 +277,21 @@ Load the pretrained weights
     97.11538461538461
 
 
+
+Prune the Model
+===============
+
+The Compression does a series of steps as explained below:
+
+1. It evaluates the dense model accuracy
+2. Given the model, the package finds the best parameters for pruning
+   such that the accuracy degradation is minimal.
+3. The retreived optimal parameters from the above steps are used to
+   prune the model.
+4. At times, certain pruning techniques might require a fine-tuning on
+   the dataset. For which the pruned model is fine-tuned on the dataset.
+5. Pruned Model is saved and Compared for Latency, Paramater, MAC and
+   model size.
 
 .. code:: ipython3
 
@@ -373,3 +382,16 @@ Load the pretrained weights
     /usr/local/lib/python3.10/dist-packages/torchprofile/profile.py:22: UserWarning: No handlers found: "prim::pythonop". Skipped.
       warnings.warn('No handlers found: "{}". Skipped.'.format(
 
+
+Note:
+=====
+
+-  The Latency is reduced and Parameters will be reduced(the numbers are
+   rounded to .2f hence we cannnot see the parameter pruning here, large
+   model will be able to showcase this deliberately),
+-  The MAC is remains the same, sicne the Conv operation used here is
+   Conv2d and the MAC are calculated Channel Wise and **not Element
+   Wise**.
+-  If specialised sparsity aware, Software/Hardware is used then we
+   reach the ultimate goal of compressing the model and leveraging the
+   inherent sparsity in the model
