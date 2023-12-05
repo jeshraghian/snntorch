@@ -12,7 +12,7 @@ import hashlib
 # Adapted from https://github.com/nmi-lab/torchneuromorphic
 # by Emre Neftci and Clemens Schaefer
 
-DEFAULT_ROOT = "data/"
+# DEFAULT_ROOT = "data/"
 
 
 def download_url(url, root, filename=None, md5=None, total_size=None):
@@ -142,8 +142,8 @@ class NeuromorphicDataset(data.Dataset):
         target_transform_train=None,
         target_transform_test=None,
     ):
-        if isinstance(root, torch._six.string_classes):
-            root = os.path.expanduser(root)
+        # if isinstance(root, torch._six.string_classes):
+        #     root = os.path.expanduser(root)
         self.root = root
 
         if root is not None:
