@@ -303,7 +303,7 @@ A few notes on the architecture below:
                 spk_in, mem_1 = self.lif_in(cur_in, mem_1)
                 
                 cur_hidden = self.fc_hidden(spk_in)
-                spk_hidden, mem_2 = self.li_out(cur_hidden, mem_2)
+                spk_hidden, mem_2 = self.lif_hidden(cur_hidden, mem_2)
     
                 cur_out = self.fc_out(spk_hidden)
                 _, mem_3 = self.li_out(cur_out, mem_3)
