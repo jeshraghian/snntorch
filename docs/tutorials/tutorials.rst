@@ -1,4 +1,4 @@
-The tutorial consists of a series of Google Colab notebooks. Static non-editable versions are also available. 
+The tutorial consists of a series of Google Colab notebooks. Static non-editable versions are also available.
 
 
 .. list-table::
@@ -33,13 +33,13 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_4_advanced_neurons.ipynb
 
-  
+
    * - `Tutorial 5 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_5.html>`_
      -  Training Spiking Neural Networks with snnTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_5_FCN.ipynb
-   
+
 
    * - `Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_6.html>`_
      - Surrogate Gradient Descent in a Convolutional SNN
@@ -83,4 +83,10 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
      -       —
 
 
-Future tutorials on spiking neurons and training are under development. 
+   * - `Multi-objective snnTorch hyperparameter tuning with Optuna <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_optuna.html>`_
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+       :alt: Open In Colab
+       :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_optuna.ipynb
+
+Future tutorials on spiking neurons and training are under development.
+

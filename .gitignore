@@ -109,5 +109,8 @@ snnenv-rog/
 .vscode/
 .idea/
 
+# OSX folder settings
+.DS_Store
+
 # Additional Files
 dataset/
