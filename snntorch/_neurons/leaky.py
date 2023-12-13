@@ -129,10 +129,8 @@ class Leaky(LIF):
     def __init__(
         self,
         beta,
-        layer_size,
         threshold=1.0,
         alpha=2.0,
-        spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
@@ -146,10 +144,8 @@ class Leaky(LIF):
     ):
         super(Leaky, self).__init__(
             beta,
-            layer_size,
             threshold,
             alpha,
-            spike_grad,
             surrogate_disable,
             init_hidden,
             inhibition,
@@ -172,15 +168,17 @@ class Leaky(LIF):
             self.state_function = self._base_int
 
     def _init_mem(self):
-        mem = torch.zeros(self.layer_size)
+        mem = torch.zeros(1)
         self.register_buffer("mem", mem)
 
     def reset_mem(self):
-        self.mem = torch.zeros(self.layer_size, device=self.mem.device)
+        self.mem = torch.zeros_like(self.mem, device=self.mem.device)
      
     def forward(self, input_, mem=None):
         if not mem == None:
             self.mem = mem
+        elif not self.mem.shape == input_.shape:
+            self.mem = torch.zeros_like(input_, device=self.mem.device)
 
         # TO-DO: alternatively, we could do torch.exp(-1 /
         # self.beta.clamp_min(0)),

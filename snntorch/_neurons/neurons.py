@@ -23,10 +23,8 @@ class SpikingNeuron(nn.Module):
 
     def __init__(
         self,
-        layer_size,
         threshold=1.0,
         alpha=2.0,
-        spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
@@ -39,7 +37,6 @@ class SpikingNeuron(nn.Module):
     ):
         super(SpikingNeuron, self).__init__()
         
-        self.layer_size = layer_size
         self.alpha = alpha
         
         self.init_hidden = init_hidden
@@ -292,10 +289,8 @@ class LIF(SpikingNeuron):
     def __init__(
         self,
         beta,
-        layer_size,
         threshold=1.0,
         alpha=2.0,
-        spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
@@ -308,10 +303,8 @@ class LIF(SpikingNeuron):
         learn_graded_spikes_factor=False,
     ):
         super().__init__(
-            layer_size,
             threshold,
             alpha,
-            spike_grad,
             surrogate_disable,
             init_hidden,
             inhibition,
