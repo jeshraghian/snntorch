@@ -6,7 +6,6 @@ import torch.nn as nn
 __all__ = [
     "SpikingNeuron",
     "LIF",
-    "_SpikeTensor",
     "_SpikeTorchConv",
 ]
 
@@ -16,13 +15,6 @@ dtype = torch.float
 class SpikingNeuron(nn.Module):
     """Parent class for spiking neuron models."""
 
-    instances = []
-    """Each :mod:`snntorch.SpikingNeuron` neuron
-    (e.g., :mod:`snntorch.Synaptic`) will populate the
-    :mod:`snntorch.SpikingNeuron.instances` list with a new entry.
-    The list is used to initialize and clear neuron states when the
-    argument `init_hidden=True`."""
-
     reset_dict = {
         "subtract": 0,
         "zero": 1,
@@ -31,7 +23,9 @@ class SpikingNeuron(nn.Module):
 
     def __init__(
         self,
+        layer_size,
         threshold=1.0,
+        alpha=2.0,
         spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
@@ -44,8 +38,10 @@ class SpikingNeuron(nn.Module):
         learn_graded_spikes_factor=False,
     ):
         super(SpikingNeuron, self).__init__()
-
-        SpikingNeuron.instances.append(self)
+        
+        self.layer_size = layer_size
+        self.alpha = alpha
+        
         self.init_hidden = init_hidden
         self.inhibition = inhibition
         self.output = output
@@ -60,14 +56,6 @@ class SpikingNeuron(nn.Module):
             learn_graded_spikes_factor=learn_graded_spikes_factor,
         )
         self._reset_mechanism = reset_mechanism
-
-        if spike_grad is None:
-            self.spike_grad = self.ATan.apply
-        else:
-            self.spike_grad = spike_grad
-
-        if self.surrogate_disable:
-            self.spike_grad = self._surrogate_bypass
 
         self.state_quant = state_quant
 
@@ -231,8 +219,13 @@ class SpikingNeuron(nn.Module):
     @staticmethod
     def _surrogate_bypass(input_):
         return (input_ > 0).float()
-
-    @staticmethod
+    
+    def spike_grad(self, input):
+        if self.surrogate_disable:
+            return SpikingNeuron._surrogate_bypass(input)
+        else:
+            return SpikingNeuron.ATan.apply(input, self.alpha)
+        
     class ATan(torch.autograd.Function):
         """
         Surrogate gradient of the Heaviside step function.
@@ -265,7 +258,7 @@ class SpikingNeuron(nn.Module):
         Vision (ICCV), pp. 2661-2671.*"""
 
         @staticmethod
-        def forward(ctx, input_, alpha=2.0):
+        def forward(ctx, input_, alpha):
             ctx.save_for_backward(input_)
             ctx.alpha = alpha
             out = (input_ > 0).float()
@@ -299,7 +292,9 @@ class LIF(SpikingNeuron):
     def __init__(
         self,
         beta,
+        layer_size,
         threshold=1.0,
+        alpha=2.0,
         spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
@@ -313,7 +308,9 @@ class LIF(SpikingNeuron):
         learn_graded_spikes_factor=False,
     ):
         super().__init__(
+            layer_size,
             threshold,
+            alpha,
             spike_grad,
             surrogate_disable,
             init_hidden,
@@ -331,14 +328,6 @@ class LIF(SpikingNeuron):
             learn_beta,
         )
         self._reset_mechanism = reset_mechanism
-
-        if spike_grad is None:
-            self.spike_grad = self.ATan.apply
-        else:
-            self.spike_grad = spike_grad
-
-        if self.surrogate_disable:
-            self.spike_grad = self._surrogate_bypass
 
     def _lif_register_buffer(
         self,
@@ -365,17 +354,6 @@ class LIF(SpikingNeuron):
             self.V = nn.Parameter(V)
         else:
             self.register_buffer("V", V)
-
-    @staticmethod
-    def init_leaky():
-        """
-        Used to initialize mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        mem = _SpikeTensor(init_flag=False)
-
-        return mem
 
     @staticmethod
     def init_rleaky():

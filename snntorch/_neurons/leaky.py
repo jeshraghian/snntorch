@@ -1,4 +1,4 @@
-from .neurons import _SpikeTensor, _SpikeTorchConv, LIF
+from .neurons import LIF
 import torch
 
 class Leaky(LIF):
@@ -129,7 +129,9 @@ class Leaky(LIF):
     def __init__(
         self,
         beta,
+        layer_size,
         threshold=1.0,
+        alpha=2.0,
         spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
@@ -144,7 +146,9 @@ class Leaky(LIF):
     ):
         super(Leaky, self).__init__(
             beta,
+            layer_size,
             threshold,
+            alpha,
             spike_grad,
             surrogate_disable,
             init_hidden,
@@ -158,17 +162,25 @@ class Leaky(LIF):
             learn_graded_spikes_factor,
         )
 
-        if self.init_hidden:
-            self.mem = self.init_leaky()
+        self._init_mem()
+            
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            self.state_function = self._base_sub
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            self.state_function = self._base_zero
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            self.state_function = self._base_int
 
-    def forward(self, input_, mem=False):
+    def _init_mem(self):
+        mem = torch.zeros(self.layer_size)
+        self.register_buffer("mem", mem)
 
-        if hasattr(mem, "init_flag"):  # only triggered on first-pass
-            mem = _SpikeTorchConv(mem, input_=input_)
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
-            self.mem = _SpikeTorchConv(self.mem, input_=input_)
+    def reset_mem(self):
+        self.mem = torch.zeros(self.layer_size, device=self.mem.device)
+     
+    def forward(self, input_, mem=None):
+        if not mem == None:
+            self.mem = mem
 
         # TO-DO: alternatively, we could do torch.exp(-1 /
         # self.beta.clamp_min(0)),
@@ -176,95 +188,37 @@ class Leaky(LIF):
         # initial beta
         # beta = self.beta.clamp(0, 1)
 
-        if not self.init_hidden:
-            self.reset = self.mem_reset(mem)
-            mem = self._build_state_function(input_, mem)
+        self.reset = self.mem_reset(self.mem)
+        self.mem = self.state_function(input_, self.mem)
 
-            if self.state_quant:
-                mem = self.state_quant(mem)
+        if self.state_quant:
+            self.mem = self.state_quant(self.mem)
 
-            if self.inhibition:
-                spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
-            else:
-                spk = self.fire(mem)
+        if self.inhibition:
+            self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+        else:
+            self.spk = self.fire(self.mem)
 
-            return spk, mem
-
-        # intended for truncated-BPTT where instance variables are hidden
-        # states
-        if self.init_hidden:
-            self._leaky_forward_cases(mem)
-            self.reset = self.mem_reset(self.mem)
-            self.mem = self._build_state_function_hidden(input_)
-
-            if self.state_quant:
-                self.mem = self.state_quant(self.mem)
-
-            if self.inhibition:
-                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
-            else:
-                self.spk = self.fire(self.mem)
-
-            if self.output:  # read-out layer returns output+states
-                return self.spk, self.mem
-            else:  # hidden layer e.g., in nn.Sequential, only returns output
-                return self.spk
+        if self.output:  # read-out layer returns output+states
+            return self.spk, self.mem
+        else:  # hidden layer e.g., in nn.Sequential, only returns output
+            return self.spk
+            
 
     def _base_state_function(self, input_, mem):
         base_fn = self.beta.clamp(0, 1) * mem + input_
         return base_fn
-
-    def _build_state_function(self, input_, mem):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = self._base_state_function(
+    
+    def _base_sub(self, input_, mem):
+        return self._base_state_function(
                 input_, mem - self.reset * self.threshold
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self._base_state_function(
+        )
+        
+    def _base_zero(self, input_, mem):
+        return self._base_state_function(
                 input_, mem
             ) - self.reset * self._base_state_function(input_, mem)
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function(input_, mem)
-        return state_fn
+        
+    def _base_int(self, input_, mem):
+        return self._base_state_function(input_, mem)
 
-    def _base_state_function_hidden(self, input_):
-        base_fn = self.beta.clamp(0, 1) * self.mem + input_
-        return base_fn
-
-    def _build_state_function_hidden(self, input_):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = (
-                self._base_state_function_hidden(input_)
-                - self.reset * self.threshold
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.mem = (1 - self.reset) * self.mem
-            state_fn = self._base_state_function_hidden(input_)
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function_hidden(input_)
-        return state_fn
-
-    def _leaky_forward_cases(self, mem):
-        if mem is not False:
-            raise TypeError(
-                "When `init_hidden=True`, Leaky expects 1 input argument."
-            )
-
-    @classmethod
-    def detach_hidden(cls):
-        """Returns the hidden states, detached from the current graph.
-        Intended for use in truncated backpropagation through time where
-        hidden state variables are instance variables."""
-
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], Leaky):
-                cls.instances[layer].mem.detach_()
-
-    @classmethod
-    def reset_hidden(cls):
-        """Used to clear hidden state variables to zero.
-        Intended for use where hidden state variables are instance variables.
-        Assumes hidden states have a batch dimension already."""
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], Leaky):
-                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
