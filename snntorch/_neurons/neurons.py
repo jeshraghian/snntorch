@@ -1,3 +1,4 @@
+import types
 from warnings import warn
 import torch
 import torch.nn as nn
@@ -25,6 +26,7 @@ class SpikingNeuron(nn.Module):
         self,
         threshold=1.0,
         alpha=2.0,
+        spike_grad_executor=None,
         surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
@@ -36,9 +38,25 @@ class SpikingNeuron(nn.Module):
         learn_graded_spikes_factor=False,
     ):
         super(SpikingNeuron, self).__init__()
-        
+
         self.alpha = alpha
-        
+
+        # If you want to use a custom Autograd based spike_grad_executor
+        # you need to set spike_grad_executor to your Autograd class and
+        # apply will be automatically called on it
+        # Otherwise never use a class and always make a method inside this nn.Module
+        if not spike_grad_executor == None:
+            if isinstance(spike_grad_executor, (type, types.ClassType)):
+                self.spike_grad_class = True
+            else:
+                self.spike_grad_class = False
+        elif surrogate_disable:
+            self.spike_grad_executor = self._surrogate_bypass
+            self.spike_grad_class = False
+        else:
+            self.spike_grad_executor = SpikingNeuron.ATan
+            self.spike_grad_class = True
+
         self.init_hidden = init_hidden
         self.inhibition = inhibition
         self.output = output
@@ -216,13 +234,13 @@ class SpikingNeuron(nn.Module):
     @staticmethod
     def _surrogate_bypass(input_):
         return (input_ > 0).float()
-    
+
     def spike_grad(self, input):
-        if self.surrogate_disable:
-            return SpikingNeuron._surrogate_bypass(input)
+        if self.spike_grad_class:
+            return self.spike_grad_executor.apply(input, self.alpha)
         else:
-            return SpikingNeuron.ATan.apply(input, self.alpha)
-        
+            return self.spike_grad_executor(input)
+
     class ATan(torch.autograd.Function):
         """
         Surrogate gradient of the Heaviside step function.
@@ -291,6 +309,7 @@ class LIF(SpikingNeuron):
         beta,
         threshold=1.0,
         alpha=2.0,
+        spike_grad_executor=None,
         surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
@@ -305,6 +324,7 @@ class LIF(SpikingNeuron):
         super().__init__(
             threshold,
             alpha,
+            spike_grad_executor,
             surrogate_disable,
             init_hidden,
             inhibition,
