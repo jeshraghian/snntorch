@@ -54,7 +54,11 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_7_neuromorphic_datasets.ipynb
 
-
+   * - `Tutorial 8 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_2.html>`_
+     - The Leaky Integrate and Fire Neuron
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_2_lif_neuron.ipynb
 
 .. list-table::
    :widths: 70 32
