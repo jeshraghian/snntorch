@@ -42,7 +42,7 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
    
 
    * - `Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_6.html>`_
-     - Surrogate Gradient Descent in a Convolutional SNN
+     - Training on ST-MNIST with Tonic + SNNTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_6_CNN.ipynb
