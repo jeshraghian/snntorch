@@ -1,3 +1,13 @@
+Model Pruning
+=============
+
+A Detialed Explanation/Tutorial for Pruning on Deep Learning can be
+found here:`Pruning Basics and DL implementation
+walkthrough <https://github.com/satabios/sconce/blob/main/tutorials/Pruning.ipynb>`__
+
+snn Model Pruning
+=================
+
 Install Packages
 ================
 
