@@ -82,5 +82,10 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
    * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
      -       —
 
+   * - `Binarized Spiking Neural Networks: Erik Mercado <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_binarized_spiking_neural_networks.html>`_
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        
+
+
 
 Future tutorials on spiking neurons and training are under development. 
