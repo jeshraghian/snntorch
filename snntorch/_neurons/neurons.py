@@ -1,4 +1,4 @@
-import types
+import inspect
 from warnings import warn
 import torch
 import torch.nn as nn
@@ -7,6 +7,7 @@ import torch.nn as nn
 __all__ = [
     "SpikingNeuron",
     "LIF",
+    "_SpikeTensor",
     "_SpikeTorchConv",
 ]
 
@@ -15,6 +16,13 @@ dtype = torch.float
 
 class SpikingNeuron(nn.Module):
     """Parent class for spiking neuron models."""
+
+    instances = []
+    """Each :mod:`snntorch.SpikingNeuron` neuron
+    (e.g., :mod:`snntorch.Synaptic`) will populate the
+    :mod:`snntorch.SpikingNeuron.instances` list with a new entry.
+    The list is used to initialize and clear neuron states when the
+    argument `init_hidden=True`."""
 
     reset_dict = {
         "subtract": 0,
@@ -26,7 +34,7 @@ class SpikingNeuron(nn.Module):
         self,
         threshold=1.0,
         alpha=2.0,
-        spike_grad_executor=None,
+        spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
@@ -39,22 +47,25 @@ class SpikingNeuron(nn.Module):
     ):
         super(SpikingNeuron, self).__init__()
 
+        SpikingNeuron.instances.append(self)
+
         self.alpha = alpha
 
         # If you want to use a custom Autograd based spike_grad_executor
         # you need to set spike_grad_executor to your Autograd class and
         # apply will be automatically called on it
         # Otherwise never use a class and always make a method inside this nn.Module
-        if not spike_grad_executor == None:
-            if isinstance(spike_grad_executor, (type, types.ClassType)):
+        if not spike_grad == None:
+            self.spike_grad = spike_grad
+            if inspect.isclass(spike_grad):
                 self.spike_grad_class = True
             else:
                 self.spike_grad_class = False
         elif surrogate_disable:
-            self.spike_grad_executor = self._surrogate_bypass
+            self.spike_grad = self._surrogate_bypass
             self.spike_grad_class = False
         else:
-            self.spike_grad_executor = SpikingNeuron.ATan
+            self.spike_grad = SpikingNeuron.ATan
             self.spike_grad_class = True
 
         self.init_hidden = init_hidden
@@ -82,7 +93,7 @@ class SpikingNeuron(nn.Module):
             mem = self.state_quant(mem)
 
         mem_shift = mem - self.threshold
-        spk = self.spike_grad(mem_shift)
+        spk = self.spike_grad_executor(mem_shift)
 
         spk = spk * self.graded_spikes_factor
 
@@ -94,7 +105,7 @@ class SpikingNeuron(nn.Module):
         Returns spk."""
         mem_shift = mem - self.threshold
         index = torch.argmax(mem_shift, dim=1)
-        spk_tmp = self.spike_grad(mem_shift)
+        spk_tmp = self.spike_grad_executor(mem_shift)
 
         mask_spk1 = torch.zeros_like(spk_tmp)
         mask_spk1[torch.arange(batch_size), index] = 1
@@ -107,7 +118,7 @@ class SpikingNeuron(nn.Module):
         """Generates detached reset signal if mem > threshold.
         Returns reset."""
         mem_shift = mem - self.threshold
-        reset = self.spike_grad(mem_shift).clone().detach()
+        reset = self.spike_grad_executor(mem_shift).clone().detach()
 
         return reset
 
@@ -235,11 +246,11 @@ class SpikingNeuron(nn.Module):
     def _surrogate_bypass(input_):
         return (input_ > 0).float()
 
-    def spike_grad(self, input):
+    def spike_grad_executor(self, input):
         if self.spike_grad_class:
-            return self.spike_grad_executor.apply(input, self.alpha)
+            return self.spike_grad.apply(input, self.alpha)
         else:
-            return self.spike_grad_executor(input)
+            return self.spike_grad(input)
 
     class ATan(torch.autograd.Function):
         """
@@ -309,7 +320,7 @@ class LIF(SpikingNeuron):
         beta,
         threshold=1.0,
         alpha=2.0,
-        spike_grad_executor=None,
+        spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
@@ -324,7 +335,7 @@ class LIF(SpikingNeuron):
         super().__init__(
             threshold,
             alpha,
-            spike_grad_executor,
+            spike_grad,
             surrogate_disable,
             init_hidden,
             inhibition,

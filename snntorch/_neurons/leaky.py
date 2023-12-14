@@ -1,6 +1,7 @@
 from .neurons import LIF
 import torch
 
+
 class Leaky(LIF):
     """
     First-order leaky integrate-and-fire neuron model.
@@ -131,7 +132,7 @@ class Leaky(LIF):
         beta,
         threshold=1.0,
         alpha=2.0,
-        spike_grad_executor=None,
+        spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
         inhibition=False,
@@ -147,7 +148,7 @@ class Leaky(LIF):
             beta,
             threshold,
             alpha,
-            spike_grad_executor,
+            spike_grad,
             surrogate_disable,
             init_hidden,
             inhibition,
@@ -161,7 +162,7 @@ class Leaky(LIF):
         )
 
         self._init_mem()
-            
+
         if self.reset_mechanism_val == 0:  # reset by subtraction
             self.state_function = self._base_sub
         elif self.reset_mechanism_val == 1:  # reset to zero
@@ -175,7 +176,7 @@ class Leaky(LIF):
 
     def reset_mem(self):
         self.mem = torch.zeros_like(self.mem, device=self.mem.device)
-     
+
     def forward(self, input_, mem=None):
         if not mem == None:
             self.mem = mem
@@ -203,22 +204,42 @@ class Leaky(LIF):
             return self.spk, self.mem
         else:  # hidden layer e.g., in nn.Sequential, only returns output
             return self.spk
-            
 
     def _base_state_function(self, input_, mem):
         base_fn = self.beta.clamp(0, 1) * mem + input_
         return base_fn
-    
+
     def _base_sub(self, input_, mem):
         return self._base_state_function(
-                input_, mem - self.reset * self.threshold
+            input_, mem - self.reset * self.threshold
         )
-        
+
     def _base_zero(self, input_, mem):
         return self._base_state_function(
-                input_, mem
-            ) - self.reset * self._base_state_function(input_, mem)
-        
+            input_, mem
+        ) - self.reset * self._base_state_function(input_, mem)
+
     def _base_int(self, input_, mem):
         return self._base_state_function(input_, mem)
 
+    @classmethod
+    def detach_hidden(cls):
+        """Returns the hidden states, detached from the current graph.
+        Intended for use in truncated backpropagation through time where
+        hidden state variables are instance variables."""
+
+        for layer in range(len(cls.instances)):
+            if isinstance(cls.instances[layer], Leaky):
+                cls.instances[layer].mem.detach_()
+
+    @classmethod
+    def reset_hidden(cls):
+        """Used to clear hidden state variables to zero.
+        Intended for use where hidden state variables are instance variables.
+        Assumes hidden states have a batch dimension already."""
+        for layer in range(len(cls.instances)):
+            if isinstance(cls.instances[layer], Leaky):
+                cls.instances[layer].mem = torch.zeros_like(
+                    cls.instances[layer].mem,
+                    device=cls.instances[layer].mem.device,
+                )
