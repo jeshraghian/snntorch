@@ -388,7 +388,7 @@ class SpikeTime(nn.Module):
         tolerance=0,
         multi_spike=False,
     ):
-        super(SpikeTime, self).__init__()
+        super().__init__()
 
         self.target_is_time = target_is_time
         self.tolerance = tolerance
@@ -736,7 +736,7 @@ class mse_temporal_loss:
         tolerance=0,
         multi_spike=False,
     ):
-        super(mse_temporal_loss, self).__init__()
+        super().__init__()
 
         self.loss_fn = nn.MSELoss()
         self.spk_time_fn = SpikeTime(
@@ -800,7 +800,7 @@ class ce_temporal_loss:
     """
 
     def __init__(self, inverse="negate"):
-        super(ce_temporal_loss, self).__init__()
+        super().__init__()
 
         self.loss_fn = nn.CrossEntropyLoss()
         self.spk_time_fn = SpikeTime(target_is_time=False)

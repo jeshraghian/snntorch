@@ -144,7 +144,7 @@ class Leaky(LIF):
         graded_spikes_factor=1.0,
         learn_graded_spikes_factor=False,
     ):
-        super(Leaky, self).__init__(
+        super().__init__(
             beta,
             threshold,
             alpha,

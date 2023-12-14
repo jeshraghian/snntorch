@@ -169,7 +169,7 @@ class Synaptic(LIF):
         state_quant=False,
         output=False,
     ):
-        super(Synaptic, self).__init__(
+        super().__init__(
             beta,
             threshold,
             spike_grad,

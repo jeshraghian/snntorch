@@ -45,7 +45,7 @@ class SpikingNeuron(nn.Module):
         graded_spikes_factor=1.0,
         learn_graded_spikes_factor=False,
     ):
-        super(SpikingNeuron, self).__init__()
+        super().__init__()
 
         SpikingNeuron.instances.append(self)
 
