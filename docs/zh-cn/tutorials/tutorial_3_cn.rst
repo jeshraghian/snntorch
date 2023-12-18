@@ -1,34 +1,34 @@
 ================================================
-Tutorial 3 - A Feedforward Spiking Neural Network
+教程（三） - 一个前馈脉冲神经网络
 ================================================
 
-Tutorial written by Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
+本教程出自 Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_3_feedforward_snn.ipynb
 
-The snnTorch tutorial series is based on the following paper. If you find these resources or code useful in your work, please consider citing the following source:
+snnTorch 教程系列基于以下论文。如果您发现这些资源或代码对您的工作有用, 请考虑引用以下来源：
    
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
     Spiking Neural Networks Using Lessons From Deep Learning”. Proceedings of the IEEE, 111(9) September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 .. note::
-  This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
+  本教程是不可编辑的静态版本。交互式可编辑版本可通过以下链接获取：
     * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_3_feedforward_snn.ipynb>`_
     * `Local Notebook (download via GitHub) <https://github.com/jeshraghian/snntorch/tree/master/examples>`_
 
 
-Introduction
+简介
 -------------
 
-In this tutorial, you will: 
+在本教程中, 你将: 
 
-* Learn how to simplify the leaky integrate-and-fire (LIF) neuron to make it deep learning-friendly 
-* Implement a feedforward spiking neural network (SNN)
+* 了解如何简化 "泄漏整合-发射"（LIF）神经元，使其适合深度学习 
+* 实现前馈脉冲神经网络（SNN）
 
-Install the latest PyPi distribution of snnTorch:
+安装 snnTorch 的最新 PyPi 发行版：
 
 ::
 
@@ -56,73 +56,56 @@ mechanism. This is a lot to keep track of, and only grows more cumbersome
 when scaled up to full-blown SNN. So let’s make a few
 simplfications.
 
-1.1 The Decay Rate: beta
+1.1 衰减率：beta
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In the previous tutorial, the Euler method was used to derive the
-following solution to the passive membrane model:
+在之前的教程中，使用欧拉方法推导出了被动膜模型的以下解：
 
 .. math:: U(t+\Delta t) = (1-\frac{\Delta t}{\tau})U(t) + \frac{\Delta t}{\tau} I_{\rm in}(t)R \tag{1}
 
-Now assume there is no input current, :math:`I_{\rm in}(t)=0 A`:
+现在假设没有输入电流，即 :math:`I_{\rm in}(t)=0 A`：
 
 .. math:: U(t+\Delta t) = (1-\frac{\Delta t}{\tau})U(t) \tag{2}
 
-Let the ratio of subsequent values of :math:`U`, i.e.,
-:math:`U(t+\Delta t)/U(t)` be the decay rate of the membrane potential,
-also known as the inverse time constant:
+令 :math:`U` 的连续值之比，即 :math:`U(t+\Delta t)/U(t)`，为膜电位的衰减率，也称为逆时间常数：
 
 .. math:: U(t+\Delta t) = \beta U(t) \tag{3}
 
-From :math:`(1)`, this implies that:
+根据 :math:`(1)`，这意味着：
 
 .. math:: \beta = (1-\frac{\Delta t}{\tau}) \tag{4}
 
-For reasonable accuracy, :math:`\Delta t << \tau`.
+为了保证合理的准确性，:math:`\Delta t << \tau`。
 
-1.2 Weighted Input Current
+1.2 加权输入电流
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If we assume :math:`t` represents time-steps in a sequence rather than
-continuous time, then we can set :math:`\Delta t = 1`. To
-further reduce the number of hyperparameters, assume :math:`R=1`. From
-:math:`(4)`, these assumptions lead to:
+如果我们假设 :math:`t` 代表序列中的时间步长，而不是连续时间，那么我们可以设置 :math:`\Delta t = 1`。
+为了进一步减少超参数的数量，假设 :math:`R=1`。根据 :math:`(4)`，这些假设导致：
 
 .. math:: \beta = (1-\frac{1}{C}) \implies (1-\beta)I_{\rm in} = \frac{1}{\tau}I_{\rm in} \tag{5}
 
-The input current is weighted by :math:`(1-\beta)`. 
-By additionally assuming input current instantaneously contributes to the membrane potential:
+输入电流由 :math:`(1-\beta)` 加权。通过额外假设输入电流瞬间对膜电位产生影响：
 
 .. math:: U[t+1] = \beta U[t] + (1-\beta)I_{\rm in}[t+1] \tag{6}
 
-Note that the discretization of time means we are assuming that each
-time bin :math:`t` is brief enough such that a neuron may only emit a
-maximum of one spike in this interval.
+请注意，时间的离散化意味着我们假设每个时间间隔 :math:`t` 足够短，以至于一个神经元在此区间内最多只能发射一个脉冲。
 
-In deep learning, the weighting factor of an input is often a learnable
-parameter. Taking a step away from the physically viable assumptions
-made thus far, we subsume the effect of :math:`(1-\beta)` from
-:math:`(6)` into a learnable weight :math:`W`, and replace
-:math:`I_{\rm in}[t]` accordingly with an input :math:`X[t]`:
+在深度学习中，输入的加权因子通常是一个可学习的参数。暂时抛开到目前为止所做的符合物理可行性的假设，
+我们将 :math:`(6)` 中的 :math:`(1-\beta)` 效应纳入一个可学习的权重 :math:`W` 中，并相应地用输入 :math:`X[t]` 替换 :math:`I_{\rm in}[t]`：
 
 .. math:: WX[t] = I_{\rm in}[t] \tag{7}
 
-This can be interpreted in the following way. :math:`X[t]` is an input
-voltage, or spike, and is scaled by the synaptic conductance of
-:math:`W` to generate a current injection to the neuron. This gives us
-the following result:
+这可以这样理解。:math:`X[t]` 是一个输入电压或脉冲，通过 :math:`W` 的突触电导缩放，以产生对神经元的电流注入。这给我们以下结果：
 
 .. math:: U[t+1] = \beta U[t] + WX[t+1] \tag{8}
 
-In future simulations, the effects of :math:`W` and :math:`\beta` are decoupled.
-:math:`W` is a learnable parameter that is updated independently of :math:`\beta`.
+在未来的模拟中，:math:`W` 和 :math:`\beta` 的效应是分开的。:math:`W` 是一个独立于 :math:`\beta` 更新的可学习参数。
 
-1.3 Spiking and Reset
+1.3 脉冲发射和重置
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We now introduce the spiking and reset mechanisms. Recall that if
-the membrane exceeds the threshold, then the neuron emits an output
-spike:
+我们现在引入脉冲发射和重置机制。回想一下，如果膜电位超过阈值，那么神经元将发射一个输出脉冲：
 
 .. math::
 
@@ -133,54 +116,46 @@ spike:
    
    \tag{9}
 
-If a spike is triggered, the membrane potential should be reset. The
-*reset-by-subtraction* mechanism is modeled by:
+如果触发了脉冲，膜电位应该被重置。*通过减法重置*机制可以这样建模：
 
 .. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{S[t]U_{\rm thr}}_\text{reset} \tag{10}
 
-As :math:`W` is a learnable parameter, and :math:`U_{\rm thr}` is often
-just set to :math:`1` (though can be tuned), this leaves the decay rate
-:math:`\beta` as the only hyperparameter left to be specified. This
-completes the painful part of this tutorial.
+由于 :math:`W` 是一个可学习参数，而 :math:`U_{\rm thr}` 通常只是设为 :math:`1`（尽管也可以调整），这样就只剩下衰减率 :math:`\beta` 作为需要指定的唯一超参数。
+这就完成了本教程中繁琐的部分。
 
 .. note::
 
-   Some implementations might make slightly different assumptions.
-   E.g., :math:`S[t] \rightarrow S[t+1]` in :math:`(9)`, or
-   :math:`X[t] \rightarrow X[t+1]` in :math:`(10)`. This above
-   derivation is what is used in snnTorch as we find it maps intuitively
-   to a recurrent neural network representation, without any change in
-   performance.
+   一些实现可能会做出略有不同的假设。
+   例如，:math:`S[t] \rightarrow S[t+1]` 在 :math:`(9)` 中，或
+   :math:`X[t] \rightarrow X[t+1]` 在 :math:`(10)` 中。以上
+   推导是在snntorch中使用的，因为我们发现它直观地映射到循环神经网络的表示中，且不会影响性能。
 
-1.4 Code Implementation
+1.4 代码实现
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Implementing this neuron in Python looks like this:
+用 Python 实现这个神经元的代码如下所示：
 
 ::
 
     def leaky_integrate_and_fire(mem, x, w, beta, threshold=1):
-      spk = (mem > threshold) # if membrane exceeds threshold, spk=1, else, 0
+      spk = (mem > threshold) # 如果膜电位超过阈值，spk=1，否则为0
       mem = beta * mem + w*x - spk*threshold
       return spk, mem
 
-To set :math:`\beta`, we have the option of either using Equation
-:math:`(3)` to define it, or hard-coding it directly. Here, we will use
-:math:`(3)` for the sake of a demonstration, but in future, it will just be hard-coded as we
-are more focused on something that works rather than biological precision.
+为了设置 :math:`\beta`，我们可以选择使用方程
+:math:`(3)` 来定义它，或者直接硬编码。这里，我们将使用
+:math:`(3)` 作为示范，但在未来，我们将直接硬编码，因为我们更关注的是实际效果而不是生物学精度。
 
-Equation :math:`(3)` tells us that :math:`\beta` is the ratio of
-membrane potential across two subsequent time steps. Solve
-this using the continuous time-dependent form of the equation (assuming
-no current injection), which was derived in `Tutorial
-2 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__:
+方程 :math:`(3)` 告诉我们 :math:`\beta` 是
+连续两个时间步骤中膜电位的比率。使用连续时间依赖形式的方程（假设
+没有电流注入）来解决这个问题，这在 `教程
+2 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__ 中已经推导出来了：
 
 .. math:: U(t) = U_0e^{-\frac{t}{\tau}}
 
-:math:`U_0` is the initial membrane potential at :math:`t=0`. Assume the
-time-dependent equation is computed at discrete steps of
-:math:`t, (t+\Delta t), (t+2\Delta t)~...~`, then we can find the ratio
-of membrane potential between subsequent steps using:
+:math:`U_0` 是在 :math:`t=0` 时初始的膜电位。假设时间依赖方程是在
+:math:`t, (t+\Delta t), (t+2\Delta t)~...~` 的离散步骤中计算的，那么我们可以找到
+连续步骤之间的膜电位比率：
 
 .. math:: \beta = \frac{U_0e^{-\frac{t+\Delta t}{\tau}}}{U_0e^{-\frac{t}{\tau}}} = \frac{U_0e^{-\frac{t + 2\Delta t}{\tau}}}{U_0e^{-\frac{t+\Delta t}{\tau}}} =~~...
 
@@ -188,18 +163,17 @@ of membrane potential between subsequent steps using:
 
 ::
 
-    # set neuronal parameters
+    # 设置神经元参数
     delta_t = torch.tensor(1e-3)
     tau = torch.tensor(5e-3)
     beta = torch.exp(-delta_t/tau)
    
 ::
 
-    >>> print(f"The decay rate is: {beta:.3f}")
-    The decay rate is: 0.819
+    >>> print(f"衰减率是: {beta:.3f}")
+    衰减率是: 0.819
 
-Run a quick simulation to check the neuron behaves correctly in
-response to a step voltage input:
+运行一个快速模拟，以检查神经元对阶跃电压输入的响应是否正确：
 
 ::
 
@@ -234,37 +208,33 @@ response to a step voltage input:
         :width: 400
 
 
-2. Leaky Neuron Model in snnTorch
+2. 在 snnTorch 中的泄漏神经元模型
 ---------------------------------------
 
-This same thing can be achieved by instantiating ``snn.Leaky``, in a
-similar way to how we used ``snn.Lapicque`` in the previous tutorial, but with less hyperparameters:
+我们可以通过实例化 ``snn.Leaky`` 来实现相同的功能，在这方面和我们在上一个教程中使用的 ``snn.Lapicque`` 类似，但参数更少：
 
 ::
 
     lif1 = snn.Leaky(beta=0.8)
 
-The neuron model is now stored in ``lif1``. To use this neuron:
+现在神经元模型存储在 ``lif1`` 中。使用这个神经元：
 
-**Inputs** 
+**输入** 
 
-* ``cur_in``: each element of :math:`W\times X[t]` is sequentially passed as an input 
-* ``mem``: the previous step membrane potential, :math:`U[t-1]`, is also passed as input.
+* ``cur_in``: :math:`W\times X[t]` 的每个元素依次作为输入传递
+* ``mem``: 之前步骤的膜电位，:math:`U[t-1]`，也作为输入传递。
 
-**Outputs** 
+**输出** 
 
-* ``spk_out``: output spike :math:`S[t]` (‘1’ if there is a spike; ‘0’ if there is no spike) 
-* ``mem``: membrane potential :math:`U[t]` of the present step
+* ``spk_out``: 输出脉冲 :math:`S[t]`（如果有脉冲为‘1’；没有脉冲为‘0’）
+* ``mem``: 当前步骤的膜电位 :math:`U[t]`
 
-These all need to be of type ``torch.Tensor``. Note that here, we assume
-the input current has already been weighted before passing into the
-``snn.Leaky`` neuron. This will make more sense when we construct a
-network-scale model. Also, equation :math:`(10)` has been time-shifted
-back one step without loss of generality.
+这些都需要是 ``torch.Tensor`` 类型。请注意，在这里，我们假设输入电流在传递到
+``snn.Leaky`` 神经元之前已经被加权。当我们构建一个网络规模模型时，这将更有意义。此外，方程 :math:`(10)` 在不失一般性的情况下向后移动了一个步骤。
 
 ::
 
-    # Small step current input
+    # 小幅度电流输入
     w=0.21
     cur_in = torch.cat((torch.zeros(10), torch.ones(190)*w), 0)
     mem = torch.zeros(1)
@@ -272,126 +242,101 @@ back one step without loss of generality.
     mem_rec = []
     spk_rec = []
     
-    # neuron simulation
+    # 神经元模拟
     for step in range(num_steps):
       spk, mem = lif1(cur_in[step], mem)
       mem_rec.append(mem)
       spk_rec.append(spk)
     
-    # convert lists to tensors
+    # 将列表转换为张量
     mem_rec = torch.stack(mem_rec)
     spk_rec = torch.stack(spk_rec)
     
     plot_cur_mem_spk(cur_in, mem_rec, spk_rec, thr_line=1, ylim_max1=0.5,
-                     title="snn.Leaky Neuron Model")
+                     title="snn.Leaky 神经元模型")
 
-Compare this plot with the manually derived leaky integrate-and-fire neuron. 
-The membrane potential reset is slightly weaker: i.e., it uses a *soft reset*. 
-This has been done intentionally because it enables better performance on a few deep learning benchmarks. 
-The equation used instead is:
+将这个图表与手动推导的泄漏积分-脱火神经元进行比较。
+膜电位重置略微弱些：即，它使用了*软重置*。
+这样做是有意为之，因为它在一些深度学习基准测试中能够获得更好的性能。
+相反使用的方程是：
 
-.. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{\beta S[t]U_{\rm thr}}_\text{soft reset} \tag{11}
+.. math:: U[t+1] = \underbrace{\beta U[t]}_\text{衰减} + \underbrace{WX[t+1]}_\text{输入} - \underbrace{\beta S[t]U_{\rm thr}}_\text{软重置} \tag{11}
 
 
-This model has the same optional input arguments of ``reset_mechanism``
-and ``threshold`` as described for Lapicque’s neuron model.
+这个模型和 Lapicque 神经元模型一样，有相同的可选输入参数 ``reset_mechanism``
+和 ``threshold``。
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/_static/snn.leaky_step.png?raw=true
         :align: center
         :width: 450
 
 
-3. A Feedforward Spiking Neural Network
+3. 一个前馈脉冲神经网络
 ---------------------------------------------
 
-So far, we have only considered how a single neuron responds to input
-stimulus. snnTorch makes it straightforward to scale this up to a deep
-neural network. In this section, we will create a 3-layer fully-connected neural
-network of dimensions 784-1000-10. Compared to our simulations so far, each neuron will now integrate over
-many more incoming input spikes.
+到目前为止，我们只考虑了单个神经元对输入刺激的响应。snnTorch使将其扩展为深度神经网络变得简单。在本节中，我们将创建一个3层全连接神经网络，维度为784-1000-10。
+与迄今为止的模拟相比，每个神经元现在将整合更多的输入脉冲。
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_8_fcn.png?raw=true
         :align: center
         :width: 600
 
-
-
-PyTorch is used to form the connections between neurons, and
-snnTorch to create the neurons. First, initialize all layers.
+PyTorch用于形成神经元之间的连接，snnTorch用于创建神经元。首先，初始化所有层。
 
 ::
 
-    # layer parameters
+    # 层参数
     num_inputs = 784
     num_hidden = 1000
     num_outputs = 10
     beta = 0.99
     
-    # initialize layers
+    # 初始化层
     fc1 = nn.Linear(num_inputs, num_hidden)
     lif1 = snn.Leaky(beta=beta)
     fc2 = nn.Linear(num_hidden, num_outputs)
     lif2 = snn.Leaky(beta=beta)
 
-Next, initialize the hidden variables and outputs of each spiking
-neuron. As networks increase in size, this becomes more tedious.
-The static method ``init_leaky()`` can be used to take care of
-this. All neurons in snnTorch have their own initialization methods that
-follow this same syntax, e.g., ``init_lapicque()``. The shape of the
-hidden states are automatically initialized based on the input data
-dimensions during the first forward pass.
+接下来，初始化每个脉冲神经元的隐藏变量和输出。随着网络规模的增加，这变得更加繁琐。可以使用静态方法 ``init_leaky()`` 来处理这个问题。
+snnTorch中的所有神经元都有自己的初始化方法，遵循相同的语法，例如 ``init_lapicque()``。隐藏状态的形状会在第一次前向传递期间根据输入数据的维度自动初始化。
 
 ::
 
-    # Initialize hidden states
+    # 初始化隐藏状态
     mem1 = lif1.init_leaky()
     mem2 = lif2.init_leaky()
     
-    # record outputs
+    # 记录输出
     mem2_rec = []
     spk1_rec = []
     spk2_rec = []
 
-Create an input spike train to pass to the network. There are 200 time
-steps to simulate across 784 input neurons, i.e., the input originally
-has dimensions of :math:`200 \times 784`. However, neural nets typically process data in minibatches. 
-snnTorch, uses time-first dimensionality:
+创建一个输入脉冲列以传递给网络。需要模拟784个输入神经元的200个时间步骤，即原始输入的维度为 :math:`200 \times 784`。
+然而，神经网络通常以小批量方式处理数据。snnTorch使用时间优先的维度：
 
-[:math:`time \times batch\_size \times feature\_dimensions`]
+[:math:`时间 \times 批次大小 \times 特征维度`]
 
-So ‘unsqueeze’ the input along ``dim=1`` to indicate ‘one batch’
-of data. The dimensions of this input tensor must be 200 :math:`\times`
-1 :math:`\times` 784:
+因此，将输入沿着 ``dim=1`` 进行“unsqueeze”以指示“一个批次”的数据。这个输入张量的维度必须是 200 :math:`\times` 1 :math:`\times` 784：
 
 ::
 
     spk_in = spikegen.rate_conv(torch.rand((200, 784))).unsqueeze(1)
-    >>> print(f"Dimensions of spk_in: {spk_in.size()}")
-    "Dimensions of spk_in: torch.Size([200, 1, 784])"
+    >>> print(f"spk_in的维度: {spk_in.size()}")
+    "spk_in的维度: torch.Size([200, 1, 784])"
 
-Now it’s finally time to run a full simulation. An intuitive way to
-think about how PyTorch and snnTorch work together is that PyTorch
-routes the neurons together, and snnTorch loads the results into spiking
-neuron models. In terms of coding up a network, these spiking neurons
-can be treated like time-varying activation functions.
+现在终于是时候运行完整的模拟了。将PyTorch和snnTorch协同工作的直观方式是，PyTorch将神经元连接在一起，而snnTorch将结果加载到脉冲神经元模型中。
+从编写网络的角度来看，这些脉冲神经元可以像时变激活函数一样处理。
 
-Here is a sequential account of what’s going on:
+以下是正在发生的事情的顺序说明：
 
--  The :math:`i^{th}` input from ``spk_in`` to the :math:`j^{th}` neuron 
-   is weighted by the parameters initialized in ``nn.Linear``:
+-  从 ``spk_in`` 的第 :math:`i^{th}` 输入到第 :math:`j^{th}` 神经元的权重由 ``nn.Linear`` 中初始化的参数加权：
    :math:`X_{i} \times W_{ij}`
--  This generates the input current term from Equation :math:`(10)`,
-   contributing to :math:`U[t+1]` of the spiking neuron
--  If :math:`U[t+1] > U_{\rm thr}`, then a spike is triggered from this
-   neuron
--  This spike is weighted by the second layer weight, and the above
-   process is repeated for all inputs, weights, and neurons.
--  If there is no spike, then nothing is passed to the post-synaptic
-   neuron.
+-  这生成了方程 :math:`(10)` 中输入电流项的输入，贡献给脉冲神经元的 :math:`U[t+1]`
+-  如果 :math:`U[t+1] > U_{\rm thr}`，则从该神经元触发一个脉冲
+-  这个脉冲由第二层权重加权，然后对所有输入、权重和神经元重复上述过程。
+-  如果没有脉冲，那么不会传递任何东西给 postsynaptic 神经元。
 
-The only difference from our simulations thus far is that we are now
-scaling the input current with a weight generated by ``nn.Linear``,
-rather than manually setting :math:`W` ourselves.
+与迄今为止的模拟唯一的区别是，现在我们使用由 ``nn.Linear`` 生成的权重来缩放输入电流，而不是手动设置 :math:`W`。
 
 ::
 
@@ -417,19 +362,12 @@ rather than manually setting :math:`W` ourselves.
         :align: center
         :width: 450
 
-At this stage, the spikes don’t have any real meaning. The inputs and
-weights are all randomly initialized, and no training has taken place.
-But the spikes should appear to be propagating from the first layer
-through to the output. If you are not seeing any spikes, then you might have
- been unlucky in the weight initialization lottery - you might want
-to try re-running the last four code-blocks.
+在这个阶段，脉冲还没有任何实际意义。输入和权重都是随机初始化的，还没有进行任何训练。但是脉冲应该从第一层传播到输出。
+如果您没有看到任何脉冲，那么您可能在权重初始化方面运气不佳 - 您可以尝试重新运行最后四个代码块。
 
-``spikeplot.spike_count`` can create a spike counter of
-the output layer. The following animation will take some time to
-generate.
+``spikeplot.spike_count`` 可以创建输出层的脉冲计数器。以下动画将需要一些时间来生成。
 
-   Note: if you are running the notebook locally on your desktop, please
-   uncomment the line below and modify the path to your ffmpeg.exe
+   注意：如果您在本地桌面上运行笔记本，请取消下面的行的注释，并修改路径以指向您的 ffmpeg.exe
 
 ::
 
@@ -441,7 +379,7 @@ generate.
     
     # plt.rcParams['animation.ffmpeg_path'] = 'C:\\path\\to\\your\\ffmpeg.exe'
     
-    #  Plot spike count histogram
+    # 绘制脉冲计数直方图
     anim = splt.spike_count(spk2_rec, fig, ax, labels=labels, animate=True)
     HTML(anim.to_html5_video())
     # anim.save("spike_bar.mp4")
@@ -452,12 +390,11 @@ generate.
     <video controls src="https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial3/_static/spike_bar.mp4?raw=true"></video>
   </center>
 
-``spikeplot.traces`` lets you visualize the membrane potential traces. We will plot 9 out of 10 output neurons. 
-Compare it to the animation and raster plot above to see if you can match the traces to the neuron.
+``spikeplot.traces`` 让您可以可视化膜电位轨迹。我们将绘制10个输出神经元中的9个。将其与上面的动画和 raster 图进行比较，看看是否可以将轨迹与神经元匹配。
 
 ::
 
-    # plot membrane potential traces
+    # 绘制膜电位轨迹
     splt.traces(mem2_rec.squeeze(1), spk=spk2_rec.squeeze(1))
     fig = plt.gcf() 
     fig.set_size_inches(8, 6)
@@ -466,41 +403,31 @@ Compare it to the animation and raster plot above to see if you can match the tr
         :align: center
         :width: 450
 
-It is fairly normal if some neurons are firing while others are
-completely dead. Again, none of these spikes have any real meaning until
-the weights have been trained.
+一些神经元在发放脉冲，而其他神经元则完全不发放脉冲是相当正常的。再次强调，直到权重被训练之前，这些脉冲都没有任何实际意义。
 
-Conclusion
+结论
 -----------
 
-That covers how to simplify the leaky integrate-and-fire neuron model,
-and then using it to build a spiking neural network. In practice, we
-will almost always prefer to use ``snn.Leaky`` over ``snn.Lapicque`` for
-training networks, as there is a smaller hyperparameter search space.
+这涵盖了如何简化漏电积分-放电神经元模型，然后使用它构建脉冲神经网络。在实践中，我们几乎总是倾向于在训练网络时使用 ``snn.Leaky`` 而不是 ``snn.Lapicque``，因为后者的超参数搜索空间更小。
 
-`Tutorial
+`教程
 4 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__
-goes into detail with the 2nd-order ``snn.Synaptic`` and ``snn.Alpha``
-models. This next tutorial is not necessary for training a network, so if you wish to go straight
-to deep learning with snnTorch, then skip ahead to `Tutorial
-5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__.
+详细介绍了2阶 ``snn.Synaptic`` 和 ``snn.Alpha`` 模型。如果您希望直接进入使用snnTorch进行深度学习，那么可以跳转到 `教程
+5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__。
 
-If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+如果您喜欢这个项目，请考虑在GitHub上为仓库加星⭐，因为这是支持它的最简单和最好的方式。
 
-For reference, the documentation `can be found
-here <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__.
+供参考，文档 `可以在这里找到
+<https://snntorch.readthedocs.io/en/latest/snntorch.html>`__。
 
-Further Reading
+进一步阅读
 ---------------
 
--  `Check out the snnTorch GitHub project here. <https://github.com/jeshraghian/snntorch>`__
+-  `在这里查看 snnTorch GitHub 项目。 <https://github.com/jeshraghian/snntorch>`__
 -  `snnTorch
-   documentation <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__
-   of the Lapicque, Leaky, Synaptic, and Alpha models
--  `Neuronal Dynamics: From single neurons to networks and models of
-   cognition <https://neuronaldynamics.epfl.ch/index.html>`__ by Wulfram
-   Gerstner, Werner M. Kistler, Richard Naud and Liam Paninski.
--  `Theoretical Neuroscience: Computational and Mathematical Modeling of
-   Neural
-   Systems <https://mitpress.mit.edu/books/theoretical-neuroscience>`__
-   by Laurence F. Abbott and Peter Dayan
+   文档 <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__
+   的 Lapicque、Leaky、Synaptic 和 Alpha 模型
+-  由 Wulfram Gerstner、Werner M. Kistler、Richard Naud 和 Liam Paninski 编写的 `神经元动力学：从单个神经元到认知网络和模型
+   <https://neuronaldynamics.epfl.ch/index.html>`__。
+-  由 Laurence F. Abbott 和 Peter Dayan 编写的 `理论神经科学：神经系统的计算和数学建模
+   <https://mitpress.mit.edu/books/theoretical-neuroscience>`__。
