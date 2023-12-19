@@ -25,7 +25,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 
 在本教程中, 你将: 
 
-* 了解如何简化 "泄漏整合-发射"（LIF）神经元，使其适合深度学习 
+* 了解如何简化LIF神经元，使其适合深度学习 
 * 实现前馈脉冲神经网络（SNN）
 
 安装 snnTorch 的最新 PyPi 发行版：
@@ -46,20 +46,18 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
     import matplotlib.pyplot as plt
 
 
-1. Simplifying the Leaky Integrate-and-Fire Neuron Model
+1. 简化的LIF神经元模型
 ----------------------------------------------------------
 
-In the previous tutorial, we designed our own LIF neuron model. But it was quite complex, and added an array of
-hyperparameters to tune, including :math:`R`, :math:`C`,
-:math:`\Delta t`, :math:`U_{\rm thr}`, and the choice of reset
-mechanism. This is a lot to keep track of, and only grows more cumbersome
-when scaled up to full-blown SNN. So let’s make a few
-simplfications.
+在前一个教程中，我们设计了自己的LIF神经元模型。但它相当复杂，并添加了一系列需要调整的超参数，
+包括 :math:`R`、:math:`C`、:math:`\Delta t`、:math:`U_{\rm thr}` 和复位机制的选择。
+这是很多需要跟踪的内容，在扩展到完整的SNN时会变得更加繁琐。所以让我们进行一些简化。
+
 
 1.1 衰减率：beta
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-在之前的教程中，使用欧拉方法推导出了被动膜模型的以下解：
+在之前的教程中，我们使用欧拉方法推导出了被动膜模型的以下解：
 
 .. math:: U(t+\Delta t) = (1-\frac{\Delta t}{\tau})U(t) + \frac{\Delta t}{\tau} I_{\rm in}(t)R \tag{1}
 
@@ -116,19 +114,20 @@ simplfications.
    
    \tag{9}
 
-如果触发了脉冲，膜电位应该被重置。*通过减法重置*机制可以这样建模：
+如果触发了脉冲，膜电位应该被重置。
+*通过减法重置*机制可以这样建模：
 
 .. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input} - \underbrace{S[t]U_{\rm thr}}_\text{reset} \tag{10}
 
-由于 :math:`W` 是一个可学习参数，而 :math:`U_{\rm thr}` 通常只是设为 :math:`1`（尽管也可以调整），这样就只剩下衰减率 :math:`\beta` 作为需要指定的唯一超参数。
+由于 :math:`W` 是一个可学习参数，而 :math:`U_{\rm thr}` 通常只是设为 :math:`1` （尽管也可以调整），这样就只剩下衰减率 :math:`\beta` 作为需要指定的唯一超参数。
 这就完成了本教程中繁琐的部分。
 
-.. note::
+.. 请注意::
 
    一些实现可能会做出略有不同的假设。
-   例如，:math:`S[t] \rightarrow S[t+1]` 在 :math:`(9)` 中，或
-   :math:`X[t] \rightarrow X[t+1]` 在 :math:`(10)` 中。以上
-   推导是在snntorch中使用的，因为我们发现它直观地映射到循环神经网络的表示中，且不会影响性能。
+   例如，:math:`(9)` 中的:math:`S[t] \rightarrow S[t+1]` ，或
+   :math:`(10)` 中的:math:`X[t] \rightarrow X[t+1]` 。以上推导是在snntorch中使用的，
+   因为我们发现它直观地映射到循环神经网络的表示中，且不会影响性能。
 
 1.4 代码实现
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -208,7 +207,7 @@ simplfications.
         :width: 400
 
 
-2. 在 snnTorch 中的泄漏神经元模型
+2. 在 snnTorch 中的Leaky神经元模型
 ---------------------------------------
 
 我们可以通过实例化 ``snn.Leaky`` 来实现相同的功能，在这方面和我们在上一个教程中使用的 ``snn.Lapicque`` 类似，但参数更少：
@@ -410,17 +409,16 @@ snnTorch中的所有神经元都有自己的初始化方法，遵循相同的语
 
 这涵盖了如何简化漏电积分-放电神经元模型，然后使用它构建脉冲神经网络。在实践中，我们几乎总是倾向于在训练网络时使用 ``snn.Leaky`` 而不是 ``snn.Lapicque``，因为后者的超参数搜索空间更小。
 
-`教程
-4 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__
-详细介绍了2阶 ``snn.Synaptic`` 和 ``snn.Alpha`` 模型。如果您希望直接进入使用snnTorch进行深度学习，那么可以跳转到 `教程
-5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__。
+`教程（四） <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__
+详细介绍了2阶 ``snn.Synaptic`` 和 ``snn.Alpha`` 模型。如果您希望直接进入使用snnTorch进行深度学习，
+那么可以跳转到 `教程（五） <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__。
 
 如果您喜欢这个项目，请考虑在GitHub上为仓库加星⭐，因为这是支持它的最简单和最好的方式。
 
-供参考，文档 `可以在这里找到
+参考文档 `可以在这里找到
 <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__。
 
-进一步阅读
+更多阅读
 ---------------
 
 -  `在这里查看 snnTorch GitHub 项目。 <https://github.com/jeshraghian/snntorch>`__
