@@ -131,7 +131,6 @@ class Leaky(LIF):
         self,
         beta,
         threshold=1.0,
-        alpha=2.0,
         spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
@@ -147,7 +146,6 @@ class Leaky(LIF):
         super().__init__(
             beta,
             threshold,
-            alpha,
             spike_grad,
             surrogate_disable,
             init_hidden,

@@ -1,5 +1,6 @@
 import inspect
 from warnings import warn
+from snntorch.surrogate import StraightThroughEstimator, atan, straight_through_estimator
 import torch
 import torch.nn as nn
 
@@ -33,7 +34,6 @@ class SpikingNeuron(nn.Module):
     def __init__(
         self,
         threshold=1.0,
-        alpha=2.0,
         spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
@@ -49,24 +49,10 @@ class SpikingNeuron(nn.Module):
 
         SpikingNeuron.instances.append(self)
 
-        self.alpha = alpha
-
-        # If you want to use a custom Autograd based spike_grad_executor
-        # you need to set spike_grad_executor to your Autograd class and
-        # apply will be automatically called on it
-        # Otherwise never use a class and always make a method inside this nn.Module
-        if not spike_grad == None:
-            self.spike_grad = spike_grad
-            if inspect.isclass(spike_grad):
-                self.spike_grad_class = True
-            else:
-                self.spike_grad_class = False
-        elif surrogate_disable:
+        if surrogate_disable:
             self.spike_grad = self._surrogate_bypass
-            self.spike_grad_class = False
-        else:
-            self.spike_grad = SpikingNeuron.ATan
-            self.spike_grad_class = True
+        elif spike_grad == None:
+            self.spike_grad = atan()
 
         self.init_hidden = init_hidden
         self.inhibition = inhibition
@@ -93,7 +79,7 @@ class SpikingNeuron(nn.Module):
             mem = self.state_quant(mem)
 
         mem_shift = mem - self.threshold
-        spk = self.spike_grad_executor(mem_shift)
+        spk = self.spike_grad(mem_shift)
 
         spk = spk * self.graded_spikes_factor
 
@@ -105,7 +91,7 @@ class SpikingNeuron(nn.Module):
         Returns spk."""
         mem_shift = mem - self.threshold
         index = torch.argmax(mem_shift, dim=1)
-        spk_tmp = self.spike_grad_executor(mem_shift)
+        spk_tmp = self.spike_grad(mem_shift)
 
         mask_spk1 = torch.zeros_like(spk_tmp)
         mask_spk1[torch.arange(batch_size), index] = 1
@@ -118,7 +104,7 @@ class SpikingNeuron(nn.Module):
         """Generates detached reset signal if mem > threshold.
         Returns reset."""
         mem_shift = mem - self.threshold
-        reset = self.spike_grad_executor(mem_shift).clone().detach()
+        reset = self.spike_grad(mem_shift).clone().detach()
 
         return reset
 
@@ -246,72 +232,6 @@ class SpikingNeuron(nn.Module):
     def _surrogate_bypass(input_):
         return (input_ > 0).float()
 
-    def spike_grad_executor(self, input):
-        if self.spike_grad_class:
-            return self.spike_grad.apply(input, self.alpha)
-        else:
-            return self.spike_grad(input)
-
-    class ATan(torch.autograd.Function):
-        """
-        Surrogate gradient of the Heaviside step function.
-
-        **Forward pass:** Heaviside step function shifted.
-
-            .. math::
-
-                S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-                0 & \\text{if U < U$_{\\rm thr}$}
-                \\end{cases}
-
-        **Backward pass:** Gradient of shifted arc-tan function.
-
-            .. math::
-
-                    S&≈\\frac{1}{π}\\text{arctan}(πU \\frac{α}{2}) \\\\
-                    \\frac{∂S}{∂U}&=\\frac{1}{π}\
-                    \\frac{1}{(1+(πU\\frac{α}{2})^2)}
-
-
-        :math:`alpha` defaults to 2, and can be modified by calling
-        ``surrogate.atan(alpha=2)``.
-
-        Adapted from:
-
-        *W. Fang, Z. Yu, Y. Chen, T. Masquelier, T. Huang, Y. Tian (2021)
-        Incorporating Learnable Membrane Time Constants to Enhance Learning
-        of Spiking Neural Networks. Proc. IEEE/CVF Int. Conf. Computer
-        Vision (ICCV), pp. 2661-2671.*"""
-
-        @staticmethod
-        def forward(ctx, input_, alpha):
-            ctx.save_for_backward(input_)
-            ctx.alpha = alpha
-            out = (input_ > 0).float()
-            return out
-
-        @staticmethod
-        def backward(ctx, grad_output):
-            (input_,) = ctx.saved_tensors
-            grad_input = grad_output.clone()
-            grad = (
-                ctx.alpha
-                / 2
-                / (1 + (torch.pi / 2 * ctx.alpha * input_).pow_(2))
-                * grad_input
-            )
-            return grad, None
-
-    # def atan(alpha=2.0):
-    #     """ArcTan surrogate gradient enclosed with a parameterized slope."""
-    #     alpha = alpha
-
-    #     def inner(x):
-    #         return ATan.apply(x, alpha)
-
-    #     return inner
-
-
 class LIF(SpikingNeuron):
     """Parent class for leaky integrate and fire neuron models."""
 
@@ -319,7 +239,6 @@ class LIF(SpikingNeuron):
         self,
         beta,
         threshold=1.0,
-        alpha=2.0,
         spike_grad=None,
         surrogate_disable=False,
         init_hidden=False,
@@ -334,7 +253,6 @@ class LIF(SpikingNeuron):
     ):
         super().__init__(
             threshold,
-            alpha,
             spike_grad,
             surrogate_disable,
             init_hidden,
