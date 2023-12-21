@@ -1,34 +1,34 @@
 ===========================
-Tutorial 4 - 2nd Order Spiking Neuron Models
+教程（四） - 二阶脉冲神经元模型
 ===========================
 
-Tutorial written by Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
+本教程出自 Jason K. Eshraghian (`www.ncg.ucsc.edu <https://www.ncg.ucsc.edu>`_)
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_4_advanced_neurons.ipynb
 
-The snnTorch tutorial series is based on the following paper. If you find these resources or code useful in your work, please consider citing the following source:
+snnTorch 教程系列基于以下论文。如果您发现这些资源或代码对您的工作有用, 请考虑引用以下来源：
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
     Spiking Neural Networks Using Lessons From Deep Learning”. Proceedings of the IEEE, 111(9) September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 .. note::
-  This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
+  本教程是不可编辑的静态版本。交互式可编辑版本可通过以下链接获取：
     * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_4_advanced_neurons.ipynb>`_
     * `Local Notebook (download via GitHub) <https://github.com/jeshraghian/snntorch/tree/master/examples>`_
 
 
 
-Introduction
+简介
 -------------
 
-In this tutorial, you will: 
+在本教程中, 你将: 
 
-* Learn about the more advanced leaky integrate-and-fire (LIF) neuron models available: ``Synaptic`` and ``Alpha``
+* 了解更先进的LIF神经元模型： ``Synaptic（突触传导）`` 和 ``Alpha`` 
 
-Install the latest PyPi distribution of snnTorch.
+安装 snnTorch 的最新 PyPi 发行版。
 
 ::
 
@@ -46,144 +46,114 @@ Install the latest PyPi distribution of snnTorch.
     import matplotlib.pyplot as plt
 
 
-1. Synaptic Conductance-based LIF Neuron Model
+1. 基于突触传导的LIF神经元模型
 ------------------------------------------------
 
-The neuron models explored in previous tutorials assume that an input voltage
-spike leads to an instantaneous jump in synaptic current, which then
-contributes to the membrane potential. In reality, a spike will result
-in the *gradual* release of neurotransmitters from the pre-synaptic
-neuron to the post-synaptic neuron. The synaptic conductance-based LIF
-model accounts for the gradual temporal dynamics of input current.
+在前几个教程中探讨的神经元模型中，我们假设输入电压脉冲会导致突触电流瞬间跃升，然后对膜电位产生影响。
+但实际上，一个脉冲将导致神经递质从前突触神经元（pre-synaptic neuron）逐渐释放到后突触神经元（post-synaptic neuron）。基于突触（synapse）传导的LIF模型考虑了输入电流的渐变时间动态。
 
-1.1 Modeling Synaptic Current
+1.1 建模突触电流
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If a pre-synaptic neuron fires, the voltage spike is transmitted down
-the axon of the neuron. It triggers the vesicles to release
-neurotransmitters into the synaptic cleft. These activate the
-post-synaptic receptors, which directly influence the effective current
-that flows into the post-synaptic neuron. Shown below are two types of
-excitatory receptors, AMPA and NMDA.
+从生物学角度讲，如果前突触神经元发放脉冲，电压脉冲将传递到神经元的轴突（axon）。
+它触发囊泡释放神经递质到突触间隙。这些神经递质激活后突触受体，直接影响流入后突触神经元的有效电流。
+下面显示了两种兴奋性受体，AMPA和NMDA。
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_6_synaptic.png?raw=true
         :align: center
         :width: 600
 
-The simplest model of synaptic current assumes an increasing current on
-a very fast time-scale, followed by a relatively slow exponential decay,
-as seen in the AMPA receptor response above. This is very similar to the
-membrane potential dynamics of Lapicque’s model.
+最简单的突触电流模型假定电流在极快的时间尺度上不断增加，随后出现相对缓慢的指数衰减，正如上文 AMPA 受体反应所示。这与 Lapicque 模型中的膜电位动态非常相似。
 
-The synaptic model has two exponentially decaying terms:
-:math:`I_{\rm syn}(t)` and :math:`U_{\rm mem}(t)`. The ratio between
-subsequent terms (i.e., decay rate) of :math:`I_{\rm syn}(t)` is set to
-:math:`\alpha`, and that of :math:`U(t)` is set to :math:`\beta`:
+突触模型有两个指数衰减项：:math:`I_{\rm syn}(t)` 和 :math:`U_{\rm mem}(t)`。 :math:`I_{\rm syn}(t)` 的后续项之间的比例（即衰减率）设置为 :math:`\alpha`，:math:`U(t)` 的比例设置为 :math:`\beta`：
 
 .. math::  \alpha = e^{-\Delta t/\tau_{\rm syn}}
 
 .. math::  \beta = e^{-\Delta t/\tau_{\rm mem}}
 
-where the duration of a single time step is normalized to
-:math:`\Delta t = 1` in future. :math:`\tau_{\rm syn}` models the time
-constant of the synaptic current in an analogous way to how
-:math:`\tau_{\rm mem}` models the time constant of the membrane
-potential. :math:`\beta` is derived in the exact same way as the
-previous tutorial, with a similar approach to
-:math:`\alpha`:
+其中单个时间步长的持续时间规范化为 :math:`\Delta t = 1`。 :math:`\tau_{\rm syn}` 以类似的方式模拟突触电流的时间常数，就像 :math:`\tau_{\rm mem}` 模拟膜电位的时间常数一样。 :math:`\beta` 以与前一个教程相同的方式派生，对 :math:`\alpha` 采用类似的方法：
 
-.. math:: I_{\rm syn}[t+1]=\underbrace{\alpha I_{\rm syn}[t]}_\text{decay} + \underbrace{WX[t+1]}_\text{input}
+.. math:: I_{\rm syn}[t+1]=\underbrace{\alpha I_{\rm syn}[t]}_\text{衰减} + \underbrace{WX[t+1]}_\text{输入}
 
-.. math:: U[t+1] = \underbrace{\beta U[t]}_\text{decay} + \underbrace{I_{\rm syn}[t+1]}_\text{input} - \underbrace{R[t]}_\text{reset}
+.. math:: U[t+1] = \underbrace{\beta U[t]}_\text{衰减} + \underbrace{I_{\rm syn}[t+1]}_\text{输入} - \underbrace{R[t]}_\text{复位}
 
-The same conditions for spiking as the previous LIF neurons still hold:
+与之前的LIF神经元一样，触发脉冲的条件仍然成立：
 
 .. math::
 
-   S_{\rm out}[t] = \begin{cases} 1, &\text{if}~U[t] > U_{\rm thr} \\
-   0, &\text{otherwise}\end{cases}
+   S_{\rm out}[t] = \begin{cases} 1, &\text{如果}~U[t] > U_{\rm thr} \\
+   0, &\text{否则}\end{cases}
 
-1.2 Synaptic Neuron Model in snnTorch
+1.2 snnTorch中的突触神经元模型
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The synaptic condutance-based neuron model combines the synaptic current
-dynamics with the passive membrane. It must be instantiated with two
-input arguments: 
+突触传导模型将突触电流动力学与被动膜结合在一起。它必须使用两个输入参数实例化：
 
-* :math:`\alpha`: the decay rate of the synaptic current 
-* :math:`\beta`: the decay rate of the membrane potential (as with Lapicque)
+* :math:`\alpha`：突触电流的衰减率
+* :math:`\beta`：膜电位的衰减率（与Lapicque模型相同）
 
 ::
 
-    # Temporal dynamics
+    # 时间动态
     alpha = 0.9
     beta = 0.8
     num_steps = 200
     
-    # Initialize 2nd-order LIF neuron
+    # 初始化2阶LIF神经元
     lif1 = snn.Synaptic(alpha=alpha, beta=beta)
 
-Using this neuron is the exact same as previous LIF neurons, but now
-with the addition of synaptic current ``syn`` as an input and output:
+使用这个神经元与之前的LIF神经元完全相同，但现在加入了突触电流``syn``作为输入和输出：
 
-**Inputs** 
+**输入** 
 
-* ``spk_in``: each weighted input voltage spike :math:`WX[t]` is sequentially passed in 
-* ``syn``: synaptic current :math:`I_{\rm syn}[t-1]` at the previous time step 
-* ``mem``: membrane potential :math:`U[t-1]` at the previous time step
+* ``spk_in``：每个加权输入电压脉冲 :math:`WX[t]` 被顺序传递
+* ``syn``：上一时间步的突触电流 :math:`I_{\rm syn}[t-1]`
+* ``mem``：上一时间步的膜电位 :math:`U[t-1]`
 
-**Outputs** 
+**输出** 
 
-* ``spk_out``: output spike :math:`S[t]` (‘1’ if there is a spike; ‘0’ if there is no spike) 
-* ``syn``: synaptic current :math:`I_{\rm syn}[t]` at the present time step 
-* ``mem``: membrane potential :math:`U[t]` at the present time step
+* ``spk_out``：输出脉冲 :math:`S[t]`（如果有脉冲则为'1'；如果没有脉冲则为'0'）
+* ``syn``：当前时间步的突触电流 :math:`I_{\rm syn}[t]`
+* ``mem``：当前时间步的膜电位 :math:`U[t]`
 
-These all need to be of type ``torch.Tensor``. Note that the neuron
-model has been time-shifted back one step without loss of generality.
+这些都需要是 ``torch.Tensor`` 类型。请注意，神经元模型已经向后移动了一步，不过无所谓。
 
-Apply a periodic spiking input to see how current and membrane evolve
-with time:
+应用周期性的脉冲输入，观察电流和膜随时间的演变：
 
 ::
 
-    # Periodic spiking input, spk_in = 0.2 V
+    # 周期性脉冲输入，spk_in = 0.2 V
     w = 0.2
     spk_period = torch.cat((torch.ones(1)*w, torch.zeros(9)), 0)
     spk_in = spk_period.repeat(20)
     
-    # Initialize hidden states and output
+    # 初始化隐藏状态和输出
     syn, mem = lif1.init_synaptic()
     spk_out = torch.zeros(1) 
     syn_rec = []
     mem_rec = []
     spk_rec = []
     
-    # Simulate neurons
+    # 模拟神经元
     for step in range(num_steps):
       spk_out, syn, mem = lif1(spk_in[step], syn, mem)
       spk_rec.append(spk_out)
       syn_rec.append(syn)
       mem_rec.append(mem)
     
-    # convert lists to tensors
+    # 将列表转换为张量
     spk_rec = torch.stack(spk_rec)
     syn_rec = torch.stack(syn_rec)
     mem_rec = torch.stack(mem_rec)
     
     plot_spk_cur_mem_spk(spk_in, syn_rec, mem_rec, spk_rec, 
-                         "Synaptic Conductance-based Neuron Model With Input Spikes")
+                         "带输入脉冲的突触传导型神经元模型")
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial4/_static/syn_cond_spk.png?raw=true
         :align: center
         :width: 450
 
-This model also has the optional input arguments of ``reset_mechanism``
-and ``threshold`` as described for Lapicque’s neuron model. In summary,
-each spike contributes a shifted exponential decay to the synaptic
-current :math:`I_{\rm syn}`, which are all summed together. This current
-is then integrated by the passive membrane equation derived in
-`Tutorial 2 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_, thus generating output spikes. An illustration of this
-process is provided below.
+该模型还具有可选的输入参数 ``reset_mechanism`` 和 ``threshold`` ，如Lapicque的神经元模型所述。总之，每个脉冲都会对突触电流 :math:`I_{\rm syn}` 产生一个平移的指数衰减，然后将它们全部相加。然后，这个电流由在`教程 2 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中导出的被动膜方程进行积分，从而生成输出脉冲。下图示意了这个过程。
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_7_stein.png?raw=true
         :align: center
@@ -232,191 +202,160 @@ sweeps on simple datasets, the optimal results seem to push
 :math:`\alpha` as close to 0 as possible. As data increases in
 complexity, :math:`\alpha` may grow larger.
 
-2. Alpha Neuron Model (Hacked Spike Response Model)
------------------------------------------------------
+1.3 一阶神经元与二阶神经元
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A recursive version of the Spike Response Model (SRM), or the ‘Alpha’
-neuron, is also available, called using ``snn.Alpha``. The neuron models
-thus far have all been based on the passive membrane model, using
-ordinary differential equations to describe their dynamics.
+一个自然而然的问题是 - *我什么时候应该使用一阶LIF神经元，什么时候应该使用这种二阶LIF神经元？* 
+虽然这个问题还没有真正解决，但我的实验给了我一些可能有用的直觉。
 
-The SRM family of models, on the other hand, is interpreted in terms of
-a filter. Upon the arrival of an input spike, this spike is convolved
-with the filter to give the membrane potential response. The form of
-this filter can be exponential, as is the case with Lapicque’s neuron,
-or they can be more complex such as a sum of exponentials. SRM models
-are appealing as they can arbitrarily add refractoriness, threshold
-adaptation, and any number of other features simply by embedding them
-into the filter.
+**二阶神经元更好的情况**
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/exp.gif?raw=true
-        :align: right
-        :width: 400
+* 如果你的输入数据的时间关系发生在长时间尺度上，
+* 或者如果输入的脉冲模式是稀疏的
 
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/alpha.gif?raw=true
-        :align: right
-        :width: 400
+通过有两个循环方程和两个衰减项（:math:`\alpha` 和 :math:`\beta`），
+这种神经元模型能够在更长的时间内“维持”输入脉冲。这对于保持长期关系是有益的。
+
+另一种可能的用例是：
+
+- 当时间编码很重要时
+
+如果你关心一个脉冲的精确时间，对于二阶神经元来说，控制起来似乎更容易。在 ``Leaky`` 模型中，
+一个脉冲将直接与输入同步触发。对于二阶模型，膜电位被“平滑处理”（即，突触电流模型对膜电位进行低通滤波），
+这意味着可以为 :math:`U[t]` 使用有限的上升时间。这在之前的模拟中很明显，其中输出脉冲相对于输入脉冲有所延迟。
+
+**一阶神经元更好的情况**
+
+* 任何不属于上述情况的情况，有时，甚至包括上述情况。
+
+一阶神经元模型（如 ``Leaky``）只有一个方程，使得反向传播过程稍微简单一些。
+尽管如此，``Synaptic`` 模型在 :math:`\alpha=0.` 时功能上等同于 ``Leaky`` 模型。
+在我对简单数据集进行的超参数扫描中，最佳结果似乎将 :math:`\alpha` 尽可能接近 0。随着数据复杂性的增加，:math:`\alpha` 可能会变大。
 
 
-2.1 Modelling the Alpha Neuron Model
+2.1 建模 Alpha 神经元模型
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Formally, this process is represented by:
+正式一点，这个过程由下式表示：
 
 .. math:: U_{\rm mem}(t) = \sum_i W(\epsilon * S_{\rm in})(t)
 
-where the incoming spikes :math:`S_{\rm in}` are convolved with a spike
-response kernel :math:`\epsilon( \cdot )`. The spike response is scaled
-by a synaptic weight, :math:`W`. In top figure, the kernel
-is an exponentially decaying function and would be the equivalent of
-Lapicque’s 1st-order neuron model. On the bottom, the kernel is an alpha
-function:
+其中，进入的脉冲 :math:`S_{\rm in}` 与脉冲响应核 :math:`\epsilon( \cdot )` 进行卷积。脉冲响应通过突触权重 :math:`W` 进行缩放。
+在顶部的图形中，核是一个指数衰减函数，相当于Lapicque的一阶神经元模型。在底部，核是一个alpha函数：
 
 .. math:: \epsilon(t) = \frac{t}{\tau}e^{1-t/\tau}\Theta(t)
 
-where :math:`\tau` is the time constant of the alpha kernel and
-:math:`\Theta` is the Heaviside step function. Most kernel-based methods
-adopt the alpha function as it provides a time-delay that is useful for
-temporal codes that are concerned with specifying the exact spike time
-of a neuron.
+其中 :math:`\tau` 是 alpha 核的时间常数，:math:`\Theta` 是 Heaviside 阶跃函数。大多数基于核的方法采用 alpha 函数，因为它提供了对于关心指定神经元精确脉冲时间的时间编码很有用的时间延迟。
 
-In snnTorch, the spike response model is not directly implemented as a
-filter. Instead, it is recast into a recursive form such that only the
-previous time step of values are required to calculate the next set of
-values. This reduces the memory required.
+在 snnTorch 中，脉冲响应模型不是直接作为滤波器实现的。相反，它被重构成递归形式，这样只需要前一个时间步的值就可以计算下一组值。这减少了所需的内存。
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_9_alpha.png?raw=true
         :align: center
         :width: 550
 
-As the membrane potential is now determined by the sum of two
-exponentials, each of these exponents has their own independent decay
-rate. :math:`\alpha` defines the decay rate of the positive exponential,
-and :math:`\beta` defines the decay rate of the negative exponential.
+由于膜电位现在由两个指数之和决定，因此这些指数每个都有自己的独立衰减率。:math:`\alpha` 定义正指数的衰减率，:math:`\beta` 定义负指数的衰减率。
 
 ::
 
     alpha = 0.8
     beta = 0.7
     
-    # initialize neuron
+    # 初始化神经元
     lif2 = snn.Alpha(alpha=alpha, beta=beta, threshold=0.5)
 
-Using this neuron is the same as the previous neurons, but the sum of
-two exponential functions requires the synaptic current ``syn`` to be
-split into a ``syn_exc`` and ``syn_inh`` component:
+使用这种神经元与之前的神经元相同，但是两个指数函数之和要求将突触电流 ``syn`` 分成 ``syn_exc`` 和 ``syn_inh`` 两个部分：
 
-**Inputs** 
+**输入** 
 
-* ``spk_in``: each weighted input voltage spike :math:`WX[t]` is sequentially passed in 
-* ``syn_exc``: excitatory post-synaptic current :math:`I_{\rm syn-exc}[t-1]` at the previous time step 
-* ``syn_inh``: inhibitory post-synaptic current :math:`I_{\rm syn-inh}[t-1]` at the previous time step 
-* ``mem``: membrane potential :math:`U_{\rm mem}[t-1]` at the present time :math:`t` at the previous time step
+* ``spk_in``：每个加权输入电压脉冲 :math:`WX[t]` 依次传入 
+* ``syn_exc``：前一个时间步的兴奋性突触后电流 :math:`I_{\rm syn-exc}[t-1]` 
+* ``syn_inh``：前一个时间步的抑制性突触后电流 :math:`I_{\rm syn-inh}[t-1]` 
+* ``mem``：当前时间 :math:`t` 前一个时间步的膜电位 :math:`U_{\rm mem}[t-1]`
 
-**Outputs** 
+**输出** 
 
-* ``spk_out``: output spike :math:`S_{\rm out}[t]` at the present time step (‘1’ if there is a spike; ‘0’ if there is no spike) 
-* ``syn_exc``: excitatory post-synaptic :math:`I_{\rm syn-exc}[t]` at the present time step :math:`t` 
-* ``syn_inh``: inhibitory post-synaptic current :math:`I_{\rm syn-inh}[t]` at the present time step :math:`t` 
-* ``mem``: membrane potential :math:`U_{\rm mem}[t]` at the present time step
+* ``spk_out``：当前时间步的输出脉冲 :math:`S_{\rm out}[t]`（如果有脉冲则为‘1’；如果没有脉冲则为‘0’）
+* ``syn_exc``：当前时间步 :math:`t` 的兴奋性突触后电流 :math:`I_{\rm syn-exc}[t]` 
+* ``syn_inh``：当前时间步 :math:`t` 的抑制性突触后电流 :math:`I_{\rm syn-inh}[t]` 
+* ``mem``：当前时间步的膜电位 :math:`U_{\rm mem}[t]`
 
-As with all other neuron models, these must be of type ``torch.Tensor``.
+与所有其他神经元模型一样，这些必须是 ``torch.Tensor`` 类型。
 
 ::
 
-    # input spike: initial spike, and then period spiking 
+    # 输入脉冲：初始脉冲，然后是周期性脉冲
     w = 0.85
     spk_in = (torch.cat((torch.zeros(10), torch.ones(1), torch.zeros(89), 
                          (torch.cat((torch.ones(1), torch.zeros(9)),0).repeat(10))), 0) * w).unsqueeze(1)
     
-    # initialize parameters
+    # 初始化参数
     syn_exc, syn_inh, mem = lif2.init_alpha()
     mem_rec = []
     spk_rec = []
     
-    # run simulation
+    # 运行模拟
     for step in range(num_steps):
       spk_out, syn_exc, syn_inh, mem = lif2(spk_in[step], syn_exc, syn_inh, mem)
       mem_rec.append(mem.squeeze(0))
       spk_rec.append(spk_out.squeeze(0))
     
-    # convert lists to tensors
+    # 将列表转换为张量
     mem_rec = torch.stack(mem_rec)
     spk_rec = torch.stack(spk_rec)
     
-    plot_spk_mem_spk(spk_in, mem_rec, spk_rec, "Alpha Neuron Model With Input Spikes")
+    plot_spk_mem_spk(spk_in, mem_rec, spk_rec, "Alpha 神经元模型带输入脉冲")
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial4/_static/alpha.png?raw=true
         :align: center
         :width: 500
 
-As with the Lapicque and Synaptic models, the Alpha model also has
-options to modify the threshold and reset mechanism.
+与 Lapicque 和 Synaptic 模型一样，Alpha 模型也有修改阈值和重置机制的选项。
 
-2.2 Practical Considerations
+2.2 实际考虑
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As mentioned for the Synaptic neuron, the more complex a model, the more
-complex the backpropagation process during training. In my own
-experiments, I have yet to find a case where the Alpha neuron
-outperforms the Synaptic and Leaky neuron models. It seems as though
-learning through a positive and negative exponential only makes the
-gradient calculation process more difficult, and offsets any potential
-benefits in more complex neuronal dynamics.
+如同前面对突触神经元的讨论，模型越复杂，训练过程中的反向传播过程也越复杂。
+在我自己的实验中，我还没有发现 Alpha 神经元在性能上超越突触和Leaky神经元模型的案例。
+通过正负指数进行学习似乎只会增加梯度计算过程的难度，抵消更复杂的神经元动力学可能带来的好处。
 
-However, when an SRM model is expressed as a time-varying kernel (rather
-than a recursive model as is done here), it seems to perform just as
-well as the simpler neuron models. As an example, see the following
-paper:
+然而，当SRM模型被表示为时变核（而不是像这里这样的递归模型）时，它似乎与简单的神经元模型表现得一样好。例如，参见以下论文：
 
-   `Sumit Bam Shrestha and Garrick Orchard, “SLAYER: Spike layer error
+   `Sumit Bam Shrestha 和 Garrick Orchard, “SLAYER: Spike layer error
    reassignment in time”, Proceedings of the 32nd International
    Conference on Neural Information Processing Systems, pp. 1419-1328,
    2018. <https://arxiv.org/abs/1810.08646>`__
 
-The Alpha neuron has been included with the intent of providing an
-option for porting across SRM-based models over into snnTorch, although
-natively training them seems to not be too effective in snnTorch. 
+加入 Alpha 神经元的目的是为将基于 SRM 的模型移植到 snnTorch 提供一个选项，尽管在 snnTorch 中对它们进行本机训练似乎不太有效。
 
-Conclusion
+结论
 ------------
 
-We have covered all LIF neuron models available in snnTorch. As a quick
-summary:
+我们已经覆盖了 snnTorch 中可用的所有LIF神经元模型。简要总结一下：
 
--  **Lapicque**: a physically accurate model based directly on
-   RC-circuit parameters
--  **Leaky**: a simplified 1st-order model
--  **Synaptic**: a 2nd-order model that accounts for synaptic current
-   evolution
--  **Alpha**: a 2nd-order model where the membrane potential tracks an
-   alpha function
+-  **Lapicque**：基于 RC-电路参数的物理精确模型
+-  **Leaky**：简化的一阶模型
+-  **Synaptic**：考虑突触电流演变的二阶模型
+-  **Alpha**：膜电位跟踪 alpha 函数的二阶模型
 
-In general, ``Leaky`` and ``Synaptic`` seem to be the most useful for
-training a network. ``Lapicque`` is good for demonstrating physically
-precise models, while ``Alpha`` is only intended to capture the
-behaviour of SRM neurons.
+一般来说，``Leaky`` 和 ``Synaptic`` 似乎对于训练网络最有用。``Lapicque`` 适用于演示物理精确模型，而 ``Alpha`` 只旨在捕捉SRM神经元的行为。
 
-Building a network using these slighty more advanced neurons follows the
-exact same procedure as in `Tutorial 3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_.
+使用这些稍微高级一些的神经元构建网络的过程与 `教程3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中的过程完全相同。
 
-If you like this project, please consider starring ⭐ the repo on GitHub as it is the easiest and best way to support it.
+如果您喜欢这个项目，请考虑在 GitHub 上给仓库点赞⭐，这是支持它的最简单也是最好的方式。
 
-For reference, the documentation `can be found
-here <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__.
+参考文献，可在 `这里找到
+<https://snntorch.readthedocs.io/en/latest/snntorch.html>`__。
 
-Further Reading
+进一步阅读
 ---------------
 
--  `Check out the snnTorch GitHub project here. <https://github.com/jeshraghian/snntorch>`__
--  `snnTorch
-   documentation <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__
-   of the Lapicque, Leaky, Synaptic, and Alpha models
--  `Neuronal Dynamics: From single neurons to networks and models of
-   cognition <https://neuronaldynamics.epfl.ch/index.html>`__ by Wulfram
-   Gerstner, Werner M. Kistler, Richard Naud and Liam Paninski.
--  `Theoretical Neuroscience: Computational and Mathematical Modeling of
-   Neural
-   Systems <https://mitpress.mit.edu/books/theoretical-neuroscience>`__
-   by Laurence F. Abbott and Peter Dayan
+-  `在这里查看 snnTorch GitHub 项目。 <https://github.com/jeshraghian/snntorch>`__
+-  关于 Lapicque, Leaky, Synaptic, 和 Alpha 模型的 `snnTorch文档 <https://snntorch.readthedocs.io/en/latest/snntorch.html>`__
+-  `神经动力学：从单个神经元到网络和认知模型
+   <https://neuronaldynamics.epfl.ch/index.html>`__ ，由 Wulfram
+   Gerstner, Werner M. Kistler, Richard Naud 和 Liam Paninski 著。
+-  `理论神经科学：计算和数学建模的神经
+   系统 <https://mitpress.mit.edu/books/theoretical-neuroscience>`__
+   ，由 Laurence F. Abbott 和 Peter Dayan 著。
+
