@@ -53,6 +53,8 @@ class SpikingNeuron(nn.Module):
             self.spike_grad = self._surrogate_bypass
         elif spike_grad == None:
             self.spike_grad = atan()
+        else:
+            self.spike_grad = spike_grad
 
         self.init_hidden = init_hidden
         self.inhibition = inhibition
