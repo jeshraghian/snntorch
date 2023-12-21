@@ -1,6 +1,6 @@
 from .neurons import LIF
 import torch
-
+from torch import nn
 
 class Leaky(LIF):
     """
@@ -175,50 +175,49 @@ class Leaky(LIF):
     def reset_mem(self):
         self.mem = torch.zeros_like(self.mem, device=self.mem.device)
 
+    def init_leaky(self):
+        """Deprecated, please use :class:`Leaky.reset_mem` instead"""
+        self.reset_mem()
+        return self.mem
+
     def forward(self, input_, mem=None):
         if not mem == None:
             self.mem = mem
-        elif not self.mem.shape == input_.shape:
+
+        if not self.mem.shape == input_.shape:
             self.mem = torch.zeros_like(input_, device=self.mem.device)
 
-        # TO-DO: alternatively, we could do torch.exp(-1 /
-        # self.beta.clamp_min(0)),
-        # giving actual time constants instead of values in [0, 1] as
-        # initial beta
-        # beta = self.beta.clamp(0, 1)
-
         self.reset = self.mem_reset(self.mem)
-        self.mem = self.state_function(input_, self.mem)
+        self.mem = self.state_function(input_)
 
         if self.state_quant:
             self.mem = self.state_quant(self.mem)
 
         if self.inhibition:
-            self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+            spk = self.fire_inhibition(self.mem.size(0), self.mem)
         else:
-            self.spk = self.fire(self.mem)
+            spk = self.fire(self.mem)
 
-        if self.output:  # read-out layer returns output+states
-            return self.spk, self.mem
-        else:  # hidden layer e.g., in nn.Sequential, only returns output
-            return self.spk
+        if self.output:
+            return spk, self.mem
+        elif self.init_hidden:
+            return spk
+        else:
+            return spk, self.mem
 
-    def _base_state_function(self, input_, mem):
-        base_fn = self.beta.clamp(0, 1) * mem + input_
+    def _base_state_function(self, input_):
+        base_fn = self.beta.clamp(0, 1) * self.mem + input_
         return base_fn
 
-    def _base_sub(self, input_, mem):
-        return self._base_state_function(
-            input_, mem - self.reset * self.threshold
-        )
+    def _base_sub(self, input_):
+        return self._base_state_function(input_) - self.reset * self.threshold
 
-    def _base_zero(self, input_, mem):
-        return self._base_state_function(
-            input_, mem
-        ) - self.reset * self._base_state_function(input_, mem)
+    def _base_zero(self, input_):
+        self.mem = (1 - self.reset) * self.mem
+        return self._base_state_function(input_)
 
-    def _base_int(self, input_, mem):
-        return self._base_state_function(input_, mem)
+    def _base_int(self, input_):
+        return self._base_state_function(input_)
 
     @classmethod
     def detach_hidden(cls):
