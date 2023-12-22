@@ -159,48 +159,36 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
         :align: center
         :width: 450
 
-1.3 1st-Order vs. 2nd-Order Neurons
+1.3 一阶神经元与二阶神经元
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A natural question that arises is - *when do I want to use a 1st order
-LIF neuron and when should I use this 2nd order LIF neuron?* While this
-has not really been settled, my own experiments have given me some
-intuition that might be useful.
+一个自然而然的问题是 - *我什么时候应该使用一阶LIF神经元，什么时候应该使用这种二阶LIF神经元？* 虽然这个问题还没有真正解决，但我的实验给了我一些可能有用的直觉。
 
-**When 2nd-order neurons are better** 
+**二阶神经元更好的情况** 
 
-* If the temporal relations of your input data occur across long time-scales, 
-* or if the input spiking pattern is sparse
+* 如果你的输入数据的时间关系发生在长时间尺度上，
+* 或者如果输入的脉冲模式是稀疏的
 
-By having two recurrent equations with two decay terms (:math:`\alpha`
-and :math:`\beta`), this neuron model is able to ‘sustain’ input spikes
-over a longer duration. This can be beneficial to retaining long-term
-relationships.
+通过有两个循环方程和两个衰减项（:math:`\alpha` 和 :math:`\beta`），这种神经元模型能够在更长的时间内“维持”输入脉冲。这对于保持长期关系是有益的。
 
-An alternative use case might also be:
+另一种可能的用例是：
 
--  When temporal codes matter
+- 当时间编码很重要时
 
-If you care for the precise timing of a spike, it seems easier to
-control that for a 2nd-order neuron. In the ``Leaky`` model, a spike
-would be triggered in direct synchrony with the input. For 2nd-order
-models, the membrane potential is ‘smoothed out’ (i.e., the synaptic
-current model low-pass filters the membrane potential), which means one
-can use a finite rise time for :math:`U[t]`. This is clear in the
-previous simulation, where the output spikes experience a delay with
-respect to the input spikes.
+如果你关心一个脉冲的精确时间，对于二阶神经元来说，控制起来似乎更容易。
+在 ``Leaky`` 模型中，一个脉冲将直接与输入同步触发。
+对于二阶模型，膜电位被“平滑处理”（即，突触电流模型对膜电位进行低通滤波），这意味着可以为 :math:`U[t]` 使用有限的上升时间。
+这在之前的模拟中很明显，其中输出脉冲相对于输入脉冲有所延迟。
 
-**When 1st-order neurons are better** 
+**一阶神经元更好的情况** 
 
-* Any case that doesn’t fall into the above, and sometimes, the above cases.
+* 任何不属于上述情况的情况，有时，甚至包括上述情况。
 
-By having one less equation in 1st-order neuron models (such as
-``Leaky``), the backpropagation process is made a little simpler. Though
-having said that, the ``Synaptic`` model is functionally equivalent to
-the ``Leaky`` model for :math:`\alpha=0.` In my own hyperparameter
-sweeps on simple datasets, the optimal results seem to push
-:math:`\alpha` as close to 0 as possible. As data increases in
-complexity, :math:`\alpha` may grow larger.
+一阶神经元模型（如 ``Leaky``）只有一个方程，使得反向传播过程稍微简单一些。
+尽管如此， ``Synaptic`` 模型在 :math:`\alpha=0.` 时功能上等同于 ``Leaky`` 模型。
+在我对简单数据集进行的超参数扫描中，最佳结果似乎将 :math:`\alpha` 尽可能接近 0。
+随着数据复杂性的增加，:math:`\alpha` 可能会变大。
+
 
 1.3 一阶神经元与二阶神经元
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
