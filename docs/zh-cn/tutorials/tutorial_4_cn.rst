@@ -153,7 +153,9 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
         :align: center
         :width: 450
 
-该模型还具有可选的输入参数 ``reset_mechanism`` 和 ``threshold`` ，如Lapicque的神经元模型所述。总之，每个脉冲都会对突触电流 :math:`I_{\rm syn}` 产生一个平移的指数衰减，然后将它们全部相加。然后，这个电流由在`教程 2 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中导出的被动膜方程进行积分，从而生成输出脉冲。下图示意了这个过程。
+该模型还具有可选的输入参数 ``reset_mechanism`` 和 ``threshold`` ，如Lapicque的神经元模型所述。
+总之，每个脉冲都会对突触电流 :math:`I_{\rm syn}` 产生一个平移的指数衰减，然后将它们全部相加。
+然后，这个电流由在 `教程（二） <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中导出的被动膜方程进行积分，从而生成输出脉冲。下图示意了这个过程。
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/2_7_stein.png?raw=true
         :align: center
