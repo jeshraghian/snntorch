@@ -328,7 +328,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 -  **Synaptic**：考虑突触电流演变的二阶模型
 -  **Alpha**：膜电位跟踪 alpha 函数的二阶模型
 
-一般来说，``Leaky`` 和 ``Synaptic`` 似乎对于训练网络最有用。``Lapicque`` 适用于演示物理精确模型，而 ``Alpha`` 只旨在捕捉SRM神经元的行为。
+一般来说， ``Leaky`` 和 ``Synaptic`` 似乎对于训练网络最有用。 ``Lapicque`` 适用于演示物理精确模型，而 ``Alpha`` 只旨在捕捉SRM神经元的行为。
 
 使用这些稍微高级一些的神经元构建网络的过程与 `教程3 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中的过程完全相同。
 
