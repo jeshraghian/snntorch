@@ -8,12 +8,11 @@
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_1_spikegen.ipynb
 
-snnTorch 教程系列基于以下论文。如果您发现这些资源或代码对您的工作有用，请考虑引用以下来源：
+snnTorch 教程系列基于以下论文。如果您发现这些资源或代码对您的工作有用，请考虑引用以下文献：
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
-    Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
-    September 2021. <https://arxiv.org/abs/2109.12894>`_
+    Spiking Neural Networks Using Lessons From Deep Learning”. Proceedings of the IEEE, 111(9) September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 .. note::
   本教程是不可编辑的静态版本。交互式可编辑版本可通过以下链接获取：
@@ -428,14 +427,17 @@ MNIST具有灰度图像, 而其中的白色文本保证100%在每个时间段都
 脉冲率编码实际上是一个十分有争议的主意。尽管大伙非常自信脉冲率编码有被应用在我们的周围感官，
 但是大伙都不相信周围感官全都是基于脉冲率的。几个令人信服的里有包括：
 
--  **功耗:** 大自然会优化效率（能耗比）。完成任何类型的任务都需要几个脉冲，
+-  **功耗:** 
+
+    大自然会优化效率（能耗比）。完成任何类型的任务都需要几个脉冲，
     而每个脉冲都要消耗能量。事实上, `Olshausen和Field的 “What is the
-   other 85% of V1
-   doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`__ 
-    中证明脉冲率编码最多只能解释 初级视觉皮层 （V1） 中 15% 的神经元的活动。
+    other 85% of V1 doing?” <http://www.rctn.org/bruno/papers/V1-chapter.pdf>`_ 中
+    证明脉冲率编码最多只能解释 初级视觉皮层 （V1） 中 15% 的神经元的活动。
     不太可能是脑内唯一的机制，因为大脑是出了名的 资源有限且效率高。
 
--  **响应时间:** 我们知道人类的反应时间大约是250毫秒。
+-  **响应时间:** 
+
+    我们知道人类的反应时间大约是250毫秒。
     如果神经元的平均脉冲率在人脑中是10Hz的数量级, 那么在反应时间范围内, 
     人类只能处理约 2 个脉冲。
 
@@ -669,7 +671,7 @@ fire together, wire together” <https://doi.org/10.2307/1418888>`__。
     tensor(4, device='cuda:0')
 
 
-这就是 ``spikegen.latency`` 函数。更多信息可以在 `这些文档 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__中找到。
+这就是 ``spikegen.latency`` 函数。更多信息可以在 `这些文档 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`_ 中找到。
 
 2.4 增量调制
 ~~~~~~~~~~~~~~~~~~~~
@@ -841,7 +843,7 @@ Sensor <https://ieeexplore.ieee.org/abstract/document/7128412/>`__.
 
 本文讨论了脉冲转换和生成。这种方法不仅适用于图像，还适用于单维和多维的张量。
 
-如果你喜欢这个项目，请考虑在 GitHub 上的 点亮星星⭐。因为这是最简单、最好的支持方式。
+如果你喜欢这个项目，请考虑在 GitHub 上点亮星星⭐。因为这是最简单、最好的支持方式。
 
 作为参考,  `spikegen文档在这里 <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`__
 , 还有 `spikeplot文档在这 <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`__.

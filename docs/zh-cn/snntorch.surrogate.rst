@@ -1,0 +1,123 @@
+snntorch.surrogate
+-------------------------
+
+By default, PyTorch's autodifferentiation tools are unable to calculate the analytical derivative of the spiking neuron graph. 
+The discrete nature of spikes makes it difficult for ``torch.autograd`` to calculate a gradient that facilitates learning.
+:mod:`snntorch` overrides the default gradient by using :mod:`snntorch.surrogate.ATan`.
+
+Alternative gradients are also available in the :mod:`snntorch.surrogate` module. 
+These represent either approximations of the backward pass or probabilistic models of firing as a function of the membrane potential.
+Custom, user-defined surrogate gradients can also be implemented.
+
+At present, the surrogate gradient functions available include:
+
+* `Sigmoid <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.Sigmoid>`_
+* `Fast Sigmoid <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.FastSigmoid>`_
+* `ATan <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.ATan>`_
+* `Straight Through Estimator <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.StraightThroughEstimator>`_
+* `Triangular <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.Triangular>`_
+* `SpikeRateEscape <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.SpikeRateEscape>`_
+* `Custom Surrogate Gradients <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html#snntorch.surrogate.CustomSurrogate>`_
+
+amongst several other options. 
+
+For further reading, see:
+
+    *E. O. Neftci, H. Mostafa, F. Zenke (2019) Surrogate Gradient Learning in Spiking Neural Networks: Bringing the Power of Gradient-Based Optimization to Spiking Neural Networks. IEEE Signal Processing Magazine, pp. 51-63.*
+
+How to use surrogate
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The surrogate gradient must be passed as the ``spike_grad`` argument to the neuron model. 
+If ``spike_grad`` is left unspecified, it defaults to :mod:`snntorch.surrogate.ATan`.
+In the following example, we apply the fast sigmoid surrogate to :mod:`snntorch.Synaptic`.
+
+Example::
+
+   import snntorch as snn
+   from snntorch import surrogate
+   import torch
+   import torch.nn as nn
+
+   alpha = 0.9
+   beta = 0.85
+
+   # Initialize surrogate gradient
+   spike_grad1 = surrogate.fast_sigmoid()  # passes default parameters from a closure
+   spike_grad2 = surrogate.FastSigmoid.apply  # passes default parameters, equivalent to above
+   spike_grad3 = surrogate.fast_sigmoid(slope=50)  # custom parameters from a closure
+
+   # Define Network
+   class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    # Initialize layers, specify the ``spike_grad`` argument
+        self.fc1 = nn.Linear(num_inputs, num_hidden)
+        self.lif1 = snn.Synaptic(alpha=alpha, beta=beta, spike_grad=spike_grad1)
+        self.fc2 = nn.Linear(num_hidden, num_outputs)
+        self.lif2 = snn.Synaptic(alpha=alpha, beta=beta, spike_grad=spike_grad3)
+
+    def forward(self, x, syn1, mem1, spk1, syn2, mem2):
+        cur1 = self.fc1(x)
+        spk1, syn1, mem1 = self.lif1(cur1, syn1, mem1)
+        cur2 = self.fc2(spk1)
+        spk2, syn2, mem2 = self.lif2(cur2, syn2, mem2)
+        return syn1, mem1, spk1, syn2, mem2, spk2
+
+    net = Net().to(device)
+
+Custom Surrogate Gradients
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For flexibility, custom surrogate gradients can also be defined by the user
+using `custom_surrogate`.
+
+
+Example::
+
+   import snntorch as snn
+   from snntorch import surrogate
+   import torch
+   import torch.nn as nn
+
+   beta = 0.9
+
+   # Define custom surrogate gradient
+    def custom_fast_sigmoid(input_, grad_input, spikes):
+        ## The hyperparameter slope is defined inside the function.
+        slope = 25
+        grad = grad_input / (slope * torch.abs(input_) + 1.0) ** 2
+        return grad
+
+    spike_grad = surrogate.custom_surrogate(custom_fast_sigmoid)
+
+   # Define Network
+   class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    # Initialize layers
+        self.fc1 = nn.Linear(num_inputs, num_hidden)
+        self.lif1 = snn.Leaky(beta=beta, spike_grad=spike_grad)
+        self.fc2 = nn.Linear(num_hidden, num_outputs)
+        self.lif2 = snn.Leaky(beta=beta, spike_grad=spike_grad)
+
+    def forward(self, x, mem1, spk1, mem2):
+        cur1 = self.fc1(x)
+        spk1, mem1 = self.lif1(cur1, mem1)
+        cur2 = self.fc2(spk1)
+        spk2, mem2 = self.lif2(cur2, mem2)
+
+        return mem1, spk1, mem2, spk2
+
+    net = Net().to(device)
+
+
+List of surrogate gradients
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: snntorch.surrogate
+   :members:
+   :undoc-members:
+   :show-inheritance:
