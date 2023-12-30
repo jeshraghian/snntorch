@@ -7,6 +7,7 @@ SNNs回归（一）
 
 本教程出自 Alexander Henkes (`ORCID <https://orcid.org/0000-0003-4615-9271>`_) 与 Jason K. Eshraghian (`ncg.ucsc.edu <https://ncg.ucsc.edu>`_)
 
+ `English <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_regression_1.html#>`_ 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab

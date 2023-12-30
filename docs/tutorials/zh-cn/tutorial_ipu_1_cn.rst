@@ -4,6 +4,8 @@
 
 教程由 `Jason K. Eshraghian <https://www.jasoneshraghian.com>`_ 和 Vincent Sun 编写
 
+ `English <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html#>`_ 
+
 snnTorch 教程系列基于以下论文。如果您在工作中发现这些资源或代码有用，请考虑引用以下来源：
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
