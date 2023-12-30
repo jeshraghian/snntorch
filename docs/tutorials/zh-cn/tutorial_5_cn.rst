@@ -12,8 +12,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
-    Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
-    September 2021. <https://arxiv.org/abs/2109.12894>`_
+    Spiking Neural Networks Using Lessons From Deep Learning”. Proceedings of the IEEE, 111(9) September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 .. note::
   本教程是不可编辑的静态版本。交互式可编辑版本可通过以下链接获取：
