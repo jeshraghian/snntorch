@@ -442,7 +442,7 @@ PyTorch 中的 DataLoader 是将数据传入网络的便捷接口。它们返回
 额外资源
 ------------------------
 
--  `在查看 snntorch GitHub 项目。 <https://github.com/jeshraghian/snntorch>`__
+-  `在这里查看 snntorch GitHub 项目。 <https://github.com/jeshraghian/snntorch>`__
 -  有关 SNN 进行非线性回归的更多细节可以在我们的相应预印本中找到： `Henkes, A.; Eshraghian, J. K.; 和
    Wessels, H. “脉冲神经网络用于非线性回归”，arXiv 预印本 arXiv:2210.03515,
    2022年10月。 <https://arxiv.org/abs/2210.03515>`__

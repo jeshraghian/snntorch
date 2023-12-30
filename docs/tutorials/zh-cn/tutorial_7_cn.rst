@@ -87,7 +87,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 
 -  ``time_window=1000`` 将事件整合到 1000\ :math:`~\mu`\ s 的区间内
 
--  Denoise 移除孤立的、一次性事件。如果在 ``filter_time`` 微秒内，1像素邻域内没有发生事件，该事件将被过滤。``filter_time`` 较小会过滤更多事件。
+-  Denoise 移除孤立的、一次性事件。如果在 ``filter_time`` 微秒内，1像素邻域内没有发生事件，该事件将被过滤。 ``filter_time`` 较小会过滤更多事件。
 
 ::
 
@@ -142,6 +142,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 如果你有大量的 RAM 可用，可以通过将数据缓存到主内存而不是磁盘来进一步加速数据加载：
 
 ::
+
     from tonic import MemoryCachedDataset
 
     cached_trainset = MemoryCachedDataset(trainset)
@@ -385,10 +386,10 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 结论
 ------------
 
-如果你坚持到了这里，那么恭喜你 —— 你有一位和尚的耐心。你现在也应该理解如何使用 Tonic 加载神经形态数据集，并使用 snnTorch 训练网络。
+如果你坚持到了这里，那么恭喜你 —— 你有一位和尚级别的耐心。你现在也应该理解如何使用 Tonic 加载神经形态数据集，并使用 snnTorch 训练网络。
 
 这里结束了深入教程系列。
-查看 `高级教程 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__ 
+您可以查看 `高级教程 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__ 
 来学习更高级的技术，如引入长期时间动态到我们的 SNN 中，种群编码，或在智能处理单元上加速。
 
 如果你喜欢这个项目，请考虑在 GitHub 上给仓库点赞⭐，这是支持它的最简单也是最好的方式。
@@ -397,10 +398,9 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 ------------------------
 
 -  `在这里查看 snnTorch 的 GitHub 项目。 <https://github.com/jeshraghian/snntorch>`__
--  `Tonic GitHub 项目可以在
-   这里找到。 <https://github.com/neuromorphs/tonic>`__
+-  `Tonic GitHub 项目可以在这里找到。 <https://github.com/neuromorphs/tonic>`__
 -  N-MNIST 数据集最初发表在以下论文中：
-   `Orchard, G.; Cohen, G.; Jayawant, A.; 和 Thakor, N. “将静态图像数据集转换为脉冲神经形态数据集使用眼跳”，Frontiers in Neuroscience, vol.9, no.437,
+   `Orchard, G.; Cohen, G.; Jayawant, A.; 和 Thakor, N. “Converting Static Image Datasets to Spiking Neuromorphic Datasets Using Saccades”, Frontiers in Neuroscience, vol.9, no.437,
    2015年10月。 <https://www.frontiersin.org/articles/10.3389/fnins.2015.00437/full>`__
 -  有关如何创建 N-MNIST 的更多信息，请参考
    `Garrick Orchard 的网站。 <https://www.garrickorchard.com/datasets/n-mnist>`__

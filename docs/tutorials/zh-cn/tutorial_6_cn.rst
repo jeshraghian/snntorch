@@ -71,7 +71,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 1. 替代梯度下降
 --------------------------------
 
-`教程 5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 提出了**死神经元问题**。这是因为脉冲的不可微性引起的：
+`教程（五）<https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 提出了 **死神经元问题** 。这是因为脉冲的不可微性引起的：
 
 .. math:: S[t] = \Theta(U[t] - U_{\rm thr}) \tag{1}
 
@@ -106,7 +106,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
 
    -  将 :math:`U` 传入 :math:`(4)` 来计算导数项
 
-就像在 `教程 5 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中使用的 *ArcTangent* 方法一样，
+就像在 `教程（五）<https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`_ 中使用的 *ArcTangent* 方法一样，
 快速 sigmoid 函数的梯度可以在泄漏积分-发放（LIF）神经元模型中替代 Dirac-Delta 函数：
 
 ::
@@ -158,8 +158,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
     
     lif1 = snn.Leaky(beta=beta, spike_grad=spike_grad)
 
-要探索其他可用的替代梯度函数，请 `查看文档
-这里。 <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html>`__
+要探索其他可用的替代梯度函数，请 `查看文档 <https://snntorch.readthedocs.io/en/latest/snntorch.surrogate.html>`__
 
 
 2. 设置 CSNN
@@ -324,8 +323,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
     loss_fn = SF.ce_rate_loss()
 
 将脉冲记录作为第一个参数传递给
-``loss_fn``，并将目标神经元索引作为第二个参数来生成损失。 `这里是提供了更多信息和
-示例的文档。 <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html#snntorch.functional.ce_rate_loss>`__
+``loss_fn``，并将目标神经元索引作为第二个参数来生成损失。 `这里提供了更多信息和示例。 <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html#snntorch.functional.ce_rate_loss>`__
 
 ::
 
@@ -518,8 +516,8 @@ DataLoader 对象的准确度：
 ------------
 
 你现在应该掌握了 snnTorch 的基本特性，
-并能够开始进行你自己的实验。在 `下一个
-教程 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__中，
+并能够开始进行你自己的实验。
+在 `下一个教程 <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__ 中，
 我们将使用一个神经形态数据集来训练一个网络。
 
 特别感谢 `Gianfrancesco Angelini <https://github.com/gianfa>`__ 对教程提供的宝贵反馈。
