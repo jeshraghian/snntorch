@@ -86,7 +86,27 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
 
    * - `Binarized Spiking Neural Networks: Erik Mercado <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_binarized_spiking_neural_networks.html>`_
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_BSNN.ipynb
+
         
+
+
+.. list-table::
+   :widths: 70 32
+   :header-rows: 1
+
+   * - Dataset Tutorials
+     - Colab Link
+
+
+   * - `Exoplanet Hunter: Finding Planets Using Light Intensity <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_exoplanet_hunter.html>`_
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_exoplanet_hunter.ipynb
+        
+
+
 
 
 
