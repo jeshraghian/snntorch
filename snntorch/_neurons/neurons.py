@@ -344,7 +344,9 @@ class LIF(SpikingNeuron):
         the hidden states to the same as the input.
         """
 
-        return LIF.init_leaky()
+        mem = _SpikeTensor(init_flag=False)
+
+        return mem
 
     @staticmethod
     def init_alpha():
