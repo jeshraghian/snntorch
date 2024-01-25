@@ -1,6 +1,6 @@
-====================
-SNN Exoplanet Hunter
-====================
+================================================================================
+Exoplanet Hunter: Finding Planets Using Light Intensity
+================================================================================
 
 Tutorial written by Ruhai Lin, Aled dela Cruz, and Karina Aguilar
 
@@ -150,7 +150,7 @@ Use `ls`` to confirm `exoTest.csv` and `exoTrain.csv` are accessible.
 
 .. code:: python
 
-    !ls
+    ls
 
 
 .. parsed-literal::
@@ -367,7 +367,10 @@ After loading the data, let's see what our data looks like.
 
 The code block below follows the same syntax as with the `official
 snnTorch
-tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__.
+tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__. 
+In contrast to other tutorials however, this model passes data across the entire sequence in parallel. 
+In that sense, it is more akin to how attention-based mechanisms take data.
+Turning this into a more 'online' method would likely involve pre-processing to downsample the exceedingly long sequence length.
 
 .. code:: python
 
@@ -456,10 +459,8 @@ probabilities.
 
 roc_auc_score(): returns a value between 0 or 1.
 
-* Values :math:`> 0.5` and closer to 1 indicate that the model does well in distinguishing between
-the two classes 
-* Values close to 0.5 represent that the model does no
-better than random guessing 
+* Values :math:`> 0.5` and closer to 1 indicate that the model does well in distinguishing between the two classes 
+* Values close to 0.5 represent that the model does no better than random guessing 
 * Values :math:`< 0.5`` demonstrate that the model performs worse than random guessing
 
 Since there are minimal test values for stars with exoplanets, these
