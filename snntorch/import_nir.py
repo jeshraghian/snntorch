@@ -288,5 +288,4 @@ def _nir_to_snntorch_module(
 def from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
     # find valid RNN subgraphs, and replace them with a single NIRGraph node
     graph = _replace_rnn_subgraph_with_nirgraph(graph)
-    # TODO: right now, the subgraph edges seem to not be parsed correctly - fix this
     return nirtorch.load(graph, _nir_to_snntorch_module)

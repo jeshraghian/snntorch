@@ -24,14 +24,10 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
     elif isinstance(module, snn.Synaptic):
         dt = 1e-4
 
+        # TODO: assert that size of the current layer is correct
         alpha = module.alpha.detach().numpy()
         beta = module.beta.detach().numpy()
         vthr = module.threshold.detach().numpy()
-
-        # TODO: make sure alpha, beta, vthr are tensors of same size
-        alpha = np.ones(7) * alpha
-        beta = np.ones(7) * beta
-        vthr = np.ones(7) * vthr
 
         tau_syn = dt / (1 - alpha)
         tau_mem = dt / (1 - beta)
