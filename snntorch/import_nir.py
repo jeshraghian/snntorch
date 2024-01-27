@@ -1,166 +1,292 @@
-import snntorch as snn
 import numpy as np
-import torch
 import nir
-import typing
+import nirtorch
+import torch
+import snntorch as snn
 
 
-# TODO: implement this?
-class ImportedNetwork(torch.nn.Module):
-    """Wrapper for a snnTorch network. NOTE: not working atm."""
-    def __init__(self, module_list):
-        super().__init__()
-        self.module_list = module_list
-
-    def forward(self, x):
-        for module in self.module_list:
-            x = module(x)
-        return x
-
-
-def create_snntorch_network(module_list):
-    return torch.nn.Sequential(*module_list)
-
-
-def _lif_to_snntorch_module(
-        lif: typing.Union[nir.LIF, nir.CubaLIF]
-) -> torch.nn.Module:
-    """Parse a LIF node into snnTorch."""
-    if isinstance(lif, nir.LIF):
-        assert np.alltrue(lif.v_leak == 0), 'v_leak not supported'
-        assert np.alltrue(lif.r == 1. - 1. / lif.tau), 'r not supported'
-        assert np.unique(lif.v_threshold).size == 1, 'v_threshold must be same for all neurons'
-        threshold = lif.v_threshold[0]
-        mod = snn.RLeaky(
-            beta=1. - 1. / lif.tau,
-            threshold=threshold,
-            all_to_all=True,
-            reset_mechanism='zero',
-            linear_features=lif.tau.shape[0] if len(lif.tau.shape) == 1 else None,
-            init_hidden=True,
-        )
-        return mod
-
-    elif isinstance(lif, nir.CubaLIF):
-        assert np.alltrue(lif.v_leak == 0), 'v_leak not supported'
-        assert np.alltrue(lif.r == 1. - 1. / lif.tau_mem), 'r not supported'  # NOTE: is this right?
-        assert np.unique(lif.v_threshold).size == 1, 'v_threshold must be same for all neurons'
-        threshold = lif.v_threshold[0]
-        mod = snn.RSynaptic(
-            alpha=1. - 1. / lif.tau_syn,
-            beta=1. - 1. / lif.tau_mem,
-            threshold=threshold,
-            all_to_all=True,
-            reset_mechanism='zero',
-            linear_features=lif.tau_mem.shape[0] if len(lif.tau_mem.shape) == 1 else None,
-            init_hidden=True,
-        )
-        return mod
-
-    else:
-        raise ValueError('called _lif_to_snntorch_module on non-LIF node')
-
-
-def _to_snntorch_module(node: nir.NIRNode) -> torch.nn.Module:
-    """Convert a NIR node to a snnTorch module.
-
-    Supported NIR nodes: Affine.
+def _create_rnn_subgraph(graph: nir.NIRGraph, lif_nk: str, w_nk: str) -> nir.NIRGraph:
+    """Take a NIRGraph plus the node keys for a LIF and a W_rec, and return a new NIRGraph
+    which has the RNN subgraph replaced with a subgraph (i.e., a single NIRGraph node).
     """
-    if isinstance(node, (nir.LIF, nir.CubaLIF)):
-        return _lif_to_snntorch_module(node)
+    # NOTE: assuming that the LIF and W_rec have keys of form xyz.abc
+    sg_key = lif_nk.split('.')[0]  # TODO: make this more general?
+
+    # create subgraph for RNN
+    sg_edges = [
+        (lif_nk, w_nk), (w_nk, lif_nk), (lif_nk, f'{sg_key}.output'), (f'{sg_key}.input', w_nk)
+    ]
+    sg_nodes = {
+        lif_nk: graph.nodes[lif_nk],
+        w_nk: graph.nodes[w_nk],
+        f'{sg_key}.input': nir.Input(graph.nodes[lif_nk].input_type),
+        f'{sg_key}.output': nir.Output(graph.nodes[lif_nk].output_type),
+    }
+    sg = nir.NIRGraph(nodes=sg_nodes, edges=sg_edges)
+
+    # remove subgraph edges from graph
+    graph.edges = [e for e in graph.edges if e not in [(lif_nk, w_nk), (w_nk, lif_nk)]]
+    # remove subgraph nodes from graph
+    graph.nodes = {k: v for k, v in graph.nodes.items() if k not in [lif_nk, w_nk]}
+
+    # change edges of type (x, lif_nk) to (x, sg_key)
+    graph.edges = [(e[0], sg_key) if e[1] == lif_nk else e for e in graph.edges]
+    # change edges of type (lif_nk, x) to (sg_key, x)
+    graph.edges = [(sg_key, e[1]) if e[0] == lif_nk else e for e in graph.edges]
+
+    # insert subgraph into graph and return
+    graph.nodes[sg_key] = sg
+    return graph
+
+
+def _replace_rnn_subgraph_with_nirgraph(graph: nir.NIRGraph) -> nir.NIRGraph:
+    """Take a NIRGraph and replace any RNN subgraphs with a single NIRGraph node."""
+    print('replace rnn subgraph with nirgraph')
+
+    if len(set(graph.edges)) != len(graph.edges):
+        print('[WARNING] duplicate edges found, removing')
+        graph.edges = list(set(graph.edges))
+
+    # find cycle of LIF <> Dense nodes
+    for edge1 in graph.edges:
+        for edge2 in graph.edges:
+            if not edge1 == edge2:
+                if edge1[0] == edge2[1] and edge1[1] == edge2[0]:
+                    lif_nk = edge1[0]
+                    lif_n = graph.nodes[lif_nk]
+                    w_nk = edge1[1]
+                    w_n = graph.nodes[w_nk]
+                    is_lif = isinstance(lif_n, (nir.LIF, nir.CubaLIF))
+                    is_dense = isinstance(w_n, (nir.Affine, nir.Linear))
+                    # check if the dense only connects to the LIF
+                    w_out_nk = [e[1] for e in graph.edges if e[0] == w_nk]
+                    w_in_nk = [e[0] for e in graph.edges if e[1] == w_nk]
+                    is_rnn = len(w_out_nk) == 1 and len(w_in_nk) == 1
+                    # check if we found an RNN - if so, then parse it
+                    if is_rnn and is_lif and is_dense:
+                        graph = _create_rnn_subgraph(graph, edge1[0], edge1[1])
+    return graph
+
+
+def _parse_rnn_subgraph(graph: nir.NIRGraph) -> (nir.NIRNode, nir.NIRNode, int):
+    """Try parsing the graph as a RNN subgraph.
+
+    Assumes four nodes: Input, Output, LIF | CubaLIF, Affine | Linear
+    Checks that all nodes have consistent shapes.
+    Will throw an error if either not all nodes are found or consistent shapes are found.
+
+    Returns:
+        lif_node: LIF | CubaLIF node
+        wrec_node: Affine | Linear node
+        lif_size: int, number of neurons in the RNN
+    """
+    sub_nodes = graph.nodes.values()
+    assert len(sub_nodes) == 4, 'only 4-node RNN allowed in subgraph'
+    try:
+        input_node = [n for n in sub_nodes if isinstance(n, nir.Input)][0]
+        output_node = [n for n in sub_nodes if isinstance(n, nir.Output)][0]
+        lif_node = [n for n in sub_nodes if isinstance(n, (nir.LIF, nir.CubaLIF))][0]
+        wrec_node = [n for n in sub_nodes if isinstance(n, (nir.Affine, nir.Linear))][0]
+    except IndexError:
+        raise ValueError('invalid RNN subgraph - could not find all required nodes')
+    lif_size = list(input_node.input_type.values())[0][0]
+    assert lif_size == list(output_node.output_type.values())[0][0], 'output size mismatch'
+    assert lif_size == lif_node.v_threshold.size, 'lif size mismatch (v_threshold)'
+    assert lif_size == wrec_node.weight.shape[0], 'w_rec shape mismatch'
+    assert lif_size == wrec_node.weight.shape[1], 'w_rec shape mismatch'
+
+    return lif_node, wrec_node, lif_size
+
+
+def _nir_to_snntorch_module(
+        node: nir.NIRNode, hack_w_scale=True, init_hidden=False
+) -> torch.nn.Module:
+    if isinstance(node, nir.Input) or isinstance(node, nir.Output):
+        return None
 
     elif isinstance(node, nir.Affine):
-        if len(node.weight.shape) != 2:
-            raise NotImplementedError('only 2D weight matrices are supported')
-        has_bias = node.bias is not None and not np.alltrue(node.bias == 0)
-        linear = torch.nn.Linear(node.weight.shape[1], node.weight.shape[0], bias=has_bias)
-        linear.weight.data = torch.Tensor(node.weight)
-        if has_bias:
-            linear.bias.data = torch.Tensor(node.bias)
-        return linear
+        assert node.bias is not None, 'bias must be specified for Affine layer'
 
-    else:
-        raise NotImplementedError(f'node type {type(node).__name__} not supported')
+        mod = torch.nn.Linear(node.weight.shape[1], node.weight.shape[0])
+        mod.weight.data = torch.Tensor(node.weight)
+        mod.bias.data = torch.Tensor(node.bias)
 
+        return mod
 
-def _rnn_subgraph_to_snntorch_module(
-        lif: typing.Union[nir.LIF, nir.CubaLIF], w_rec: typing.Union[nir.Affine, nir.Linear]
-) -> torch.nn.Module:
-    """Parse an RNN subgraph consisting of a LIF node and a recurrent weight matrix into snnTorch.
+    elif isinstance(node, nir.Linear):
+        mod = torch.nn.Linear(node.weight.shape[1], node.weight.shape[0], bias=False)
+        mod.weight.data = torch.Tensor(node.weight)
 
-    NOTE: for now always set it as a recurrent linear layer (not RecurrentOneToOne)
-    """
-    assert isinstance(lif, (nir.LIF, nir.CubaLIF)), 'only LIF or CubaLIF nodes supported as RNNs'
-    mod = _lif_to_snntorch_module(lif)
-    mod.recurrent.weight.data = torch.Tensor(w_rec.weight)
-    if isinstance(w_rec, nir.Linear):
-        mod.recurrent.register_parameter('bias', None)
-        mod.recurrent.reset_parameters()
-    else:
-        mod.recurrent.bias.data = torch.Tensor(w_rec.bias)
-    return mod
+        return mod
 
+    elif isinstance(node, nir.Conv2d):
+        mod = torch.nn.Conv2d(
+            node.weight.shape[1],
+            node.weight.shape[0],
+            kernel_size=[*node.weight.shape[-2:]],
+            stride=node.stride,
+            padding=node.padding,
+            dilation=node.dilation,
+            groups=node.groups,
+        )
+        mod.bias.data = torch.Tensor(node.bias)
+        mod.weight.data = torch.Tensor(node.weight)
+        return mod
 
-def _get_next_node_key(node_key: str, graph: nir.ir.NIRGraph):
-    """Get the next node key in the NIR graph."""
-    possible_next_node_keys = [edge[1] for edge in graph.edges if edge[0] == node_key]
-    # possible_next_node_keys += [edge[1] + '.input' for edge in graph.edges if edge[0] == node_key]
-    assert len(possible_next_node_keys) <= 1, 'branching networks are not supported'
-    if len(possible_next_node_keys) == 0:
-        return None
-    else:
-        return possible_next_node_keys[0]
+    if isinstance(node, nir.Flatten):
+        return torch.nn.Flatten(node.start_dim, node.end_dim)
 
+    if isinstance(node, nir.SumPool2d):
+        return torch.nn.AvgPool2d(
+            kernel_size=tuple(node.kernel_size),
+            stride=tuple(node.stride),
+            padding=tuple(node.padding),
+            divisor_override=1,  # turn AvgPool into SumPool
+        )
 
-def from_nir(graph: nir.ir.NIRGraph) -> torch.nn.Module:
-    """Convert NIR graph to snnTorch module.
+    elif isinstance(node, nir.IF):
+        assert np.unique(node.v_threshold).size == 1, 'v_threshold must be same for all neurons'
+        assert np.unique(node.r).size == 1, 'r must be same for all neurons'
+        vthr = np.unique(node.v_threshold)[0]
+        r = np.unique(node.r)[0]
+        assert r == 1, 'r != 1 not supported'
+        mod = snn.Leaky(
+            beta=0.9,
+            threshold=vthr * r,
+            init_hidden=False,
+            reset_delay=False,
+        )
+        return mod
 
-    :param graph: a saved snnTorch model as a parameter dictionary
-    :type graph: nir.ir.NIRGraph
+    elif isinstance(node, nir.LIF):
+        dt = 1e-4
 
-    :return: snnTorch module
-    :rtype: torch.nn.Module
-    """
-    node_key = 'input'
-    visited_node_keys = [node_key]
-    module_list = []
+        assert np.allclose(node.v_leak, 0.), 'v_leak not supported'
+        assert np.unique(node.v_threshold).size == 1, 'v_threshold must be same for all neurons'
 
-    while _get_next_node_key(node_key, graph) is not None:
-        node_key = _get_next_node_key(node_key, graph)
+        beta = 1 - (dt / node.tau)
+        vthr = node.v_threshold
+        w_scale = node.r * dt / node.tau
 
-        assert node_key not in visited_node_keys, 'cyclic NIR graphs not supported'
+        if not np.allclose(w_scale, 1.):
+            if hack_w_scale:
+                vthr = vthr / np.unique(w_scale)[0]
+                print('[warning] scaling weights to avoid scaling inputs')
+                print(f'w_scale: {w_scale}, r: {node.r}, dt: {dt}, tau: {node.tau}')
+            else:
+                raise NotImplementedError('w_scale must be 1, or the same for all neurons')
 
-        if node_key == 'output':
-            visited_node_keys.append(node_key)
-            continue
+        assert np.unique(vthr).size == 1, 'LIF v_thr must be same for all neurons'
 
-        if node_key in graph.nodes:
-            visited_node_keys.append(node_key)
-            node = graph.nodes[node_key]
-            print(f'simple node {node_key}: {type(node).__name__}')
-            module = _to_snntorch_module(node)
-        else:
-            # check if it's a nested node
-            print(f'potential subgraph node: {node_key}')
-            sub_node_keys = [n for n in graph.nodes if n.startswith(f'{node_key}.')]
-            assert len(sub_node_keys) > 0, f'no nodes found for subgraph {node_key}'
+        return snn.Leaky(
+            beta=beta,
+            threshold=np.unique(vthr)[0],
+            reset_mechanism='zero',
+            init_hidden=init_hidden,
+            reset_delay=False,
+        )
 
-            # parse subgraph
-            # NOTE: for now only looking for RNN subgraphs
-            rnn_sub_node_keys = [f'{node_key}.{n}' for n in ['input', 'output', 'lif', 'w_rec']]
-            if set(sub_node_keys) != set(rnn_sub_node_keys):
-                raise NotImplementedError('only RNN subgraphs are supported')
-            print('found RNN subgraph')
-            module = _rnn_subgraph_to_snntorch_module(
-                graph.nodes[f'{node_key}.lif'], graph.nodes[f'{node_key}.w_rec']
+    elif isinstance(node, nir.CubaLIF):
+        dt = 1e-4
+
+        assert np.allclose(node.v_leak, 0), 'v_leak not supported'
+        assert np.allclose(node.r, node.tau_mem / dt), 'r not supported in CubaLIF'
+
+        alpha = 1 - (dt / node.tau_syn)
+        beta = 1 - (dt / node.tau_mem)
+        vthr = node.v_threshold
+        w_scale = node.w_in * (dt / node.tau_syn)
+
+        if not np.allclose(w_scale, 1.):
+            if hack_w_scale:
+                vthr = vthr / w_scale
+                print('[warning] scaling weights to avoid scaling inputs')
+                print(f'w_scale: {w_scale}, w_in: {node.w_in}, dt: {dt}, tau_syn: {node.tau_syn}')
+            else:
+                raise NotImplementedError('w_scale must be 1, or the same for all neurons')
+
+        assert np.unique(vthr).size == 1, 'CubaLIF v_thr must be same for all neurons'
+
+        if np.unique(alpha).size == 1:
+            alpha = float(np.unique(alpha)[0])
+        if np.unique(beta).size == 1:
+            beta = float(np.unique(beta)[0])
+
+        return snn.Synaptic(
+            alpha=alpha,
+            beta=beta,
+            threshold=float(np.unique(vthr)[0]),
+            reset_mechanism='zero',
+            init_hidden=init_hidden,
+            reset_delay=False,
+        )
+
+    elif isinstance(node, nir.NIRGraph):
+        lif_node, wrec_node, lif_size = _parse_rnn_subgraph(node)
+
+        if isinstance(lif_node, nir.LIF):
+            raise NotImplementedError('LIF in subgraph not supported')
+
+        elif isinstance(lif_node, nir.CubaLIF):
+            dt = 1e-4
+
+            assert np.allclose(lif_node.v_leak, 0), 'v_leak not supported'
+            assert np.allclose(lif_node.r, lif_node.tau_mem / dt), 'r not supported in CubaLIF'
+
+            alpha = 1 - (dt / lif_node.tau_syn)
+            beta = 1 - (dt / lif_node.tau_mem)
+            vthr = lif_node.v_threshold
+            w_scale = lif_node.w_in * (dt / lif_node.tau_syn)
+
+            if not np.allclose(w_scale, 1.):
+                if hack_w_scale:
+                    vthr = vthr / w_scale
+                    print(f'[warning] scaling weights to avoid scaling inputs. w_scale: {w_scale}')
+                    print(f'w_in: {lif_node.w_in}, dt: {dt}, tau_syn: {lif_node.tau_syn}')
+                else:
+                    raise NotImplementedError('w_scale must be 1, or the same for all neurons')
+
+            assert np.unique(vthr).size == 1, 'CubaLIF v_thr must be same for all neurons'
+
+            diagonal = np.array_equal(wrec_node.weight, np.diag(np.diag(wrec_node.weight)))
+
+            if np.unique(alpha).size == 1:
+                alpha = float(np.unique(alpha)[0])
+            if np.unique(beta).size == 1:
+                beta = float(np.unique(beta)[0])
+
+            if diagonal:
+                V = torch.from_numpy(np.diag(wrec_node.weight)).to(dtype=torch.float32)
+            else:
+                V = None
+
+            rsynaptic = snn.RSynaptic(
+                alpha=alpha,
+                beta=beta,
+                threshold=float(np.unique(vthr)[0]),
+                reset_mechanism='zero',
+                init_hidden=init_hidden,
+                all_to_all=not diagonal,
+                linear_features=lif_size,
+                V=V,
+                reset_delay=False,
             )
-            for nk in sub_node_keys:
-                visited_node_keys.append(nk)
 
-        module_list.append(module)
+            rsynaptic.recurrent.weight.data = torch.Tensor(wrec_node.weight)
+            if isinstance(wrec_node, nir.Affine):
+                rsynaptic.recurrent.bias.data = torch.Tensor(wrec_node.bias)
+            else:
+                rsynaptic.recurrent.bias.data = torch.zeros_like(rsynaptic.recurrent.bias)
+            return rsynaptic
 
-    if len(visited_node_keys) != len(graph.nodes):
-        print(graph.nodes.keys(), visited_node_keys)
-        raise ValueError('not all nodes visited')
+    else:
+        print('[WARNING] could not parse node of type:', node.__class__.__name__)
 
-    return create_snntorch_network(module_list)
+    return None
+
+
+def from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
+    # find valid RNN subgraphs, and replace them with a single NIRGraph node
+    graph = _replace_rnn_subgraph_with_nirgraph(graph)
+    # TODO: right now, the subgraph edges seem to not be parsed correctly - fix this
+    return nirtorch.load(graph, _nir_to_snntorch_module)
