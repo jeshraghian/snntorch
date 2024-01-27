@@ -8,7 +8,20 @@ import snntorch as snn
 
 def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
     if isinstance(module, snn.Leaky):
-        raise NotImplementedError('Leaky not supported')
+        dt = 1e-4
+
+        beta = module.beta.detach().numpy()
+        vthr = module.threshold.detach().numpy()
+        tau_mem = dt / (1 - beta)
+        r = tau_mem / dt
+        v_leak = np.zeros_like(beta)
+
+        return nir.LIF(
+            tau=tau_mem,
+            v_threshold=vthr,
+            v_leak=v_leak,
+            r=r,
+        )
 
     elif isinstance(module, torch.nn.Linear):
         if module.bias is None:
