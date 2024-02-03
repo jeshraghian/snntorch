@@ -8,6 +8,26 @@ import snntorch as snn
 def _create_rnn_subgraph(graph: nir.NIRGraph, lif_nk: str, w_nk: str) -> nir.NIRGraph:
     """Take a NIRGraph plus the node keys for a LIF and a W_rec, and return a new NIRGraph
     which has the RNN subgraph replaced with a subgraph (i.e., a single NIRGraph node).
+
+    The subgraph will have the following structure:
+    ```
+    LIF -> W_rec -> LIF
+    ^             |
+    |             v
+    Input         Output
+    ```
+
+    :param graph: NIRGraph
+    :type graph: nir.NIRGraph
+
+    :param lif_nk: key for the LIF node
+    :type lif_nk: str
+
+    :param w_nk: key for the W_rec node
+    :type w_nk: str
+
+    :return: NIRGraph with the RNN subgraph replaced with a single NIRGraph node
+    :rtype: nir.NIRGraph
     """
     # NOTE: assuming that the LIF and W_rec have keys of form xyz.abc
     sg_key = lif_nk.split('.')[0]  # TODO: make this more general?
@@ -40,7 +60,16 @@ def _create_rnn_subgraph(graph: nir.NIRGraph, lif_nk: str, w_nk: str) -> nir.NIR
 
 
 def _replace_rnn_subgraph_with_nirgraph(graph: nir.NIRGraph) -> nir.NIRGraph:
-    """Take a NIRGraph and replace any RNN subgraphs with a single NIRGraph node."""
+    """Take a NIRGraph and replace any RNN subgraphs with a single NIRGraph node.
+    Goes through the NIRGraph to find any RNN subgraphs, and replaces them with a single NIRGraph node, 
+    using the _create_rnn_subgraph function.
+
+    :param graph: NIRGraph
+    :type graph: nir.NIRGraph
+
+    :return: NIRGraph with RNN subgraphs replaced with a single NIRGraph node
+    :rtype: nir.NIRGraph
+    """
     print('replace rnn subgraph with nirgraph')
 
     if len(set(graph.edges)) != len(graph.edges):
@@ -69,16 +98,28 @@ def _replace_rnn_subgraph_with_nirgraph(graph: nir.NIRGraph) -> nir.NIRGraph:
 
 
 def _parse_rnn_subgraph(graph: nir.NIRGraph) -> (nir.NIRNode, nir.NIRNode, int):
-    """Try parsing the graph as a RNN subgraph.
+    """Try parsing the presented graph as a RNN subgraph. Assumes the graph is a valid RNN subgraph
+    with four nodes in the following structure:
+    
+    ```
+    Input -> LIF | CubaLIF -> Output
+                ^
+                |
+                v
+             Affine | Linear
+    ```
 
-    Assumes four nodes: Input, Output, LIF | CubaLIF, Affine | Linear
-    Checks that all nodes have consistent shapes.
-    Will throw an error if either not all nodes are found or consistent shapes are found.
+    :param graph: NIRGraph
+    :type graph: nir.NIRGraph
 
-    Returns:
-        lif_node: LIF | CubaLIF node
-        wrec_node: Affine | Linear node
-        lif_size: int, number of neurons in the RNN
+    :return: LIF | CubaLIF node
+    :rtype: nir.NIRNode
+
+    :return: Affine | Linear node
+    :rtype: nir.NIRNode
+
+    :return: int, number of neurons in the RNN
+    :rtype: int
     """
     sub_nodes = graph.nodes.values()
     assert len(sub_nodes) == 4, 'only 4-node RNN allowed in subgraph'
@@ -101,6 +142,20 @@ def _parse_rnn_subgraph(graph: nir.NIRGraph) -> (nir.NIRNode, nir.NIRNode, int):
 def _nir_to_snntorch_module(
         node: nir.NIRNode, hack_w_scale=True, init_hidden=False
 ) -> torch.nn.Module:
+    """Convert a NIR node to a snnTorch module. This function is used by the import_from_nir function.
+    
+    :param node: NIR node
+    :type node: nir.NIRNode
+
+    :param hack_w_scale: if True, then the function will attempt to scale the weights to avoid scaling the inputs
+    :type hack_w_scale: bool
+
+    :param init_hidden: the init_hidden flag of the snnTorch neuron.
+    :type init_hidden: bool
+
+    :return: snnTorch module
+    :rtype: torch.nn.Module
+    """
     if isinstance(node, nir.Input) or isinstance(node, nir.Output):
         return None
 
@@ -285,7 +340,41 @@ def _nir_to_snntorch_module(
     return None
 
 
-def from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
+def import_from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
+    """Convert a NIRGraph to a snnTorch module. This function is the inverse of export_to_nir.
+    It proceeds by wrapping any recurrent connections into NIR sub-graphs, then converts each 
+    NIR module into the equivalent snnTorch module, and wraps them into a torch.nn.Module 
+    using the generic GraphExecutor from NIRTorch to execute all modules in the right order.
+
+    Example::
+
+        import snntorch as snn
+        import torch
+        from snntorch import export_to_nir, import_from_nir
+
+        lif1 = snn.Leaky(beta=0.9, init_hidden=True)
+        lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
+
+        net = torch.nn.Sequential(
+            torch.nn.Flatten(),
+            torch.nn.Linear(784, 500),
+            lif1,
+            torch.nn.Linear(500, 10),
+            lif2
+        )
+
+        sample_data = torch.randn(1, 784)
+        nir_graph = export_to_nir(net, sample_data, model_name="snntorch")
+
+        net2 = import_from_nir(nir_graph)
+    
+    :param graph: NIR graph
+    :type graph: NIR.NIRGraph
+
+    :return: snnTorch network
+    :rtype: torch.nn.Module
+    """
     # find valid RNN subgraphs, and replace them with a single NIRGraph node
     graph = _replace_rnn_subgraph_with_nirgraph(graph)
+    # convert the NIR graph into a torch.nn.Module using snnTorch modules
     return nirtorch.load(graph, _nir_to_snntorch_module)
