@@ -231,7 +231,7 @@ class DVSGesture(NeuromorphicDataset):
         if target_transform is not None:
             target_transform = Compose([Repeat(num_steps), toOneHot(11)])
 
-        super(DVSGesture, self).__init__(
+        super().__init__(
             root=root + "/" + self.hdf5_name,
             transform=transform,
             target_transform_train=target_transform,

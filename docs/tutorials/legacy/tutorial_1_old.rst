@@ -51,7 +51,7 @@ Let's define a few variables:
 
   # Training Parameters
   batch_size=128
-  data_path='/data/mnist'
+  data_path='/tmp/data/mnist'
   num_classes = 10
 
   # Temporal Dynamics

@@ -23,8 +23,7 @@ in your work, please consider citing the following sources:
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
-    Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
-    September 2021. <https://arxiv.org/abs/2109.12894>`_
+    Spiking Neural Networks Using Lessons From Deep Learning”. Proceedings of the IEEE, 111(9) September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 .. note::
   This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
@@ -305,7 +304,7 @@ Instantiate the network below:
 ::
 
     hidden = 128
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
     model = Net(timesteps=num_steps, hidden=hidden, beta=0.9).to(device)
 
 4. Construct Training Loop
@@ -332,7 +331,7 @@ temporal data is an exercise left to the reader/coder.
 ::
 
     batch_size = 128
-    data_path='/data/mnist'
+    data_path='/tmp/data/mnist'
     
     # Define a transform
     transform = transforms.Compose([

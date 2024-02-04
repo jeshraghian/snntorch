@@ -81,8 +81,8 @@ If you find snnTorch useful in your work, please cite the following source:
 
 `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
 Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu “Training
-Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
-September 2021. <https://arxiv.org/abs/2109.12894>`_
+Spiking Neural Networks Using Lessons From Deep Learning”. Proceedings of the IEEE, 111(9)
+September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 .. code-block:: bash
 
@@ -91,8 +91,11 @@ September 2021. <https://arxiv.org/abs/2109.12894>`_
           author  =  {Eshraghian, Jason K and Ward, Max and Neftci, Emre and Wang, Xinxin 
                       and Lenz, Gregor and Dwivedi, Girish and Bennamoun, Mohammed and 
                      Jeong, Doo Seok and Lu, Wei D},
-          journal = {arXiv preprint arXiv:2109.12894},
-          year    = {2021}
+          journal = {Proceedings of the IEEE},
+          volume  = {111},
+          number  = {9},
+          pages   = {1016--1054},
+          year    = {2023}
   }
 
 Let us know if you are using snnTorch in any interesting work, research or blogs, as we would love to hear more about it! Reach out at snntorch@gmail.com.
@@ -323,7 +326,7 @@ Acknowledgments
 ^^^^^^^^^^^^^^^^^^^^^^^^
 snnTorch is currently maintained by the `UCSC Neuromorphic Computing Group <https://ncg.ucsc.edu>`_. It was initially developed by `Jason K. Eshraghian`_ in the `Lu Group (University of Michigan)`_. 
 
-Additional contributions were made by `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, `Alexander Henkes <https://github.com/ahenkes1>`_, Xinxin Wang, Sreyes Venkatesh, and Emre Neftci.
+Additional contributions were made by `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, `Alexander Henkes <https://github.com/ahenkes1>`_, `Steven Abreu <https://github.com/stevenabreu7>`_, Xinxin Wang, Sreyes Venkatesh, and Emre Neftci.
 
 .. _Jason K. Eshraghian: https://jasoneshraghian.com
 .. _Lu Group (University of Michigan): https://lugroup.engin.umich.edu/

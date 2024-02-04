@@ -23,8 +23,7 @@ in your work, please consider citing the following sources:
 
     `Jason K. Eshraghian, Max Ward, Emre Neftci, Xinxin Wang, Gregor Lenz, Girish
     Dwivedi, Mohammed Bennamoun, Doo Seok Jeong, and Wei D. Lu. “Training
-    Spiking Neural Networks Using Lessons From Deep Learning”. arXiv preprint arXiv:2109.12894,
-    September 2021. <https://arxiv.org/abs/2109.12894>`_
+    Spiking Neural Networks Using Lessons From Deep Learning”. Proceedings of the IEEE, 111(9) September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 .. note::
   This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
@@ -304,7 +303,7 @@ A few notes on the architecture below:
                 spk_in, mem_1 = self.lif_in(cur_in, mem_1)
                 
                 cur_hidden = self.fc_hidden(spk_in)
-                spk_hidden, mem_2 = self.li_out(cur_hidden, mem_2)
+                spk_hidden, mem_2 = self.lif_hidden(cur_hidden, mem_2)
     
                 cur_out = self.fc_out(spk_hidden)
                 _, mem_3 = self.li_out(cur_out, mem_3)
@@ -318,7 +317,7 @@ Instantiate the network below:
 ::
 
     hidden = 128
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
     model = Net(timesteps=num_steps, hidden=hidden).to(device)
 
 

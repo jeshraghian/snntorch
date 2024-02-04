@@ -243,7 +243,7 @@ class RLeaky(LIF):
         output=False,
         reset_delay=True,
     ):
-        super(RLeaky, self).__init__(
+        super().__init__(
             beta,
             threshold,
             spike_grad,
@@ -499,7 +499,7 @@ class RLeaky(LIF):
 
 class RecurrentOneToOne(nn.Module):
     def __init__(self, V):
-        super(RecurrentOneToOne, self).__init__()
+        super().__init__()
         self.V = V
 
     def forward(self, x):

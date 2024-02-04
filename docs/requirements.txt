@@ -8,3 +8,4 @@ numpy>=1.17
 tqdm
 nir
 nirtorch
+sphinx_rtd_theme
