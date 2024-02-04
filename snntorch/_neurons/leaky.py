@@ -106,6 +106,15 @@ class Leaky(LIF):
         returned when neuron is called. Defaults to False
     :type output: bool, optional
 
+    :param graded_spikes_factor: output spikes are scaled this value, if specified. Defaults to 1.0
+    :type graded_spikes_factor: float or torch.tensor
+
+    :param learn_graded_spikes_factor: Option to enable learnable graded spikes. Defaults to False
+    :type learn_graded_spikes_factor: bool, optional
+
+    :param reset_delay: If `True`, a spike is returned with a one-step delay after the threshold is reached.
+        Defaults to True
+    :type reset_delay: bool, optional
 
     Inputs: \\input_, mem_0
         - **input_** of shape `(batch, input_size)`: tensor containing input
