@@ -197,7 +197,7 @@ class Leaky(LIF):
         self.reset_mem()
         return self.mem
     
-    def forward(self, input_, mem=False):
+    def forward(self, input_, mem=None):
 
         if not mem == None:
             self.mem = mem
