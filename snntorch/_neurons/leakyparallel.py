@@ -154,7 +154,7 @@ class LeakyParallel(nn.Module):
         device=None,
         dtype=None,
     ):
-        super(LeakyParallel, self).__init__()
+        super().__init__()
         
         self.rnn = nn.RNN(input_size, hidden_size, num_layers=1, nonlinearity='relu', 
                           bias=bias, batch_first=False, dropout=dropout, device=device, dtype=dtype)

@@ -423,7 +423,7 @@ class SpikeTime(nn.Module):
         tolerance=0,
         multi_spike=False,
     ):
-        super(SpikeTime, self).__init__()
+        super().__init__()
 
         self.target_is_time = target_is_time
         self.tolerance = tolerance
@@ -773,7 +773,7 @@ class mse_temporal_loss:
         reduction='mean',
         weight=None
     ):
-        super(mse_temporal_loss, self).__init__()
+        super().__init__()
 
         self.reduction = reduction
         self.weight = weight
@@ -844,7 +844,7 @@ class ce_temporal_loss:
     """
 
     def __init__(self, inverse="negate", reduction='mean', weight=None):
-        super(ce_temporal_loss, self).__init__()
+        super().__init__()
 
         self.reduction = reduction
         self.weight = weight

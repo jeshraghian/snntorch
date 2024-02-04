@@ -255,7 +255,7 @@ class RSynaptic(LIF):
         state_quant=False,
         output=False,
     ):
-        super(RSynaptic, self).__init__(
+        super().__init__(
             beta,
             threshold,
             spike_grad,
@@ -536,7 +536,7 @@ class RSynaptic(LIF):
 
 class RecurrentOneToOne(nn.Module):
     def __init__(self, V):
-        super(RecurrentOneToOne, self).__init__()
+        super().__init__()
         self.V = V
 
     def forward(self, x):
