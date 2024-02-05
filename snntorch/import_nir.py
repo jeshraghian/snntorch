@@ -322,22 +322,28 @@ def _nir_to_snntorch_module(
                 reset_mechanism='zero',
                 init_hidden=init_hidden,
                 all_to_all=not diagonal,
-                linear_features=lif_size,
-                V=V,
+                linear_features=lif_size if not diagonal else None,
+                V=V if diagonal else None,
                 reset_delay=False,
             )
 
-            rsynaptic.recurrent.weight.data = torch.Tensor(wrec_node.weight)
-            if isinstance(wrec_node, nir.Affine):
-                rsynaptic.recurrent.bias.data = torch.Tensor(wrec_node.bias)
+            if isinstance(rsynaptic.recurrent, torch.nn.Linear):
+                rsynaptic.recurrent.weight.data = torch.Tensor(wrec_node.weight)
+                if isinstance(wrec_node, nir.Affine):
+                    rsynaptic.recurrent.bias.data = torch.Tensor(wrec_node.bias)
+                else:
+                    rsynaptic.recurrent.bias.data = torch.zeros_like(rsynaptic.recurrent.bias)
             else:
-                rsynaptic.recurrent.bias.data = torch.zeros_like(rsynaptic.recurrent.bias)
+                rsynaptic.recurrent.V.data = torch.diagonal(torch.Tensor(wrec_node.weight))
+
             return rsynaptic
+
+    elif node is None:
+        return torch.nn.Identity()
 
     else:
         print('[WARNING] could not parse node of type:', node.__class__.__name__)
-
-    return None
+        return None
 
 
 def import_from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
