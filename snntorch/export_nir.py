@@ -136,6 +136,9 @@ def export_to_nir(
     The NIR is a graph-based representation of a spiking neural network, which can be used to
     port the network to different neuromorphic hardware and software platforms.
 
+    Missing features:
+    - RLeaky
+
     Example::
 
         import snntorch as snn

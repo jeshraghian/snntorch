@@ -352,6 +352,9 @@ def import_from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
     NIR module into the equivalent snnTorch module, and wraps them into a torch.nn.Module 
     using the generic GraphExecutor from NIRTorch to execute all modules in the right order.
 
+    Missing features:
+    - RLeaky (LIF inside RNN)
+
     Example::
 
         import snntorch as snn
