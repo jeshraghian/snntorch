@@ -254,6 +254,7 @@ class RSynaptic(LIF):
         reset_mechanism="subtract",
         state_quant=False,
         output=False,
+        reset_delay=True,
     ):
         super().__init__(
             beta,
@@ -294,6 +295,11 @@ class RSynaptic(LIF):
 
         self._alpha_register_buffer(alpha, learn_alpha)
 
+        self.reset_delay = reset_delay
+
+        if not reset_delay and self.init_hidden:
+            raise NotImplementedError('no reset_delay only supported for init_hidden=False')
+
         if self.init_hidden:
             self.spk, self.syn, self.mem = self.init_rsynaptic()
 
@@ -323,6 +329,15 @@ class RSynaptic(LIF):
                 spk = self.fire_inhibition(mem.size(0), mem)
             else:
                 spk = self.fire(mem)
+
+            if not self.reset_delay:
+                # reset membrane potential _right_ after spike
+                do_reset = spk / self.graded_spikes_factor - self.reset  # avoid double reset
+                if self.reset_mechanism_val == 0:  # reset by subtraction
+                    mem = mem - do_reset * self.threshold
+                elif self.reset_mechanism_val == 1:  # reset to zero
+                    # mem -= do_reset * mem
+                    mem = mem - do_reset * mem
 
             return spk, syn, mem
 
