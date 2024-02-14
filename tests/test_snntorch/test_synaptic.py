@@ -5,6 +5,7 @@
 import pytest
 import snntorch as snn
 import torch
+import torch._dynamo as dynamo
 
 
 @pytest.fixture(scope="module")
@@ -15,6 +16,10 @@ def input_():
 @pytest.fixture(scope="module")
 def synaptic_instance():
     return snn.Synaptic(alpha=0.5, beta=0.5)
+
+@pytest.fixture(scope="module")
+def synaptic_instance_surrogate():
+    return snn.Synaptic(alpha=0.5, beta=0.5, surrogate_disable=True)
 
 
 @pytest.fixture(scope="module")
@@ -123,3 +128,8 @@ class TestSynaptic:
     def test_synaptic_cases(self, synaptic_hidden_instance, input_):
         with pytest.raises(TypeError):
             synaptic_hidden_instance(input_, input_)
+
+    def test_synaptic_compile_fullgraph(self, synaptic_instance_surrogate, input_):
+        explanation = dynamo.explain(synaptic_instance_surrogate)(input_[0])
+
+        assert explanation.graph_break_count == 0
