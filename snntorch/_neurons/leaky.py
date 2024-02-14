@@ -2,6 +2,7 @@ from .neurons import LIF
 import torch
 from torch import nn
 
+
 class Leaky(LIF):
     """
     First-order leaky integrate-and-fire neuron model.
@@ -170,7 +171,6 @@ class Leaky(LIF):
         )
 
         self._init_mem()
-        self.init_hidden = init_hidden
 
         if self.reset_mechanism_val == 0:  # reset by subtraction
             self.state_function = self._base_sub
@@ -178,12 +178,13 @@ class Leaky(LIF):
             self.state_function = self._base_zero
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
             self.state_function = self._base_int
-        
+
         self.reset_delay = reset_delay
 
         if not self.reset_delay and self.init_hidden:
-            raise NotImplementedError("`reset_delay=True` is only supported for `init_hidden=False`")
-
+            raise NotImplementedError(
+                "`reset_delay=True` is only supported for `init_hidden=False`"
+            )
 
     def _init_mem(self):
         mem = torch.zeros(1)
@@ -196,12 +197,12 @@ class Leaky(LIF):
         """Deprecated, use :class:`Leaky.reset_mem` instead"""
         self.reset_mem()
         return self.mem
-    
+
     def forward(self, input_, mem=None):
 
         if not mem == None:
             self.mem = mem
-        
+
         if self.init_hidden and not mem == None:
             raise TypeError(
                 "`mem` should not be passed as an argument while `init_hidden=True`"
@@ -217,12 +218,16 @@ class Leaky(LIF):
             self.mem = self.state_quant(self.mem)
 
         if self.inhibition:
-            spk = self.fire_inhibition(self.mem.size(0), self.mem)  # batch_size
+            spk = self.fire_inhibition(
+                self.mem.size(0), self.mem
+            )  # batch_size
         else:
             spk = self.fire(self.mem)
-        
+
         if not self.reset_delay:
-            do_reset = spk / self.graded_spikes_factor - self.reset  # avoid double reset
+            do_reset = (
+                spk / self.graded_spikes_factor - self.reset
+            )  # avoid double reset
             if self.reset_mechanism_val == 0:  # reset by subtraction
                 self.mem = self.mem - do_reset * self.threshold
             elif self.reset_mechanism_val == 1:  # reset to zero
