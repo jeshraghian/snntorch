@@ -197,7 +197,7 @@ class ATan(torch.autograd.Function):
         grad = (
             ctx.alpha
             / 2
-            / (1 + (math.pi / 2 * ctx.alpha * input_).pow_(2))
+            / (1 + (torch.pi / 2 * ctx.alpha * input_).pow_(2))
             * grad_input
         )
         return grad, None
