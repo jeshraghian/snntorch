@@ -312,18 +312,6 @@ class LIF(SpikingNeuron):
         return spk, mem
 
     @staticmethod
-    def init_synaptic():
-        """Used to initialize syn and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-
-        syn = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return syn, mem
-
-    @staticmethod
     def init_rsynaptic():
         """
         Used to initialize spk, syn and mem as an empty SpikeTensor.
@@ -335,30 +323,6 @@ class LIF(SpikingNeuron):
         mem = _SpikeTensor(init_flag=False)
 
         return spk, syn, mem
-
-    @staticmethod
-    def init_lapicque():
-        """
-        Used to initialize mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-
-        mem = _SpikeTensor(init_flag=False)
-
-        return mem
-
-    @staticmethod
-    def init_alpha():
-        """Used to initialize syn_exc, syn_inh and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        syn_exc = _SpikeTensor(init_flag=False)
-        syn_inh = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return syn_exc, syn_inh, mem
 
 
 class _SpikeTensor(torch.Tensor):
