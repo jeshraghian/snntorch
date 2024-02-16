@@ -181,11 +181,6 @@ class Leaky(LIF):
 
         self.reset_delay = reset_delay
 
-        if not self.reset_delay and self.init_hidden:
-            raise NotImplementedError(
-                "`reset_delay=True` is only supported for `init_hidden=False`"
-            )
-
     def _init_mem(self):
         mem = torch.zeros(1)
         self.register_buffer("mem", mem)

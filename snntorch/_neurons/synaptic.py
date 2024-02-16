@@ -197,11 +197,6 @@ class Synaptic(LIF):
 
         self.reset_delay = reset_delay
 
-        if not reset_delay and self.init_hidden:
-            raise NotImplementedError(
-                "no reset_delay only supported for init_hidden=False"
-            )
-
     def _init_mem(self):
         syn = torch.zeros(1)
         mem = torch.zeros(1)

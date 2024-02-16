@@ -291,11 +291,6 @@ class RLeaky(LIF):
 
         self.reset_delay = reset_delay
 
-        if not self.reset_delay and self.init_hidden:
-            raise NotImplementedError(
-                "no reset_delay only supported for init_hidden=False"
-            )
-
     def _init_mem(self):
         spk = torch.zeros(1)
         mem = torch.zeros(1)
