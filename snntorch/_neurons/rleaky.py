@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 # from torch import functional as F
-from .neurons import _SpikeTensor, _SpikeTorchConv, LIF
+from .neurons import LIF
 
 
 class RLeaky(LIF):
@@ -280,72 +280,86 @@ class RLeaky(LIF):
         if not learn_recurrent:
             self._disable_recurrent_grad()
 
+        self._init_mem()
+
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            self.state_function = self._base_sub
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            self.state_function = self._base_zero
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            self.state_function = self._base_int
+
         self.reset_delay = reset_delay
 
         if not self.reset_delay and self.init_hidden:
-            raise NotImplementedError('no reset_delay only supported for init_hidden=False')
-
-        if self.init_hidden:
-            self.spk, self.mem = self.init_rleaky()
-        #     self.state_fn = self._build_state_function_hidden
-        # else:
-        #     self.state_fn = self._build_state_function
-
-    def forward(self, input_, spk=False, mem=False):
-        if hasattr(spk, "init_flag") or hasattr(
-            mem, "init_flag"
-        ):  # only triggered on first-pass
-            spk, mem = _SpikeTorchConv(spk, mem, input_=input_)
-        # init_hidden case
-        elif mem is False and hasattr(self.mem, "init_flag"):
-            self.spk, self.mem = _SpikeTorchConv(
-                self.spk, self.mem, input_=input_
+            raise NotImplementedError(
+                "no reset_delay only supported for init_hidden=False"
             )
+
+    def _init_mem(self):
+        spk = torch.zeros(1)
+        mem = torch.zeros(1)
+        self.register_buffer("spk", spk)
+        self.register_buffer("mem", mem)
+
+    def reset_mem(self):
+        self.spk = torch.zeros_like(self.spk, device=self.spk.device)
+        self.mem = torch.zeros_like(self.mem, device=self.mem.device)
+
+    def init_rleaky(self):
+        """Deprecated, use :class:`RLeaky.reset_mem` instead"""
+        self.reset_mem()
+        return self.spk, self.mem
+
+    def forward(self, input_, spk=None, mem=None):
+
+        if not spk == None:
+            self.spk = spk
+
+        if not mem == None:
+            self.mem = mem
+
+        if self.init_hidden and (not mem == None or not spk == None):
+            raise TypeError(
+                "When `init_hidden=True`," "RLeaky expects 1 input argument."
+            )
+
+        if not self.spk.shape == input_.shape:
+            self.spk = torch.zeros_like(input_, device=self.spk.device)
+
+        if not self.mem.shape == input_.shape:
+            self.mem = torch.zeros_like(input_, device=self.mem.device)
 
         # TO-DO: alternatively, we could do torch.exp(-1 /
         # self.beta.clamp_min(0)), giving actual time constants instead of
         # values in [0, 1] as initial beta beta = self.beta.clamp(0, 1)
 
-        if not self.init_hidden:
-            self.reset = self.mem_reset(mem)
-            mem = self._build_state_function(input_, spk, mem)
+        self.reset = self.mem_reset(self.mem)
+        self.mem = self.state_function(input_)
 
-            if self.state_quant:
-                mem = self.state_quant(mem)
+        if self.state_quant:
+            self.mem = self.state_quant(self.mem)
 
-            if self.inhibition:
-                spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
-            else:
-                spk = self.fire(mem)
+        if self.inhibition:
+            self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+        else:
+            self.spk = self.fire(self.mem)
 
-            if not self.reset_delay:
-                do_reset = spk / self.graded_spikes_factor - self.reset  # avoid double reset
-                if self.reset_mechanism_val == 0:  # reset by subtraction
-                    mem = mem - do_reset * self.threshold
-                elif self.reset_mechanism_val == 1:  # reset to zero
-                    mem = mem - do_reset * mem
+        if not self.reset_delay:
+            do_reset = (
+                self.spk / self.graded_spikes_factor - self.reset
+            )  # avoid double reset
+            if self.reset_mechanism_val == 0:  # reset by subtraction
+                self.mem = self.mem - do_reset * self.threshold
+            elif self.reset_mechanism_val == 1:  # reset to zero
+                self.mem = self.mem - do_reset * self.mem
 
-            return spk, mem
-
-        # intended for truncated-BPTT where instance variables are hidden
-        # states
-        if self.init_hidden:
-            self._rleaky_forward_cases(spk, mem)
-            self.reset = self.mem_reset(self.mem)
-            self.mem = self._build_state_function_hidden(input_)
-
-            if self.state_quant:
-                self.mem = self.state_quant(self.mem)
-
-            if self.inhibition:
-                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
-            else:
-                self.spk = self.fire(self.mem)
-
-            if self.output:  # read-out layer returns output+states
-                return self.spk, self.mem
-            else:  # hidden layer e.g., in nn.Sequential, only returns output
-                return self.spk
+        if self.output:
+            return self.spk, self.mem
+        elif self.init_hidden:
+            return self.spk
+        else:
+            return self.spk, self.mem
 
     def _init_recurrent_net(self):
         if self.all_to_all:
@@ -381,24 +395,7 @@ class RLeaky(LIF):
         for param in self.recurrent.parameters():
             param.requires_grad = False
 
-    def _base_state_function(self, input_, spk, mem):
-        base_fn = self.beta.clamp(0, 1) * mem + input_ + self.recurrent(spk)
-        return base_fn
-
-    def _build_state_function(self, input_, spk, mem):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = self._base_state_function(
-                input_, spk, mem - self.reset * self.threshold
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self._base_state_function(
-                input_, spk, mem
-            ) - self.reset * self._base_state_function(input_, spk, mem)
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function(input_, spk, mem)
-        return state_fn
-
-    def _base_state_function_hidden(self, input_):
+    def _base_state_function(self, input_):
         base_fn = (
             self.beta.clamp(0, 1) * self.mem
             + input_
@@ -406,25 +403,16 @@ class RLeaky(LIF):
         )
         return base_fn
 
-    def _build_state_function_hidden(self, input_):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = (
-                self._base_state_function_hidden(input_)
-                - self.reset * self.threshold
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self._base_state_function_hidden(
-                input_
-            ) - self.reset * self._base_state_function_hidden(input_)
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function_hidden(input_)
-        return state_fn
+    def _base_sub(self, input_):
+        return self._base_state_function(input_) - self.reset * self.threshold
 
-    def _rleaky_forward_cases(self, spk, mem):
-        if mem is not False or spk is not False:
-            raise TypeError(
-                "When `init_hidden=True`," "RLeaky expects 1 input argument."
-            )
+    def _base_zero(self, input_):
+        return self._base_state_function(
+            input_
+        ) - self.reset * self._base_state_function(input_)
+
+    def _base_int(self, input_):
+        return self._base_state_function(input_)
 
     def _rleaky_init_cases(self):
         all_to_all_bool = bool(self.all_to_all)
