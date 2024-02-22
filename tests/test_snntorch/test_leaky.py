@@ -139,9 +139,6 @@ class TestLeaky:
         assert factor.requires_grad
 
     def test_leaky_compile_fullgraph(self, leaky_instance_surrogate, input_):
-        # net = nn.Sequential(
-        #     snn.Leaky(beta=0.5, init_hidden=True, surrogate_disable=True),
-        # )
-
         explanation = dynamo.explain(leaky_instance_surrogate)(input_[0])
+
         assert explanation.graph_break_count == 0

@@ -52,7 +52,7 @@ def slstm_hidden_reset_subtract_instance():
 
 
 class TestSLSTM:
-    def test_sconv2dlstm(self, slstm_instance, input_):
+    def test_slstm(self, slstm_instance, input_):
         c, h = slstm_instance.init_slstm()
 
         h_rec = []
@@ -70,7 +70,7 @@ class TestSLSTM:
         assert h.size() == (1, 2)
         assert spk.size() == (1, 2)
 
-    def test_sconv2dlstm_reset(
+    def test_slstm_reset(
         self,
         slstm_instance,
         slstm_reset_zero_instance,
@@ -93,7 +93,7 @@ class TestSLSTM:
         assert lif2.reset_mechanism_val == 1
         assert lif3.reset_mechanism_val == 0
 
-    def test_sconv2dlstm_init_hidden(self, slstm_hidden_instance, input_):
+    def test_slstm_init_hidden(self, slstm_hidden_instance, input_):
 
         spk_rec = []
 
@@ -103,7 +103,7 @@ class TestSLSTM:
 
         assert spk_rec[0].size() == (1, 2)
 
-    def test_sconv2dlstm_init_hidden_reset_zero(
+    def test_slstm_init_hidden_reset_zero(
         self, slstm_hidden_reset_zero_instance, input_
     ):
 
@@ -115,7 +115,7 @@ class TestSLSTM:
 
         assert spk_rec[0].size() == (1, 2)
 
-    def test_sconv2dlstm_init_hidden_reset_subtract(
+    def test_slstm_init_hidden_reset_subtract(
         self, slstm_hidden_reset_subtract_instance, input_
     ):
 
