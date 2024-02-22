@@ -5,6 +5,7 @@
 import pytest
 import snntorch as snn
 import torch
+import torch._dynamo as dynamo
 
 # TO-DO: add avg/max-pooling tests
 
@@ -18,6 +19,11 @@ def input_():
 @pytest.fixture(scope="module")
 def slstm_instance():
     return snn.SLSTM(1, 2)
+
+
+@pytest.fixture(scope="module")
+def slstm_instance_surrogate():
+    return snn.SLSTM(1, 2, surrogate_disable=True)
 
 
 @pytest.fixture(scope="module")
@@ -120,3 +126,10 @@ class TestSLSTM:
             spk_rec.append(spk)
 
         assert spk_rec[0].size() == (1, 2)
+
+    def test_slstm_compile_fullgraph(
+        self, slstm_instance_surrogate, input_
+    ):
+        explanation = dynamo.explain(slstm_instance_surrogate)(input_[0])
+
+        assert explanation.graph_break_count == 0
