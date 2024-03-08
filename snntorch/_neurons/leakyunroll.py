@@ -3,7 +3,7 @@ import torch.nn as nn
 
 class LeakyParallel(nn.Module):
     """
-    A parallel implementation of the Leaky neuron with a fused input linear layer.
+    A parallel implementation of the Leaky neuron intended to handle arbitrary input dimensions.
     All time steps are passed to the input at once. 
     This implementation uses `torch.nn.RNN` to accelerate the implementation.
 
@@ -60,8 +60,8 @@ class LeakyParallel(nn.Module):
                 return spk2     
 
         
-    :param input_size: The number of expected features in the input `x`
-    :type input_size: int
+    :param input_size: The number of expected features in the input `x`. The output of a linear layer should be an int, whereas the output of a 2D-convolution should be a tuple with 3 int values
+    :type input_size: int or tuple
 
     :param hidden_size: The number of features in the hidden state `h`
     :type hidden_size: int
@@ -139,7 +139,6 @@ class LeakyParallel(nn.Module):
     def __init__(
         self,
         input_size,
-        hidden_size,
         beta=None,
         bias=True,
         threshold=1.0,
@@ -154,13 +153,21 @@ class LeakyParallel(nn.Module):
         device=None,
         dtype=None,
     ):
-        super().__init__()
-        
-        self.rnn = nn.RNN(input_size, hidden_size, num_layers=1, nonlinearity='relu', 
+        super(LeakyParallel, self).__init__()
+
+        # if data is T x B x D, then input size is assumed to be D.
+        # therefore, input size needs to be either Linear: (D), Conv: (C x X x Y)
+        # everything from dim = 2 must be flattened before being passed into the RNN, and then rolled back up before being output
+
+        self.input_size = input_size
+        unrolled_input_size = self._process_input()
+
+        # initialize weights: input linear layer is diagonal filled w/ones to prevent linear from doing anything
+        self.rnn = nn.RNN(unrolled_input_size, unrolled_input_size, num_layers=1, nonlinearity='relu', 
                           bias=bias, batch_first=False, dropout=dropout, device=device, dtype=dtype)
         
         self._beta_buffer(beta, learn_beta)
-        self.hidden_size = hidden_size
+        self.hidden_size = unrolled_input_size
 
         if self.beta is not None:
             self.beta = self.beta.clamp(0, 1)
@@ -170,6 +177,7 @@ class LeakyParallel(nn.Module):
         else:
             self.spike_grad = spike_grad
 
+        self.weight_ih_disable() # disable input linear layer
         self._beta_to_weight_hh()
         if weight_hh_enable is False:
             # Initial gradient and weights of w_hh are made diagonal
@@ -192,11 +200,13 @@ class LeakyParallel(nn.Module):
             self.spike_grad = self._surrogate_bypass
 
     def forward(self, input_):
+        input_ = self.process_tensor(input_)
         mem = self.rnn(input_)
         # mem[0] contains relu'd outputs, mem[1] contains final hidden state
         mem_shift = mem[0] - self.threshold # self.rnn.weight_hh_l0
         spk = self.spike_grad(mem_shift)
         spk = spk * self.graded_spikes_factor
+        spk = self.unprocess_tensor(self, spk)
         return spk
     
     @staticmethod
@@ -253,11 +263,53 @@ class LeakyParallel(nn.Module):
                 * grad_input
             )
             return grad, None
-        
+    
+    def _process_input(self):
+        # Check if the input is an integer
+        if isinstance(self.input_size, int):
+            return self.input_size
+
+        # Check if the input is a tuple
+        elif isinstance(self.input_size, tuple):
+            product = 1
+            for item in self.input_size:
+                # Ensure each item in the tuple is an integer
+                if not isinstance(item, int):
+                    raise ValueError("All elements in the tuple must be integers")
+                product *= item
+            return product
+
+        else:
+            raise TypeError("Input must be an integer or a tuple of integers")
+
+            
     def weight_hh_enable(self):
         mask = torch.eye(self.hidden_size, self.hidden_size)
         self.rnn.weight_hh_l0.data = self.rnn.weight_hh_l0.data * mask
     
+    def weight_ih_disable(self):
+        with torch.no_grad():
+            mask = torch.eye(self.input_size, self.input_size)
+            self.rnn.weight_ih_l0.data = mask
+            self.rnn.weight_ih_l0.requires_grad_(False)
+
+    def process_tensor(self, input_):
+        if isinstance(self.input_size, int):
+            return input_
+        elif isinstance(self.input_size, tuple):
+            return input_.flatten(2)
+        else:
+            raise ValueError("input_size must be either an int or a tuple")
+    
+    def unprocess_tensor(self, input_):
+        if isinstance(self.input_size, int):
+            return input_
+        elif isinstance(self.input_size, tuple):
+            return input_.unflatten(2, self.input_size)
+        else:
+            raise ValueError("input_size must be either an int or a tuple")
+
+
     def grad_hook(self, grad):
         device = grad.device
         # Create a mask that is 1 on the diagonal and 0 elsewhere

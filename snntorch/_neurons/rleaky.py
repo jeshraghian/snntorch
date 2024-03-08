@@ -241,8 +241,9 @@ class RLeaky(LIF):
         reset_mechanism="subtract",
         state_quant=False,
         output=False,
+        reset_delay=True,
     ):
-        super(RLeaky, self).__init__(
+        super().__init__(
             beta,
             threshold,
             spike_grad,
@@ -279,6 +280,11 @@ class RLeaky(LIF):
         if not learn_recurrent:
             self._disable_recurrent_grad()
 
+        self.reset_delay = reset_delay
+
+        if not self.reset_delay and self.init_hidden:
+            raise NotImplementedError('no reset_delay only supported for init_hidden=False')
+
         if self.init_hidden:
             self.spk, self.mem = self.init_rleaky()
         #     self.state_fn = self._build_state_function_hidden
@@ -311,6 +317,13 @@ class RLeaky(LIF):
                 spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
             else:
                 spk = self.fire(mem)
+
+            if not self.reset_delay:
+                do_reset = spk / self.graded_spikes_factor - self.reset  # avoid double reset
+                if self.reset_mechanism_val == 0:  # reset by subtraction
+                    mem = mem - do_reset * self.threshold
+                elif self.reset_mechanism_val == 1:  # reset to zero
+                    mem = mem - do_reset * mem
 
             return spk, mem
 
@@ -486,7 +499,7 @@ class RLeaky(LIF):
 
 class RecurrentOneToOne(nn.Module):
     def __init__(self, V):
-        super(RecurrentOneToOne, self).__init__()
+        super().__init__()
         self.V = V
 
     def forward(self, x):

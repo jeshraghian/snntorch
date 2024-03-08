@@ -1,4 +1,6 @@
+import inspect
 from warnings import warn
+from snntorch.surrogate import StraightThroughEstimator, atan, straight_through_estimator
 import torch
 import torch.nn as nn
 
@@ -43,9 +45,17 @@ class SpikingNeuron(nn.Module):
         graded_spikes_factor=1.0,
         learn_graded_spikes_factor=False,
     ):
-        super(SpikingNeuron, self).__init__()
+        super().__init__()
 
         SpikingNeuron.instances.append(self)
+
+        if surrogate_disable:
+            self.spike_grad = self._surrogate_bypass
+        elif spike_grad == None:
+            self.spike_grad = atan()
+        else:
+            self.spike_grad = spike_grad
+
         self.init_hidden = init_hidden
         self.inhibition = inhibition
         self.output = output
@@ -60,14 +70,6 @@ class SpikingNeuron(nn.Module):
             learn_graded_spikes_factor=learn_graded_spikes_factor,
         )
         self._reset_mechanism = reset_mechanism
-
-        if spike_grad is None:
-            self.spike_grad = self.ATan.apply
-        else:
-            self.spike_grad = spike_grad
-
-        if self.surrogate_disable:
-            self.spike_grad = self._surrogate_bypass
 
         self.state_quant = state_quant
 
@@ -232,67 +234,6 @@ class SpikingNeuron(nn.Module):
     def _surrogate_bypass(input_):
         return (input_ > 0).float()
 
-    @staticmethod
-    class ATan(torch.autograd.Function):
-        """
-        Surrogate gradient of the Heaviside step function.
-
-        **Forward pass:** Heaviside step function shifted.
-
-            .. math::
-
-                S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
-                0 & \\text{if U < U$_{\\rm thr}$}
-                \\end{cases}
-
-        **Backward pass:** Gradient of shifted arc-tan function.
-
-            .. math::
-
-                    S&≈\\frac{1}{π}\\text{arctan}(πU \\frac{α}{2}) \\\\
-                    \\frac{∂S}{∂U}&=\\frac{1}{π}\
-                    \\frac{1}{(1+(πU\\frac{α}{2})^2)}
-
-
-        :math:`alpha` defaults to 2, and can be modified by calling
-        ``surrogate.atan(alpha=2)``.
-
-        Adapted from:
-
-        *W. Fang, Z. Yu, Y. Chen, T. Masquelier, T. Huang, Y. Tian (2021)
-        Incorporating Learnable Membrane Time Constants to Enhance Learning
-        of Spiking Neural Networks. Proc. IEEE/CVF Int. Conf. Computer
-        Vision (ICCV), pp. 2661-2671.*"""
-
-        @staticmethod
-        def forward(ctx, input_, alpha=2.0):
-            ctx.save_for_backward(input_)
-            ctx.alpha = alpha
-            out = (input_ > 0).float()
-            return out
-
-        @staticmethod
-        def backward(ctx, grad_output):
-            (input_,) = ctx.saved_tensors
-            grad_input = grad_output.clone()
-            grad = (
-                ctx.alpha
-                / 2
-                / (1 + (torch.pi / 2 * ctx.alpha * input_).pow_(2))
-                * grad_input
-            )
-            return grad, None
-
-    # def atan(alpha=2.0):
-    #     """ArcTan surrogate gradient enclosed with a parameterized slope."""
-    #     alpha = alpha
-
-    #     def inner(x):
-    #         return ATan.apply(x, alpha)
-
-    #     return inner
-
-
 class LIF(SpikingNeuron):
     """Parent class for leaky integrate and fire neuron models."""
 
@@ -332,14 +273,6 @@ class LIF(SpikingNeuron):
         )
         self._reset_mechanism = reset_mechanism
 
-        if spike_grad is None:
-            self.spike_grad = self.ATan.apply
-        else:
-            self.spike_grad = spike_grad
-
-        if self.surrogate_disable:
-            self.spike_grad = self._surrogate_bypass
-
     def _lif_register_buffer(
         self,
         beta,
@@ -365,17 +298,6 @@ class LIF(SpikingNeuron):
             self.V = nn.Parameter(V)
         else:
             self.register_buffer("V", V)
-
-    @staticmethod
-    def init_leaky():
-        """
-        Used to initialize mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        mem = _SpikeTensor(init_flag=False)
-
-        return mem
 
     @staticmethod
     def init_rleaky():
@@ -422,7 +344,9 @@ class LIF(SpikingNeuron):
         the hidden states to the same as the input.
         """
 
-        return LIF.init_leaky()
+        mem = _SpikeTensor(init_flag=False)
+
+        return mem
 
     @staticmethod
     def init_alpha():

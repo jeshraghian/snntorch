@@ -200,7 +200,7 @@ class Lapicque(LIF):
         state_quant=False,
         output=False,
     ):
-        super(Lapicque, self).__init__(
+        super().__init__(
             beta,
             threshold,
             spike_grad,
