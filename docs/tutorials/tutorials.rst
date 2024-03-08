@@ -40,20 +40,17 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_5_FCN.ipynb
    
-
    * - `Tutorial 6 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_6.html>`_
      - Surrogate Gradient Descent in a Convolutional SNN
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_6_CNN.ipynb
 
-
    * - `Tutorial 7 <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_7.html>`_
      - Neuromorphic Datasets with Tonic + snnTorch
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_7_neuromorphic_datasets.ipynb
-
 
 
 .. list-table::
@@ -87,10 +84,6 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
    * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
      -       —
 
-
-        
-
-
 .. list-table::
    :widths: 70 32
    :header-rows: 1
@@ -104,9 +97,5 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_exoplanet_hunter.ipynb
         
-
-
-
-
 
 Future tutorials on spiking neurons and training are under development. 
