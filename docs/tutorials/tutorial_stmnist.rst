@@ -267,7 +267,8 @@ We can also use ``snntorch.spikeplot``
     
     display(HTML(anim.to_html5_video()))
 
-:: 
+::
+
     >>> Animation of ST-MNIST
     >>> The target label is: 3
     
@@ -288,6 +289,7 @@ each: 23*30*10 = 6,900.
     print(len(dataset))
 
 ::
+
     >>> 6953
 
 1.6 Lets create a trainset and testset!
