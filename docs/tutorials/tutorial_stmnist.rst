@@ -131,7 +131,7 @@ with PyTorch/snnTorch. The documentation can be found
 
 Tonic formats the STMNIST dataset into ``(x, y, t, p)`` tuples. 
 
-* ``x``is the position on the x-axis 
+* ``x`` is the position on the x-axis 
 * ``y`` is the position on the y-axis 
 * ``t`` is a timestamp 
 * ``p`` is polarity; +1 if taxel pressed down, 0 if taxel released
