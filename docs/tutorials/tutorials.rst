@@ -96,6 +96,12 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
      - .. image:: https://colab.research.google.com/assets/colab-badge.svg
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_exoplanet_hunter.ipynb
+
+    
+   * - `Spiking-Tactile MNIST Neuromorphic Dataset <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_exoplanet_hunter.html>`_
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_stmnist.ipynb
         
 
 Future tutorials on spiking neurons and training are under development. 
