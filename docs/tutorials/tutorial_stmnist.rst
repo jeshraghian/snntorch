@@ -18,7 +18,7 @@ The snnTorch tutorial series is based on the following paper. If you find these 
 
 .. note::
   This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
-    * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_exoplanet_hunter.ipynb>`_
+    * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_stmnist.ipynb>`_
     * `Local Notebook (download via GitHub) <https://github.com/jeshraghian/snntorch/tree/master/examples>`_
 
 
@@ -131,7 +131,7 @@ with PyTorch/snnTorch. The documentation can be found
 
 Tonic formats the STMNIST dataset into ``(x, y, t, p)`` tuples. 
 
-* ``x``is the position on the x-axis 
+* ``x`` is the position on the x-axis 
 * ``y`` is the position on the y-axis 
 * ``t`` is a timestamp 
 * ``p`` is polarity; +1 if taxel pressed down, 0 if taxel released
@@ -267,7 +267,8 @@ We can also use ``snntorch.spikeplot``
     
     display(HTML(anim.to_html5_video()))
 
-:: 
+::
+
     >>> Animation of ST-MNIST
     >>> The target label is: 3
     
@@ -288,6 +289,7 @@ each: 23*30*10 = 6,900.
     print(len(dataset))
 
 ::
+
     >>> 6953
 
 1.6 Lets create a trainset and testset!
@@ -604,9 +606,8 @@ single piece of data using the spike recording list.
 
 ::
 
-    from IPython.display import HTML
-    
-    idx = 8
+    # Change index to visualize a different sample
+    idx = 0
     fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
     labels=['0', '1', '2', '3', '4', '5', '6', '7', '8','9']
     print(f"The target label is: {targets[idx]}")
