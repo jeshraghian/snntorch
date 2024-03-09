@@ -18,7 +18,7 @@ The snnTorch tutorial series is based on the following paper. If you find these 
 
 .. note::
   This tutorial is a static non-editable version. Interactive, editable versions are available via the following links:
-    * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_exoplanet_hunter.ipynb>`_
+    * `Google Colab <https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_stmnist.ipynb>`_
     * `Local Notebook (download via GitHub) <https://github.com/jeshraghian/snntorch/tree/master/examples>`_
 
 
