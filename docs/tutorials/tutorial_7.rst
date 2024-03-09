@@ -165,6 +165,7 @@ If you have a large amount of RAM available, you can speed up dataloading furthe
 by caching to main memory instead of to disk:
 
 ::
+    
     from tonic import MemoryCachedDataset
 
     cached_trainset = MemoryCachedDataset(trainset)
