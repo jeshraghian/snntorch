@@ -606,9 +606,8 @@ single piece of data using the spike recording list.
 
 ::
 
-    from IPython.display import HTML
-    
-    idx = 8
+    # Change index to visualize different sample
+    idx = 0
     fig, ax = plt.subplots(facecolor='w', figsize=(12, 7))
     labels=['0', '1', '2', '3', '4', '5', '6', '7', '8','9']
     print(f"The target label is: {targets[idx]}")
