@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .neurons import _SpikeTensor, _SpikeTorchConv, LIF
+from .neurons import LIF
 
 
 class RSynaptic(LIF):
@@ -295,72 +295,89 @@ class RSynaptic(LIF):
 
         self._alpha_register_buffer(alpha, learn_alpha)
 
+        self._init_mem()
+
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            self.state_function = self._base_sub
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            self.state_function = self._base_zero
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            self.state_function = self._base_int
+
         self.reset_delay = reset_delay
 
-        if not reset_delay and self.init_hidden:
-            raise NotImplementedError('no reset_delay only supported for init_hidden=False')
+    def _init_mem(self):
+        spk = torch.zeros(1)
+        syn = torch.zeros(1)
+        mem = torch.zeros(1)
 
-        if self.init_hidden:
-            self.spk, self.syn, self.mem = self.init_rsynaptic()
+        self.register_buffer("spk", spk)
+        self.register_buffer("syn", syn)
+        self.register_buffer("mem", mem)
 
-    def forward(self, input_, spk=False, syn=False, mem=False):
-        if (
-            hasattr(spk, "init_flag")
-            or hasattr(syn, "init_flag")
-            or hasattr(mem, "init_flag")
-        ):  # only triggered on first-pass
-            spk, syn, mem = _SpikeTorchConv(spk, syn, mem, input_=input_)
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
-            self.spk, self.syn, self.mem = _SpikeTorchConv(
-                self.spk, self.syn, self.mem, input_=input_
+    def reset_mem(self):
+        self.spk = torch.zeros_like(self.spk, device=self.spk.device)
+        self.syn = torch.zeros_like(self.syn, device=self.syn.device)
+        self.mem = torch.zeros_like(self.mem, device=self.mem.device)
+
+    def init_rsynaptic(self):
+        """Deprecated, use :class:`RSynaptic.reset_mem` instead"""
+        self.reset_mem()
+        return self.spk, self.syn, self.mem
+
+    def forward(self, input_, spk=None, syn=None, mem=None):
+        if not spk == None:
+            self.spk = spk
+
+        if not syn == None:
+            self.syn = syn
+
+        if not mem == None:
+            self.mem = mem
+
+        if self.init_hidden and (not spk == None or not syn == None or not mem == None):
+            raise TypeError(
+                "When `init_hidden=True`, RSynaptic expects 1 input argument."
             )
 
-        if not self.init_hidden:
-            self.reset = self.mem_reset(mem)
-            syn, mem = self._build_state_function(input_, spk, syn, mem)
+        if not self.spk.shape == input_.shape:
+            self.spk = torch.zeros_like(input_, device=self.spk.device)
 
-            if self.state_quant:
-                syn = self.state_quant(syn)
-                mem = self.state_quant(mem)
+        if not self.syn.shape == input_.shape:
+            self.syn = torch.zeros_like(input_, device=self.syn.device)
 
-            if self.inhibition:
-                spk = self.fire_inhibition(mem.size(0), mem)
-            else:
-                spk = self.fire(mem)
+        if not self.mem.shape == input_.shape:
+            self.mem = torch.zeros_like(input_, device=self.mem.device)
 
-            if not self.reset_delay:
-                # reset membrane potential _right_ after spike
-                do_reset = spk / self.graded_spikes_factor - self.reset  # avoid double reset
-                if self.reset_mechanism_val == 0:  # reset by subtraction
-                    mem = mem - do_reset * self.threshold
-                elif self.reset_mechanism_val == 1:  # reset to zero
-                    # mem -= do_reset * mem
-                    mem = mem - do_reset * mem
+        self.reset = self.mem_reset(self.mem)
+        self.syn, self.mem = self.state_function(input_)
 
-            return spk, syn, mem
+        if self.state_quant:
+            self.syn = self.state_quant(self.syn)
+            self.mem = self.state_quant(self.mem)
 
-        # intended for truncated-BPTT where instance variables are hidden
-        # states
-        if self.init_hidden:
-            self._rsynaptic_forward_cases(spk, mem, syn)
-            self.reset = self.mem_reset(self.mem)
-            self.syn, self.mem = self._build_state_function_hidden(input_)
+        if self.inhibition:
+            self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+        else:
+            self.spk = self.fire(self.mem)
 
-            if self.state_quant:
-                self.syn = self.state_quant(self.syn)
-                self.mem = self.state_quant(self.mem)
+        if not self.reset_delay:
+            # reset membrane potential _right_ after spike
+            do_reset = (
+                spk / self.graded_spikes_factor - self.reset
+            )  # avoid double reset
+            if self.reset_mechanism_val == 0:  # reset by subtraction
+                mem = mem - do_reset * self.threshold
+            elif self.reset_mechanism_val == 1:  # reset to zero
+                # mem -= do_reset * mem
+                mem = mem - do_reset * mem
 
-            if self.inhibition:
-                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
-            else:
-                self.spk = self.fire(self.mem)
-
-            if self.output:
-                return self.spk, self.syn, self.mem
-            else:
-                return self.spk
+        if self.output:
+            return self.spk, self.syn, self.mem
+        elif self.init_hidden:
+            return self.spk
+        else:
+            return self.spk, self.syn, self.mem
 
     def _init_recurrent_net(self):
         if self.all_to_all:
@@ -396,42 +413,7 @@ class RSynaptic(LIF):
         for param in self.recurrent.parameters():
             param.requires_grad = False
 
-    def _base_state_function(self, input_, spk, syn, mem):
-        base_fn_syn = (
-            self.alpha.clamp(0, 1) * syn + input_ + self.recurrent(spk)
-        )
-        base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
-        return base_fn_syn, base_fn_mem
-
-    def _base_state_reset_zero(self, input_, spk, syn, mem):
-        base_fn_syn = (
-            self.alpha.clamp(0, 1) * syn + input_ + self.recurrent(spk)
-        )
-        base_fn_mem = self.beta.clamp(0, 1) * mem + base_fn_syn
-        return 0, base_fn_mem
-
-    def _build_state_function(self, input_, spk, syn, mem):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = tuple(
-                map(
-                    lambda x, y: x - y,
-                    self._base_state_function(input_, spk, syn, mem),
-                    (0, self.reset * self.threshold),
-                )
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = tuple(
-                map(
-                    lambda x, y: x - self.reset * y,
-                    self._base_state_function(input_, spk, syn, mem),
-                    self._base_state_reset_zero(input_, spk, syn, mem),
-                )
-            )
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function(input_, spk, syn, mem)
-        return state_fn
-
-    def _base_state_function_hidden(self, input_):
+    def _base_state_function(self, input_):
         base_fn_syn = (
             self.alpha.clamp(0, 1) * self.syn
             + input_
@@ -440,7 +422,7 @@ class RSynaptic(LIF):
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return base_fn_syn, base_fn_mem
 
-    def _base_state_reset_zero_hidden(self, input_):
+    def _base_state_reset_zero(self, input_):
         base_fn_syn = (
             self.alpha.clamp(0, 1) * self.syn
             + input_
@@ -449,26 +431,22 @@ class RSynaptic(LIF):
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return 0, base_fn_mem
 
-    def _build_state_function_hidden(self, input_):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = tuple(
-                map(
-                    lambda x, y: x - y,
-                    self._base_state_function_hidden(input_),
-                    (0, self.reset * self.threshold),
-                )
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = tuple(
-                map(
-                    lambda x, y: x - self.reset * y,
-                    self._base_state_function_hidden(input_),
-                    self._base_state_function_hidden(input_),
-                )
-            )
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function_hidden(input_)
-        return state_fn
+    def _base_sub(self, input_):
+        syn, mem = self._base_state_function(input_)
+        mem -= self.reset * self.threshold
+        return syn, mem
+
+    def _base_zero(self, input_):
+        syn, mem = self._base_state_function(input_)
+        syn2, mem2 = self._base_state_reset_zero(input_)
+        syn2 *= self.reset
+        mem2 *= self.reset
+        syn -= syn2
+        mem -= mem2
+        return syn, mem
+
+    def _base_int(self, input_):
+        return self._base_state_function(input_)
 
     def _alpha_register_buffer(self, alpha, learn_alpha):
         if not isinstance(alpha, torch.Tensor):
@@ -477,12 +455,6 @@ class RSynaptic(LIF):
             self.alpha = nn.Parameter(alpha)
         else:
             self.register_buffer("alpha", alpha)
-
-    def _rsynaptic_forward_cases(self, spk, mem, syn):
-        if mem is not False or syn is not False or spk is not False:
-            raise TypeError(
-                "When `init_hidden=True`, RSynaptic expects 1 input argument."
-            )
 
     def _rsynaptic_init_cases(self):
         all_to_all_bool = bool(self.all_to_all)
@@ -545,8 +517,14 @@ class RSynaptic(LIF):
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], RSynaptic):
-                cls.instances[layer].syn = _SpikeTensor(init_flag=False)
-                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
+                cls.instances[layer].syn = torch.zeros_like(
+                    cls.instances[layer].syn,
+                    device=cls.instances[layer].syn.device,
+                )
+                cls.instances[layer].mem = torch.zeros_like(
+                    cls.instances[layer].mem,
+                    device=cls.instances[layer].mem.device,
+                )
 
 
 class RecurrentOneToOne(nn.Module):

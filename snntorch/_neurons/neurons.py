@@ -1,6 +1,5 @@
-import inspect
 from warnings import warn
-from snntorch.surrogate import StraightThroughEstimator, atan, straight_through_estimator
+from snntorch.surrogate import atan
 import torch
 import torch.nn as nn
 
@@ -8,8 +7,6 @@ import torch.nn as nn
 __all__ = [
     "SpikingNeuron",
     "LIF",
-    "_SpikeTensor",
-    "_SpikeTorchConv",
 ]
 
 dtype = torch.float
@@ -234,6 +231,7 @@ class SpikingNeuron(nn.Module):
     def _surrogate_bypass(input_):
         return (input_ > 0).float()
 
+
 class LIF(SpikingNeuron):
     """Parent class for leaky integrate and fire neuron models."""
 
@@ -298,107 +296,3 @@ class LIF(SpikingNeuron):
             self.V = nn.Parameter(V)
         else:
             self.register_buffer("V", V)
-
-    @staticmethod
-    def init_rleaky():
-        """
-        Used to initialize spk and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        spk = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return spk, mem
-
-    @staticmethod
-    def init_synaptic():
-        """Used to initialize syn and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-
-        syn = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return syn, mem
-
-    @staticmethod
-    def init_rsynaptic():
-        """
-        Used to initialize spk, syn and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        spk = _SpikeTensor(init_flag=False)
-        syn = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return spk, syn, mem
-
-    @staticmethod
-    def init_lapicque():
-        """
-        Used to initialize mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-
-        mem = _SpikeTensor(init_flag=False)
-
-        return mem
-
-    @staticmethod
-    def init_alpha():
-        """Used to initialize syn_exc, syn_inh and mem as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        syn_exc = _SpikeTensor(init_flag=False)
-        syn_inh = _SpikeTensor(init_flag=False)
-        mem = _SpikeTensor(init_flag=False)
-
-        return syn_exc, syn_inh, mem
-
-
-class _SpikeTensor(torch.Tensor):
-    """Inherits from torch.Tensor with additional attributes.
-    ``init_flag`` is set at the time of initialization.
-    When called in the forward function of any neuron, they are parsed and
-    replaced with a torch.Tensor variable.
-    """
-
-    @staticmethod
-    def __new__(cls, *args, init_flag=False, **kwargs):
-        return super().__new__(cls, *args, **kwargs)
-
-    def __init__(
-        self,
-        *args,
-        init_flag=True,
-    ):
-        # super().__init__() # optional
-        self.init_flag = init_flag
-
-
-def _SpikeTorchConv(*args, input_):
-    """Convert SpikeTensor to torch.Tensor of the same size as ``input_``."""
-
-    states = []
-    # if len(input_.size()) == 0:
-    #     _batch_size = 1  # assume batch_size=1 if 1D input
-    # else:
-    #     _batch_size = input_.size(0)
-    if (
-        len(args) == 1 and type(args) is not tuple
-    ):  # if only one hidden state, make it iterable
-        args = (args,)
-    for arg in args:
-        arg = arg.to("cpu")
-        arg = torch.Tensor(arg)  # wash away the SpikeTensor class
-        arg = torch.zeros_like(input_, requires_grad=True)
-        states.append(arg)
-    if len(states) == 1:  # otherwise, list isn't unpacked
-        return states[0]
-
-    return states

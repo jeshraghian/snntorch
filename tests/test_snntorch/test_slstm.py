@@ -5,6 +5,7 @@
 import pytest
 import snntorch as snn
 import torch
+import torch._dynamo as dynamo
 
 # TO-DO: add avg/max-pooling tests
 
@@ -18,6 +19,11 @@ def input_():
 @pytest.fixture(scope="module")
 def slstm_instance():
     return snn.SLSTM(1, 2)
+
+
+@pytest.fixture(scope="module")
+def slstm_instance_surrogate():
+    return snn.SLSTM(1, 2, surrogate_disable=True)
 
 
 @pytest.fixture(scope="module")
@@ -46,7 +52,7 @@ def slstm_hidden_reset_subtract_instance():
 
 
 class TestSLSTM:
-    def test_sconv2dlstm(self, slstm_instance, input_):
+    def test_slstm(self, slstm_instance, input_):
         c, h = slstm_instance.init_slstm()
 
         h_rec = []
@@ -64,7 +70,7 @@ class TestSLSTM:
         assert h.size() == (1, 2)
         assert spk.size() == (1, 2)
 
-    def test_sconv2dlstm_reset(
+    def test_slstm_reset(
         self,
         slstm_instance,
         slstm_reset_zero_instance,
@@ -87,7 +93,7 @@ class TestSLSTM:
         assert lif2.reset_mechanism_val == 1
         assert lif3.reset_mechanism_val == 0
 
-    def test_sconv2dlstm_init_hidden(self, slstm_hidden_instance, input_):
+    def test_slstm_init_hidden(self, slstm_hidden_instance, input_):
 
         spk_rec = []
 
@@ -97,7 +103,7 @@ class TestSLSTM:
 
         assert spk_rec[0].size() == (1, 2)
 
-    def test_sconv2dlstm_init_hidden_reset_zero(
+    def test_slstm_init_hidden_reset_zero(
         self, slstm_hidden_reset_zero_instance, input_
     ):
 
@@ -109,7 +115,7 @@ class TestSLSTM:
 
         assert spk_rec[0].size() == (1, 2)
 
-    def test_sconv2dlstm_init_hidden_reset_subtract(
+    def test_slstm_init_hidden_reset_subtract(
         self, slstm_hidden_reset_subtract_instance, input_
     ):
 
@@ -120,3 +126,10 @@ class TestSLSTM:
             spk_rec.append(spk)
 
         assert spk_rec[0].size() == (1, 2)
+
+    def test_slstm_compile_fullgraph(
+        self, slstm_instance_surrogate, input_
+    ):
+        explanation = dynamo.explain(slstm_instance_surrogate)(input_[0])
+
+        assert explanation.graph_break_count == 0
