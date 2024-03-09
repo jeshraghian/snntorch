@@ -135,7 +135,7 @@ Because event recordings have different lengths, we are going to provide a
 collation function ``tonic.collation.PadTensors()`` that will pad out shorter 
 recordings to ensure all samples in a batch have the same dimensions. 
 
-::  
+::
 
     from torch.utils.data import DataLoader
     from tonic import DiskCachedDataset
