@@ -83,20 +83,20 @@ Before diving into the code, let's gain an understanding of what Exoplanet Detec
 The transit method is a widely used and successful technique for
 detecting exoplanets. When an exoplanet transits its host star, it
 causes a temporary reduction in the star's light flux (brightness). 
-Compared to other techniques, the transmit method has has discovered 
+Compared to other techniques, the transit method has discovered 
 the largest number of planets.
 
 Astronomers use telescopes equipped with photometers or
 spectrophotometers to continuously monitor the brightness of a star over
-time. Repeated observations of multiple transits allows astronomers to
+time. Repeated observations of multiple transits allow astronomers to
 gather more detailed information about the exoplanet, such as its
 atmosphere and the presence of moons.
 
 Space telescopes like NASA's Kepler and TESS (Transiting Exoplanet
 Survey Satellite) have been instrumental in discovering thousands of
-exoplanets using the transit method. Without the Earth's atmosphere in the way,
-there is less interference and more precise measurements are possible. 
-The transit method continues to be a key tool in advancing our understanding of
+exoplanets using the transit method. Without the Earth's atmosphere to hinder observations,
+there is minimal interference, allowing for more precise measurements. 
+The transit method remains a key tool in furthering our comprehension of
 exoplanetary systems. For more information about transit method, you can
 visit `NASA Exoplanet Exploration
 Page <https://exoplanets.nasa.gov/alien-worlds/ways-to-find-a-planet/#/2>`__.
@@ -107,7 +107,7 @@ Page <https://exoplanets.nasa.gov/alien-worlds/ways-to-find-a-planet/#/2>`__.
 The drawback of this method is that the angle between the planet's
 orbital plane and the direction of the observer's line of sight must be
 sufficiently small. Therefore, the chance of this phenomenon occurring is not
-high. Thus more time and resources must be spent to detect and confirm
+high. Thus, more time and resources must be allocated to detect and confirm
 the existence of an exoplanet. These resources include the Kepler
 telescope and ESA's CoRoT when they were still operational.
 
@@ -202,8 +202,8 @@ datasets <https://pytorch.org/tutorials/beginner/data_loading_tutorial.html>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Given the low chance of detecting exoplanets, this dataset is very imbalanced.
-Most samples are negative, i.e., there are very few exoplanets from the observed
-light intensity data. If your model was to simply predict 'no exoplanet' for every sample,
+Most samples are negative, meaning there are very few exoplanets from the observed
+light intensity data. If your model were to simply predict 'no exoplanet' for every sample,
 then it would achieve very high accuracy. This indicates that accuracy is a poor metric for success.
 
 Let's first probe our data to gain insight into how imbalanced it is.
@@ -245,7 +245,7 @@ To deal with the imbalance of our dataset, let's Synthetic Minority
 Over-Sampling Technique (SMOTE). SMOTE works by
 generating synthetic samples from the minority class to balance the
 distribution (typically implemented using the nearest neighbors
-strategy). By implementing SMOTE, we attempt to reduce bias towards
+strategy). By implementing SMOTE, we attempt to reduce bias toward
 stars without exoplanets (the majority class).
 
 .. code:: python
@@ -368,9 +368,9 @@ After loading the data, let's see what our data looks like.
 The code block below follows the same syntax as with the `official
 snnTorch
 tutorial <https://snntorch.readthedocs.io/en/latest/tutorials/index.html>`__. 
-In contrast to other tutorials however, this model passes data across the entire sequence in parallel. 
-In that sense, it is more akin to how attention-based mechanisms take data.
-Turning this into a more 'online' method would likely involve pre-processing to downsample the exceedingly long sequence length.
+In contrast to other tutorials, however, this model concurrently processes data across the entire sequence. 
+In that sense, it is more akin to how attention-based mechanisms handle data.
+Turning this into a more 'online' method would likely involve preprocessing to downsample the exceedingly long sequence length.
 
 .. code:: python
 
