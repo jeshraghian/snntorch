@@ -3,7 +3,7 @@ import snntorch as snn
 
 device = 'cuda'
 num_outputs = 5
-beta1 = torch.rand((num_outputs), dtype = torch.float) # independent decay rate for each leaky neuron in layer 2: [0, 1)
+beta1 = torch.rand((num_outputs), dtype = torch.float, device=device) # independent decay rate for each leaky neuron in layer 2: [0, 1)
 
 lif1 = snn.LeakyParallel(2, 4, beta=0.9, learn_beta=True, device=device)
 # lif2 = snn.LeakyParallel(20, 30, device=device)

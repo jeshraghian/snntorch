@@ -161,6 +161,7 @@ class LeakyParallel(nn.Module):
         
         self._beta_buffer(beta, learn_beta)
         self.hidden_size = hidden_size
+        self.device = device
 
         if self.beta is not None:
             self.beta = self.beta.clamp(0, 1)
@@ -255,7 +256,7 @@ class LeakyParallel(nn.Module):
             return grad, None
         
     def weight_hh_enable(self):
-        mask = torch.eye(self.hidden_size, self.hidden_size)
+        mask = torch.eye(self.hidden_size, self.hidden_size, device=self.device)
         self.rnn.weight_hh_l0.data = self.rnn.weight_hh_l0.data * mask
     
     def grad_hook(self, grad):
