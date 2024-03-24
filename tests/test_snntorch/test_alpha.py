@@ -17,9 +17,12 @@ def input_():
 def alpha_instance():
     return snn.Alpha(alpha=0.6, beta=0.5, reset_mechanism="subtract")
 
+
 @pytest.fixture(scope="module")
 def alpha_instance_surrogate():
-    return snn.Alpha(alpha=0.6, beta=0.5, reset_mechanism="subtract", surrogate_disable=True)
+    return snn.Alpha(
+        alpha=0.6, beta=0.5, reset_mechanism="subtract", surrogate_disable=True
+    )
 
 
 @pytest.fixture(scope="module")
@@ -141,7 +144,6 @@ class TestAlpha:
     def test_alpha_cases(self, alpha_hidden_instance, input_):
         with pytest.raises(TypeError):
             alpha_hidden_instance(input_, input_)
-
 
     def test_alpha_compile_fullgraph(self, alpha_instance_surrogate, input_):
         explanation = dynamo.explain(alpha_instance_surrogate)(input_[0])

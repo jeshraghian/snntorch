@@ -335,7 +335,9 @@ class RSynaptic(LIF):
         if not mem == None:
             self.mem = mem
 
-        if self.init_hidden and (not spk == None or not syn == None or not mem == None):
+        if self.init_hidden and (
+            not spk == None or not syn == None or not mem == None
+        ):
             raise TypeError(
                 "When `init_hidden=True`, RSynaptic expects 1 input argument."
             )

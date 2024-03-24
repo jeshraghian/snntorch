@@ -142,9 +142,7 @@ class TestRLeaky:
         with pytest.raises(TypeError):
             rleaky_hidden_instance(input_, input_, input_)
 
-    def test_rleaky_compile_fullgraph(
-        self, rleaky_instance_surrogate, input_
-    ):
+    def test_rleaky_compile_fullgraph(self, rleaky_instance_surrogate, input_):
         explanation = dynamo.explain(rleaky_instance_surrogate)(input_[0])
 
         assert explanation.graph_break_count == 0

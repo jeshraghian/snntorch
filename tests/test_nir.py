@@ -7,12 +7,13 @@ import pytest
 import snntorch as snn
 import torch
 
-#sample data for snntorch_sequential
+# sample data for snntorch_sequential
 @pytest.fixture(scope="module")
 def sample_data():
     return torch.ones((4, 784))
 
-#sample data for snntorch with conv2d_avgpool
+
+# sample data for snntorch with conv2d_avgpool
 @pytest.fixture(scope="module")
 def sample_data2():
     return torch.randn(1, 1, 28, 28)
@@ -23,22 +24,24 @@ class NetWithAvgPool(torch.nn.Module):
         super(NetWithAvgPool, self).__init__()
         self.conv1 = torch.nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1)
         self.lif1 = snn.Leaky(beta=0.9, init_hidden=True)
-        self.fc1 = torch.nn.Linear(28*28*16 // 4, 500) 
+        self.fc1 = torch.nn.Linear(28 * 28 * 16 // 4, 500)
         self.lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
 
     def forward(self, x):
-        x = torch.nn.functional.avg_pool2d(self.conv1(x), kernel_size=2, stride=2)  
-        x = x.view(-1, 28*28*16 // 4)  
+        x = torch.nn.functional.avg_pool2d(
+            self.conv1(x), kernel_size=2, stride=2
+        )
+        x = x.view(-1, 28 * 28 * 16 // 4)
         x = self.lif1(x)
         x = self.fc1(x)
         x = self.lif2(x)
         return x
 
+
 @pytest.fixture(scope="module")
 def net_with_avg_pool():
     net = NetWithAvgPool()
     return net
-
 
 
 @pytest.fixture(scope="module")
@@ -98,15 +101,19 @@ class TestNIR:
     def test_export_NetWithAvgPool(self, net_with_avg_pool, sample_data2):
         nir_graph = snn.export_to_nir(net_with_avg_pool, sample_data2)
         assert nir_graph is not None
-        #dict_keys(['conv1', 'fc1', 'input', 'lif1', 'lif2', 'output'])
-        assert set(nir_graph.nodes.keys()) == set( ["input", "output"] + ['conv1', 'fc1', 'input', 'lif1', 'lif2', 'output']), nir_graph.nodes.keys()
+        # dict_keys(['conv1', 'fc1', 'input', 'lif1', 'lif2', 'output'])
+        assert set(nir_graph.nodes.keys()) == set(
+            ["input", "output"]
+            + ["conv1", "fc1", "input", "lif1", "lif2", "output"]
+        ), nir_graph.nodes.keys()
         assert set(nir_graph.edges) == set(
-
-        [('lif2', 'output'),
-        ('lif1', 'fc1'),
-        ('fc1', 'lif2'),
-        ('input', 'conv1'),
-        ('conv1', 'output')]
+            [
+                ("lif2", "output"),
+                ("lif1", "fc1"),
+                ("fc1", "lif2"),
+                ("input", "conv1"),
+                ("conv1", "output"),
+            ]
         )
         assert isinstance(nir_graph.nodes["input"], nir.Input)
         assert isinstance(nir_graph.nodes["output"], nir.Output)
@@ -114,7 +121,6 @@ class TestNIR:
         assert isinstance(nir_graph.nodes["lif1"], nir.LIF)
         assert isinstance(nir_graph.nodes["fc1"], nir.Affine)
         assert isinstance(nir_graph.nodes["lif2"], nir.LIF)
-
 
     def test_export_recurrent(self, snntorch_recurrent, sample_data):
         nir_graph = snn.export_to_nir(snntorch_recurrent, sample_data)
@@ -139,7 +145,7 @@ class TestNIR:
                 ("input", "0"),
                 ("1.lif", "2"),
             ]
-        ) 
+        )
 
     def test_import_nir(self):
         graph = nir.read("tests/lif.nir")
@@ -152,8 +158,7 @@ class TestNIR:
         net = snn.import_from_nir(graph)
         assert net is not None
         out, _ = net(torch.randn(1, 1, 1, 1))
-        assert out.shape == (1, 16,1,1), out.shape
-
+        assert out.shape == (1, 16, 1, 1), out.shape
 
     def test_commute_sequential(self, snntorch_sequential, sample_data):
         x = torch.rand((4, 784))
@@ -164,5 +169,3 @@ class TestNIR:
         y_nir, state = net(x)
         assert y_nir.shape == (4, 10), y_nir.shape
         assert torch.allclose(y_snn, y_nir)
-
-

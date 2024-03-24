@@ -298,7 +298,7 @@ class SConv2dLSTM(SpikingNeuron):
             raise TypeError(
                 "`mem` or `syn` should not be passed as an argument while `init_hidden=True`"
             )
-        
+
         size = input_.size()
         correct_shape = (size[0], self.out_channels, size[2], size[3])
         if not self.syn.shape == correct_shape:
