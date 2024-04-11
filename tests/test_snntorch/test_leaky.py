@@ -5,6 +5,7 @@
 import pytest
 import snntorch as snn
 import torch
+import torch._dynamo as dynamo
 
 
 @pytest.fixture(scope="module")
@@ -15,6 +16,11 @@ def input_():
 @pytest.fixture(scope="module")
 def leaky_instance():
     return snn.Leaky(beta=0.5)
+
+
+@pytest.fixture(scope="module")
+def leaky_instance_surrogate():
+    return snn.Leaky(beta=0.5, surrogate_disable=True)
 
 
 @pytest.fixture(scope="module")
@@ -126,8 +132,13 @@ class TestLeaky:
             leaky_hidden_instance(input_, input_)
 
     def test_leaky_hidden_learn_graded_instance(
-            self, leaky_hidden_learn_graded_instance
+        self, leaky_hidden_learn_graded_instance
     ):
         factor = leaky_hidden_learn_graded_instance.graded_spikes_factor
 
         assert factor.requires_grad
+
+    def test_leaky_compile_fullgraph(self, leaky_instance_surrogate, input_):
+        explanation = dynamo.explain(leaky_instance_surrogate)(input_[0])
+
+        assert explanation.graph_break_count == 0
