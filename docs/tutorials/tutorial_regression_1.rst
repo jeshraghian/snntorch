@@ -482,7 +482,7 @@ Conclusion
 ------------------------
 
 The next regression tutorials will test more powerful spiking neurons,
-such as Reucrrent LIF neurons and spiking LSTMs, to see how they
+such as Recurrent LIF neurons and spiking LSTMs, to see how they
 compare.
 
 If you like this project, please consider starring ⭐ the repo on GitHub
