@@ -307,13 +307,9 @@ class RSynaptic(LIF):
         self.reset_delay = reset_delay
 
     def _init_mem(self):
-        spk = torch.zeros(1)
-        syn = torch.zeros(1)
-        mem = torch.zeros(1)
-
-        self.register_buffer("spk", spk)
-        self.register_buffer("syn", syn)
-        self.register_buffer("mem", mem)
+        self.spk = torch.zeros(1)
+        self.syn = torch.zeros(1)
+        self.mem = torch.zeros(1)
 
     def reset_mem(self):
         self.spk = torch.zeros_like(self.spk, device=self.spk.device)

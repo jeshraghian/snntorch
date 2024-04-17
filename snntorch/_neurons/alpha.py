@@ -129,13 +129,9 @@ class Alpha(LIF):
             self.state_function = self._base_int
 
     def _init_mem(self):
-        syn_exc = torch.zeros(1)
-        syn_inh = torch.zeros(1)
-        mem = torch.zeros(1)
-
-        self.register_buffer("syn_exc", syn_exc)
-        self.register_buffer("syn_inh", syn_inh)
-        self.register_buffer("mem", mem)
+        self.syn_exc = torch.zeros(1)
+        self.syn_inh = torch.zeros(1)
+        self.mem = torch.zeros(1)
 
     def reset_mem(self):
         self.syn_exc = torch.zeros_like(
