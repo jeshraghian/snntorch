@@ -226,8 +226,7 @@ class Lapicque(LIF):
             self.state_function = self._base_int
 
     def _init_mem(self):
-        mem = torch.zeros(1)
-        self.register_buffer("mem", mem)
+        self.mem = torch.zeros(1)
 
     def reset_mem(self):
         self.mem = torch.zeros_like(self.mem, device=self.mem.device)

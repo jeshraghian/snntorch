@@ -273,10 +273,8 @@ class SConv2dLSTM(SpikingNeuron):
         )
 
     def _init_mem(self):
-        syn = torch.zeros(1)
-        mem = torch.zeros(1)
-        self.register_buffer("syn", syn)
-        self.register_buffer("mem", mem)
+        self.syn = torch.zeros(1)
+        self.mem = torch.zeros(1)
 
     def reset_mem(self):
         self.syn = torch.zeros_like(self.syn, device=self.syn.device)
