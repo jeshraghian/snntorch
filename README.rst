@@ -2,30 +2,25 @@
 Introduction
 ================
 
+.. |build| image:: https://github.com/jeshraghian/snntorch/actions/workflows/build.yml/badge.svg
+   :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
 
-.. image:: https://github.com/jeshraghian/snntorch/actions/workflows/build.yml/badge.svg
-        :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
+.. |docs| image:: https://readthedocs.org/projects/snntorch/badge/?version=latest
+   :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
 
-.. image:: https://readthedocs.org/projects/snntorch/badge/?version=latest
-        :target: https://snntorch.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+.. |discord| image:: https://img.shields.io/discord/906036932725841941
+   :target: https://discord.gg/cdZb5brajb
 
-.. image:: https://img.shields.io/discord/906036932725841941
-        :target: https://discord.gg/cdZb5brajb
-        :alt: Discord
+.. |pypi| image:: https://img.shields.io/pypi/v/snntorch.svg
+   :target: https://pypi.python.org/pypi/snntorch
 
-.. image:: https://img.shields.io/pypi/v/snntorch.svg
-         :target: https://pypi.python.org/pypi/snntorch
+.. |conda| image:: https://img.shields.io/conda/vn/conda-forge/snntorch.svg
+   :target: https://anaconda.org/conda-forge/snntorch
 
-.. image:: https://img.shields.io/conda/vn/conda-forge/snntorch.svg
-        :target: https://anaconda.org/conda-forge/snntorch
+.. |downloads| image:: https://static.pepy.tech/personalized-badge/snntorch?period=total&units=international_system&left_color=grey&right_color=orange&left_text=Downloads
+   :target: https://pepy.tech/project/snntorch
 
-.. image:: https://static.pepy.tech/personalized-badge/snntorch?period=total&units=international_system&left_color=grey&right_color=orange&left_text=Downloads
-        :target: https://pepy.tech/project/snntorch
-
-.. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/snntorch_alpha_scaled.png?raw=true
-        :align: center
-        :width: 700
+|build| |docs| |discord| |pypi| |conda| |downloads|
 
 
 The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
@@ -326,7 +321,7 @@ Acknowledgments
 ^^^^^^^^^^^^^^^^^^^^^^^^
 snnTorch is currently maintained by the `UCSC Neuromorphic Computing Group <https://ncg.ucsc.edu>`_. It was initially developed by `Jason K. Eshraghian`_ in the `Lu Group (University of Michigan)`_. 
 
-Additional contributions were made by `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, `Alexander Henkes <https://github.com/ahenkes1>`_, `Steven Abreu <https://github.com/stevenabreu7>`_, Xinxin Wang, Sreyes Venkatesh, and Emre Neftci.
+Additional contributions were made by `Vincent Sun <https://github.com/vinniesun>`_, `Peng Zhou <https://github.com/pengzhouzp>`_, `Ridger Zhu <https://github.com/ridgerchu>`_, `Alexander Henkes <https://github.com/ahenkes1>`_, `Steven Abreu <https://github.com/stevenabreu7>`_, Xinxin Wang, Sreyes Venkatesh, `gekkom <https://github.com/gekkom>`_, and Emre Neftci.
 
 .. _Jason K. Eshraghian: https://jasoneshraghian.com
 .. _Lu Group (University of Michigan): https://lugroup.engin.umich.edu/
