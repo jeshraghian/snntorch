@@ -102,6 +102,7 @@ class ce_rate_loss(LossFunctions):
 
     def _compute_loss(self, spk_out, targets):
         device, num_steps, num_outputs = self._prediction_check(spk_out)
+        log_softmax_fn = nn.LogSoftmax(dim=-1)
 
         if self.population_code:
             for idx in range(self.num_classes):
@@ -113,10 +114,10 @@ class ce_rate_loss(LossFunctions):
                         ),
                     ]
             weights = torch.Tensor([self.weight[0] if i < int(num_outputs/self.num_classes) else self.weight[1] for i in range(num_outputs) ]).to(device)
-
-        log_softmax_fn = nn.LogSoftmax(dim=-1)
-        loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=weights)
-
+            loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=weights)
+        else:
+            loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=self.weight)
+            
         log_p_y = log_softmax_fn(spk_out)
         loss_shape = (spk_out.size(1)) if self._intermediate_reduction() == 'none' else (1)
         loss = torch.zeros(loss_shape, dtype=dtype, device=device)
