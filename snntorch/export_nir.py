@@ -5,7 +5,6 @@ import numpy as np
 import nirtorch
 import snntorch as snn
 
-
 def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
     """Convert a single snnTorch module to the equivalent object in the Neuromorphic
     Intermediate Representation (NIR). This function is used internally by the export_to_nir
@@ -22,7 +21,25 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
     :return: return the NIR node
     :rtype: Optional[nir.NIRNode]
     """
-    if isinstance(module, snn.Leaky):
+    #Adding Conv2d layer
+    if isinstance(module, torch.nn.Conv2d):
+        return nir.Conv2d(
+            input_shape=None,
+            weight=module.weight.detach(),
+            bias=module.bias.detach(),
+            stride=module.stride,
+            padding=module.padding,
+            dilation=module.dilation,
+            groups=module.groups,
+        )
+
+    elif isinstance(module, torch.nn.AvgPool2d):
+        return nir.AvgPool2d(
+            kernel_size= module.kernel_size,  # (Height, Width)
+            stride= module.kernel_size if module.stride is None else module.stride,  # (Height, width)
+            padding=(0, 0),  # (Height, width)
+        )
+    elif isinstance(module, snn.Leaky):
         dt = 1e-4
 
         beta = module.beta.detach().numpy()
@@ -118,6 +135,15 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
         }, edges=[
             ('input', 'lif'), ('lif', 'w_rec'), ('w_rec', 'lif'), ('lif', 'output')
         ])
+    elif isinstance(module, torch.nn.Flatten):
+        # Getting rid of the batch dimension for NIR
+        start_dim = module.start_dim - 1 if module.start_dim > 0 else module.start_dim
+        end_dim = module.end_dim - 1 if module.end_dim > 0 else module.end_dim
+        return nir.Flatten(
+            input_type=None,
+            start_dim=start_dim,
+            end_dim=end_dim,
+        )
 
     else:
         print(f'[WARNING] module not implemented: {module.__class__.__name__}')
