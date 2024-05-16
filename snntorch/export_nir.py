@@ -1,9 +1,32 @@
-from typing import Optional
+#from typing import Optional
+from typing import Optional, Tuple, Union
 import torch
+#debugging
+import os
+import sys
+#sys.path.append('/home/sirine/miniconda3/lib/python3.11/site-packages/')
 import nir
+#print("Current working directory:", os.getcwd())
+#print("Python path:", sys.path)
+#
 import numpy as np
 import nirtorch
 import snntorch as snn
+#adding support for sumpooling from sinabs
+import sinabs.layers as sl
+
+#as pair function for adding sumpooling
+
+def _as_pair(x) -> Tuple[int, int]:
+    try:
+        if len(x) == 1:
+            return (x[0], x[0])
+        elif len(x) >= 2:
+            return tuple(x)
+        else:
+            raise ValueError()
+    except TypeError:
+        return x, x
 
 
 def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
@@ -23,6 +46,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
     :rtype: Optional[nir.NIRNode]
     """
     # Adding Conv2d layer
+    """
     if isinstance(module, torch.nn.Conv2d):
         return nir.Conv2d(
             input_shape=None,
@@ -33,13 +57,37 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
             dilation=module.dilation,
             groups=module.groups,
         )
-
+    """
+    #modifiying bias of the conv2d layer extraction 
+    if isinstance(module, torch.nn.Conv2d):
+        return nir.Conv2d(
+            input_shape=None,
+            weight=module.weight.detach(),
+            stride=module.stride,
+            padding=module.padding,
+            dilation=module.dilation,
+            groups=module.groups,
+            #better handle for the bias if it's False
+            bias=(
+                module.bias.detach()
+                if isinstance(module.bias, torch.Tensor)
+                else torch.zeros((module.weight.shape[0]))
+            ),
+        )
     elif isinstance(module, torch.nn.AvgPool2d):
         return nir.AvgPool2d(
             kernel_size=module.kernel_size,  # (Height, Width)
             stride=module.kernel_size
             if module.stride is None
             else module.stride,  # (Height, width)
+            padding=(0, 0),  # (Height, width)
+        )
+    elif isinstance(module, sl.SumPool2d):
+        return nir.SumPool2d(
+            kernel_size=_as_pair(module.kernel_size),  # (Height, Width)
+            stride=_as_pair(
+                module.kernel_size if module.stride is None else module.stride
+            ),  # (Height, width)
             padding=(0, 0),  # (Height, width)
         )
     elif isinstance(module, snn.Leaky):
