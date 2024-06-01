@@ -12,8 +12,6 @@ class LeakyParallel(nn.Module):
     Membrane potential decays exponentially with rate beta.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
-    Whenever the neuron emits a spike we have:
-
     .. math::
 
             U[t+1] = βU[t] + I_{\\rm in}[t+1]
