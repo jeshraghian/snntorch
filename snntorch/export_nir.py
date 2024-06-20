@@ -27,6 +27,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
         beta = module.beta.detach().numpy()
         vthr = module.threshold.detach().numpy()
+        vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
         tau_mem = dt / (1 - beta)
         r = tau_mem / dt
         v_leak = np.zeros_like(beta)
@@ -56,6 +57,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
         alpha = module.alpha.detach().numpy()
         beta = module.beta.detach().numpy()
         vthr = module.threshold.detach().numpy()
+        vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
 
         tau_syn = dt / (1 - alpha)
         tau_mem = dt / (1 - beta)
