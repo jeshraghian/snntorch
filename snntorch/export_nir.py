@@ -1,20 +1,14 @@
 #from typing import Optional
 from typing import Optional, Tuple, Union
 import torch
-#debugging
 import os
 import sys
-#sys.path.append('/home/sirine/miniconda3/lib/python3.11/site-packages/')
 import nir
-#print("Current working directory:", os.getcwd())
-#print("Python path:", sys.path)
-#
 import numpy as np
 import nirtorch
 import snntorch as snn
 #adding support for sumpooling from sinabs
 import sinabs.layers as sl
-
 #as pair function for adding sumpooling
 
 def _as_pair(x) -> Tuple[int, int]:
