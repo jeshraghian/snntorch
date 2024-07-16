@@ -5,7 +5,7 @@ import torch.nn as nn
 class LeakyParallel(nn.Module):
     """
     A parallel implementation of the Leaky neuron with a fused input linear layer.
-    All time steps are passed to the input at once.
+    All time steps are passed to the input at once. 
     This implementation uses `torch.nn.RNN` to accelerate the implementation.
 
     First-order leaky integrate-and-fire neuron model.
@@ -24,14 +24,25 @@ class LeakyParallel(nn.Module):
     * :math:`β` - Membrane potential decay rate
 
     Several differences between `LeakyParallel` and `Leaky` include:
-
-    * Negative hidden states are clipped due to the forced ReLU operation in RNN
-    * Linear weights are included in addition to recurrent weights
-    * `beta` is clipped between [0,1] and cloned to `weight_hh_l` only upon layer initialization. It is unused otherwise
-    * There is no explicit reset mechanism
-    * Several functions such as `init_hidden`, `output`, `inhibition`, and `state_quant` are unavailable in `LeakyParallel`
-    * Only the output spike is returned. Membrane potential is not accessible by default
-    * RNN uses a hidden matrix of size (num_hidden, num_hidden) to transform the hidden state vector. This would 'leak' the membrane potential between LIF neurons, and so the hidden matrix is forced to a diagonal matrix by default. This can be disabled by setting `weight_hh_enable=True`.
+    
+    * Negative hidden states are clipped due to the 
+        forced ReLU operation in RNN.
+    * Linear weights are included in addition to 
+        recurrent weights.
+    * `beta` is clipped between [0,1] and cloned to 
+        `weight_hh_l` only upon layer initialization. 
+        It is unused otherwise.
+    * There is no explicit reset mechanism.
+    * Several functions such as `init_hidden`, `output`, 
+        `inhibition`, and `state_quant` are unavailable 
+        in `LeakyParallel`.
+    * Only the output spike is returned. Membrane potential
+        is not accessible by default.
+    * RNN uses a hidden matrix of size (num_hidden, num_hidden)
+        to transform the hidden state vector. This would 'leak' 
+        the membrane potential between LIF neurons, and so the 
+        hidden matrix is forced to a diagonal matrix by default. 
+        This can be disabled by setting `weight_hh_enable=True`.
 
     Example::
 
@@ -58,9 +69,9 @@ class LeakyParallel(nn.Module):
             def forward(self, x):
                 spk1 = self.lif1(x)
                 spk2 = self.lif2(spk1)
-                return spk2
+                return spk2     
 
-
+        
     :param input_size: The number of expected features in the input `x`
     :type input_size: int
 
@@ -101,39 +112,45 @@ class LeakyParallel(nn.Module):
         to False
     :type learn_threshold: bool, optional
 
-    :param weight_hh_enable: Option to set the hidden matrix to be dense or
-        diagonal. Diagonal (i.e., False) adheres to how a LIF neuron works.
-        Dense (True) would allow the membrane potential of one LIF neuron to
+    :param weight_hh_enable: Option to set the hidden matrix to be dense or 
+        diagonal. Diagonal (i.e., False) adheres to how a LIF neuron works. 
+        Dense (True) would allow the membrane potential of one LIF neuron to 
         influence all others, and follow the RNN default implementation. Defaults to False
     :type weight_hh_enable: bool, optional
 
 
     Inputs: \\input_
-        - **input_** of shape of  shape `(L, H_{in})` for unbatched input,
-            or `(L, N, H_{in})` containing the features of the input sequence.
+        - **input_** of shape of  shape `(L, H_{in})` for unbatched input, 
+            or `(L, N, H_{in})` containing the features of the input sequence. 
 
     Outputs: spk
         - **spk** of shape `(L, batch, input_size)`: tensor containing the
             output spikes.
-
+        
     where:
 
-    `L = sequence length`
+   * **`L** = sequence length`
+    
+   * **`N** = batch size`
 
-    `N = batch size`
+   * **`H_{in}** = input_size`
 
-    `H_{in} = input_size`
-
-    `H_{out} = hidden_size`
+   * **`H_{out}** = hidden_size`
 
     Learnable Parameters:
-        - **rnn.weight_ih_l** (torch.Tensor) - the learnable input-hidden weights of shape (hidden_size, input_size)
-        - **rnn.weight_hh_l** (torch.Tensor) - the learnable hidden-hidden weights of the k-th layer which are sampled from `beta` of shape (hidden_size, hidden_size)
-        - **bias_ih_l** - the learnable input-hidden bias of the k-th layer, of shape (hidden_size)
-        - **bias_hh_l** - the learnable hidden-hidden bias of the k-th layer, of shape (hidden_size)
-        - **threshold** (torch.Tensor) - optional learnable thresholds
-            must be manually passed in, of shape `1` or`` (input_size).
-        - **graded_spikes_factor** (torch.Tensor) - optional learnable graded spike factor
+        - **rnn.weight_ih_l** (torch.Tensor) - the learnable input-hidden 
+            weights of shape (hidden_size, input_size).
+        - **rnn.weight_hh_l** (torch.Tensor) - the learnable hidden-hidden
+            weights of the k-th layer which are sampled from `beta` of shape 
+            (hidden_size, hidden_size).
+        - **bias_ih_l** - the learnable input-hidden bias of the k-th layer, 
+            of shape (hidden_size).
+        - **bias_hh_l** - the learnable hidden-hidden bias of the k-th layer, 
+            of shape (hidden_size).
+        - **threshold** (torch.Tensor) - optional learnable thresholds must be 
+            manually passed in, of shape `1` or`` (input_size).
+        - **graded_spikes_factor** (torch.Tensor) - optional learnable graded 
+            spike factor.
 
     """
 

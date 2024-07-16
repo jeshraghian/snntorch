@@ -307,23 +307,23 @@ class RSynaptic(LIF):
         self.reset_delay = reset_delay
 
     def _init_mem(self):
-        spk = torch.zeros(1)
-        syn = torch.zeros(1)
-        mem = torch.zeros(1)
+        spk = torch.zeros(0)
+        syn = torch.zeros(0)
+        mem = torch.zeros(0)
 
-        self.register_buffer("spk", spk)
-        self.register_buffer("syn", syn)
-        self.register_buffer("mem", mem)
+        self.register_buffer("spk", spk, False)
+        self.register_buffer("syn", syn, False)
+        self.register_buffer("mem", mem, False)
 
     def reset_mem(self):
         self.spk = torch.zeros_like(self.spk, device=self.spk.device)
         self.syn = torch.zeros_like(self.syn, device=self.syn.device)
         self.mem = torch.zeros_like(self.mem, device=self.mem.device)
+        return self.spk, self.syn, self.mem
 
     def init_rsynaptic(self):
         """Deprecated, use :class:`RSynaptic.reset_mem` instead"""
-        self.reset_mem()
-        return self.spk, self.syn, self.mem
+        return self.reset_mem()
 
     def forward(self, input_, spk=None, syn=None, mem=None):
         if not spk == None:

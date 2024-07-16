@@ -60,13 +60,11 @@ class LossFunctions:
         return pop_code
 
     def _intermediate_reduction(self):
-        return self.reduction if self.weight is None else "none"
+        return self.reduction if self.weight is None else 'none'
 
     def _reduce(self, loss):
         # if reduction was delayed due to weight
-        requires_reduction = (
-            self.weight is not None and self.reduction == "mean"
-        )
+        requires_reduction = self.weight is not None and self.reduction == 'mean'
         return loss.mean() if requires_reduction else loss
 
 
@@ -96,24 +94,32 @@ class ce_rate_loss(LossFunctions):
 
     """
 
-    def __init__(self, reduction="mean", weight=None):
+    def __init__(self, population_code=False, num_classes=False, reduction='mean', weight=None):
         super().__init__(reduction=reduction, weight=weight)
+        self.population_code = population_code
+        self.num_classes = num_classes
         self.__name__ = "ce_rate_loss"
 
     def _compute_loss(self, spk_out, targets):
-        device, num_steps, _ = self._prediction_check(spk_out)
+        device, num_steps, num_outputs = self._prediction_check(spk_out)
         log_softmax_fn = nn.LogSoftmax(dim=-1)
-        loss_fn = nn.NLLLoss(
-            reduction=self._intermediate_reduction(), weight=self.weight
-        )
 
+        if self.population_code:
+            for idx in range(self.num_classes):
+                spk_out[
+                        :,
+                        :,
+                        int(num_outputs * idx / self.num_classes) : int(
+                            num_outputs * (idx + 1) / self.num_classes
+                        ),
+                    ]
+            weights = torch.Tensor([self.weight[0] if i < int(num_outputs/self.num_classes) else self.weight[1] for i in range(num_outputs) ]).to(device)
+            loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=weights)
+        else:
+            loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=self.weight)
+            
         log_p_y = log_softmax_fn(spk_out)
-
-        loss_shape = (
-            (spk_out.size(1))
-            if self._intermediate_reduction() == "none"
-            else (1)
-        )
+        loss_shape = (spk_out.size(1)) if self._intermediate_reduction() == 'none' else (1)
         loss = torch.zeros(loss_shape, dtype=dtype, device=device)
 
         for step in range(num_steps):
@@ -165,13 +171,7 @@ class ce_count_loss(LossFunctions):
 
     """
 
-    def __init__(
-        self,
-        population_code=False,
-        num_classes=False,
-        reduction="mean",
-        weight=None,
-    ):
+    def __init__(self, population_code=False, num_classes=False, reduction='mean', weight=None):
         super().__init__(reduction=reduction, weight=weight)
         self.population_code = population_code
         self.num_classes = num_classes
@@ -179,9 +179,7 @@ class ce_count_loss(LossFunctions):
 
     def _compute_loss(self, spk_out, targets):
         log_softmax_fn = nn.LogSoftmax(dim=-1)
-        loss_fn = nn.NLLLoss(
-            reduction=self._intermediate_reduction(), weight=self.weight
-        )
+        loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=self.weight)
 
         if self.population_code:
             _, _, num_outputs = self._prediction_check(spk_out)
@@ -226,15 +224,13 @@ class ce_max_membrane_loss(LossFunctions):
 
     """
 
-    def __init__(self, reduction="mean", weight=None):
+    def __init__(self, reduction='mean', weight=None):
         super().__init__(reduction=reduction, weight=weight)
         self.__name__ = "ce_max_membrane_loss"
 
     def _compute_loss(self, mem_out, targets):
         log_softmax_fn = nn.LogSoftmax(dim=-1)
-        loss_fn = nn.NLLLoss(
-            reduction=self._intermediate_reduction(), weight=self.weight
-        )
+        loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=self.weight)
 
         max_mem_out, _ = torch.max(mem_out, 0)
         log_p_y = log_softmax_fn(max_mem_out)
@@ -295,8 +291,8 @@ class mse_count_loss(LossFunctions):
         incorrect_rate=0,
         population_code=False,
         num_classes=False,
-        reduction="mean",
-        weight=None,
+        reduction='mean',
+        weight=None
     ):
         super().__init__(reduction=reduction, weight=weight)
         self.correct_rate = correct_rate
@@ -391,14 +387,7 @@ class mse_membrane_loss(LossFunctions):
 
     #  to-do: add **kwargs to modify other keyword args in
     #  spikegen.targets_convert
-    def __init__(
-        self,
-        time_var_targets=False,
-        on_target=1,
-        off_target=0,
-        reduction="mean",
-        weight=None,
-    ):
+    def __init__(self, time_var_targets=False, on_target=1, off_target=0, reduction='mean', weight=None):
         super().__init__(reduction=reduction, weight=weight)
         self.time_var_targets = time_var_targets
         self.on_target = on_target
@@ -414,11 +403,7 @@ class mse_membrane_loss(LossFunctions):
             off_target=self.off_target,
         )
 
-        loss_shape = (
-            mem_out[0].shape
-            if self._intermediate_reduction() == "none"
-            else (1)
-        )
+        loss_shape = mem_out[0].shape if self._intermediate_reduction() == 'none' else (1)
         loss = torch.zeros(loss_shape, dtype=dtype, device=device)
 
         loss_fn = nn.MSELoss(reduction=self._intermediate_reduction())
@@ -799,16 +784,14 @@ class mse_temporal_loss:
         off_target=-1,
         tolerance=0,
         multi_spike=False,
-        reduction="mean",
-        weight=None,
+        reduction='mean',
+        weight=None
     ):
         super().__init__()
 
         self.reduction = reduction
         self.weight = weight
-        self.loss_fn = nn.MSELoss(
-            reduction=("none" if self.weight is not None else self.reduction)
-        )
+        self.loss_fn = nn.MSELoss(reduction=('none' if self.weight is not None else self.reduction))
         self.spk_time_fn = SpikeTime(
             target_is_time, on_target, off_target, tolerance, multi_spike
         )
@@ -824,7 +807,7 @@ class mse_temporal_loss:
 
         if self.weight is not None:
             loss = loss * self.weight[targets]
-            if self.reduction == "mean":
+            if self.reduction == 'mean':
                 loss = loss.mean()
 
         return loss
@@ -874,14 +857,12 @@ class ce_temporal_loss:
 
     """
 
-    def __init__(self, inverse="negate", reduction="mean", weight=None):
+    def __init__(self, inverse="negate", reduction='mean', weight=None):
         super().__init__()
 
         self.reduction = reduction
         self.weight = weight
-        self.loss_fn = nn.CrossEntropyLoss(
-            reduction=self.reduction, weight=self.weight
-        )
+        self.loss_fn = nn.CrossEntropyLoss(reduction=self.reduction, weight=self.weight)
         self.spk_time_fn = SpikeTime(target_is_time=False)
         self.inverse = inverse
         self._ce_temporal_cases()

@@ -129,13 +129,13 @@ class Alpha(LIF):
             self.state_function = self._base_int
 
     def _init_mem(self):
-        syn_exc = torch.zeros(1)
-        syn_inh = torch.zeros(1)
-        mem = torch.zeros(1)
+        syn_exc = torch.zeros(0)
+        syn_inh = torch.zeros(0)
+        mem = torch.zeros(0)
 
-        self.register_buffer("syn_exc", syn_exc)
-        self.register_buffer("syn_inh", syn_inh)
-        self.register_buffer("mem", mem)
+        self.register_buffer("syn_exc", syn_exc, False)
+        self.register_buffer("syn_inh", syn_inh, False)
+        self.register_buffer("mem", mem, False)
 
     def reset_mem(self):
         self.syn_exc = torch.zeros_like(
@@ -146,10 +146,11 @@ class Alpha(LIF):
         )
         self.mem = torch.zeros_like(self.mem, device=self.mem.device)
 
+        return self.syn_exc, self.syn_inh, self.mem
+
     def init_alpha(self):
         """Deprecated, use :class:`Alpha.reset_mem` instead"""
-        self.reset_mem()
-        return self.syn_exc, self.syn_inh, self.mem
+        return self.reset_mem()
 
     def forward(self, input_, syn_exc=None, syn_inh=None, mem=None):
 

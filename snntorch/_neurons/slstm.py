@@ -203,19 +203,20 @@ class SLSTM(SpikingNeuron):
         )
 
     def _init_mem(self):
-        syn = torch.zeros(1)
-        mem = torch.zeros(1)
-        self.register_buffer("syn", syn)
-        self.register_buffer("mem", mem)
+        syn = torch.zeros(0)
+        mem = torch.zeros(0)
+
+        self.register_buffer("syn", syn, False)
+        self.register_buffer("mem", mem, False)
 
     def reset_mem(self):
         self.syn = torch.zeros_like(self.syn, device=self.syn.device)
         self.mem = torch.zeros_like(self.mem, device=self.mem.device)
+        return self.syn, self.mem
 
     def init_slstm(self):
         """Deprecated, use :class:`SLSTM.reset_mem` instead"""
-        self.reset_mem()
-        return self.syn, self.mem
+        return self.reset_mem()
 
     def forward(self, input_, syn=None, mem=None):
         if not syn == None:

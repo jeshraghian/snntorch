@@ -182,16 +182,16 @@ class Leaky(LIF):
         self.reset_delay = reset_delay
 
     def _init_mem(self):
-        mem = torch.zeros(1)
-        self.register_buffer("mem", mem)
+        mem = torch.zeros(0)
+        self.register_buffer("mem", mem, False)
 
     def reset_mem(self):
         self.mem = torch.zeros_like(self.mem, device=self.mem.device)
+        return self.mem
 
     def init_leaky(self):
         """Deprecated, use :class:`Leaky.reset_mem` instead"""
-        self.reset_mem()
-        return self.mem
+        return self.reset_mem()
 
     def forward(self, input_, mem=None):
 
