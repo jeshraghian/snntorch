@@ -7,20 +7,7 @@ import nir
 import numpy as np
 import nirtorch
 import snntorch as snn
-#adding support for sumpooling from sinabs
-import sinabs.layers as sl
-#as pair function for adding sumpooling
 
-def _as_pair(x) -> Tuple[int, int]:
-    try:
-        if len(x) == 1:
-            return (x[0], x[0])
-        elif len(x) >= 2:
-            return tuple(x)
-        else:
-            raise ValueError()
-    except TypeError:
-        return x, x
 
 
 def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
@@ -76,14 +63,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
             else module.stride,  # (Height, width)
             padding=(0, 0),  # (Height, width)
         )
-    elif isinstance(module, sl.SumPool2d):
-        return nir.SumPool2d(
-            kernel_size=_as_pair(module.kernel_size),  # (Height, Width)
-            stride=_as_pair(
-                module.kernel_size if module.stride is None else module.stride
-            ),  # (Height, width)
-            padding=(0, 0),  # (Height, width)
-        )
+
     elif isinstance(module, snn.Leaky):
         dt = 1e-4
 
