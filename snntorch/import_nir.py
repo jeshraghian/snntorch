@@ -3,7 +3,6 @@ import nir
 import nirtorch
 import torch
 import snntorch as snn
-import sinabs.layers as sl
 
 def _create_rnn_subgraph(
     graph: nir.NIRGraph, lif_nk: str, w_nk: str
@@ -216,13 +215,6 @@ def _nir_to_snntorch_module(
     if isinstance(node, nir.Flatten):
         return torch.nn.Flatten(node.start_dim, node.end_dim)
 
-   # if isinstance(node, nir.SumPool2d):
-    #    return torch.nn.AvgPool2d(
-     #       kernel_size=tuple(node.kernel_size),
-      #      stride=tuple(node.stride),
-       #     padding=tuple(node.padding),
-        #    divisor_override=1,  # turn AvgPool into SumPool
-        #)
     if isinstance(node, nir.AvgPool2d):
         return torch.nn.AvgPool2d(
             kernel_size=tuple(node.kernel_size),
@@ -230,10 +222,7 @@ def _nir_to_snntorch_module(
             padding=tuple(node.padding),
            # divisor_override=1,
         )
-    elif isinstance(node, nir.SumPool2d):
-        return sl.SumPool2d(
-            kernel_size=tuple(node.kernel_size), stride=tuple(node.stride)
-        )
+
     elif isinstance(node, nir.IF):
         assert (
             np.unique(node.v_threshold).size == 1
