@@ -127,9 +127,7 @@ class TestSLSTM:
 
         assert spk_rec[0].size() == (1, 2)
 
-    def test_slstm_compile_fullgraph(
-        self, slstm_instance_surrogate, input_
-    ):
+    def test_slstm_compile_fullgraph(self, slstm_instance_surrogate, input_):
         explanation = dynamo.explain(slstm_instance_surrogate)(input_[0])
 
         assert explanation.graph_break_count == 0

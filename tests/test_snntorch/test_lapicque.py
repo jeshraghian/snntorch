@@ -135,7 +135,9 @@ class TestLapicque:
         with pytest.raises(TypeError):
             lapicque_hidden_instance(input_, input_)
 
-    def test_lapicque_compile_fullgraph(self, lapicque_instance_surrogate, input_):
+    def test_lapicque_compile_fullgraph(
+        self, lapicque_instance_surrogate, input_
+    ):
         explanation = dynamo.explain(lapicque_instance_surrogate)(input_[0])
 
         assert explanation.graph_break_count == 0

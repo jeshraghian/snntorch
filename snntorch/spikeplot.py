@@ -78,7 +78,9 @@ def animator(data, fig, ax, num_steps=False, interval=40, cmap="plasma"):
     for step in range(
         num_steps
     ):  # im appears unused but is required by camera.snap()
-        im = ax.imshow(data[step], cmap=cmap, vmin=data.min(), vmax=data.max())  # noqa: F841
+        im = ax.imshow(
+            data[step], cmap=cmap, vmin=data.min(), vmax=data.max()
+        )  # noqa: F841
         camera.snap()
     anim = camera.animate(interval=interval)
 

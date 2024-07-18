@@ -1,9 +1,13 @@
-from typing import Optional
+#from typing import Optional
+from typing import Optional, Tuple, Union
 import torch
+import os
+import sys
 import nir
 import numpy as np
 import nirtorch
 import snntorch as snn
+
 
 
 def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
@@ -22,7 +26,45 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
     :return: return the NIR node
     :rtype: Optional[nir.NIRNode]
     """
-    if isinstance(module, snn.Leaky):
+    # Adding Conv2d layer
+    """
+    if isinstance(module, torch.nn.Conv2d):
+        return nir.Conv2d(
+            input_shape=None,
+            weight=module.weight.detach(),
+            bias=module.bias.detach(),
+            stride=module.stride,
+            padding=module.padding,
+            dilation=module.dilation,
+            groups=module.groups,
+        )
+    """
+    #modifiying bias of the conv2d layer extraction 
+    if isinstance(module, torch.nn.Conv2d):
+        return nir.Conv2d(
+            input_shape=None,
+            weight=module.weight.detach(),
+            stride=module.stride,
+            padding=module.padding,
+            dilation=module.dilation,
+            groups=module.groups,
+            #better handle for the bias if it's False
+            bias=(
+                module.bias.detach()
+                if isinstance(module.bias, torch.Tensor)
+                else torch.zeros((module.weight.shape[0]))
+            ),
+        )
+    elif isinstance(module, torch.nn.AvgPool2d):
+        return nir.AvgPool2d(
+            kernel_size=module.kernel_size,  # (Height, Width)
+            stride=module.kernel_size
+            if module.stride is None
+            else module.stride,  # (Height, width)
+            padding=(0, 0),  # (Height, width)
+        )
+
+    elif isinstance(module, snn.Leaky):
         dt = 1e-4
 
         beta = module.beta.detach().numpy()
@@ -41,13 +83,11 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
     elif isinstance(module, torch.nn.Linear):
         if module.bias is None:
-            return nir.Linear(
-                weight=module.weight.data.detach().numpy()
-            )
+            return nir.Linear(weight=module.weight.data.detach().numpy())
         else:
             return nir.Affine(
                 weight=module.weight.data.detach().numpy(),
-                bias=module.bias.data.detach().numpy()
+                bias=module.bias.data.detach().numpy(),
             )
 
     elif isinstance(module, snn.Synaptic):
@@ -76,7 +116,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
     elif isinstance(module, snn.RLeaky):
         # TODO(stevenabreu7): implement RLeaky
-        raise NotImplementedError('RLeaky not supported')
+        raise NotImplementedError("RLeaky not supported")
 
     elif isinstance(module, snn.RSynaptic):
         if module.all_to_all:
@@ -85,7 +125,9 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
         else:
             if len(module.recurrent.V.shape) == 0:
                 # TODO: handle this better - if V is a scalar, then the weight has wrong shape
-                raise ValueError('V must be a vector, cannot infer layer size for scalar V')
+                raise ValueError(
+                    "V must be a vector, cannot infer layer size for scalar V"
+                )
             n_neurons = module.recurrent.V.shape[0]
             w = np.diag(module.recurrent.V.data.detach().numpy())
             w_rec = nir.Linear(weight=w)
@@ -105,30 +147,50 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
         v_leak = np.zeros_like(beta)
         w_in = tau_syn / dt
 
-        return nir.NIRGraph(nodes={
-            'input': nir.Input(input_type=[n_neurons]),
-            'lif': nir.CubaLIF(
-                v_threshold=vthr,
-                tau_mem=tau_mem,
-                tau_syn=tau_syn,
-                r=r,
-                v_leak=v_leak,
-                w_in=w_in,
-            ),
-            'w_rec': w_rec,
-            'output': nir.Output(output_type=[n_neurons])
-        }, edges=[
-            ('input', 'lif'), ('lif', 'w_rec'), ('w_rec', 'lif'), ('lif', 'output')
-        ])
+        return nir.NIRGraph(
+            nodes={
+                "input": nir.Input(input_type=[n_neurons]),
+                "lif": nir.CubaLIF(
+                    v_threshold=vthr,
+                    tau_mem=tau_mem,
+                    tau_syn=tau_syn,
+                    r=r,
+                    v_leak=v_leak,
+                    w_in=w_in,
+                ),
+                "w_rec": w_rec,
+                "output": nir.Output(output_type=[n_neurons]),
+            },
+            edges=[
+                ("input", "lif"),
+                ("lif", "w_rec"),
+                ("w_rec", "lif"),
+                ("lif", "output"),
+            ],
+        )
+    elif isinstance(module, torch.nn.Flatten):
+        # Getting rid of the batch dimension for NIR
+        start_dim = (
+            module.start_dim - 1 if module.start_dim > 0 else module.start_dim
+        )
+        end_dim = module.end_dim - 1 if module.end_dim > 0 else module.end_dim
+        return nir.Flatten(
+            input_type=None,
+            start_dim=start_dim,
+            end_dim=end_dim,
+        )
 
     else:
-        print(f'[WARNING] module not implemented: {module.__class__.__name__}')
+        print(f"[WARNING] module not implemented: {module.__class__.__name__}")
         return None
 
 
 def export_to_nir(
-    module: torch.nn.Module, sample_data: torch.Tensor, model_name: str = "snntorch",
-    model_fwd_args=[], ignore_dims=[]
+    module: torch.nn.Module,
+    sample_data: torch.Tensor,
+    model_name: str = "snntorch",
+    model_fwd_args=[],
+    ignore_dims=[],
 ) -> nir.NIRNode:
     """Convert an snnTorch module to the Neuromorphic Intermediate Representation (NIR).
     This function uses nirtorch to extract the computational graph of the torch module,
@@ -160,7 +222,7 @@ def export_to_nir(
 
         sample_data = torch.randn(1, 784)
         nir_graph = export_to_nir(net, sample_data)
-    
+
     :param module: Network model (either wrapped in Sequential container or as a class)
     :type module: torch.nn.Module
 
@@ -180,8 +242,12 @@ def export_to_nir(
     :rtype: nir.NIRNode
     """
     nir_graph = nirtorch.extract_nir_graph(
-        module, _extract_snntorch_module, sample_data, model_name=model_name,
+        module,
+        _extract_snntorch_module,
+        sample_data,
+        model_name=model_name,
         ignore_submodules_of=[snn.RLeaky, snn.RSynaptic],
-        model_fwd_args=model_fwd_args, ignore_dims=ignore_dims
+        model_fwd_args=model_fwd_args,
+        ignore_dims=ignore_dims,
     )
     return nir_graph

@@ -17,6 +17,7 @@ def input_():
 def synaptic_instance():
     return snn.Synaptic(alpha=0.5, beta=0.5)
 
+
 @pytest.fixture(scope="module")
 def synaptic_instance_surrogate():
     return snn.Synaptic(alpha=0.5, beta=0.5, surrogate_disable=True)
@@ -129,7 +130,9 @@ class TestSynaptic:
         with pytest.raises(TypeError):
             synaptic_hidden_instance(input_, input_)
 
-    def test_synaptic_compile_fullgraph(self, synaptic_instance_surrogate, input_):
+    def test_synaptic_compile_fullgraph(
+        self, synaptic_instance_surrogate, input_
+    ):
         explanation = dynamo.explain(synaptic_instance_surrogate)(input_[0])
 
         assert explanation.graph_break_count == 0

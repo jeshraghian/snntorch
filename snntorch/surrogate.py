@@ -641,6 +641,7 @@ class CustomSurrogate(torch.autograd.Function):
                     ).to(device)
 
     """
+
     @staticmethod
     def forward(ctx, input_, custom_surrogate_function):
         out = (input_ > 0).float()
