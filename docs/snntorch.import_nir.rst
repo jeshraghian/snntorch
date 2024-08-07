@@ -1,8 +1,8 @@
-snntorch.export_nir
+snntorch.import_nir
 ------------------------
-:mod:`snntorch.export_nir` is a module that enables cross-compatibility with other SNN libraries by converting snntorch models to a `Neuromorphic Intermediate Representation (NIR) <https://nnir.readthedocs.io/en/latest/>`_
+:mod:`snntorch.import_nir` is a module that enables cross-compatibility with other SNN libraries by converting snntorch models to a `Neuromorphic Intermediate Representation (NIR) <https://neuroir.org/docs/>`_
 
-.. automodule:: snntorch.export_nir
+.. automodule:: snntorch.import_nir
    :members:
    :undoc-members:
    :show-inheritance:
