@@ -5,6 +5,7 @@
 import pytest
 import snntorch as snn
 import torch
+import torch._dynamo as dynamo
 
 # TO-DO: add avg/max-pooling tests
 
@@ -18,6 +19,11 @@ def input_():
 @pytest.fixture(scope="module")
 def sconv2dlstm_instance():
     return snn.SConv2dLSTM(1, 8, 3)
+
+
+@pytest.fixture(scope="module")
+def sconv2dlstm_instance_surrogate():
+    return snn.SConv2dLSTM(1, 8, 3, surrogate_disable=True)
 
 
 @pytest.fixture(scope="module")
@@ -124,3 +130,10 @@ class TestSConv2dLSTM:
             spk_rec.append(spk)
 
         assert spk_rec[0].size() == (1, 8, 4, 4)
+
+    def test_sconv2dlstm_compile_fullgraph(
+        self, sconv2dlstm_instance_surrogate, input_
+    ):
+        explanation = dynamo.explain(sconv2dlstm_instance_surrogate)(input_[0])
+
+        assert explanation.graph_break_count == 0

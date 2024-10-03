@@ -249,4 +249,3 @@ def _final_layer_check(net):
         return 4
     else:  # if not from snn, assume from nn with 1 return
         return 1
-    

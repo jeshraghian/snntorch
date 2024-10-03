@@ -5,6 +5,7 @@
 import pytest
 import snntorch as snn
 import torch
+import torch._dynamo as dynamo
 
 
 @pytest.fixture(scope="module")
@@ -15,6 +16,11 @@ def input_():
 @pytest.fixture(scope="module")
 def lapicque_instance():
     return snn.Lapicque(beta=0.5)
+
+
+@pytest.fixture(scope="module")
+def lapicque_instance_surrogate():
+    return snn.Lapicque(beta=0.5, surrogate_disable=True)
 
 
 @pytest.fixture(scope="module")
@@ -128,3 +134,10 @@ class TestLapicque:
     def test_lapicque_cases(self, lapicque_hidden_instance, input_):
         with pytest.raises(TypeError):
             lapicque_hidden_instance(input_, input_)
+
+    def test_lapicque_compile_fullgraph(
+        self, lapicque_instance_surrogate, input_
+    ):
+        explanation = dynamo.explain(lapicque_instance_surrogate)(input_[0])
+
+        assert explanation.graph_break_count == 0

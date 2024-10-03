@@ -5,6 +5,7 @@
 import pytest
 import snntorch as snn
 import torch
+import torch._dynamo as dynamo
 
 
 @pytest.fixture(scope="module")
@@ -19,6 +20,13 @@ def rsynaptic_instance():
         beta=0.5,
         V=0.5,
         all_to_all=False,
+    )
+
+
+@pytest.fixture(scope="module")
+def rsynaptic_instance_surrogate():
+    return snn.RSynaptic(
+        alpha=0.5, beta=0.5, V=0.5, all_to_all=False, surrogate_disable=True
     )
 
 
@@ -144,3 +152,10 @@ class TestRSynaptic:
     def test_rsynaptic_cases(self, rsynaptic_hidden_instance, input_):
         with pytest.raises(TypeError):
             rsynaptic_hidden_instance(input_, input_)
+
+    def test_rsynaptic_compile_fullgraph(
+        self, rsynaptic_instance_surrogate, input_
+    ):
+        explanation = dynamo.explain(rsynaptic_instance_surrogate)(input_[0])
+
+        assert explanation.graph_break_count == 0

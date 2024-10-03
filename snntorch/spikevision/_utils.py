@@ -28,7 +28,7 @@ def load_ATIS_bin(filename):
     )
 
     # Process time stamp overflow events
-    time_increment = 2**13
+    time_increment = 2 ** 13
     overflow_indices = np.where(all_y == 240)[0]
     for overflow_index in overflow_indices:
         all_ts[overflow_index:] += time_increment
@@ -166,7 +166,7 @@ def load_jaer(
                 "read %i (~ %.2fM) AE events, duration= %.2fs"
                 % (
                     len(timestamps),
-                    len(timestamps) / float(10**6),
+                    len(timestamps) / float(10 ** 6),
                     (timestamps[-1] - timestamps[0]) * td,
                 )
             )

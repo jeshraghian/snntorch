@@ -1,0 +1,30 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.5, pytest-8.1.1, pluggy-1.4.0
+rootdir: /home/sirine/PHD-work/snntorch-nir/snntorch
+configfile: setup.cfg
+testpaths: tests
+collected 119 items
+
+tests/test_nir.py ......                                                 [  5%]
+tests/test_snntorch/functional/test_loss.py .....................        [ 22%]
+tests/test_snntorch/test_alpha.py .......                                [ 28%]
+tests/test_snntorch/test_bntt.py .........                               [ 36%]
+tests/test_snntorch/test_graded_spikes.py ......                         [ 41%]
+tests/test_snntorch/test_lapicque.py .......                             [ 47%]
+tests/test_snntorch/test_leaky.py ........                               [ 53%]
+tests/test_snntorch/test_rleaky.py .......                               [ 59%]
+tests/test_snntorch/test_rsynaptic.py .......                            [ 65%]
+tests/test_snntorch/test_sconv2dlstm.py ......                           [ 70%]
+tests/test_snntorch/test_slstm.py ......                                 [ 75%]
+tests/test_snntorch/test_synaptic.py .......                             [ 81%]
+tests/test_snntorch.py ..                                                [ 83%]
+tests/test_spikegen.py ....................                              [100%]
+
+=============================== warnings summary ===============================
+tests/test_nir.py::TestNIR::test_import_conv_nir
+tests/test_nir.py::TestNIR::test_import_conv_nir
+  /home/sirine/miniconda3/lib/python3.11/site-packages/nir/ir.py:73: DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future. Ensure you extract a single element from your array before performing this operation. (Deprecated NumPy 1.25.)
+    shapes.append(int(shape))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 119 passed, 2 warnings in 1.31s ========================

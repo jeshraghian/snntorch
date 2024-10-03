@@ -1,5 +1,5 @@
 import torch
-from .neurons import _SpikeTensor, _SpikeTorchConv, LIF
+from .neurons import LIF
 
 
 class Lapicque(LIF):
@@ -200,7 +200,7 @@ class Lapicque(LIF):
         state_quant=False,
         output=False,
     ):
-        super(Lapicque, self).__init__(
+        super().__init__(
             beta,
             threshold,
             spike_grad,
@@ -216,93 +216,77 @@ class Lapicque(LIF):
 
         self._lapicque_cases(time_step, beta, R, C)
 
-        if self.init_hidden:
-            self.mem = self.init_lapicque()
+        self._init_mem()
 
-    def forward(self, input_, mem=False):
-
-        if hasattr(mem, "init_flag"):  # only triggered on first-pass
-            mem = _SpikeTorchConv(mem, input_=input_)
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
-            self.mem = _SpikeTorchConv(self.mem, input_=input_)
-
-        if not self.init_hidden:
-            self.reset = self.mem_reset(mem)
-            mem = self._build_state_function(input_, mem)
-
-            if self.state_quant:
-                mem = self.state_quant(mem)
-
-            if self.inhibition:
-                spk = self.fire_inhibition(mem.size(0), mem)
-            else:
-                spk = self.fire(mem)
-
-            return spk, mem
-
-        # intended for truncated-BPTT where instance variables are hidden
-        # states
-        if self.init_hidden:
-            self._lapicque_forward_cases(mem)
-            self.reset = self.mem_reset(self.mem)
-            self.mem = self._build_state_function_hidden(input_)
-
-            if self.state_quant:
-                self.mem = self.state_quant(self.mem)
-
-            if self.inhibition:
-                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
-            else:
-                self.spk = self.fire(self.mem)
-
-            if self.output:
-                return self.spk, self.mem
-            else:
-                return self.spk
-
-    def _base_state_function(self, input_, mem):
-        base_fn = (
-            input_ * self.R * (1 / (self.R * self.C)) * self.time_step
-            + (1 - (self.time_step / (self.R * self.C))) * mem
-        )
-        return base_fn
-
-    def _build_state_function(self, input_, mem):
         if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = (
-                self._base_state_function(input_, mem)
-                - self.reset * self.threshold
-            )
+            self.state_function = self._base_sub
         elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self._base_state_function(
-                input_, mem
-            ) - self.reset * self._base_state_function(input_, mem)
+            self.state_function = self._base_zero
         elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function(input_, mem)
-        return state_fn
+            self.state_function = self._base_int
 
-    def _base_state_function_hidden(self, input_):
+    def _init_mem(self):
+        mem = torch.zeros(0)
+        self.register_buffer("mem", mem, False)
+
+    def reset_mem(self):
+        self.mem = torch.zeros_like(self.mem, device=self.mem.device)
+        return self.mem
+
+    def init_lapicque(self):
+        """Deprecated, use :class:`Lapicque.reset_mem` instead"""
+        return self.reset_mem()
+
+    def forward(self, input_, mem=None):
+
+        if not mem == None:
+            self.mem = mem
+
+        if self.init_hidden and not mem == None:
+            raise TypeError(
+                "`mem` should not be passed as an argument while `init_hidden=True`"
+            )
+
+        if not self.mem.shape == input_.shape:
+            self.mem = torch.zeros_like(input_, device=self.mem.device)
+
+        self.reset = self.mem_reset(self.mem)
+        self.mem = self.state_function(input_)
+
+        if self.state_quant:
+            self.mem = self.state_quant(self.mem)
+
+        if self.inhibition:
+            spk = self.fire_inhibition(
+                self.mem.size(0), self.mem
+            )  # batch_size
+        else:
+            spk = self.fire(self.mem)
+
+        if self.output:
+            return spk, self.mem
+        elif self.init_hidden:
+            return spk
+        else:
+            return spk, self.mem
+
+    def _base_state_function(self, input_):
         base_fn = (
             input_ * self.R * (1 / (self.R * self.C)) * self.time_step
             + (1 - (self.time_step / (self.R * self.C))) * self.mem
         )
         return base_fn
 
-    def _build_state_function_hidden(self, input_):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = (
-                self._base_state_function_hidden(input_)
-                - self.reset * self.threshold
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self._base_state_function_hidden(
-                input_
-            ) - self.reset * self._base_state_function_hidden(input_)
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function_hidden(input_)
-        return state_fn
+    def _base_sub(self, input_):
+        return self._base_state_function(input_) - self.reset * self.threshold
+
+    def _base_zero(self, input_):
+        return self._base_state_function(
+            input_
+        ) - self.reset * self._base_state_function(input_)
+
+    def _base_int(self, input_):
+        return self._base_state_function(input_)
 
     def _lapicque_cases(self, time_step, beta, R, C):
         if not isinstance(time_step, torch.Tensor):
@@ -357,12 +341,6 @@ class Lapicque(LIF):
             R = self.time_step / (C * torch.log(1 / self.beta))
             self.register_buffer("R", R)
 
-    def _lapicque_forward_cases(self, mem):
-        if mem is not False:
-            raise TypeError(
-                "When `init_hidden=True`, Lapicque expects 1 input argument."
-            )
-
     @classmethod
     def detach_hidden(cls):
         """Returns the hidden states, detached from the current graph.
@@ -381,4 +359,7 @@ class Lapicque(LIF):
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], Lapicque):
-                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
+                cls.instances[layer].mem = torch.zeros_like(
+                    cls.instances[layer].mem,
+                    device=cls.instances[layer].mem.device,
+                )

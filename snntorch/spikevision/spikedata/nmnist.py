@@ -213,7 +213,7 @@ class NMNIST(NeuromorphicDataset):
         if target_transform is not None:
             target_transform = Compose([Repeat(num_steps), toOneHot(10)])
 
-        super(NMNIST, self).__init__(
+        super().__init__(
             root=root + "/n_mnist.hdf5",
             transform=transform,
             target_transform=target_transform,

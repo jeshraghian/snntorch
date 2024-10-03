@@ -235,6 +235,7 @@ the above technique:
     rate_coded_vector = torch.bernoulli(raw_vector)
 
 ::
+    
     >>> print(f"Converted vector: {rate_coded_vector}")
     Converted vector: tensor([1., 1., 1., 0., 0., 1., 1., 0., 1., 0.])
     
