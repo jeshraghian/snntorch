@@ -146,6 +146,7 @@ def TBPTT(
     neurons_dict = {
         utils.is_lapicque: snn.Lapicque,
         utils.is_leaky: snn.Leaky,
+        utils.is_linearleaky: snn.LinearLeaky,
         utils.is_synaptic: snn.Synaptic,
         utils.is_alpha: snn.Alpha,
         utils.is_rleaky: snn.RLeaky,
@@ -498,7 +499,6 @@ def RTRL(
     regularization=False,
     device="cpu",
 ):
-
     """Real-time Recurrent Learning. LIF layers require parameter
     ``init_hidden = True``.
     A forward pass, backward pass and parameter update are applied at each
