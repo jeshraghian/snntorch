@@ -19,14 +19,17 @@ class StateLeaky(LIF):
     def __init__(
         self,
         beta,
+        channels,
         threshold=1.0,
         spike_grad=None,
         surrogate_disable=False,
         learn_beta=False,
+        learn_decay_filter=False,
         learn_threshold=False,
         state_quant=False,
         output=True,
         graded_spikes_factor=1.0,
+        max_timesteps=256,
         learn_graded_spikes_factor=False,
     ):
         super().__init__(
@@ -42,7 +45,9 @@ class StateLeaky(LIF):
             learn_graded_spikes_factor=learn_graded_spikes_factor,
         )
 
-        self._tau_buffer(self.beta, learn_beta)
+        self.learn_decay_filter = learn_decay_filter    
+        self.max_timesteps = max_timesteps 
+        self._tau_buffer(self.beta, learn_beta, channels)
 
     @property
     def beta(self):
@@ -63,20 +68,24 @@ class StateLeaky(LIF):
             return self.mem
 
     def _base_state_function(self, input_):
-        # init time steps arr
         num_steps, batch, channels = input_.shape
-        time_steps = torch.arange(0, num_steps, device=input_.device)
-        assert time_steps.shape == (num_steps,)
-        time_steps = time_steps.unsqueeze(1).expand(num_steps, channels)
+
+        converted_tau = self.tau if self.tau.shape == (channels,) else self.tau.expand(channels).to(input_.device)
+        assert converted_tau.shape == (channels,)
 
         # init decay filter
         # print(time_steps.shape)
         # print(self.tau.shape)
-        decay_filter = torch.exp(-time_steps / self.tau).to(input_.device)
+
+        # truncate decay filter to num_steps
+        decay_filter = self.decay_filter.clone()
+        assert decay_filter.shape == (self.max_timesteps, channels)
+        decay_filter = decay_filter[:num_steps]
+        assert decay_filter.shape == (num_steps, channels)
+
         # print("------------decay filter------------")
         # print(decay_filter)
         # print()
-        assert decay_filter.shape == (num_steps, channels)
 
         # prepare for convolution
         input_ = input_.permute(1, 2, 0)
@@ -89,9 +98,12 @@ class StateLeaky(LIF):
 
         return conv_result.permute(2, 0, 1)  # return membrane potential trace
 
-    def _tau_buffer(self, beta, learn_beta):
+    def _tau_buffer(self, beta, learn_beta, channels):
         if not isinstance(beta, torch.Tensor):
             beta = torch.as_tensor(beta)
+
+        if beta.shape != (channels,) and beta.shape != () and beta.shape != (1,):
+            raise ValueError(f"Beta shape {beta.shape} must be either ({channels},) or (1,)")
 
         tau = 1 / (1 - beta + 1e-12)
 
@@ -100,10 +112,29 @@ class StateLeaky(LIF):
         else:
             self.register_buffer("tau", tau)
 
+        # this is super important to make sure that decay_filter can not
+        # require grad! 
+        tau = self.tau.clone().detach()
+
+        converted_tau = tau if tau.shape == (channels,) else tau.expand(channels)
+        assert converted_tau.shape == (channels,)
+
+        # Create time steps array similar to _base_state_function
+        time_steps = torch.arange(0, self.max_timesteps).to(converted_tau.device)
+        assert time_steps.shape == (self.max_timesteps,)
+        time_steps = time_steps.unsqueeze(1).expand(self.max_timesteps, channels)
+        assert time_steps.shape == (self.max_timesteps, channels)
+
+        if self.learn_decay_filter:
+            self.decay_filter = nn.Parameter(torch.exp(-time_steps / converted_tau))
+        else:
+            self.register_buffer("decay_filter", torch.exp(-time_steps / converted_tau))    
+        assert self.decay_filter.shape == (self.max_timesteps, channels)
+
     def full_mode_conv1d_truncated(self, input_tensor, kernel_tensor):
         # input_tensor: (batch, channels, num_steps)
         # kernel_tensor: (channels, 1, kernel_size)
-        kernel_tensor = torch.flip(kernel_tensor, dims=[-1])
+        kernel_tensor = torch.flip(kernel_tensor, dims=[-1]).to(input_tensor.device)
 
         # get dimensions
         batch_size, in_channels, num_steps = input_tensor.shape
