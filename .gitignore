@@ -111,3 +111,6 @@ snnenv-rog/
 
 # Additional Files
 dataset/
+wandb/
+output.txt
+output-*
