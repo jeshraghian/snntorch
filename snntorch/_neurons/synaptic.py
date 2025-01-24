@@ -216,7 +216,7 @@ class Synaptic(LIF):
     def forward(self, input_, syn=None, mem=None):
 
         if not syn == None:
-            self.syn = mem
+            self.syn = syn
 
         if not mem == None:
             self.mem = mem
