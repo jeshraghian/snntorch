@@ -653,15 +653,15 @@ class SpikeTime(nn.Module):
         """Convert labels from neuron index (dim: B) to first spike time
         (dim: B x N)."""
 
-        # guess: i designed this code with on_target >> off_target in mind
-        targets = spikegen.targets_convert(
-            targets,
-            num_classes=num_outputs,
-            on_target=self.on_target,
-            off_target=self.off_target,
-        )
+        batch_size = targets.size(0)
 
-        return targets
+        # Initialize the target tensor with the incorrect timesteps
+        target_spike_time = torch.full((batch_size, num_outputs), self.off_target, dtype=torch.float32, device=targets.device)
+
+        # Set the correct class latencies to self.on_target
+        target_spike_time[torch.arange(batch_size), targets] = self.on_target
+
+        return target_spike_time
 
     def label_to_multi_spike(self, targets, num_outputs):
         """Convert labels from neuron index (dim: B) to multiple spike times
@@ -677,16 +677,17 @@ class SpikeTime(nn.Module):
                 f"`on_target` (length: {num_spikes_on}) must have the same "
                 f"length as `off_target` (length: {num_spikes_off}."
             )
+        
+        batch_size = targets.size(0)
 
         # iterate through each spike
         targets_rec = []
         for step in range(num_spikes_on):
-            target_step = spikegen.targets_convert(
-                targets,
-                num_classes=num_outputs,
-                on_target=self.on_target[step],
-                off_target=self.off_target[step],
-            )
+            # Initialize the target tensor with the incorrect timesteps
+            target_step = torch.full((batch_size, num_outputs), self.off_target[step], dtype=torch.float32, device=targets.device)
+            # Set the correct class latencies to self.on_target
+            target_step[torch.arange(batch_size), targets] = self.on_target[step]
+
             targets_rec.append(target_step)
         targets_rec = torch.stack(targets_rec)
 
