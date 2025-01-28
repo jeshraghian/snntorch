@@ -542,7 +542,6 @@ class SpikeTime(nn.Module):
         @staticmethod
         def backward(ctx, grad_output):
             (first_spike_time, spk_rec) = ctx.saved_tensors
-            spk_time_grad = torch.zeros_like(spk_rec)  # T x B x N
 
             """spike extraction step/indexing @ each step is
             non-differentiable.
@@ -564,7 +563,7 @@ class SpikeTime(nn.Module):
 
             spk_time_grad[T_idx, B_idx, N_idx] = 1.0
             grad = -grad_output * spk_time_grad
-            
+
             return grad, None
 
     @staticmethod
