@@ -504,29 +504,38 @@ class SpikeTime(nn.Module):
         Linearize df/dS=-1 if spike, 0 if no spike."""
 
         @staticmethod
-        def forward(ctx, spk_rec, device="cpu"):
+        def forward(ctx, spk_rec: torch.Tensor, device="cpu"):
             """Convert spk_rec of 1/0s [TxBxN] --> spk_time [TxBxN].
             0's indicate no spike --> +1 is first time step.
             Transpose accounts for broadcasting along final dimension
             (i.e., multiply along T)."""
+            T = spk_rec.shape[0]
+
             spk_time = (
                 spk_rec.transpose(0, -1)
                 * (torch.arange(0, spk_rec.size(0)).detach().to(device) + 1)
             ).transpose(0, -1)
 
-            """extact first spike time. Will be used to pass into loss
-            function."""
-            first_spike_time = torch.zeros_like(spk_time[0])
-            for step in range(spk_time.size(0)):
-                first_spike_time += (
-                    spk_time[step] * ~first_spike_time.bool()
-                )  # mask out subsequent spikes
+            # spk_time is (T, B, N) with 0 or (t+1).
+            # Create a mask of shape (T, B, N) indicating if this is the first spike for each (B, N).
+            # For each (b, n), we want the earliest t at which spk_time[t,b,n]!=0.
 
-            """override element 0 (no spike) with shadow spike @ final time
-            step, then offset by -1
-            s.t. first_spike is at t=0."""
-            first_spike_time += ~first_spike_time.bool() * (spk_time.size(0))
-            first_spike_time -= 1  # fix offset
+            # We can do a cumulative sum over time to see if we have "ever spiked" up to that point.
+            spk_cum = (spk_time > 0).cumsum(dim=0)  # shape (T, B, N)
+            # 'spk_cum[t,b,n]' is how many spikes have occurred up to time step t for (b,n).
+
+            # The "first spike" for each (t,b,n) is the place where spk_time[t,b,n]!=0 AND spk_cum[t,b,n]==1
+            first_spike_mask = (spk_time > 0) & (spk_cum == 1)  # shape (T, B, N), bool
+
+            # Now each (b,n) can have at most one True in the time dimension, or none if no spike at all.
+            first_spike_time = (first_spike_mask * spk_time).sum(dim=0)
+            # shape is (B, N), each entry is the earliest (t+1) we found, or 0 if none.
+
+            # Next handle the no-spike neurons by replacing 0 with T
+            no_spike = (first_spike_time == 0)
+            first_spike_time[no_spike] = T 
+            first_spike_time -= 1
+
             ctx.save_for_backward(first_spike_time, spk_rec)
             return first_spike_time
 
@@ -539,10 +548,23 @@ class SpikeTime(nn.Module):
             non-differentiable.
             Apply sign estimator by substituting gradient for -1 ONLY at
             first spike time."""
-            for i in range(first_spike_time.size(0)):
-                for j in range(first_spike_time.size(1)):
-                    spk_time_grad[first_spike_time[i, j].long(), i, j] = 1.0
+
+            # first_spike_time is (B, N)
+            spk_time_grad = torch.zeros_like(spk_rec)  # (T, B, N)
+
+            # Flatten out the (B, N) coordinates
+            b_coords = torch.arange(first_spike_time.size(0), device=first_spike_time.device)
+            n_coords = torch.arange(first_spike_time.size(1), device=first_spike_time.device)
+            # Create a meshgrid to get all (b, n) pairs
+            B_idx, N_idx = torch.meshgrid(b_coords, n_coords, indexing='ij')
+            # B_idx, N_idx both are (B, N)
+
+            # Time coords from first_spike_time
+            T_idx = first_spike_time.long()  # (B, N)
+
+            spk_time_grad[T_idx, B_idx, N_idx] = 1.0
             grad = -grad_output * spk_time_grad
+            
             return grad, None
 
     @staticmethod
