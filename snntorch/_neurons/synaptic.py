@@ -252,9 +252,9 @@ class Synaptic(LIF):
                 spk / self.graded_spikes_factor - self.reset
             )  # avoid double reset
             if self.reset_mechanism_val == 0:  # reset by subtraction
-                mem = mem - do_reset * self.threshold
+                self.mem = self.mem - do_reset * self.threshold
             elif self.reset_mechanism_val == 1:  # reset to zero
-                mem = mem - do_reset * mem
+                self.mem = self.mem - do_reset * self.mem
 
         if self.output:
             return spk, self.syn, self.mem
