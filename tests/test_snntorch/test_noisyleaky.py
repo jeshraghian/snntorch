@@ -18,6 +18,11 @@ def noisyleaky_instance():
 
 
 @pytest.fixture(scope="module")
+def noisyleaky_reset_zero_output_instance():
+    return snn.NoisyLeaky(beta=0.5, reset_mechanism="zero", output=True)
+
+
+@pytest.fixture(scope="module")
 def noisyleaky_reset_zero_instance():
     return snn.NoisyLeaky(beta=0.5, reset_mechanism="zero")
 
@@ -139,3 +144,10 @@ class TestNoisyLeaky:
         factor = noisyleaky_hidden_learn_graded_instance.graded_spikes_factor
 
         assert factor.requires_grad
+
+    def test_noisyleaky_spike_reset_dependent(self, noisyleaky_reset_zero_output_instance):
+        steps = 30
+        mem = torch.zeros(1)
+        for t in range(steps):
+            spk, mem = noisyleaky_reset_zero_output_instance(torch.Tensor([[1.0]]), mem)
+            assert bool(spk) == (not bool(mem))
