@@ -7,47 +7,42 @@ import snntorch as snn
 import torch
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def input_():
     return torch.Tensor([0.25, 0]).unsqueeze(-1)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def noisyleaky_instance():
     return snn.NoisyLeaky(beta=0.5)
 
 
-@pytest.fixture(scope="module")
-def noisyleaky_reset_zero_output_instance():
-    return snn.NoisyLeaky(beta=0.5, reset_mechanism="zero", output=True)
-
-
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def noisyleaky_reset_zero_instance():
     return snn.NoisyLeaky(beta=0.5, reset_mechanism="zero")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def noisyleaky_reset_none_instance():
     return snn.NoisyLeaky(beta=0.5, reset_mechanism="none")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def noisyleaky_hidden_instance():
     return snn.NoisyLeaky(beta=0.5, init_hidden=True)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def noisyleaky_hidden_reset_zero_instance():
     return snn.NoisyLeaky(beta=0.5, init_hidden=True, reset_mechanism="zero")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def noisyleaky_hidden_reset_none_instance():
     return snn.NoisyLeaky(beta=0.5, init_hidden=True, reset_mechanism="none")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def noisyleaky_hidden_learn_graded_instance():
     return snn.NoisyLeaky(
         beta=0.5, init_hidden=True, learn_graded_spikes_factor=True
@@ -95,9 +90,7 @@ class TestNoisyLeaky:
         assert lif2.reset_mechanism_val == 2
         assert lif3.reset_mechanism_val == 0
 
-    def test_noisyleaky_init_hidden(
-        self, noisyleaky_hidden_instance, input_
-    ):
+    def test_noisyleaky_init_hidden(self, noisyleaky_hidden_instance, input_):
 
         spk_rec = []
 
@@ -140,15 +133,19 @@ class TestNoisyLeaky:
             noisyleaky_hidden_instance(input_, input_)
 
     def test_noisyleaky_hidden_learn_graded_instance(
-            self, noisyleaky_hidden_learn_graded_instance
+        self, noisyleaky_hidden_learn_graded_instance
     ):
         factor = noisyleaky_hidden_learn_graded_instance.graded_spikes_factor
 
         assert factor.requires_grad
 
-    def test_noisyleaky_spike_reset_dependent(self, noisyleaky_reset_zero_output_instance):
+    def test_noisyleaky_spike_reset_dependent(
+        self, noisyleaky_reset_zero_instance
+    ):
         steps = 30
         mem = torch.zeros(1)
         for t in range(steps):
-            spk, mem = noisyleaky_reset_zero_output_instance(torch.Tensor([[1.0]]), mem)
+            spk, mem = noisyleaky_reset_zero_instance(
+                torch.Tensor([[1.0]]), mem
+            )
             assert bool(spk) == (not bool(mem))
