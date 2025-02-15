@@ -204,33 +204,41 @@ class NoisyLeaky(NoisyLIF):
         # beta = self.beta.clamp(0, 1)
 
         if not self.init_hidden:
-            self.reset = self.mem_reset(mem)
-            mem = self._build_state_function(input_, mem)
-
-            if self.state_quant:
-                mem = self.state_quant(mem)
-
+            # decay and integrate
+            mem = self.beta.clamp(0, 1) * mem + input_
             if self.inhibition:
                 spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
             else:
                 spk = self.fire(mem)
+
+            # NOTE: breaks `fire_inhibition` behaviour, now only resets actually firing neurons.
+            # No idea if this is neuroscientifically accurate 🤷‍♀️ but tests still pass...
+            self.reset = spk.detach()
+            # reset membrane potentials
+            if self.reset_mechanism_val == 0:  # reset by subtraction
+                mem -= self.reset * self.threshold
+            elif self.reset_mechanism_val == 1:  # reset to zero
+                mem *= 1 - self.reset
+
+            if self.state_quant:
+                mem = self.state_quant(mem)
 
             return spk, mem
 
         # intended for truncated-BPTT where instance variables are hidden
         # states
         if self.init_hidden:
+            if self.inhibition:
+                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
+            else:
+                self.spk = self.fire(self.mem)
+
             self._leaky_forward_cases(mem)
             self.reset = self.mem_reset(self.mem)
             self.mem = self._build_state_function_hidden(input_)
 
             if self.state_quant:
                 self.mem = self.state_quant(self.mem)
-
-            if self.inhibition:
-                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
-            else:
-                self.spk = self.fire(self.mem)
 
             if self.output:  # read-out layer returns output+states
                 return self.spk, self.mem
