@@ -55,15 +55,16 @@ def noisyleaky_hidden_learn_graded_instance():
 
 
 class TestNoisyLeaky:
-    def test_noisyleaky(self, noisyleaky_instance, input_):
-        mem = noisyleaky_instance.init_noisyleaky()
+    def test_noisyleaky(self, noisyleaky_reset_none_instance, input_):
+        # There is a small chance of the neuron spiking, so we need to use no reset version
+        mem = noisyleaky_reset_none_instance.init_noisyleaky()
 
         mem_rec = []
         spk_rec = []
 
         for i in range(2):
 
-            spk, mem = noisyleaky_instance(input_[i], mem)
+            spk, mem = noisyleaky_reset_none_instance(input_[i], mem)
             mem_rec.append(mem)
             spk_rec.append(spk)
 
