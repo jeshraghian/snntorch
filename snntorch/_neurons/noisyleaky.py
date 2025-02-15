@@ -171,7 +171,7 @@ class NoisyLeaky(NoisyLIF):
         graded_spikes_factor=1.0,
         learn_graded_spikes_factor=False,
     ):
-        super(NoisyLeaky, self).__init__(
+        super().__init__(
             beta,
             threshold,
             noise_type,
@@ -187,17 +187,32 @@ class NoisyLeaky(NoisyLIF):
             learn_graded_spikes_factor,
         )
 
-        if self.init_hidden:
-            self.mem = self.init_noisyleaky()
+        self._init_mem()
 
-    def forward(self, input_, mem=False):
+    def _init_mem(self):
+        mem = torch.zeros(0)
+        self.register_buffer("mem", mem, False)
 
-        if hasattr(mem, "init_flag"):  # only triggered on first-pass
-            mem = _SpikeTorchConv(mem, input_=input_)
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
-            self.mem = _SpikeTorchConv(self.mem, input_=input_)
+    def reset_mem(self):
+        self.mem = torch.zeros_like(self.mem, device=self.mem.device)
+        return self.mem
+
+    def init_leaky(self):
+        """Deprecated, use :class:`NoisyLeaky.reset_mem` instead"""
+        return self.reset_mem()
+
+    def forward(self, input_, mem=None):
+
+        if mem is not None:
+            self.mem = mem
+
+        if self.init_hidden and mem is not None:
+            raise TypeError(
+                "`mem` should not be passed as an argument while `init_hidden=True`"
+            )
+
+        if self.mem.shape != input_.shape:
+            self.mem = torch.zeros_like(input_, device=self.mem.device)
 
         # TO-DO: alternatively, we could do torch.exp(-1 /
         # self.beta.clamp_min(0)),
@@ -205,47 +220,31 @@ class NoisyLeaky(NoisyLIF):
         # initial beta
         # beta = self.beta.clamp(0, 1)
 
-        if not self.init_hidden:
-            # decay and integrate
-            mem = self.beta.clamp(0, 1) * mem + input_
-            if self.inhibition:
-                spk = self.fire_inhibition(mem.size(0), mem)  # batch_size
-            else:
-                spk = self.fire(mem)
+        # decay and integrate
+        self.mem = self.beta.clamp(0, 1) * self.mem + input_
 
-            # NOTE: breaks `fire_inhibition` behaviour, now only resets actually firing neurons.
-            # No idea if this is neuroscientifically accurate 🤷‍♀️ but tests still pass...
-            self.reset = spk.detach()
-            # reset membrane potentials
-            if self.reset_mechanism_val == 0:  # reset by subtraction
-                mem -= self.reset * self.threshold
-            elif self.reset_mechanism_val == 1:  # reset to zero
-                mem *= 1 - self.reset
+        if self.inhibition:
+            spk = self.fire_inhibition(
+                self.mem.size(0), self.mem
+            )  # batch_size
+        else:
+            spk = self.fire(self.mem)
 
-            if self.state_quant:
-                mem = self.state_quant(mem)
+        # NOTE: breaks `fire_inhibition` behaviour, now only resets actually firing neurons.
+        # No idea if this is neuroscientifically accurate 🤷‍♀️ but tests still pass...
+        self.reset = spk.detach()
+        # reset membrane potentials
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            self.mem -= self.reset * self.threshold
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            self.mem *= 1 - self.reset
 
-            return spk, mem
+        if self.state_quant:
+            self.mem = self.state_quant(self.mem)
 
-        # intended for truncated-BPTT where instance variables are hidden
-        # states
-        if self.init_hidden:
-            if self.inhibition:
-                self.spk = self.fire_inhibition(self.mem.size(0), self.mem)
-            else:
-                self.spk = self.fire(self.mem)
-
-            self._leaky_forward_cases(mem)
-            self.reset = self.mem_reset(self.mem)
-            self.mem = self._build_state_function_hidden(input_)
-
-            if self.state_quant:
-                self.mem = self.state_quant(self.mem)
-
-            if self.output:  # read-out layer returns output+states
-                return self.spk, self.mem
-            else:  # hidden layer e.g., in nn.Sequential, only returns output
-                return self.spk
+        if self.output or not self.init_hidden:
+            return spk, self.mem
+        return spk
 
     def fire(self, mem):
         r"""

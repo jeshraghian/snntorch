@@ -38,6 +38,13 @@ def noisyleaky_hidden_reset_zero_instance():
 
 
 @pytest.fixture(scope="function")
+def noisyleaky_hidden_reset_zero_output_instance():
+    return snn.NoisyLeaky(
+        beta=0.5, init_hidden=True, output=True, reset_mechanism="zero"
+    )
+
+
+@pytest.fixture(scope="function")
 def noisyleaky_hidden_reset_none_instance():
     return snn.NoisyLeaky(beta=0.5, init_hidden=True, reset_mechanism="none")
 
@@ -147,5 +154,15 @@ class TestNoisyLeaky:
         for t in range(steps):
             spk, mem = noisyleaky_reset_zero_instance(
                 torch.Tensor([[1.0]]), mem
+            )
+            assert bool(spk) == (not bool(mem))
+
+    def test_noisyleaky_hidden_spike_reset_dependent(
+        self, noisyleaky_hidden_reset_zero_output_instance
+    ):
+        steps = 30
+        for t in range(steps):
+            spk, mem = noisyleaky_hidden_reset_zero_output_instance(
+                torch.Tensor([[1.0]])
             )
             assert bool(spk) == (not bool(mem))
