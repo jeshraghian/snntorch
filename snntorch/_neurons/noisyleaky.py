@@ -11,6 +11,7 @@
 from .neurons import _SpikeTensor, _SpikeTorchConv, NoisyLIF
 import torch
 
+
 class NoisyLeaky(NoisyLIF):
     """
     Noisy leaky integrate-and-fire neuron model with noisy neuronal dynamics and probabilistic firing.
@@ -153,12 +154,13 @@ class NoisyLeaky(NoisyLIF):
             must be manually passed in, of shape `1` or`` (input_size).
 
     """
+
     def __init__(
         self,
         beta,
         threshold=1.0,
-        noise_type='gaussian',
-        noise_scale=0.3, 
+        noise_type="gaussian",
+        noise_scale=0.3,
         init_hidden=False,
         inhibition=False,
         learn_beta=False,
@@ -172,8 +174,8 @@ class NoisyLeaky(NoisyLIF):
         super(NoisyLeaky, self).__init__(
             beta,
             threshold,
-            noise_type, 
-            noise_scale, 
+            noise_type,
+            noise_scale,
             init_hidden,
             inhibition,
             learn_beta,
@@ -244,17 +246,17 @@ class NoisyLeaky(NoisyLIF):
                 return self.spk, self.mem
             else:  # hidden layer e.g., in nn.Sequential, only returns output
                 return self.spk
-            
+
     def fire(self, mem):
         r"""
-        Generate a spike using the probabilistic firing mechanism, i.e., if we still use mem to denote 
+        Generate a spike using the probabilistic firing mechanism, i.e., if we still use mem to denote
         the noise-free membrane potential, the firing probability is given by
-        
+
         P(firing) = P(mem+noise > threshold) = P(noise < mem-threshold) = CDF_noise(mem-threshold)
 
         spk ~ Bernoulli(P(firing))
-        :param mem: membrane voltage 
-        
+        :param mem: membrane voltage
+
         Returns spk
         """
         if self.state_quant:
