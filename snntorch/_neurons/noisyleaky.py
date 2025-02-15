@@ -224,9 +224,7 @@ class NoisyLeaky(NoisyLIF):
         self.mem = self.beta.clamp(0, 1) * self.mem + input_
 
         if self.inhibition:
-            spk = self.fire_inhibition(
-                self.mem.size(0), self.mem
-            )  # batch_size
+            spk = self.fire_inhibition(self.mem.size(0), self.mem)  # batch_size
         else:
             spk = self.fire(self.mem)
 
@@ -282,46 +280,6 @@ class NoisyLeaky(NoisyLIF):
         # reset = spk.clone().detach()
 
         return spk
-
-    def _base_state_function(self, input_, mem):
-        base_fn = self.beta.clamp(0, 1) * mem + input_
-        return base_fn
-
-    def _build_state_function(self, input_, mem):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = self._base_state_function(
-                input_, mem - self.reset * self.threshold
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = self._base_state_function(
-                input_, mem
-            ) - self.reset * self._base_state_function(input_, mem)
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function(input_, mem)
-        return state_fn
-
-    def _base_state_function_hidden(self, input_):
-        base_fn = self.beta.clamp(0, 1) * self.mem + input_
-        return base_fn
-
-    def _build_state_function_hidden(self, input_):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = (
-                self._base_state_function_hidden(input_)
-                - self.reset * self.threshold
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.mem = (1 - self.reset) * self.mem
-            state_fn = self._base_state_function_hidden(input_)
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function_hidden(input_)
-        return state_fn
-
-    def _leaky_forward_cases(self, mem):
-        if mem is not False:
-            raise TypeError(
-                "When `init_hidden=True`, Leaky expects 1 input argument."
-            )
 
     @classmethod
     def detach_hidden(cls):
