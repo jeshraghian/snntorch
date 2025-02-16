@@ -11,8 +11,9 @@ snnTorch Documentation
    readme
    installation
    snntorch
-   snntorch.export
+   snntorch.export_nir
    snntorch.functional
+   snntorch.import_nir
    snntorch.spikegen
    snntorch.spikeplot
    snntorch.spikevision
