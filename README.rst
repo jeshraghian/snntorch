@@ -287,32 +287,6 @@ It consists of interactive notebooks with complete explanations that can get you
    * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
      -       —
 
-Intelligent Processing Unit (IPU) Acceleration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-snnTorch has been optimized for `Graphcore's IPU accelerators <https://www.graphcore.ai/>`_. 
-To install an IPU based build of snnTorch::
-
-  $ pip install snntorch-ipu
-
-Low-level custom operations for IPU compatibility will be automatically compiled when :code:`import snntorch` is called for the first time. 
-
-When updating the Poplar SDK, these operations may need to be recompiled. 
-This can be done by reinstalling :code:`snntorch-ipu`, or deleting files in the base directory with an .so extension.
-
-The :code:`snntorch.backprop` module, and several functions from :code:`snntorch.functional` and :code:`snntorch.surrogate`, are incompatible with IPUs, but can be recreated using PyTorch primitives.
-
-Additional requirements include:
-
-* poptorch 
-* The Poplar SDK 
-
-Refer to `Graphcore's documentation <https://github.com/graphcore/poptorch>`_ for installation instructions of poptorch and the Poplar SDK.
-
-The homepage for the snnTorch IPU project can be found `here <https://github.com/vinniesun/snntorch-ipu>`__.
-A tutorial for training SNNs is provided `here <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`__.
-
-
 Contributing
 ^^^^^^^^^^^^^^^^^^^^^^^^
 If you're ready to contribute to snnTorch, instructions to do so can be `found here`_.
