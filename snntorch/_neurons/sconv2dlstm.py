@@ -1,12 +1,10 @@
 import torch
-from torch._C import Value
 import torch.nn as nn
 import torch.nn.functional as F
-from .neurons import _SpikeTensor, _SpikeTorchConv, SpikingNeuron
+from .neurons import SpikingNeuron
 
 
 class SConv2dLSTM(SpikingNeuron):
-
     """
     A spiking 2d convolutional long short-term memory cell.
     Hidden states are membrane potential and synaptic current
@@ -240,8 +238,14 @@ class SConv2dLSTM(SpikingNeuron):
             output,
         )
 
-        if self.init_hidden:
-            self.syn, self.mem = self.init_sconv2dlstm()
+        self._init_mem()
+
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            self.state_function = self._base_sub
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            self.state_function = self._base_zero
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            self.state_function = self._base_int
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -268,117 +272,64 @@ class SConv2dLSTM(SpikingNeuron):
             bias=self.bias,
         )
 
-    def forward(self, input_, syn=False, mem=False):
-        if hasattr(mem, "init_flag") or hasattr(
-            syn, "init_flag"
-        ):  # only triggered on first-pass
+    def _init_mem(self):
+        syn = torch.zeros(0)
+        mem = torch.zeros(0)
 
-            syn, mem = _SpikeTorchConv(
-                syn, mem, input_=self._reshape_input(input_)
+        self.register_buffer("syn", syn, False)
+        self.register_buffer("mem", mem, False)
+
+    def reset_mem(self):
+        self.syn = torch.zeros_like(self.syn, device=self.syn.device)
+        self.mem = torch.zeros_like(self.mem, device=self.mem.device)
+        return self.syn, self.mem
+
+    def init_sconv2dlstm(self):
+        """Deprecated, use :class:`SConv2dLSTM.reset_mem` instead"""
+        return self.reset_mem()
+
+    def forward(self, input_, syn=None, mem=None):
+        if not syn == None:
+            self.syn = syn
+
+        if not mem == None:
+            self.mem = mem
+
+        if self.init_hidden and (not mem == None or not syn == None):
+            raise TypeError(
+                "`mem` or `syn` should not be passed as an argument while `init_hidden=True`"
             )
-        elif mem is False and hasattr(
-            self.mem, "init_flag"
-        ):  # init_hidden case
-            self.syn, self.mem = _SpikeTorchConv(
-                self.syn, self.mem, input_=self._reshape_input(input_)
-            )
 
-        if not self.init_hidden:
-            self.reset = self.mem_reset(mem)
-            syn, mem = self._build_state_function(input_, syn, mem)
+        size = input_.size()
+        correct_shape = (size[0], self.out_channels, size[2], size[3])
+        if not self.syn.shape == correct_shape:
+            self.syn = torch.zeros(correct_shape, device=self.syn.device)
 
-            if self.state_quant:
-                syn = self.state_quant(syn)
-                mem = self.state_quant(mem)
+        if not self.mem.shape == correct_shape:
+            self.mem = torch.zeros(correct_shape, device=self.mem.device)
 
-            if self.max_pool:
-                spk = self.fire(F.max_pool2d(mem, self.max_pool))
-            elif self.avg_pool:
-                spk = self.fire(F.avg_pool2d(mem, self.avg_pool))
-            else:
-                spk = self.fire(mem)
-            return spk, syn, mem
+        self.reset = self.mem_reset(self.mem)
+        self.syn, self.mem = self.state_function(input_)
 
-        if self.init_hidden:
-            # self._sconv2dlstm_forward_cases(mem, c)
-            self.reset = self.mem_reset(self.mem)
-            self.syn, self.mem = self._build_state_function_hidden(input_)
+        if self.state_quant:
+            self.syn = self.state_quant(self.syn)
+            self.mem = self.state_quant(self.mem)
 
-            if self.state_quant:
-                self.syn = self.state_quant(self.syn)
-                self.mem = self.state_quant(self.mem)
+        if self.max_pool:
+            self.spk = self.fire(F.max_pool2d(self.mem, self.max_pool))
+        elif self.avg_pool:
+            self.spk = self.fire(F.avg_pool2d(self.mem, self.avg_pool))
+        else:
+            self.spk = self.fire(self.mem)
 
-            if self.max_pool:
-                self.spk = self.fire(F.max_pool2d(self.mem, self.max_pool))
-            elif self.avg_pool:
-                self.spk = self.fire(F.avg_pool2d(self.mem, self.avg_pool))
-            else:
-                self.spk = self.fire(self.mem)
+        if self.output:
+            return self.spk, self.syn, self.mem
+        elif self.init_hidden:
+            return self.spk
+        else:
+            return self.spk, self.syn, self.mem
 
-            if self.output:
-                return self.spk, self.syn, self.mem
-            else:
-                return self.spk
-
-    def _base_state_function(self, input_, syn, mem):
-
-        combined = torch.cat(
-            [input_, mem], dim=1
-        )  # concatenate along channel axis (BxCxHxW)
-        combined_conv = self.conv(combined)
-        cc_i, cc_f, cc_o, cc_g = torch.split(
-            combined_conv, self.out_channels, dim=1
-        )
-        i = torch.sigmoid(cc_i)
-        f = torch.sigmoid(cc_f)
-        o = torch.sigmoid(cc_o)
-        g = torch.tanh(cc_g)
-
-        base_fn_syn = f * syn + i * g
-        base_fn_mem = o * torch.tanh(base_fn_syn)
-
-        return base_fn_syn, base_fn_mem
-
-    def _base_state_reset_zero(self, input_, syn, mem):
-        combined = torch.cat(
-            [input_, mem], dim=1
-        )  # concatenate along channel axis
-        combined_conv = self.conv(combined)
-        cc_i, cc_f, cc_o, cc_g = torch.split(
-            combined_conv, self.out_channels, dim=1
-        )
-        i = torch.sigmoid(cc_i)
-        f = torch.sigmoid(cc_f)
-        o = torch.sigmoid(cc_o)
-        g = torch.tanh(cc_g)
-
-        base_fn_syn = f * syn + i * g
-        base_fn_mem = o * torch.tanh(base_fn_syn)
-
-        return 0, base_fn_mem
-
-    def _build_state_function(self, input_, syn, mem):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = tuple(
-                map(
-                    lambda x, y: x - y,
-                    self._base_state_function(input_, syn, mem),
-                    (0, self.reset * self.threshold),
-                )
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = tuple(
-                map(
-                    lambda x, y: x - self.reset * y,
-                    self._base_state_function(input_, syn, mem),
-                    self._base_state_reset_zero(input_, syn, mem),
-                )
-            )
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function(input_, syn, mem)
-        return state_fn
-
-    def _base_state_function_hidden(self, input_):
+    def _base_state_function(self, input_):
         combined = torch.cat(
             [input_, self.mem], dim=1
         )  # concatenate along channel axis
@@ -396,7 +347,7 @@ class SConv2dLSTM(SpikingNeuron):
 
         return base_fn_syn, base_fn_mem
 
-    def _base_state_reset_zero_hidden(self, input_):
+    def _base_state_reset_zero(self, input_):
         combined = torch.cat(
             [input_, self.mem], dim=1
         )  # concatenate along channel axis
@@ -414,43 +365,22 @@ class SConv2dLSTM(SpikingNeuron):
 
         return 0, base_fn_mem
 
-    def _build_state_function_hidden(self, input_):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            state_fn = tuple(
-                map(
-                    lambda x, y: x - y,
-                    self._base_state_function_hidden(input_),
-                    (0, self.reset * self.threshold),
-                )
-            )
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            state_fn = tuple(
-                map(
-                    lambda x, y: x - self.reset * y,
-                    self._base_state_function_hidden(input_),
-                    self._base_state_reset_zero_hidden(input_),
-                )
-            )
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            state_fn = self._base_state_function_hidden(input_)
-        return state_fn
+    def _base_sub(self, input_):
+        syn, mem = self._base_state_function(input_)
+        mem -= self.reset * self.threshold
+        return syn, mem
 
-    @staticmethod
-    def init_sconv2dlstm():
-        """
-        Used to initialize h and c as an empty SpikeTensor.
-        ``init_flag`` is used as an attribute in the forward pass to convert
-        the hidden states to the same as the input.
-        """
-        mem = _SpikeTensor(init_flag=False)
-        syn = _SpikeTensor(init_flag=False)
+    def _base_zero(self, input_):
+        syn, mem = self._base_state_function(input_)
+        syn2, mem2 = self._base_state_reset_zero(input_)
+        syn2 *= self.reset
+        mem2 *= self.reset
+        syn -= syn2
+        mem -= mem2
+        return syn, mem
 
-        return mem, syn
-
-    def _reshape_input(self, input_):
-        device = input_.device
-        b, _, h, w = input_.size()
-        return torch.zeros(b, self.out_channels, h, w).to(device)
+    def _base_int(self, input_):
+        return self._base_state_function(input_)
 
     def _sconv2dlstm_cases(self):
         if self.max_pool and self.avg_pool:
@@ -478,5 +408,11 @@ class SConv2dLSTM(SpikingNeuron):
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], SConv2dLSTM):
-                cls.instances[layer].syn = _SpikeTensor(init_flag=False)
-                cls.instances[layer].mem = _SpikeTensor(init_flag=False)
+                cls.instances[layer].syn = torch.zeros_like(
+                    cls.instances[layer].syn,
+                    device=cls.instances[layer].syn.device,
+                )
+                cls.instances[layer].mem = torch.zeros_like(
+                    cls.instances[layer].mem,
+                    device=cls.instances[layer].mem.device,
+                )
