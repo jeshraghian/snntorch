@@ -5,6 +5,8 @@
 import nir
 import pytest
 import snntorch as snn
+from snntorch.export_nir import export_to_nir
+from snntorch.import_nir import import_from_nir
 import torch
 
 # sample data for snntorch_sequential
@@ -77,7 +79,7 @@ class TestNIR:
     """Test import and export from snnTorch to NIR."""
 
     def test_export_sequential(self, snntorch_sequential, sample_data):
-        nir_graph = snn.export_to_nir(snntorch_sequential, sample_data)
+        nir_graph = export_to_nir(snntorch_sequential, sample_data)
         assert nir_graph is not None
         assert set(nir_graph.nodes.keys()) == set(
             ["input", "output"] + [str(i) for i in range(4)]
@@ -99,7 +101,7 @@ class TestNIR:
         assert isinstance(nir_graph.nodes["3"], nir.LIF)
 
     def test_export_NetWithAvgPool(self, net_with_avg_pool, sample_data2):
-        nir_graph = snn.export_to_nir(net_with_avg_pool, sample_data2)
+        nir_graph = export_to_nir(net_with_avg_pool, sample_data2)
         assert nir_graph is not None
         # dict_keys(['conv1', 'fc1', 'input', 'lif1', 'lif2', 'output'])
         assert set(nir_graph.nodes.keys()) == set(
@@ -123,7 +125,7 @@ class TestNIR:
         assert isinstance(nir_graph.nodes["lif2"], nir.LIF)
 
     def test_export_recurrent(self, snntorch_recurrent, sample_data):
-        nir_graph = snn.export_to_nir(snntorch_recurrent, sample_data)
+        nir_graph = export_to_nir(snntorch_recurrent, sample_data)
         assert nir_graph is not None
         assert set(nir_graph.nodes.keys()) == set(
             ["input", "output", "0", "1.lif", "1.w_rec", "2", "3"]
@@ -149,13 +151,13 @@ class TestNIR:
 
     def test_import_nir(self):
         graph = nir.read("tests/lif.nir")
-        net = snn.import_from_nir(graph)
+        net = import_from_nir(graph)
         out, _ = net(torch.ones(1, 1))
         assert out.shape == (1, 1), out.shape
 
     def test_import_conv_nir(self):
         graph = nir.read("examples/testconv2d+avgpool.nir")
-        net = snn.import_from_nir(graph)
+        net = import_from_nir(graph)
         assert net is not None
         out, _ = net(torch.randn(1, 1, 1, 1))
         assert out.shape == (1, 16, 1, 1), out.shape
@@ -164,8 +166,8 @@ class TestNIR:
         x = torch.rand((4, 784))
         y_snn, state = snntorch_sequential(x)
         assert y_snn.shape == (4, 10)
-        nir_graph = snn.export_to_nir(snntorch_sequential, sample_data)
-        net = snn.import_from_nir(nir_graph)
+        nir_graph = export_to_nir(snntorch_sequential, sample_data)
+        net = import_from_nir(nir_graph)
         y_nir, state = net(x)
         assert y_nir.shape == (4, 10), y_nir.shape
         assert torch.allclose(y_snn, y_nir)

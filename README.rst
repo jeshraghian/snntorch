@@ -99,17 +99,21 @@ Let us know if you are using snnTorch in any interesting work, research or blogs
 
 Requirements 
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The following packages need to be installed to use snnTorch:
+PyTorch should be installed to use snnTorch. Ensure the correct version of torch is installed for your system to enable CUDA compatibility.
 
-* torch >= 1.1.0
-* numpy >= 1.17
+The following packages are automatically installed if using the pip command:
+
+* numpy
 * pandas
-* matplotlib
-* math
+
+The following packages are required for using `export_nir` and `import_nir`:
+
 * nir
 * nirtorch
 
-They are automatically installed if snnTorch is installed using the pip command. Ensure the correct version of torch is installed for your system to enable CUDA compatibility. 
+The following packages are required for using `spikeplot`:
+
+* matplotlib
 
 Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
