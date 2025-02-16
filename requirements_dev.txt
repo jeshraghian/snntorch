@@ -13,4 +13,4 @@ pre-commit
 torch
 nir
 nirtorch
-matplotlob
+matplotlib
