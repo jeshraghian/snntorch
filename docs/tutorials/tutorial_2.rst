@@ -848,7 +848,7 @@ Run the following code block to see how many spikes have been generated.
     mem_rec = torch.stack(mem_rec)
     spk_rec = torch.stack(spk_rec)
     
-    plot_spk_mem_spk(spk_in, mem_rec, spk_out, "Lapicque's Neuron Model With Input Spikes")
+    plot_spk_mem_spk(spk_in, mem_rec, spk_rec, "Lapicque's Neuron Model With Input Spikes")
 
 
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial2/_static/spk_mem_spk.png?raw=true
