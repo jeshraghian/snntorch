@@ -207,7 +207,7 @@ def export_to_nir(
 
         import snntorch as snn
         import torch
-        from snntorch import export_to_nir
+        from snntorch.export_nir import export_to_nir
 
         lif1 = snn.Leaky(beta=0.9, init_hidden=True)
         lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
