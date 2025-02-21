@@ -389,14 +389,12 @@ epochs should help. Give it a go.
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial_forward-forward/loss.png?raw=true 
 
 
-Train the Network using ReLU instead of LIF Activation
+7. Train the Network using ReLU instead of LIF Activation
 ======================================================
 
 - To compare, we can also train and test the same network architecture
   on the same data, except now using ReLU as the activation function
   instead of LIF.
-- Running this cell provides a training error and a test error of
-  approximately 10% each.
 
 ::
 
@@ -430,6 +428,15 @@ Train the Network using ReLU instead of LIF Activation
 .. image:: https://github.com/jeshraghian/snntorch/blob/master/docs/_static/img/examples/tutorial_forward-forward/data-6.png?raw=true 
 
 
+.. parsed-literal::
+
+    Training layer 0 ...
+    Training LeakyLayer: 100%|██████████| 1000/1000 [00:01<00:00, 694.31it/s]
+    Training layer 1 ...
+    Training LeakyLayer: 100%|██████████| 1000/1000 [00:01<00:00, 701.83it/s]
+    train error: 39.0625 %
+    test error: 56.25 %
+    
 
 Comparison against ANNs and SNNs using Backpropagation
 ======================================================
