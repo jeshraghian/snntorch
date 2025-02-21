@@ -114,9 +114,8 @@ function :math:`\sigma` to this deviation from the threshold
 :math:`\theta` such that the result can be interpreted as the
 probability that an input vector is positive (i.e., real):
 
-:raw-latex:`\begin{equation}
-    p(positive) = \sigma \left(\sum_j y_j^2 - \theta \right)
-\end{equation}`
+
+.. math::   p(positive) = \sigma \left(\sum_j y_j^2 - \theta \right)
 
 where :math:`y_j` is the activity of hidden unit :math:`j`.
 
@@ -392,7 +391,7 @@ epochs should help. Give it a go.
 7. Train the Network using ReLU instead of LIF Activation
 ======================================================
 
-- To compare, we can also train and test the same network architecture
+To compare, we can also train and test the same network architecture
   on the same data, except now using ReLU as the activation function
   instead of LIF.
 
