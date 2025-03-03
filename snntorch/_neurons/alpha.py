@@ -244,8 +244,8 @@ class Alpha(LIF):
 
     def _alpha_register_buffer(self, alpha, learn_alpha):
         if not isinstance(alpha, torch.Tensor):
-            self.alpha = torch.as_tensor(alpha)
-        self.alpha = self.alpha.clamp(0, 1)
+            alpha = torch.as_tensor(alpha)
+        self.alpha = alpha.clamp(0, 1)
         if learn_alpha:
             self.alpha = nn.Parameter(self.alpha)
         else:
