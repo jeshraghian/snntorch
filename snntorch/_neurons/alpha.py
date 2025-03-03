@@ -245,11 +245,11 @@ class Alpha(LIF):
     def _alpha_register_buffer(self, alpha, learn_alpha):
         if not isinstance(alpha, torch.Tensor):
             alpha = torch.as_tensor(alpha)
-        self.alpha = alpha.clamp(0, 1)
+        alpha = alpha.clamp(0, 1)
         if learn_alpha:
-            self.alpha = nn.Parameter(self.alpha)
+            self.alpha = nn.Parameter(alpha)
         else:
-            self.register_buffer("alpha", self.alpha)
+            self.register_buffer("alpha", alpha)
 
     def _alpha_cases(self):
         if (self.alpha <= self.beta).any():
