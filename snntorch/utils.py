@@ -47,8 +47,8 @@ def data_subset(dataset, subset, idx=0):
         step = N // subset
         idx_range = idx_range[step * idx : step * (idx + 1)]
 
-        data = dataset.data[idx_range]
-        targets = dataset.targets[idx_range]
+        data = dataset.data[idx_range.tolist()]
+        targets = dataset.targets[idx_range.tolist()]
 
         dataset.data = data
         dataset.targets = targets
