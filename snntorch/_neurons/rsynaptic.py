@@ -421,7 +421,7 @@ class RSynaptic(LIF):
             + input_
             + self.recurrent(self.spk)
         )
-        base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
+        base_fn_mem = nn.Parameter(self.beta.clamp(0, 1)) * self.mem + base_fn_syn
         return base_fn_syn, base_fn_mem
 
     def _base_state_reset_zero(self, input_):
@@ -535,4 +535,4 @@ class RecurrentOneToOne(nn.Module):
         self.V = V
 
     def forward(self, x):
-        return x * self.V  # element-wise or global multiplication
+        return nn.Parameter(x * self.V)  # element-wise or global multiplication
