@@ -75,6 +75,20 @@ def snntorch_recurrent():
     )
 
 
+@pytest.fixture(scope="module")
+def snntorch_rleaky():
+    v = torch.ones((500,))
+    lif1 = snn.RLeaky(beta=0.9, V=v, all_to_all=False, init_hidden=True)
+    lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
+
+    return torch.nn.Sequential(
+        torch.nn.Linear(784, 500),
+        lif1,
+        torch.nn.Linear(500, 10),
+        lif2,
+    )
+
+
 class TestNIR:
     """Test import and export from snnTorch to NIR."""
 
@@ -149,6 +163,31 @@ class TestNIR:
             ]
         )
 
+    def test_export_rleaky(self, snntorch_rleaky, sample_data):
+        nir_graph = export_to_nir(snntorch_rleaky, sample_data)
+        assert nir_graph is not None
+        assert set(nir_graph.nodes.keys()) == set(
+            ["input", "output", "0", "1.lif", "1.w_rec", "2", "3"]
+        ), nir_graph.nodes.keys()
+        assert isinstance(nir_graph.nodes["input"], nir.Input)
+        assert isinstance(nir_graph.nodes["output"], nir.Output)
+        assert isinstance(nir_graph.nodes["0"], nir.Affine)
+        assert isinstance(nir_graph.nodes["1.lif"], nir.LIF)
+        assert isinstance(nir_graph.nodes["1.w_rec"], nir.Linear)
+        assert isinstance(nir_graph.nodes["2"], nir.Affine)
+        assert isinstance(nir_graph.nodes["3"], nir.LIF)
+        assert set(nir_graph.edges) == set(
+            [
+                ("1.lif", "1.w_rec"),
+                ("1.w_rec", "1.lif"),
+                ("0", "1.lif"),
+                ("3", "output"),
+                ("2", "3"),
+                ("input", "0"),
+                ("1.lif", "2"),
+            ]
+        )
+
     def test_import_nir(self):
         graph = nir.read("tests/lif.nir")
         net = import_from_nir(graph)
@@ -167,6 +206,16 @@ class TestNIR:
         y_snn, state = snntorch_sequential(x)
         assert y_snn.shape == (4, 10)
         nir_graph = export_to_nir(snntorch_sequential, sample_data)
+        net = import_from_nir(nir_graph)
+        y_nir, state = net(x)
+        assert y_nir.shape == (4, 10), y_nir.shape
+        assert torch.allclose(y_snn, y_nir)
+
+    def test_commute_rleaky(self, snntorch_rleaky, sample_data):
+        x = torch.rand((4, 784))
+        y_snn, state = snntorch_rleaky(x)
+        assert y_snn.shape == (4, 10)
+        nir_graph = export_to_nir(snntorch_rleaky, sample_data)
         net = import_from_nir(nir_graph)
         y_nir, state = net(x)
         assert y_nir.shape == (4, 10), y_nir.shape
