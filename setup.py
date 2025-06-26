@@ -19,7 +19,7 @@ install_requires = [
     "pandas"]
 
 extras_require = {
-    "full": ["torch", "matplotlob", "nir", "nirtorch"]
+    "full": ["torch", "matplotlib", "nir", "nirtorch"]
 }
 
 # requirements = [
