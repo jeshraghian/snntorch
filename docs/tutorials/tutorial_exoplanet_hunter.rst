@@ -690,3 +690,8 @@ advice on defining and training the network.
 
 If you like this project, please consider starring ⭐ the snnTorch repo on GitHub
 as it is the easiest and best way to support it.
+
+Acknowledgments
+===============
+
+This project was supported in-part by the National Science Foundation RCN-SC 2332166.
