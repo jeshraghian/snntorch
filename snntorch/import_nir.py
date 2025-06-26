@@ -452,5 +452,15 @@ def import_from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
     """
     # find valid RNN subgraphs, and replace them with a single NIRGraph node
     graph = _replace_rnn_subgraph_with_nirgraph(graph)
-    # convert the NIR graph into a torch.nn.Module using snnTorch modules
-    return nirtorch.load(graph, _nir_to_snntorch_module)
+    # convert the NIR graph into a torch.fx.GraphModule using the newer
+    # nirtorch.nir_to_torch API to avoid issues with strict type checking
+    node_map = {
+        nir.Affine: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.Linear: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.Conv2d: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.Flatten: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.AvgPool2d: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.LIF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.CubaLIF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+    }
+    return nirtorch.nir_to_torch(graph, node_map)

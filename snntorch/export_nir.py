@@ -250,4 +250,6 @@ def export_to_nir(
         model_fwd_args=model_fwd_args,
         ignore_dims=ignore_dims,
     )
+    # ensure node input and output types are fully defined
+    nir_graph.infer_types()
     return nir_graph
