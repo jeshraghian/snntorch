@@ -465,3 +465,8 @@ References
 
    `Mohammad Pezeshki. pytorch_forward_forward. Github Repo January
    2023. <https://github.com/mpezeshki/pytorch_forward_forward>`__
+
+Acknowledgments
+===============
+
+This project was supported in-part by the National Science Foundation RCN-SC 2332166.
