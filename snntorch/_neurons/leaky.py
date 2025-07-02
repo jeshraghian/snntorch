@@ -236,11 +236,12 @@ class Leaky(LIF):
             return spk, self.mem
 
     def _base_sub(self, input_): # reset by subtraction, soft reset
-        return self.beta.clamp(0, 1) * (self.mem - self.reset * self.threshold) + input_
+        base_fn = self._base_int(input_)
+        return base_fn - self.reset * self.threshold * self.beta.clamp(0, 1)
 
     def _base_zero(self, input_): # reset to zero, hard reset
         base_fn = self._base_int(input_)
-        return (1 - self.reset) * base_fn
+        return base_fn - self.reset * base_fn
 
     def _base_int(self, input_): # pure integration, no reset
         return self.beta.clamp(0, 1) * self.mem + input_
