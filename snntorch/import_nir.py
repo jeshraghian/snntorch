@@ -460,6 +460,7 @@ def import_from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
         nir.Conv2d: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
         nir.Flatten: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
         nir.AvgPool2d: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.IF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
         nir.LIF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
         nir.CubaLIF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
     }
