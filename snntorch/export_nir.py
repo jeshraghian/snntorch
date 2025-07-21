@@ -79,6 +79,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
             v_threshold=vthr,
             v_leak=v_leak,
             r=r,
+            v_reset=np.zeros_like(vthr),
         )
 
     elif isinstance(module, torch.nn.Linear):
@@ -112,6 +113,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
             v_leak=v_leak,
             r=r,
             w_in=w_in,
+            v_reset=np.zeros_like(vthr),
         )
 
     elif isinstance(module, snn.RLeaky):
@@ -157,6 +159,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
                     r=r,
                     v_leak=v_leak,
                     w_in=w_in,
+                    v_reset=np.zeros_like(vthr),
                 ),
                 "w_rec": w_rec,
                 "output": nir.Output(output_type=[n_neurons]),
