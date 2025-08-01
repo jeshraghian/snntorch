@@ -120,7 +120,7 @@ def replace_sumpool2d_by_sumpool2d_if(nir_model):
             if len(old_edges) > 0:
                 shape = node.output_type["output"]
                 # new_if_node = nir.IF(r=np.ones(shape), v_threshold=np.ones(node.output_type["output"]))
-                new_if_node = nir.IF(r=np.ones(shape), v_threshold=np.ones(shape))
+                new_if_node = nir.IF(r=np.ones(shape), v_threshold=np.ones(shape), v_reset=np.zeros(shape))
                 new_if_name = f"{name}_if"
                 nodes_to_add[new_if_name] = new_if_node
                 edges_to_add.append((name, new_if_name))
@@ -157,7 +157,7 @@ def replace_avgpool2d_by_avgpool2d_if(nir_model):
 
             if len(old_edges) > 0:
                 shape = node.output_type["output"]
-                new_if_node = nir.IF(r=np.ones(shape), v_threshold=4 * np.ones(shape))
+                new_if_node = nir.IF(r=np.ones(shape), v_threshold=4 * np.ones(shape), v_reset=np.zeros(shape))
                 new_if_name = f"{name}_if"
                 nodes_to_add[new_if_name] = new_if_node
                 edges_to_add.append((name, new_if_name))
