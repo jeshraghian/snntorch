@@ -152,6 +152,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
                     tau=tau_mem,
                     r=r,
                     v_leak=v_leak,
+                    v_reset=np.zeros_like(vthr),
                 ),
                 "w_rec": w_rec,
                 "output": nir.Output(output_type=[n_neurons]),
