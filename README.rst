@@ -108,8 +108,8 @@ The following packages are automatically installed if using the pip command:
 
 The following packages are required for using `export_nir` and `import_nir`:
 
-* nir
-* nirtorch
+* nir>=1.0.6
+* nirtorch>=2.0.5
 
 The following packages are required for using `spikeplot`:
 
