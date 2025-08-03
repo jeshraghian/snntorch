@@ -20,7 +20,10 @@ Introduction
 .. |downloads| image:: https://static.pepy.tech/personalized-badge/snntorch?period=total&units=international_system&left_color=grey&right_color=orange&left_text=Downloads
    :target: https://pepy.tech/project/snntorch
 
-|build| |docs| |discord| |pypi| |conda| |downloads|
+.. |neuromorphiccomputing| image:: https://img.shields.io/badge/Collaboration_Network-Open_Neuromorphic-blue
+   :target: https://open-neuromorphic.org/neuromorphic-computing/
+
+|build| |docs| |discord| |pypi| |conda| |downloads| |neuromorphiccomputing|
 
 
 The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
