@@ -117,6 +117,13 @@ Install from source:
   $ cd snntorch
   $ uv sync
 
+**Note:** For CUDA support, you may need to install PyTorch with pip first:
+
+.. code-block:: bash
+
+  $ pip install torch --index-url https://download.pytorch.org/whl/cu118
+  $ uv sync
+
 With conda:
 
 .. code-block:: bash
