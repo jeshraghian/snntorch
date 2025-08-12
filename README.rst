@@ -109,7 +109,15 @@ Install from PyPI:
 
   $ pip install snntorch
 
-Install from source:
+Install from source with uv (recommended):
+
+First, install uv:
+
+.. code-block:: bash
+
+  $ curl -LsSf https://astral.sh/uv/install.sh | sh
+
+Then clone and install:
 
 .. code-block:: bash
 
