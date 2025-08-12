@@ -100,46 +100,47 @@ September 2023. <https://ieeexplore.ieee.org/abstract/document/10242251>`_
 
 Let us know if you are using snnTorch in any interesting work, research or blogs, as we would love to hear more about it! Reach out at snntorch@gmail.com.
 
-Requirements 
-^^^^^^^^^^^^^^^^^^^^^^^^
-PyTorch should be installed to use snnTorch. Ensure the correct version of torch is installed for your system to enable CUDA compatibility.
-
-The following packages are automatically installed if using the pip command:
-
-* numpy
-* pandas
-
-The following packages are required for using `export_nir` and `import_nir`:
-
-* nir>=1.0.6
-* nirtorch>=2.0.5
-
-The following packages are required for using `spikeplot`:
-
-* matplotlib
-
 Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run the following to install:
+Install from PyPI:
 
 .. code-block:: bash
 
-  $ python
   $ pip install snntorch
 
-To install snnTorch from source instead::
+Install from source with uv (recommended):
+
+First, install uv:
+
+.. code-block:: bash
+
+  $ curl -LsSf https://astral.sh/uv/install.sh | sh
+
+Then clone and install:
+
+.. code-block:: bash
 
   $ git clone https://github.com/jeshraghian/snnTorch
   $ cd snntorch
-  $ python setup.py install
+  $ uv sync
 
+**Note:** For CUDA support, you may need to install PyTorch with pip first:
 
-To install snntorch with conda::
+.. code-block:: bash
 
-    $ conda install -c conda-forge snntorch
+  $ pip install torch --index-url https://download.pytorch.org/whl/cu118
+  $ uv sync
 
-To install for an Intelligent Processing Units (IPU) based build using Graphcore's accelerators::
+With conda:
+
+.. code-block:: bash
+
+  $ conda install -c conda-forge snntorch
+
+For IPU (Graphcore accelerators):
+
+.. code-block:: bash
 
   $ pip install snntorch-ipu
     
