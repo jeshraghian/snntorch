@@ -1522,10 +1522,6 @@ name = "snntorch"
 version = "0.9.4"
 source = { editable = "." }
 dependencies = [
-    { name = "matplotlib", version = "3.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "matplotlib", version = "3.10.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "nir" },
-    { name = "nirtorch" },
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "numpy", version = "2.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1534,21 +1530,27 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+full = [
+    { name = "matplotlib", version = "3.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "matplotlib", version = "3.10.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "nir" },
+    { name = "nirtorch" },
+]
 test = [
     { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "matplotlib" },
-    { name = "nir" },
-    { name = "nirtorch" },
+    { name = "matplotlib", marker = "extra == 'full'" },
+    { name = "nir", marker = "extra == 'full'" },
+    { name = "nirtorch", marker = "extra == 'full'" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=6" },
     { name = "torch" },
 ]
-provides-extras = ["test"]
+provides-extras = ["full", "test"]
 
 [[package]]
 name = "sympy"

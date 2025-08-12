@@ -31,13 +31,11 @@ classifiers = [
 dependencies = [
     "numpy",
     "pandas",
-    "torch",
-    "matplotlib",
-    "nir",
-    "nirtorch"
+    "torch"
 ]
 
 [project.optional-dependencies]
+full = ["matplotlib", "nir", "nirtorch"]
 test = ["pytest>=6"]
 
 [project.urls]
