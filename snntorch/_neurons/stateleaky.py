@@ -96,7 +96,7 @@ class StateLeaky(LIF):
         decay_filter = decay_filter.permute(1, 0).unsqueeze(1)
         assert decay_filter.shape == (channels, 1, num_steps)
 
-        conv_result = self.full_mode_conv1d_truncated(input_, decay_filter)
+        conv_result = self.causal_conv1d(input_, decay_filter)
         assert conv_result.shape == (batch, channels, num_steps)
 
         return conv_result.permute(2, 0, 1)  # return membrane potential trace
@@ -119,30 +119,25 @@ class StateLeaky(LIF):
             self.tau = nn.Parameter(tau)
         else:
             self.register_buffer("tau", tau)
-
-    def full_mode_conv1d_truncated(self, input_tensor, kernel_tensor):
+    
+    def causal_conv1d(self, input_tensor, kernel_tensor):
         # get dimensions
         batch_size, in_channels, num_steps = input_tensor.shape
         # kernel_tensor: (channels, 1, kernel_size)
         out_channels, _, kernel_size = kernel_tensor.shape
 
-        kernel_tensor = torch.flip(kernel_tensor, dims=[-1]).to(
-            input_tensor.device
-        )
-
-        # pad the input tensor on both sides
+        # for causal convolution, output at time t only depends on inputs up to t
+        # therefore, we pad only on the left side
         padding = kernel_size - 1
-        padded_input = F.pad(input_tensor, (padding, padding))
+        padded_input = F.pad(input_tensor, (padding, 0))
 
-        # perform convolution with the padded input
-        conv_result = F.conv1d(padded_input, kernel_tensor, groups=in_channels)
+        # kernel is flipped to turn cross-correlation performed by F.conv1d into convolution
+        flipped_kernel = torch.flip(kernel_tensor, dims=[-1])
 
-        # truncate the result to match the original input length
-        # TODO: potential optimization?
-        truncated_result = conv_result[..., 0:num_steps]
+        # perform convolution with the padded input (output length = num_steps length)
+        causal_conv_result = F.conv1d(padded_input, flipped_kernel, groups=in_channels)
 
-        return truncated_result
-
+        return causal_conv_result
 
 # TODO: throw exceptions if calling subclass methods we don't want to use
 # fire_inhibition
