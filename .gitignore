@@ -5,6 +5,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Local secrets/config for GitHub App helper
+.secrets/
+*.pem
+
 # C extensions
 *.so
 
@@ -114,3 +118,4 @@ dataset/
 wandb/
 output.txt
 output-*
+baseline.prof*
