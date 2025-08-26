@@ -679,13 +679,8 @@ class SpikeTime(nn.Module):
         # TO-DO: remove ctx?
         @staticmethod
         def forward(ctx, spk_time, target, tolerance):
-            spk_time_clone = (
-                spk_time.clone()
-            )  # spk_time_clone: BxN (FxBxN for multi-spike); target: TxBxN
-            spk_time_clone[torch.abs(spk_time - target) < tolerance] = (
-                torch.ones_like(spk_time) * target
-            )[torch.abs(spk_time - target) < tolerance]
-            return spk_time_clone
+            mask = (spk_time - target).abs() <= tolerance
+            return torch.where(mask, target.to(spk_time.dtype), spk_time)
 
         @staticmethod
         def backward(ctx, grad_output):
