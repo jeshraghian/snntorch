@@ -1,3 +1,5 @@
+# timing plot for StateLeaky vs Leaky (with baseline/peak/Δpeak reporting)
+
 import torch
 import time
 import snntorch as snn
@@ -7,91 +9,101 @@ from tqdm import tqdm
 
 from snntorch._neurons.stateleaky import StateLeaky
 
-BATCH_SIZE = 1
-CHANNELS = 20
+BATCH_SIZE = 20
+CHANNELS = 100
 TIMESTEPS = np.logspace(1, 5, num=10, dtype=int)
 
 device = "cuda"
+torch.set_grad_enabled(False)  # no autograd in this benchmark
 
 
-def get_peak_memory(device):
-    """Gets the peak GPU memory usage in MB."""
-    return torch.cuda.max_memory_allocated(device) / 1024**2
+def get_peak_bytes(device):
+    # Peak allocated bytes (global since process start or last reset)
+    return torch.cuda.max_memory_allocated(device)
+
+
+def get_cur_bytes(device):
+    # Currently allocated bytes
+    return torch.cuda.memory_allocated(device)
 
 
 def bench_type1(num_steps):
     lif = snn.Leaky(beta=0.9).to(device)
-    x = torch.rand(num_steps).to(device)
-    mem = torch.zeros(BATCH_SIZE, CHANNELS).to(device)
-    spk = torch.zeros(BATCH_SIZE, CHANNELS).to(device)
+    x = torch.rand(num_steps, device=device)
+    mem = torch.zeros(BATCH_SIZE, CHANNELS, device=device)
+    spk = torch.zeros(BATCH_SIZE, CHANNELS, device=device)
 
     start_time = time.time()
     for step in range(num_steps):
         spk, mem = lif(x[step], mem=mem)
     end_time = time.time()
-
     return end_time - start_time
 
 
 def bench_type2(timesteps):
     lif = StateLeaky(beta=0.9, channels=CHANNELS).to(device)
-    input_ = (
-        torch.arange(1, timesteps * BATCH_SIZE * CHANNELS + 1)
-        .float()
-        .view(timesteps, BATCH_SIZE, CHANNELS)
-        .to(device)
-    )
-
+    input_ = torch.arange(
+        1,
+        timesteps * BATCH_SIZE * CHANNELS + 1,
+        device=device,
+        dtype=torch.float32,
+    ).view(timesteps, BATCH_SIZE, CHANNELS)
     start_time = time.time()
     lif.forward(input_)
     end_time = time.time()
-
     return end_time - start_time
 
 
 with torch.no_grad():
-    # run benchmarks
-    times1 = []
-    times2 = []
-    mems1 = []
-    mems2 = []
-    for steps in TIMESTEPS:
-        # run each benchmark multiple times and take average for more stable results
+    times1, times2 = [], []
+    mems1, mems2 = [], []  # Δpeak in MiB
+    bases1, bases2 = [], []  # baselines in MiB (for visibility)
+    peaks1, peaks2 = [], []  # absolute peaks in MiB
+
+    for steps in tqdm(TIMESTEPS):
         n_runs = 2
+        t1_runs, t2_runs = [], []
+        m1_runs, m2_runs = [], []
+        b1_runs, b2_runs = [], []
+        p1_runs, p2_runs = [], []
 
-        times_1_run_accumulated = []
-        times_2_run_accumulated = []
-        mems_1_run_accumulated = []
-        mems_2_run_accumulated = []
         for _ in range(n_runs):
+            # --- Type 1 ---
             torch.cuda.synchronize()
-            torch.cuda.reset_peak_memory_stats(device)
-            torch.cuda.reset_max_memory_allocated(device)
-            torch.cuda.reset_max_memory_cached(device)
-            torch.cuda.reset_accumulated_memory_stats(device)
-            time1 = bench_type1(steps)
+            base1 = get_cur_bytes(device)  # baseline now
+            t1 = bench_type1(steps)
             torch.cuda.synchronize()
-            mem1 = get_peak_memory(device)
+            peak1 = get_peak_bytes(device)  # global peak
+            d1 = max(0, peak1 - base1) / 1024**2  # Δpeak MiB
 
-            torch.cuda.synchronize()
-            torch.cuda.reset_peak_memory_stats(device)
-            torch.cuda.reset_max_memory_allocated(device)
-            torch.cuda.reset_max_memory_cached(device)
-            torch.cuda.reset_accumulated_memory_stats(device)
-            time2 = bench_type2(steps)
-            torch.cuda.synchronize()
-            mem2 = get_peak_memory(device)
-            times_1_run_accumulated.append(time1)
-            times_2_run_accumulated.append(time2)
-            mems_1_run_accumulated.append(mem1)
-            mems_2_run_accumulated.append(mem2)
+            t1_runs.append(t1)
+            m1_runs.append(d1)
+            b1_runs.append(base1 / 1024**2)
+            p1_runs.append(peak1 / 1024**2)
 
-        times1.append(np.mean(times_1_run_accumulated))
-        times2.append(np.mean(times_2_run_accumulated))
-        mems1.append(np.mean(mems_1_run_accumulated))
-        mems2.append(np.mean(mems_2_run_accumulated))
+            # --- Type 2 ---
+            torch.cuda.synchronize()
+            base2 = get_cur_bytes(device)
+            t2 = bench_type2(steps)
+            torch.cuda.synchronize()
+            peak2 = get_peak_bytes(device)
+            d2 = max(0, peak2 - base2) / 1024**2
 
-    # create the plot for time
+            t2_runs.append(t2)
+            m2_runs.append(d2)
+            b2_runs.append(base2 / 1024**2)
+            p2_runs.append(peak2 / 1024**2)
+
+        times1.append(np.mean(t1_runs))
+        times2.append(np.mean(t2_runs))
+        mems1.append(np.mean(m1_runs))
+        mems2.append(np.mean(m2_runs))
+        bases1.append(np.mean(b1_runs))
+        peaks1.append(np.mean(p1_runs))
+        bases2.append(np.mean(b2_runs))
+        peaks2.append(np.mean(p2_runs))
+
+    # ---- Plots (time) ----
     plt.figure(figsize=(10, 6))
     plt.plot(TIMESTEPS, times1, "b-", label="Type 1 (Leaky)")
     plt.plot(TIMESTEPS, times2, "r-", label="Type 2 (StateLeaky)")
@@ -100,28 +112,42 @@ with torch.no_grad():
     plt.grid(True, which="both", ls="-", alpha=0.2)
     plt.xlabel("Number of Timesteps")
     plt.ylabel("Time (seconds)")
-    plt.title("SNN Performance Comparison")
+    plt.title("SNN Performance Comparison (Time)")
     plt.legend()
 
-    # create the plot for memory
+    # ---- Plots (memory: Δpeak per run) ----
     plt.figure(figsize=(10, 6))
-    plt.plot(TIMESTEPS, mems1, "b-", label="Type 1 (Leaky)")
-    plt.plot(TIMESTEPS, mems2, "r-", label="Type 2 (StateLeaky)")
+    plt.plot(TIMESTEPS, mems1, "b-", label="Type 1 mem Δpeak")
+    plt.plot(TIMESTEPS, mems2, "r-", label="Type 2 mem Δpeak")
     plt.xscale("log")
     plt.yscale("log")
     plt.grid(True, which="both", ls="-", alpha=0.2)
     plt.xlabel("Number of Timesteps")
-    plt.ylabel("Memory (MB)")
-    plt.title("SNN Memory Comparison")
+    plt.ylabel("Δ Peak Allocated (MiB)")
+    plt.title("SNN Memory Comparison (Incremental Peak per Run)")
     plt.legend()
 
-    print("Benchmark Results:")
-    print("\nTimesteps  |  Leaky (s)  |  Linear Leaky (s)  |  Ratio (T2/T1)")
-    print("-" * 55)
+    # ---- Optional: print baselines/peaks to verify behavior ----
+    print("\nBenchmark Results (Time):")
+    print("Timesteps | Leaky (s) | StateLeaky (s) | Ratio (T2/T1)")
     for i, steps in enumerate(TIMESTEPS):
-        ratio = times2[i] / times1[i]
         print(
-            f"{steps:9d} | {times1[i]:10.4f} | {times2[i]:10.4f} | {ratio:10.2f}"
+            f"{int(steps):9d} | {times1[i]:9.4f} | {times2[i]:13.4f} | {times2[i]/times1[i]:10.2f}"
         )
 
-    plt.savefig("snn_performance_comparison_andrew.png", format="png")
+    print("\nBenchmark Results (Memory - Δpeak per run):")
+    print("Timesteps | Leaky ΔMiB | StateLeaky ΔMiB | Ratio (T2/T1)")
+    for i, steps in enumerate(TIMESTEPS):
+        r = mems2[i] / mems1[i] if mems1[i] else float("inf")
+        print(
+            f"{int(steps):9d} | {mems1[i]:10.4f} | {mems2[i]:16.4f} | {r:10.2f}"
+        )
+
+    print("\nBaselines and absolute peaks (MiB) for sanity:")
+    print("Timesteps | Base1 | Peak1 || Base2 | Peak2")
+    for i, steps in enumerate(TIMESTEPS):
+        print(
+            f"{int(steps):9d} | {bases1[i]:6.1f} | {peaks1[i]:6.1f} || {bases2[i]:6.1f} | {peaks2[i]:6.1f}"
+        )
+
+    plt.savefig("snn_performance_comparison.png", format="png")
