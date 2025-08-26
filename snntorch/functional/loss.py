@@ -444,16 +444,51 @@ class SpikeTime(nn.Module):
         self.tolerance_fn = self.Tolerance.apply
         self.multi_spike = multi_spike
 
-        if not self.target_is_time:
-            self.on_target = on_target
-            self.off_target = off_target  # override this with final step
+        # Validate and normalise target specifications
+        if not target_is_time:
+            if not multi_spike:
+                self.on_target = self._validate_scalar_target(on_target, "on_target")
+                self.off_target = self._validate_scalar_target(off_target, "off_target")
+            else:
+                # If multi_spike=true both on_target and off_targets must be iterables
+                self.on_target = self._validate_sequence_target(on_target, "on_target")
+                self.off_target = self._validate_sequence_target(off_target, "off_target")
 
-        # function used to extract the first F spike times. If
-        # multi_spike=False, F=1.
-        if self.multi_spike:
-            self.first_spike_fn = self.MultiSpike.apply
-        else:
-            self.first_spike_fn = self.FirstSpike.apply
+        self.first_spike_fn = self.MultiSpike.apply if multi_spike else self.FirstSpike.apply
+
+
+    def _validate_scalar_target(self, value, name):
+        """Ensure target is a scalar; tensors with more than one element raise an error."""
+        if isinstance(value, torch.Tensor):
+            if value.numel() != 1:
+                raise TypeError(
+                    f"{name} must be a scalar when multi_spike=False; received tensor with shape {value.shape}. "
+                    "Set multi_spike=True to specify multiple spike times.")
+            return int(value.item())
+        
+        elif isinstance(value, int):
+            return value
+        
+        raise TypeError(
+            f"{name} must be an int or a 0-D/1-element torch.Tensor when multi_spike=False; "
+            f"got {type(value).__name__}."
+        )
+
+
+    def _validate_sequence_target(self, value, name):
+        """Convert 1-D tensors or iterables into lists of ints for multi-spike mode."""
+        if isinstance(value, torch.Tensor):
+            if value.ndim == 0:
+                return [int(value.item())]
+            if value.ndim > 1:
+                raise TypeError(
+                    f"{name} must be one dimensional when multi_spike=True; received tensor with shape {value.shape}.")
+            return [int(x) for x in value.flatten().tolist()]
+        try:
+            return [int(x) for x in value]
+        except TypeError:
+            raise TypeError(
+                f"{name} must be iterable when multi_spike=True; got object of type {type(value).__name__}.")    
 
     # spiking output from final layer is a recording: T x B x N
     # targets can either be labels or spike times
