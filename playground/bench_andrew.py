@@ -9,7 +9,7 @@ from snntorch._neurons.stateleaky import StateLeaky
 
 BATCH_SIZE = 1
 CHANNELS = 20
-TIMESTEPS = np.logspace(1, 5, num=10, dtype=int)
+TIMESTEPS = np.logspace(1, 3, num=10, dtype=int)
 
 device = "cuda"
 
