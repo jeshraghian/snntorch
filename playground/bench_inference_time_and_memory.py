@@ -9,11 +9,11 @@ from tqdm import tqdm
 
 from snntorch._neurons.stateleaky import StateLeaky
 
-BATCH_SIZE = 20
-CHANNELS = 100
-TIMESTEPS = np.logspace(1, 5, num=10, dtype=int)
+BATCH_SIZE = 10
+CHANNELS = 20
+TIMESTEPS = np.logspace(1, 5.85, num=10, dtype=int)
 
-device = "cuda"
+device = "cuda:1"
 torch.set_grad_enabled(False)  # no autograd in this benchmark
 
 
@@ -103,29 +103,33 @@ with torch.no_grad():
         bases2.append(np.mean(b2_runs))
         peaks2.append(np.mean(p2_runs))
 
-    # ---- Plots (time) ----
-    plt.figure(figsize=(10, 6))
-    plt.plot(TIMESTEPS, times1, "b-", label="Type 1 (Leaky)")
-    plt.plot(TIMESTEPS, times2, "r-", label="Type 2 (StateLeaky)")
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.grid(True, which="both", ls="-", alpha=0.2)
-    plt.xlabel("Number of Timesteps")
-    plt.ylabel("Time (seconds)")
-    plt.title("SNN Performance Comparison (Time)")
-    plt.legend()
+    # ---- Plots: side-by-side ----
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6), constrained_layout=False)
+    ax_time, ax_mem = axes
 
-    # ---- Plots (memory: Δpeak per run) ----
-    plt.figure(figsize=(10, 6))
-    plt.plot(TIMESTEPS, mems1, "b-", label="Type 1 mem Δpeak")
-    plt.plot(TIMESTEPS, mems2, "r-", label="Type 2 mem Δpeak")
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.grid(True, which="both", ls="-", alpha=0.2)
-    plt.xlabel("Number of Timesteps")
-    plt.ylabel("Δ Peak Allocated (MiB)")
-    plt.title("SNN Memory Comparison (Incremental Peak per Run)")
-    plt.legend()
+    # Time subplot
+    ax_time.plot(TIMESTEPS, times1, "b-", label="Type 1 (Leaky)")
+    ax_time.plot(TIMESTEPS, times2, "r-", label="Type 2 (StateLeaky)")
+    ax_time.set_xscale("log")
+    ax_time.set_yscale("log")
+    ax_time.grid(True, which="both", ls="-", alpha=0.2)
+    ax_time.set_xlabel("Number of Timesteps")
+    ax_time.set_ylabel("Time (seconds)")
+    ax_time.set_title("SNN Performance (Time)")
+    ax_time.legend()
+
+    # Memory subplot (Δpeak per run)
+    ax_mem.plot(TIMESTEPS, mems1, "b-", label="Type 1 mem Δpeak")
+    ax_mem.plot(TIMESTEPS, mems2, "r-", label="Type 2 mem Δpeak")
+    ax_mem.set_xscale("log")
+    ax_mem.set_yscale("log")
+    ax_mem.grid(True, which="both", ls="-", alpha=0.2)
+    ax_mem.set_xlabel("Number of Timesteps")
+    ax_mem.set_ylabel("Δ Peak Allocated (MiB)")
+    ax_mem.set_title("SNN Memory (Incremental Peak per Run)")
+    ax_mem.legend()
+
+    plt.tight_layout()
 
     # ---- Optional: print baselines/peaks to verify behavior ----
     print("\nBenchmark Results (Time):")
@@ -150,4 +154,4 @@ with torch.no_grad():
             f"{int(steps):9d} | {bases1[i]:6.1f} | {peaks1[i]:6.1f} || {bases2[i]:6.1f} | {peaks2[i]:6.1f}"
         )
 
-    plt.savefig("snn_performance_comparison.png", format="png")
+    fig.savefig("snn_performance_comparison.png", format="png")
