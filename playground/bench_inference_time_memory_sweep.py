@@ -19,6 +19,7 @@ SWEEP_CONFIGS = [
 
 # Same timestep schedule as baseline
 TIMESTEPS = np.logspace(1, 3.5, num=10, dtype=int)
+NUM_SEEDS = 10
 
 device = "cuda:1"
 torch.set_grad_enabled(False)
@@ -68,76 +69,102 @@ with torch.no_grad():
     results_infer = []
 
     for batch_size, channels in SWEEP_CONFIGS:
-        times_leaky, times_state = [], []
-        mems_leaky, mems_state = [], []  # Δpeak MiB per run
-        bases_leaky, bases_state = [], []  # baselines MiB
-        peaks_leaky, peaks_state = [], []  # absolute peaks MiB
+        sum_times_leaky = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_times_state = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_mems_leaky = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_mems_state = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_bases_leaky = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_peaks_leaky = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_bases_state = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_peaks_state = np.zeros(len(TIMESTEPS), dtype=float)
 
-        for steps in tqdm(TIMESTEPS, desc=f"B{batch_size}-C{channels}"):
-            n_runs = 2
-            t1_runs, t2_runs = [], []
-            m1_runs, m2_runs = [], []
-            b1_runs, b2_runs = [], []
-            p1_runs, p2_runs = [], []
+        for seed in range(NUM_SEEDS):
+            torch.manual_seed(seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(seed)
+            np.random.seed(seed)
 
-            for _ in range(n_runs):
-                # --- Leaky ---
-                torch.cuda.synchronize()
-                # torch.cuda.reset_peak_memory_stats(device)
-                # torch.cuda.reset_max_memory_allocated(device)
-                # torch.cuda.reset_max_memory_cached(device)
-                # torch.cuda.reset_accumulated_memory_stats(device)
-                base1 = get_cur_bytes(device)
-                t1 = bench_leaky(int(steps), batch_size, channels)
-                torch.cuda.synchronize()
-                peak1 = get_peak_bytes(device)
-                d1 = peak1
-                # d1 = max(0, peak1 - base1) / 1024**2
+            times_leaky, times_state = [], []
+            mems_leaky, mems_state = [], []
+            bases_leaky, bases_state = [], []
+            peaks_leaky, peaks_state = [], []
 
-                t1_runs.append(t1)
-                m1_runs.append(d1)
-                b1_runs.append(base1 / 1024**2)
-                p1_runs.append(peak1 / 1024**2)
+            for steps in tqdm(
+                TIMESTEPS, desc=f"B{batch_size}-C{channels} [seed {seed}]"
+            ):
+                n_runs = 2
+                t1_runs, t2_runs = [], []
+                m1_runs, m2_runs = [], []
+                b1_runs, b2_runs = [], []
+                p1_runs, p2_runs = [], []
 
-                # --- StateLeaky ---
-                torch.cuda.synchronize()
-                # torch.cuda.reset_peak_memory_stats(device)
-                # torch.cuda.reset_max_memory_allocated(device)
-                # torch.cuda.reset_max_memory_cached(device)
-                # torch.cuda.reset_accumulated_memory_stats(device)
-                base2 = get_cur_bytes(device)
-                t2 = bench_stateleaky(int(steps), batch_size, channels)
-                torch.cuda.synchronize()
-                peak2 = get_peak_bytes(device)
-                d2 = peak2
-                # d2 = max(0, peak2 - base2) / 1024**2
+                for _ in range(n_runs):
+                    # --- Leaky ---
+                    torch.cuda.synchronize()
+                    # torch.cuda.reset_peak_memory_stats(device)
+                    # torch.cuda.reset_max_memory_allocated(device)
+                    # torch.cuda.reset_max_memory_cached(device)
+                    # torch.cuda.reset_accumulated_memory_stats(device)
+                    base1 = get_cur_bytes(device)
+                    t1 = bench_leaky(int(steps), batch_size, channels)
+                    torch.cuda.synchronize()
+                    peak1 = get_peak_bytes(device)
+                    d1 = peak1
+                    # d1 = max(0, peak1 - base1) / 1024**2
 
-                t2_runs.append(t2)
-                m2_runs.append(d2)
-                b2_runs.append(base2 / 1024**2)
-                p2_runs.append(peak2 / 1024**2)
+                    t1_runs.append(t1)
+                    m1_runs.append(d1)
+                    b1_runs.append(base1 / 1024**2)
+                    p1_runs.append(peak1 / 1024**2)
 
-            times_leaky.append(np.mean(t1_runs))
-            times_state.append(np.mean(t2_runs))
-            mems_leaky.append(np.mean(m1_runs))
-            mems_state.append(np.mean(m2_runs))
-            bases_leaky.append(np.mean(b1_runs))
-            peaks_leaky.append(np.mean(p1_runs))
-            bases_state.append(np.mean(b2_runs))
-            peaks_state.append(np.mean(p2_runs))
+                    # --- StateLeaky ---
+                    torch.cuda.synchronize()
+                    # torch.cuda.reset_peak_memory_stats(device)
+                    # torch.cuda.reset_max_memory_allocated(device)
+                    # torch.cuda.reset_max_memory_cached(device)
+                    # torch.cuda.reset_accumulated_memory_stats(device)
+                    base2 = get_cur_bytes(device)
+                    t2 = bench_stateleaky(int(steps), batch_size, channels)
+                    torch.cuda.synchronize()
+                    peak2 = get_peak_bytes(device)
+                    d2 = peak2
+                    # d2 = max(0, peak2 - base2) / 1024**2
+
+                    t2_runs.append(t2)
+                    m2_runs.append(d2)
+                    b2_runs.append(base2 / 1024**2)
+                    p2_runs.append(peak2 / 1024**2)
+
+                times_leaky.append(np.mean(t1_runs))
+                times_state.append(np.mean(t2_runs))
+                mems_leaky.append(np.mean(m1_runs))
+                mems_state.append(np.mean(m2_runs))
+                bases_leaky.append(np.mean(b1_runs))
+                peaks_leaky.append(np.mean(p1_runs))
+                bases_state.append(np.mean(b2_runs))
+                peaks_state.append(np.mean(p2_runs))
+
+            sum_times_leaky += np.array(times_leaky)
+            sum_times_state += np.array(times_state)
+            sum_mems_leaky += np.array(mems_leaky)
+            sum_mems_state += np.array(mems_state)
+            sum_bases_leaky += np.array(bases_leaky)
+            sum_peaks_leaky += np.array(peaks_leaky)
+            sum_bases_state += np.array(bases_state)
+            sum_peaks_state += np.array(peaks_state)
 
         results_infer.append(
             {
                 "batch_size": batch_size,
                 "channels": channels,
-                "times_leaky": np.array(times_leaky),
-                "times_state": np.array(times_state),
-                "mems_leaky": np.array(mems_leaky),
-                "mems_state": np.array(mems_state),
-                "bases_leaky": np.array(bases_leaky),
-                "peaks_leaky": np.array(peaks_leaky),
-                "bases_state": np.array(bases_state),
-                "peaks_state": np.array(peaks_state),
+                "times_leaky": sum_times_leaky / NUM_SEEDS,
+                "times_state": sum_times_state / NUM_SEEDS,
+                "mems_leaky": sum_mems_leaky / NUM_SEEDS,
+                "mems_state": sum_mems_state / NUM_SEEDS,
+                "bases_leaky": sum_bases_leaky / NUM_SEEDS,
+                "peaks_leaky": sum_peaks_leaky / NUM_SEEDS,
+                "bases_state": sum_bases_state / NUM_SEEDS,
+                "peaks_state": sum_peaks_state / NUM_SEEDS,
             }
         )
 
@@ -197,78 +224,105 @@ with torch.enable_grad():
     results_train = []
 
     for batch_size, channels in SWEEP_CONFIGS:
-        times_leaky_t, times_state_t = [], []
-        mems_leaky_t, mems_state_t = [], []
-        bases_leaky_t, bases_state_t = [], []
-        peaks_leaky_t, peaks_state_t = [], []
+        sum_times_leaky_t = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_times_state_t = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_mems_leaky_t = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_mems_state_t = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_bases_leaky_t = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_peaks_leaky_t = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_bases_state_t = np.zeros(len(TIMESTEPS), dtype=float)
+        sum_peaks_state_t = np.zeros(len(TIMESTEPS), dtype=float)
 
-        for steps in tqdm(
-            TIMESTEPS, desc=f"B{batch_size}-C{channels} [train]"
-        ):
-            n_runs = 2
-            t1_runs, t2_runs = [], []
-            m1_runs, m2_runs = [], []
-            b1_runs, b2_runs = [], []
-            p1_runs, p2_runs = [], []
+        for seed in range(NUM_SEEDS):
+            torch.manual_seed(seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(seed)
+            np.random.seed(seed)
 
-            for _ in range(n_runs):
-                # --- Leaky train ---
-                torch.cuda.synchronize()
-                # torch.cuda.reset_peak_memory_stats(device)
-                # torch.cuda.reset_max_memory_allocated(device)
-                # torch.cuda.reset_max_memory_cached(device)
-                # torch.cuda.reset_accumulated_memory_stats(device)
-                base1 = get_cur_bytes(device)
-                t1 = bench_leaky_train(int(steps), batch_size, channels)
-                torch.cuda.synchronize()
-                peak1 = get_peak_bytes(device)
-                d1 = peak1
-                # d1 = max(0, peak1 - base1) / 1024**2
+            times_leaky_t, times_state_t = [], []
+            mems_leaky_t, mems_state_t = [], []
+            bases_leaky_t, bases_state_t = [], []
+            peaks_leaky_t, peaks_state_t = [], []
 
-                t1_runs.append(t1)
-                m1_runs.append(d1)
-                b1_runs.append(base1 / 1024**2)
-                p1_runs.append(peak1 / 1024**2)
+            for steps in tqdm(
+                TIMESTEPS,
+                desc=f"B{batch_size}-C{channels} [train seed {seed}]",
+            ):
+                n_runs = 2
+                t1_runs, t2_runs = [], []
+                m1_runs, m2_runs = [], []
+                b1_runs, b2_runs = [], []
+                p1_runs, p2_runs = [], []
 
-                # --- StateLeaky train ---
-                torch.cuda.synchronize()
-                # torch.cuda.reset_peak_memory_stats(device)
-                # torch.cuda.reset_max_memory_allocated(device)
-                # torch.cuda.reset_max_memory_cached(device)
-                # torch.cuda.reset_accumulated_memory_stats(device)
-                base2 = get_cur_bytes(device)
-                t2 = bench_stateleaky_train(int(steps), batch_size, channels)
-                torch.cuda.synchronize()
-                peak2 = get_peak_bytes(device)
-                d2 = peak2
-                # d2 = max(0, peak2 - base2) / 1024**2
+                for _ in range(n_runs):
+                    # --- Leaky train ---
+                    torch.cuda.synchronize()
+                    # torch.cuda.reset_peak_memory_stats(device)
+                    # torch.cuda.reset_max_memory_allocated(device)
+                    # torch.cuda.reset_max_memory_cached(device)
+                    # torch.cuda.reset_accumulated_memory_stats(device)
+                    base1 = get_cur_bytes(device)
+                    t1 = bench_leaky_train(int(steps), batch_size, channels)
+                    torch.cuda.synchronize()
+                    peak1 = get_peak_bytes(device)
+                    d1 = peak1
+                    # d1 = max(0, peak1 - base1) / 1024**2
 
-                t2_runs.append(t2)
-                m2_runs.append(d2)
-                b2_runs.append(base2 / 1024**2)
-                p2_runs.append(peak2 / 1024**2)
+                    t1_runs.append(t1)
+                    m1_runs.append(d1)
+                    b1_runs.append(base1 / 1024**2)
+                    p1_runs.append(peak1 / 1024**2)
 
-            times_leaky_t.append(np.mean(t1_runs))
-            times_state_t.append(np.mean(t2_runs))
-            mems_leaky_t.append(np.mean(m1_runs))
-            mems_state_t.append(np.mean(m2_runs))
-            bases_leaky_t.append(np.mean(b1_runs))
-            peaks_leaky_t.append(np.mean(p1_runs))
-            bases_state_t.append(np.mean(b2_runs))
-            peaks_state_t.append(np.mean(p2_runs))
+                    # --- StateLeaky train ---
+                    torch.cuda.synchronize()
+                    # torch.cuda.reset_peak_memory_stats(device)
+                    # torch.cuda.reset_max_memory_allocated(device)
+                    # torch.cuda.reset_max_memory_cached(device)
+                    # torch.cuda.reset_accumulated_memory_stats(device)
+                    base2 = get_cur_bytes(device)
+                    t2 = bench_stateleaky_train(
+                        int(steps), batch_size, channels
+                    )
+                    torch.cuda.synchronize()
+                    peak2 = get_peak_bytes(device)
+                    d2 = peak2
+                    # d2 = max(0, peak2 - base2) / 1024**2
+
+                    t2_runs.append(t2)
+                    m2_runs.append(d2)
+                    b2_runs.append(base2 / 1024**2)
+                    p2_runs.append(peak2 / 1024**2)
+
+                times_leaky_t.append(np.mean(t1_runs))
+                times_state_t.append(np.mean(t2_runs))
+                mems_leaky_t.append(np.mean(m1_runs))
+                mems_state_t.append(np.mean(m2_runs))
+                bases_leaky_t.append(np.mean(b1_runs))
+                peaks_leaky_t.append(np.mean(p1_runs))
+                bases_state_t.append(np.mean(b2_runs))
+                peaks_state_t.append(np.mean(p2_runs))
+
+            sum_times_leaky_t += np.array(times_leaky_t)
+            sum_times_state_t += np.array(times_state_t)
+            sum_mems_leaky_t += np.array(mems_leaky_t)
+            sum_mems_state_t += np.array(mems_state_t)
+            sum_bases_leaky_t += np.array(bases_leaky_t)
+            sum_peaks_leaky_t += np.array(peaks_leaky_t)
+            sum_bases_state_t += np.array(bases_state_t)
+            sum_peaks_state_t += np.array(peaks_state_t)
 
         results_train.append(
             {
                 "batch_size": batch_size,
                 "channels": channels,
-                "times_leaky": np.array(times_leaky_t),
-                "times_state": np.array(times_state_t),
-                "mems_leaky": np.array(mems_leaky_t),
-                "mems_state": np.array(mems_state_t),
-                "bases_leaky": np.array(bases_leaky_t),
-                "peaks_leaky": np.array(peaks_leaky_t),
-                "bases_state": np.array(bases_state_t),
-                "peaks_state": np.array(peaks_state_t),
+                "times_leaky": sum_times_leaky_t / NUM_SEEDS,
+                "times_state": sum_times_state_t / NUM_SEEDS,
+                "mems_leaky": sum_mems_leaky_t / NUM_SEEDS,
+                "mems_state": sum_mems_state_t / NUM_SEEDS,
+                "bases_leaky": sum_bases_leaky_t / NUM_SEEDS,
+                "peaks_leaky": sum_peaks_leaky_t / NUM_SEEDS,
+                "bases_state": sum_bases_state_t / NUM_SEEDS,
+                "peaks_state": sum_peaks_state_t / NUM_SEEDS,
             }
         )
 
@@ -303,14 +357,14 @@ for idx, res in enumerate(results_infer):
         res["mems_leaky"],
         linestyle="-",
         color=color,
-        label=f"Leaky ΔMiB {label_suffix}",
+        label=f"Leaky Peak {label_suffix}",
     )
     ax_mem_inf.plot(
         TIMESTEPS,
         res["mems_state"],
         linestyle="--",
         color=color,
-        label=f"State ΔMiB {label_suffix}",
+        label=f"State Peak {label_suffix}",
     )
 
 for idx, res in enumerate(results_train):
@@ -337,14 +391,14 @@ for idx, res in enumerate(results_train):
         res["mems_leaky"],
         linestyle="-",
         color=color,
-        label=f"Leaky ΔMiB (train) {label_suffix}",
+        label=f"Leaky Peak (train) {label_suffix}",
     )
     ax_mem_trn.plot(
         TIMESTEPS,
         res["mems_state"],
         linestyle="--",
         color=color,
-        label=f"State ΔMiB (train) {label_suffix}",
+        label=f"State Peak (train) {label_suffix}",
     )
 
 # Formatting
@@ -359,8 +413,8 @@ ax_time_inf.set_title("SNN Performance (Time) - Inference")
 ax_time_inf.legend(ncol=2, fontsize=8)
 
 ax_mem_inf.set_xlabel("Number of Timesteps")
-ax_mem_inf.set_ylabel("Δ Peak Allocated (MiB)")
-ax_mem_inf.set_title("SNN Memory (Δpeak) - Inference")
+ax_mem_inf.set_ylabel("Peak Allocated (bytes)")
+ax_mem_inf.set_title("SNN Memory (Peak) - Inference")
 ax_mem_inf.legend(ncol=2, fontsize=8)
 
 ax_time_trn.set_xlabel("Number of Timesteps")
@@ -369,8 +423,8 @@ ax_time_trn.set_title("SNN Performance (Time) - Training (fwd+bwd)")
 ax_time_trn.legend(ncol=2, fontsize=8)
 
 ax_mem_trn.set_xlabel("Number of Timesteps")
-ax_mem_trn.set_ylabel("Δ Peak Allocated (MiB)")
-ax_mem_trn.set_title("SNN Memory (Δpeak) - Training (fwd+bwd)")
+ax_mem_trn.set_ylabel("Peak Allocated (bytes)")
+ax_mem_trn.set_title("SNN Memory (Peak) - Training (fwd+bwd)")
 ax_mem_trn.legend(ncol=2, fontsize=8)
 
 plt.tight_layout()
@@ -388,9 +442,9 @@ for res in results_infer:
         )
 
     print(
-        f"\n[Inference] Benchmark Results (Memory - Δpeak per run) for B{res['batch_size']} C{res['channels']}:"
+        f"\n[Inference] Benchmark Results (Memory - Peak) for B{res['batch_size']} C{res['channels']}:"
     )
-    print("Timesteps | Leaky ΔMiB | StateLeaky ΔMiB | Ratio (State/Leaky)")
+    print("Timesteps | Leaky Peak | StateLeaky Peak | Ratio (State/Leaky)")
     for i, steps in enumerate(TIMESTEPS):
         denom = res["mems_leaky"][i]
         ratio = (res["mems_state"][i] / denom) if denom else float("inf")
@@ -410,9 +464,9 @@ for res in results_train:
         )
 
     print(
-        f"\n[Training] Benchmark Results (Memory - Δpeak per run) for B{res['batch_size']} C{res['channels']}:"
+        f"\n[Training] Benchmark Results (Memory - Peak) for B{res['batch_size']} C{res['channels']}:"
     )
-    print("Timesteps | Leaky ΔMiB | StateLeaky ΔMiB | Ratio (State/Leaky)")
+    print("Timesteps | Leaky Peak | StateLeaky Peak | Ratio (State/Leaky)")
     for i, steps in enumerate(TIMESTEPS):
         denom = res["mems_leaky"][i]
         ratio = (res["mems_state"][i] / denom) if denom else float("inf")
