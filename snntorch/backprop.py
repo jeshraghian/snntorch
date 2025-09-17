@@ -150,6 +150,7 @@ def TBPTT(
         utils.is_alpha: snn.Alpha,
         utils.is_rleaky: snn.RLeaky,
         utils.is_rsynaptic: snn.RSynaptic,
+        utils.is_sconv1dlstm: snn.SConv1dLSTM,
         utils.is_sconv2dlstm: snn.SConv2dLSTM,
         utils.is_slstm: snn.SLSTM,
     }
