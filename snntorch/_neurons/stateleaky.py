@@ -4,6 +4,34 @@ from torch.nn import functional as F
 from profilehooks import profile
 from .neurons import LIF
 
+import torch
+from torch.autograd import Function
+from torch.nn import functional as F
+
+
+def causal_conv1d(input_tensor, kernel_tensor):
+    # get dimensions
+    batch_size, in_channels, num_steps = input_tensor.shape
+    # kernel_tensor: (channels, 1, kernel_size)
+    out_channels, _, kernel_size = kernel_tensor.shape
+
+    # for causal convolution, output at time t only depends on inputs up to t
+    # therefore, we pad only on the left side
+    padding = kernel_size - 1
+    padded_input = F.pad(input_tensor, (padding, 0))
+
+    # kernel is flipped to turn cross-correlation performed by F.conv1d into convolution
+    flipped_kernel = torch.flip(kernel_tensor, dims=[-1])
+
+    # perform convolution with the padded input (output length = num_steps length)
+    # print(f"padded input contiguous: {padded_input.is_contiguous()}")
+    # print(f"flipped kernel contiguous: {flipped_kernel.is_contiguous()}")
+    causal_conv_result = F.conv1d(
+        padded_input, flipped_kernel, groups=in_channels
+    )
+
+    return causal_conv_result
+
 
 class StateLeaky(LIF):
     """
@@ -43,64 +71,6 @@ class StateLeaky(LIF):
 
         self._tau_buffer(self.beta, learn_beta, channels)
 
-    @property
-    def beta(self):
-        return (self.tau - 1) / self.tau
-
-    # @profile(skip=False, stdout=False, filename="baseline.prof")
-    def forward(self, input_):
-        self.mem = self._base_state_function(input_)
-
-        if self.state_quant:
-            self.mem = self.state_quant(self.mem)
-
-        if self.output:
-            self.spk = self.fire(self.mem) * self.graded_spikes_factor
-            return self.spk, self.mem
-
-        else:
-            return self.mem
-
-    def _base_state_function(self, input_):
-        num_steps, batch, channels = input_.shape
-
-        # make the decay filter
-        time_steps = torch.arange(0, num_steps).to(input_.device)
-        assert time_steps.shape == (num_steps,)
-
-        # single channel case
-        if self.tau.shape == ():
-            decay_filter = (
-                torch.exp(-time_steps / self.tau.to(input_.device))
-                .unsqueeze(1)
-                .expand(num_steps, channels)
-            )
-            assert decay_filter.shape == (num_steps, channels)
-        # multichannel case
-        else:
-            # expand timesteps to be fo shape (num_steps, channels)
-            time_steps = time_steps.unsqueeze(1).expand(num_steps, channels)
-            # expand tau to be of shape (num_steps, channels)
-            tau = (
-                self.tau.unsqueeze(0)
-                .expand(num_steps, channels)
-                .to(input_.device)
-            )
-            # compute decay filter
-            decay_filter = torch.exp(-time_steps / tau)
-            assert decay_filter.shape == (num_steps, channels)
-
-        # prepare for convolution
-        input_ = input_.permute(1, 2, 0)
-        assert input_.shape == (batch, channels, num_steps)
-        decay_filter = decay_filter.permute(1, 0).unsqueeze(1)
-        assert decay_filter.shape == (channels, 1, num_steps)
-
-        conv_result = self.full_mode_conv1d_truncated(input_, decay_filter)
-        assert conv_result.shape == (batch, channels, num_steps)
-
-        return conv_result.permute(2, 0, 1)  # return membrane potential trace
-
     def _tau_buffer(self, beta, learn_beta, channels):
         if not isinstance(beta, torch.Tensor):
             beta = torch.as_tensor(beta)
@@ -120,28 +90,59 @@ class StateLeaky(LIF):
         else:
             self.register_buffer("tau", tau)
 
-    def full_mode_conv1d_truncated(self, input_tensor, kernel_tensor):
-        # get dimensions
-        batch_size, in_channels, num_steps = input_tensor.shape
-        # kernel_tensor: (channels, 1, kernel_size)
-        out_channels, _, kernel_size = kernel_tensor.shape
+    def _base_state_function(self, input_):
+        num_steps, batch, channels = input_.shape
+        input_ = input_.permute(1, 2, 0)
+        assert input_.shape == (batch, channels, num_steps)
+        device = input_.device
 
-        kernel_tensor = torch.flip(kernel_tensor, dims=[-1]).to(
-            input_tensor.device
+        # time axis shape (1, 1, num_steps)
+        time_steps = torch.arange(num_steps, device=device).view(
+            1, 1, num_steps
         )
+        assert time_steps.shape == (1, 1, num_steps)
 
-        # pad the input tensor on both sides
-        padding = kernel_size - 1
-        padded_input = F.pad(input_tensor, (padding, padding))
+        # single channel case
+        if self.tau.shape == ():
+            # tau is scalar, broadcast across channels
+            tau = self.tau.to(device)
+            decay_filter = torch.exp(-time_steps / tau).expand(
+                channels, 1, num_steps
+            )
+        else:
+            # tau is (channels,), reshape to (channels, 1, 1) so it broadcasts correctly
+            tau = self.tau.to(device).view(channels, 1, 1)
+            assert tau.shape == (channels, 1, 1)
+            decay_filter = torch.exp(
+                -time_steps / tau
+            )  # directly (channels, 1, num_steps)
 
-        # perform convolution with the padded input
-        conv_result = F.conv1d(padded_input, kernel_tensor, groups=in_channels)
+        assert decay_filter.shape == (channels, 1, num_steps)
+        assert input_.shape == (batch, channels, num_steps)
 
-        # truncate the result to match the original input length
-        # TODO: potential optimization?
-        truncated_result = conv_result[..., 0:num_steps]
+        # depthwise convolution: each channel gets its own decay filter
+        conv_result = causal_conv1d(input_, decay_filter)
+        assert conv_result.shape == (batch, channels, num_steps)
 
-        return truncated_result
+        return conv_result.permute(2, 0, 1)  # (num_steps, batch, channels)
+
+    @property
+    def beta(self):
+        return (self.tau - 1) / self.tau
+
+    # @profile(skip=False, stdout=False, filename="baseline.prof")
+    def forward(self, input_):
+        mem = self._base_state_function(input_)
+
+        if self.state_quant:
+            mem = self.state_quant(mem)
+
+        if self.output:
+            self.spk = self.fire(mem) * self.graded_spikes_factor
+            return self.spk, mem
+
+        else:
+            return mem
 
 
 # TODO: throw exceptions if calling subclass methods we don't want to use
