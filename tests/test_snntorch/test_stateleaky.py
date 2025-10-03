@@ -23,6 +23,13 @@ Test Structure:
 3. Chunking Tests:
     - Tests chunking with gradients enabled
 
+4. API Compatibility / Fail-Fast Tests:
+    - Verifies that StateLeaky raises NotImplementedError for APIs that do not
+      conceptually apply (inhibition, mem_reset)
+
+5. Warnings (Ergonomics):
+    - Verifies that inert spike-only settings emit a warning when output=False
+
 Coverage:
 --------
 - Input/output shape consistency
@@ -340,6 +347,76 @@ def test_kernel_truncation_impulse(device):
 
     # Additionally, truncated and full should differ for t>=4 for at least one channel
     assert not torch.allclose(out_full[4:], out_trunc[4:], atol=1e-8)
+
+
+def test_fail_fast_unimplemented_apis(device):
+    """
+    StateLeaky computes membrane via a feed-forward causal convolution over
+    the entire sequence and does not maintain a stepwise recurrent hidden
+    state.
+
+    As a result, inhibition and stepwise reset signaling (mem_reset) do not
+    conceptually apply here.
+
+    This test ensures these paths fail fast with clear errors so users do
+    not rely on incompatible behaviors.
+    """
+    channels = 2
+    lif = StateLeaky(beta=0.9, channels=channels, output=False)
+
+    # fire_inhibition should be unsupported
+    with pytest.raises(NotImplementedError):
+        lif.fire_inhibition(batch_size=1, mem=torch.zeros(1, channels))
+
+    # mem_reset should be unsupported
+    with pytest.raises(NotImplementedError):
+        lif.mem_reset(torch.zeros(1, channels))
+
+
+def test_warn_on_inert_spike_settings(device):
+    """
+    When output=False, StateLeaky does not emit spikes; spike-only knobs are
+      inert. We warn to catch config mismatches.
+    """
+    with pytest.warns(UserWarning):
+        _ = StateLeaky(
+            beta=0.9,
+            channels=2,
+            output=False,
+            spike_grad=lambda x: x,  # any non-default surrogate
+        )
+
+    with pytest.warns(UserWarning):
+        _ = StateLeaky(
+            beta=0.9,
+            channels=2,
+            output=False,
+            surrogate_disable=True,
+        )
+
+    with pytest.warns(UserWarning):
+        _ = StateLeaky(
+            beta=0.9,
+            channels=2,
+            output=False,
+            learn_threshold=True,
+        )
+
+    with pytest.warns(UserWarning):
+        _ = StateLeaky(
+            beta=0.9,
+            channels=2,
+            output=False,
+            graded_spikes_factor=2.0,
+        )
+
+    with pytest.warns(UserWarning):
+        _ = StateLeaky(
+            beta=0.9,
+            channels=2,
+            output=False,
+            learn_graded_spikes_factor=True,
+        )
 
 
 if __name__ == "__main__":

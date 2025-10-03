@@ -1,4 +1,5 @@
 import torch
+from warnings import warn
 from torch import nn
 from torch.nn import functional as F
 from profilehooks import profile
@@ -31,7 +32,106 @@ def causal_conv1d(input_tensor, kernel_tensor):
 
 
 class StateLeaky(LIF):
-    """StateLeaky neuron model."""
+    r"""
+    First-order state-only leaky neuron model that uses a causal exponential
+    decay kernel to generate the membrane potential over time via depthwise
+    causal convolution. Unlike :class:`Leaky`, no stepwise recurrent reset is
+    applied inside the state update; spikes (if requested) are emitted by
+    thresholding the resulting state.
+
+    The effective per-channel decay filter is
+
+    .. math::
+
+        h[t] = e^{-t/\tau}, \quad t = 0, 1, \ldots
+
+    Optionally, the decay kernel can be truncated to a finite memory window
+    via ``kernel_truncation_steps``. When set to an integer ``K > 0``, only the
+    most recent ``K`` taps contribute to each output time step (older
+    contributions are dropped). Output sequence length is unchanged.
+
+    Example::
+
+        import torch
+        from snntorch._neurons.stateleaky import StateLeaky
+
+        T, B, C = 16, 2, 4
+        x = torch.randn(T, B, C)
+        lif = StateLeaky(beta=0.9, channels=C, output=True, kernel_truncation_steps=8)
+        spk, mem = lif(x)
+
+    :param beta: membrane potential decay rate. May be a single-valued tensor
+        (shared across channels) or multi-valued of shape ``(channels,)``.
+        Internally represented via :math:`\tau = 1/(1-\beta)`.
+    :type beta: float or torch.tensor
+
+    :param channels: Number of channels processed depthwise. Must match the
+        input's channel dimension.
+    :type channels: int
+
+    :param threshold: Threshold used to generate spikes when ``output=True``.
+        Defaults to 1.0
+    :type threshold: float, optional
+
+    :param spike_grad: Surrogate gradient for the term dS/dU when spikes are
+        produced. Defaults to None (corresponds to ATan surrogate gradient. See
+        ``snntorch.surrogate`` for more options)
+    :type spike_grad: surrogate gradient function from snntorch.surrogate,
+        optional
+
+    :param surrogate_disable: Disables surrogate gradients regardless of
+        ``spike_grad`` argument. Useful for ONNX compatibility. Defaults to
+        False
+    :type surrogate_disable: bool, Optional
+
+    :param learn_beta: Option to enable learnable beta (via ``tau``).
+        Defaults to False
+    :type learn_beta: bool, optional
+
+    :param learn_threshold: Option to enable learnable threshold. Defaults to
+        False
+    :type learn_threshold: bool, optional
+
+    :param state_quant: If specified, hidden state :math:`mem` is quantized to
+        a valid state for the forward pass. Defaults to False
+    :type state_quant: quantization function from snntorch.quant, optional
+
+    :param output: If ``True``, returns states (and spikes) when the neuron is
+        called. If ``False``, returns membrane only. Defaults to True
+    :type output: bool, optional
+
+    :param graded_spikes_factor: Output spikes are scaled by this value, if
+        specified. Defaults to 1.0
+    :type graded_spikes_factor: float or torch.tensor
+
+    :param learn_graded_spikes_factor: Option to enable learnable graded
+        spikes. Defaults to False
+    :type learn_graded_spikes_factor: bool, optional
+
+    :param kernel_truncation_steps: If set to integer ``K > 0``, keeps the ``K``
+        most recent taps of the exponential kernel per output time step, and
+        discards older contributions. If ``None``, uses the full time window.
+        Defaults to None
+    :type kernel_truncation_steps: int or None, optional
+
+    Inputs: \input_
+        - **input_** of shape ``(T, B, C)``: time-major input tensor
+
+    Outputs: spk, mem
+        - If ``output=True``:
+            - **spk** of shape ``(T, B, C)``: output spikes
+            - **mem** of shape ``(T, B, C)``: membrane potential
+        - If ``output=False``:
+            - **mem** of shape ``(T, B, C)``: membrane potential
+
+    Learnable Parameters:
+        - **StateLeaky.beta** (via ``tau``) - optional learnable per-channel
+          parameter when ``learn_beta=True``
+        - **StateLeaky.threshold** - optional learnable threshold when
+          ``learn_threshold=True``
+        - **StateLeaky.graded_spikes_factor** - optional learnable scaling when
+          ``learn_graded_spikes_factor=True``
+    """
 
     def __init__(
         self,
@@ -61,9 +161,40 @@ class StateLeaky(LIF):
             learn_graded_spikes_factor=learn_graded_spikes_factor,
         )
 
+        # Warn on non-applicable-but-harmless settings when spikes are disabled
+        if not output:
+            if (
+                spike_grad is not None
+                or surrogate_disable
+                or learn_threshold
+                or learn_graded_spikes_factor
+                or (
+                    isinstance(graded_spikes_factor, torch.Tensor)
+                    and not torch.all(graded_spikes_factor == 1.0)
+                )
+                or (
+                    not isinstance(graded_spikes_factor, torch.Tensor)
+                    and graded_spikes_factor != 1.0
+                )
+            ):
+                warn(
+                    "StateLeaky: spike-related settings are unused when output=False (no spikes emitted).",
+                    UserWarning,
+                )
+
         self.kernel_truncation_steps = kernel_truncation_steps
 
         self._tau_buffer(self.beta, learn_beta, channels)
+
+    def fire_inhibition(self, batch_size, mem):  # type: ignore[override]
+        raise NotImplementedError(
+            "StateLeaky does not support inhibition; use standard Leaky for inhibition paths."
+        )
+
+    def mem_reset(self, mem):  # type: ignore[override]
+        raise NotImplementedError(
+            "StateLeaky does not maintain stepwise resets; mem_reset is not applicable."
+        )
 
     def _tau_buffer(self, beta, learn_beta, channels):
         if not isinstance(beta, torch.Tensor):
@@ -143,12 +274,6 @@ class StateLeaky(LIF):
 
         else:
             return mem
-
-
-# TODO: throw exceptions if calling subclass methods we don't want to use
-# fire_inhibition
-# mem_reset, init, detach, zeros, reset_mem, init_leaky
-# detach_hidden, reset_hidden
 
 
 if __name__ == "__main__":
