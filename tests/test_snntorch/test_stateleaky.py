@@ -286,5 +286,61 @@ def test_chunking_with_gd():
     ), "Backward pass (gradients) do not match."
 
 
+def test_kernel_truncation_impulse(device):
+    """
+    StateLeaky's membrane state acts like a fading memory of past inputs.
+    With a single, one-time impulse at the first timestep,
+    the membrane simply traces out that fading memory curve over time.
+
+    We feed this impulse 1 at t=0 and 0 after. The membrane output should
+    match the decay curve itself.
+
+    Truncating the kernel to K steps means the neuron only remembers the
+    last K steps. For an impulse, this means the membrane output is the
+    same fading curve for the first K steps, and then becomes zero after.
+
+    This test checks two things:
+    - Without truncation, the membrane matches the full fading curve.
+    - With truncation (K=4), the membrane matches the same curve for the
+      first 4 steps and is zero afterwards.
+    """
+    # Setup: impulse input at t=0, ensures output equals decay kernel itself
+    timesteps = 10
+    batch = 1
+    channels = 3
+
+    beta = torch.tensor([0.9, 0.8, 0.7], device=device)
+    lif_full = StateLeaky(beta=beta, channels=channels, output=False).to(
+        device
+    )
+    lif_trunc = StateLeaky(
+        beta=beta, channels=channels, output=False, kernel_truncation_steps=4
+    ).to(device)
+
+    # create impulse input: 1 at t=0 for all channels, zeros elsewhere
+    input_tensor = torch.zeros(timesteps, batch, channels, device=device)
+    input_tensor[0, 0, :] = 1.0
+
+    # Forward
+    out_full = lif_full.forward(input_tensor)  # (T, B, C)
+    out_trunc = lif_trunc.forward(input_tensor)  # (T, B, C)
+
+    # Expected analytical: for impulse at t=0, output[t, :, c] = exp(-t / tau_c)
+    tau = 1 / (1 - beta)
+    t = torch.arange(timesteps, device=device).view(timesteps, 1, 1)
+    expected_full = torch.exp(-t / tau.view(1, 1, channels))
+
+    # For truncation_steps=4, values after t>=4 should be zeroed (no contribution beyond window)
+    expected_trunc = expected_full.clone()
+    expected_trunc[4:, :, :] = 0.0
+
+    # Compare
+    assert torch.allclose(out_full, expected_full, atol=1e-6)
+    assert torch.allclose(out_trunc, expected_trunc, atol=1e-6)
+
+    # Additionally, truncated and full should differ for t>=4 for at least one channel
+    assert not torch.allclose(out_full[4:], out_trunc[4:], atol=1e-8)
+
+
 if __name__ == "__main__":
     pytest.main()

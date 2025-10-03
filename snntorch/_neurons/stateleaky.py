@@ -10,9 +10,9 @@ from torch.nn import functional as F
 
 
 def causal_conv1d(input_tensor, kernel_tensor):
-    batch_size, in_channels, num_steps = input_tensor.shape
+    _batch_size, in_channels, _num_steps = input_tensor.shape
     # kernel_tensor: (channels, 1, kernel_size)
-    out_channels, _, kernel_size = kernel_tensor.shape
+    _out_channels, _, kernel_size = kernel_tensor.shape
 
     # for causal convolution, output at time t only depends on inputs up to t
     # therefore, we pad only on the left side
@@ -46,6 +46,7 @@ class StateLeaky(LIF):
         output=True,
         graded_spikes_factor=1.0,
         learn_graded_spikes_factor=False,
+        kernel_truncation_steps=None,
     ):
         super().__init__(
             beta=beta,
@@ -59,6 +60,8 @@ class StateLeaky(LIF):
             graded_spikes_factor=graded_spikes_factor,
             learn_graded_spikes_factor=learn_graded_spikes_factor,
         )
+
+        self.kernel_truncation_steps = kernel_truncation_steps
 
         self._tau_buffer(self.beta, learn_beta, channels)
 
@@ -87,18 +90,24 @@ class StateLeaky(LIF):
         assert input_.shape == (batch, channels, num_steps)
         device = input_.device
 
-        # time axis shape (1, 1, num_steps)
-        time_steps = torch.arange(num_steps, device=device).view(
-            1, 1, num_steps
+        # determine kernel size (may be truncated)
+        if self.kernel_truncation_steps is None:
+            kernel_size = num_steps
+        else:
+            kernel_size = min(self.kernel_truncation_steps, num_steps)
+
+        # time axis shape (1, 1, kernel_size)
+        time_steps = torch.arange(kernel_size, device=device).view(
+            1, 1, kernel_size
         )
-        assert time_steps.shape == (1, 1, num_steps)
+        assert time_steps.shape == (1, 1, kernel_size)
 
         # single channel case
         if self.tau.shape == () or self.tau.shape == (1,):
             # tau is scalar, broadcast across channels
             tau = self.tau.to(device)
             decay_filter = torch.exp(-time_steps / tau).expand(
-                channels, 1, num_steps
+                channels, 1, kernel_size
             )
         else:
             # tau is (channels,), reshape to (channels, 1, 1) so it broadcasts correctly
@@ -106,9 +115,9 @@ class StateLeaky(LIF):
             assert tau.shape == (channels, 1, 1)
             decay_filter = torch.exp(
                 -time_steps / tau
-            )  # directly (channels, 1, num_steps)
+            )  # directly (channels, 1, kernel_size)
 
-        assert decay_filter.shape == (channels, 1, num_steps)
+        assert decay_filter.shape == (channels, 1, kernel_size)
         assert input_.shape == (batch, channels, num_steps)
 
         # depthwise convolution: each channel gets its own decay filter
