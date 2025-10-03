@@ -10,7 +10,6 @@ from torch.nn import functional as F
 
 
 def causal_conv1d(input_tensor, kernel_tensor):
-    # get dimensions
     batch_size, in_channels, num_steps = input_tensor.shape
     # kernel_tensor: (channels, 1, kernel_size)
     out_channels, _, kernel_size = kernel_tensor.shape
@@ -24,8 +23,6 @@ def causal_conv1d(input_tensor, kernel_tensor):
     flipped_kernel = torch.flip(kernel_tensor, dims=[-1])
 
     # perform convolution with the padded input (output length = num_steps length)
-    # print(f"padded input contiguous: {padded_input.is_contiguous()}")
-    # print(f"flipped kernel contiguous: {flipped_kernel.is_contiguous()}")
     causal_conv_result = F.conv1d(
         padded_input, flipped_kernel, groups=in_channels
     )
@@ -34,13 +31,7 @@ def causal_conv1d(input_tensor, kernel_tensor):
 
 
 class StateLeaky(LIF):
-    """
-        TODO: write some docstring similar to SNN.Leaky
-
-         Jason wrote:
-    -      beta = (1 - delta_t / tau), can probably set delta_t to "1"
-    -      if tau > delta_t, then beta: (0, 1)
-    """
+    """StateLeaky neuron model."""
 
     def __init__(
         self,
@@ -103,7 +94,7 @@ class StateLeaky(LIF):
         assert time_steps.shape == (1, 1, num_steps)
 
         # single channel case
-        if self.tau.shape == ():
+        if self.tau.shape == () or self.tau.shape == (1,):
             # tau is scalar, broadcast across channels
             tau = self.tau.to(device)
             decay_filter = torch.exp(-time_steps / tau).expand(
