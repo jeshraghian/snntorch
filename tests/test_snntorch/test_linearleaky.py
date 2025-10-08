@@ -2,44 +2,48 @@ import pytest
 import torch
 import torch.nn as nn
 
-import os
-
+from snntorch._neurons.linearleaky import LinearLeaky
 from snntorch._neurons.stateleaky import StateLeaky
 
 """
-Tests for the StateLeaky neuron class.
+Tests for the LinearLeaky neuron class.
 
 Test Structure:
 --------------
 1. Channel Configuration Tests:
-    - Single batch, single channel
-    - Single batch, multiple channels
-    - Multiple batches, single channel
-    - Multiple batches, multiple channels
+    - Single batch, single channel (in_features == out_features)
+    - Single batch, multiple channels (in_features == out_features)
+    - Multiple batches, single channel (in_features == out_features)
+    - Multiple batches, multiple channels (in_features == out_features)
 
 2. Learning Parameter Tests:
     - Multi-beta learning (tests learn_beta=True)
 
 3. Chunking Tests:
-    - Tests chunking with gradients enabled
+    - Tests chunking with gradients enabled, using the module’s internal linear
 
-4. Kernel Truncation Tests:
-    - Tests kernel truncation with truncation_steps=4
+4. Equivalence Tests:
+    - Equivalence vs separate nn.Linear followed by StateLeaky
 
-5. API Compatibility / Fail-Fast Tests:
-    - Verifies that StateLeaky raises NotImplementedError for APIs that do not
-      conceptually apply (inhibition, mem_reset)
+5. Kernel Truncation Tests:
+    - Tests kernel truncation with truncation_steps=4 (impulse input)
 
-6. Warnings (Ergonomics):
+6. API Compatibility / Fail-Fast Tests:
+    - Verifies that LinearLeaky raises NotImplementedError for APIs that do not
+      conceptually apply (inhibition, mem_reset) — inherited from StateLeaky
+
+7. Warnings (Ergonomics):
     - Verifies that inert spike-only settings emit a warning when output=False
+
 
 Coverage:
 --------
 - Input/output shape consistency
 - Input value bounds (≤ 1)
-- Output activation (presence of values > 1)
+- Finite outputs and non-constancy (no amplitude assumption by default)
 - Parameter learnability for learn_beta
-- Chunking (smoke test) with gradients enabled for gradient accumulation
+- Chunking (smoke test) with gradients enabled and internal linear
+- Equivalence vs separate nn.Linear + StateLeaky
 """
 
 
@@ -48,23 +52,33 @@ def device():
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
+# Modules under test
 @pytest.fixture(scope="module")
-def linear_leaky_single_channel(device):
-    return StateLeaky(beta=0.9, channels=1, output=False).to(device)
-
-
-@pytest.fixture(scope="module")
-def linear_leaky_multi_channel(device):
-    return StateLeaky(beta=0.9, channels=4, output=False).to(device)
-
-
-@pytest.fixture(scope="module")
-def linear_leaky_multi_beta(device):
-    return StateLeaky(
-        beta=torch.tensor([0.9] * 4), channels=4, learn_beta=True, output=False
+def linearleaky_single_channel(device):
+    return LinearLeaky(
+        beta=0.9, in_features=1, out_features=1, output=False
     ).to(device)
 
 
+@pytest.fixture(scope="module")
+def linearleaky_multi_channel(device):
+    return LinearLeaky(
+        beta=0.9, in_features=4, out_features=4, output=False
+    ).to(device)
+
+
+@pytest.fixture(scope="module")
+def linearleaky_multi_beta(device):
+    return LinearLeaky(
+        beta=torch.tensor([0.9] * 4),
+        in_features=4,
+        out_features=4,
+        learn_beta=True,
+        output=False,
+    ).to(device)
+
+
+# Input fixtures
 @pytest.fixture(scope="module")
 def input_tensor_single_batch_single_channel(device):
     timesteps = 5
@@ -121,11 +135,11 @@ def input_tensor_batch_multiple(device):
     return input_.to(device)
 
 
-# Channel configuration tests
+# Channel configuration tests (output=False to validate membrane only)
 def test_single_batch_single_channel(
-    linear_leaky_single_channel, input_tensor_single_batch_single_channel
+    linearleaky_single_channel, input_tensor_single_batch_single_channel
 ):
-    output = linear_leaky_single_channel.forward(
+    output = linearleaky_single_channel.forward(
         input_tensor_single_batch_single_channel
     )
 
@@ -137,14 +151,17 @@ def test_single_batch_single_channel(
         output.shape == input_tensor_single_batch_single_channel.shape
     ), "Output shape does not match input shape."
     assert (
-        (output > 1).any().item()
-    ), "No elements in the output are greater than 1."
+        torch.isfinite(output).all().item()
+    ), "Output contains non-finite values."
+    assert (output.std() > 0).item() or (
+        output.abs().sum() > 0
+    ).item(), "Output is constant or all zeros unexpectedly."
 
 
 def test_single_batch_multi_channel(
-    linear_leaky_multi_channel, input_tensor_single_batch_multiple_channel
+    linearleaky_multi_channel, input_tensor_single_batch_multiple_channel
 ):
-    output = linear_leaky_multi_channel.forward(
+    output = linearleaky_multi_channel.forward(
         input_tensor_single_batch_multiple_channel
     )
 
@@ -156,14 +173,17 @@ def test_single_batch_multi_channel(
         output.shape == input_tensor_single_batch_multiple_channel.shape
     ), "Output shape does not match input shape."
     assert (
-        (output > 1).any().item()
-    ), "No elements in the output are greater than 1."
+        torch.isfinite(output).all().item()
+    ), "Output contains non-finite values."
+    assert (output.std() > 0).item() or (
+        output.abs().sum() > 0
+    ).item(), "Output is constant or all zeros unexpectedly."
 
 
 def test_multi_batch_single_channel(
-    linear_leaky_single_channel, input_tensor_multiple_batches_single_channel
+    linearleaky_single_channel, input_tensor_multiple_batches_single_channel
 ):
-    output = linear_leaky_single_channel.forward(
+    output = linearleaky_single_channel.forward(
         input_tensor_multiple_batches_single_channel
     )
 
@@ -175,14 +195,17 @@ def test_multi_batch_single_channel(
         output.shape == input_tensor_multiple_batches_single_channel.shape
     ), "Output shape does not match input shape."
     assert (
-        (output > 1).any().item()
-    ), "No elements in the output are greater than 1."
+        torch.isfinite(output).all().item()
+    ), "Output contains non-finite values."
+    assert (output.std() > 0).item() or (
+        output.abs().sum() > 0
+    ).item(), "Output is constant or all zeros unexpectedly."
 
 
 def test_multi_batch_multi_channel(
-    linear_leaky_multi_channel, input_tensor_batch_multiple
+    linearleaky_multi_channel, input_tensor_batch_multiple
 ):
-    output = linear_leaky_multi_channel.forward(input_tensor_batch_multiple)
+    output = linearleaky_multi_channel.forward(input_tensor_batch_multiple)
 
     assert input_tensor_batch_multiple.shape == output.shape
     assert (
@@ -192,14 +215,17 @@ def test_multi_batch_multi_channel(
         output.shape == input_tensor_batch_multiple.shape
     ), "Output shape does not match input shape."
     assert (
-        (output > 1).any().item()
-    ), "No elements in the output are greater than 1."
+        torch.isfinite(output).all().item()
+    ), "Output contains non-finite values."
+    assert (output.std() > 0).item() or (
+        output.abs().sum() > 0
+    ).item(), "Output is constant or all zeros unexpectedly."
 
 
 def test_multi_beta_forward(
-    linear_leaky_multi_beta, input_tensor_single_batch_multiple_channel
+    linearleaky_multi_beta, input_tensor_single_batch_multiple_channel
 ):
-    output = linear_leaky_multi_beta.forward(
+    output = linearleaky_multi_beta.forward(
         input_tensor_single_batch_multiple_channel
     )
 
@@ -211,16 +237,83 @@ def test_multi_beta_forward(
         output.shape == input_tensor_single_batch_multiple_channel.shape
     ), "Output shape does not match input shape."
     assert (
-        (output > 1).any().item()
-    ), "No elements in the output are greater than 1."
+        torch.isfinite(output).all().item()
+    ), "Output contains non-finite values."
+    assert (output.std() > 0).item() or (
+        output.abs().sum() > 0
+    ).item(), "Output is constant or all zeros unexpectedly."
 
     # Verify learn_beta is a learnable parameter
     assert isinstance(
-        linear_leaky_multi_beta.tau, nn.Parameter
+        linearleaky_multi_beta.tau, nn.Parameter
     ), "learn_beta should be a learnable parameter"
 
 
-def test_chunking_with_gd():
+def test_output_channel_change_shape(device):
+    """
+    When in_features != out_features, LinearLeaky should output tensors with
+    the out_features channel dimension.
+    """
+    timesteps = 7
+    batch = 3
+    in_features = 3
+    out_features = 5
+    x = torch.randn(timesteps, batch, in_features, device=device)
+
+    module = LinearLeaky(
+        beta=0.9,
+        in_features=in_features,
+        out_features=out_features,
+        output=False,
+    ).to(device)
+
+    y = module(x)
+    assert y.shape == (timesteps, batch, out_features)
+
+
+def test_equivalence_vs_external_linear_and_stateleaky(device):
+    """
+    LinearLeaky(x) should be equivalent to: StateLeaky(Linear(x)) given the
+    same parameters.
+    """
+    torch.manual_seed(0)
+    timesteps = 8
+    batch = 2
+    in_features = 4
+    out_features = 4
+    x = torch.randn(timesteps, batch, in_features, device=device)
+
+    beta = torch.full((out_features,), 0.9, device=device)
+
+    # Reference path: external linear + StateLeaky
+    ext_linear = nn.Linear(in_features, out_features, bias=True, device=device)
+    lif_ref = StateLeaky(beta=beta, channels=out_features, output=True).to(
+        device
+    )
+
+    # Under test: LinearLeaky with internal linear
+    lif_under_test = LinearLeaky(
+        beta=beta,
+        in_features=in_features,
+        out_features=out_features,
+        output=True,
+    ).to(device)
+
+    # Synchronize parameters (copy weights and biases)
+    with torch.no_grad():
+        lif_under_test.linear.weight.copy_(ext_linear.weight)
+        if ext_linear.bias is not None:
+            lif_under_test.linear.bias.copy_(ext_linear.bias)
+
+    # Run both paths
+    spk_ref, mem_ref = lif_ref(ext_linear(x))
+    spk_ut, mem_ut = lif_under_test(x)
+
+    assert torch.allclose(mem_ref, mem_ut, atol=1e-6)
+    assert torch.allclose(spk_ref, spk_ut, atol=1e-6)
+
+
+def test_chunking_with_gd_internal_linear():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     batch_size = 256
@@ -239,25 +332,27 @@ def test_chunking_with_gd():
         .contiguous()
         .permute(2, 0, 1)  # (T, B, C)
     )
-    linear = torch.nn.Linear(channels, channels, bias=False).to(device)
+
     beta = torch.full((channels,), 0.9).to(device)
-    lif = StateLeaky(beta=beta, channels=channels, learn_beta=False).to(device)
+    module = LinearLeaky(
+        beta=beta,
+        in_features=channels,
+        out_features=channels,
+        output=True,
+        bias=False,
+    ).to(device)
 
     # 1. Get ground truth with no chunking to setup comparison
     torch.set_grad_enabled(True)
-    linear.zero_grad()
+    module.zero_grad()
 
-    # forward pass on entire tensor
-    full_input_projected = linear(input_tensor)
-    spk_full, mem_full = lif(full_input_projected)
-
-    # backward pass on entire tensor
+    spk_full, mem_full = module(input_tensor)
     loss_full = spk_full.sum()
     loss_full.backward()
-    grad_full = linear.weight.grad.clone()
+    grad_full = module.linear.weight.grad.clone()
 
     # 2. Get gradients with chunking to compare
-    linear.zero_grad()
+    module.zero_grad()
 
     spk_chunks = []
 
@@ -268,9 +363,7 @@ def test_chunking_with_gd():
         input_chunk = input_tensor[:, b_start:b_end, :]
 
         # forward pass on chunk
-        chunk_input_projected = linear(input_chunk)
-        spk_chunk, _ = lif(chunk_input_projected)
-
+        spk_chunk, _ = module(input_chunk)
         spk_chunks.append(spk_chunk)
 
         # backward pass on chunk
@@ -278,11 +371,13 @@ def test_chunking_with_gd():
         loss_chunk.backward()
 
         # assert grad is populated
-        assert linear.weight.grad is not None, "Gradient is not populated."
+        assert (
+            module.linear.weight.grad is not None
+        ), "Gradient is not populated."
 
     # concatenate chunks into a single tensor
     spk_chunked = torch.cat(spk_chunks, dim=1)
-    grad_chunked = linear.weight.grad.clone()
+    grad_chunked = module.linear.weight.grad.clone()
 
     # assertions
     assert (
@@ -298,74 +393,70 @@ def test_chunking_with_gd():
 
 def test_kernel_truncation_impulse(device):
     """
-    StateLeaky's membrane state acts like a fading memory of past inputs.
-    With a single, one-time impulse at the first timestep,
-    the membrane simply traces out that fading memory curve over time.
-
-    We feed this impulse 1 at t=0 and 0 after. The membrane output should
-    match the decay curve itself.
-
-    Truncating the kernel to K steps means the neuron only remembers the
-    last K steps. For an impulse, this means the membrane output is the
-    same fading curve for the first K steps, and then becomes zero after.
-
-    This test checks two things:
-    - Without truncation, the membrane matches the full fading curve.
-    - With truncation (K=4), the membrane matches the same curve for the
-      first 4 steps and is zero afterwards.
+    With a single impulse at t=0 and identity linear, LinearLeaky reduces to
+    StateLeaky. Kernel truncation keeps first K taps and zeros after.
     """
-    # Setup: impulse input at t=0, ensures output equals decay kernel itself
     timesteps = 10
     batch = 1
     channels = 3
 
     beta = torch.tensor([0.9, 0.8, 0.7], device=device)
-    lif_full = StateLeaky(beta=beta, channels=channels, output=False).to(
-        device
-    )
-    lif_trunc = StateLeaky(
-        beta=beta, channels=channels, output=False, kernel_truncation_steps=4
+
+    # Create impulse input: 1 at t=0, zeros after
+    x = torch.zeros(timesteps, batch, channels, device=device)
+    x[0, 0, :] = 1.0
+
+    # Build module with identity linear so behavior equals StateLeaky
+    lif_full = LinearLeaky(
+        beta=beta,
+        in_features=channels,
+        out_features=channels,
+        output=False,
+    ).to(device)
+    lif_trunc = LinearLeaky(
+        beta=beta,
+        in_features=channels,
+        out_features=channels,
+        output=False,
+        kernel_truncation_steps=4,
     ).to(device)
 
-    # create impulse input: 1 at t=0 for all channels, zeros elsewhere
-    input_tensor = torch.zeros(timesteps, batch, channels, device=device)
-    input_tensor[0, 0, :] = 1.0
+    with torch.no_grad():
+        lif_full.linear.weight.copy_(torch.eye(channels, device=device))
+        lif_full.linear.bias.zero_()
+        lif_trunc.linear.weight.copy_(torch.eye(channels, device=device))
+        lif_trunc.linear.bias.zero_()
 
     # Forward
-    out_full = lif_full.forward(input_tensor)  # (T, B, C)
-    out_trunc = lif_trunc.forward(input_tensor)  # (T, B, C)
+    out_full = lif_full.forward(x)
+    out_trunc = lif_trunc.forward(x)
 
-    # Expected analytical: for impulse at t=0, output[t, :, c] = exp(-t / tau_c)
+    # Expected analytical decay (same as StateLeaky for impulse)
     tau = 1 / (1 - beta)
     t = torch.arange(timesteps, device=device).view(timesteps, 1, 1)
     expected_full = torch.exp(-t / tau.view(1, 1, channels))
 
-    # For truncation_steps=4, values after t>=4 should be zeroed (no contribution beyond window)
     expected_trunc = expected_full.clone()
     expected_trunc[4:, :, :] = 0.0
 
-    # Compare
     assert torch.allclose(out_full, expected_full, atol=1e-6)
     assert torch.allclose(out_trunc, expected_trunc, atol=1e-6)
-
-    # Additionally, truncated and full should differ for t>=4 for at least one channel
     assert not torch.allclose(out_full[4:], out_trunc[4:], atol=1e-8)
 
 
 def test_fail_fast_unimplemented_apis(device):
     """
-    StateLeaky computes membrane via a feed-forward causal convolution over
+    LinearLeaky computes membrane via a feed-forward causal convolution over
     the entire sequence and does not maintain a stepwise recurrent hidden
     state.
 
     As a result, inhibition and stepwise reset signaling (mem_reset) do not
-    conceptually apply here.
-
-    This test ensures these paths fail fast with clear errors so users do
-    not rely on incompatible behaviors.
+    conceptually apply here (inherited from StateLeaky).
     """
     channels = 2
-    lif = StateLeaky(beta=0.9, channels=channels, output=False)
+    lif = LinearLeaky(
+        beta=0.9, in_features=channels, out_features=channels, output=False
+    )
 
     # fire_inhibition should be unsupported
     with pytest.raises(NotImplementedError):
@@ -378,45 +469,50 @@ def test_fail_fast_unimplemented_apis(device):
 
 def test_warn_on_inert_spike_settings(device):
     """
-    When output=False, StateLeaky does not emit spikes; spike-only knobs are
-      inert. We warn to catch config mismatches.
+    When output=False, LinearLeaky (via StateLeaky) does not emit spikes;
+    spike-only knobs are inert. We warn to catch config mismatches.
     """
     with pytest.warns(UserWarning):
-        _ = StateLeaky(
+        _ = LinearLeaky(
             beta=0.9,
-            channels=2,
+            in_features=2,
+            out_features=2,
             output=False,
             spike_grad=lambda x: x,  # any non-default surrogate
         )
 
     with pytest.warns(UserWarning):
-        _ = StateLeaky(
+        _ = LinearLeaky(
             beta=0.9,
-            channels=2,
+            in_features=2,
+            out_features=2,
             output=False,
             surrogate_disable=True,
         )
 
     with pytest.warns(UserWarning):
-        _ = StateLeaky(
+        _ = LinearLeaky(
             beta=0.9,
-            channels=2,
+            in_features=2,
+            out_features=2,
             output=False,
             learn_threshold=True,
         )
 
     with pytest.warns(UserWarning):
-        _ = StateLeaky(
+        _ = LinearLeaky(
             beta=0.9,
-            channels=2,
+            in_features=2,
+            out_features=2,
             output=False,
             graded_spikes_factor=2.0,
         )
 
     with pytest.warns(UserWarning):
-        _ = StateLeaky(
+        _ = LinearLeaky(
             beta=0.9,
-            channels=2,
+            in_features=2,
+            out_features=2,
             output=False,
             learn_graded_spikes_factor=True,
         )
