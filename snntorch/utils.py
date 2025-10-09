@@ -146,6 +146,8 @@ def reset(net):
 
     global is_alpha
     global is_leaky
+    global is_linearleaky
+    global is_stateleaky
     global is_lapicque
     global is_rleaky
     global is_synaptic
@@ -155,6 +157,8 @@ def reset(net):
 
     is_alpha = False
     is_leaky = False
+    is_linearleaky = False
+    is_stateleaky = False
     is_rleaky = False
     is_synaptic = False
     is_rsynaptic = False
@@ -171,6 +175,8 @@ def _layer_check(net):
     """Check for the types of LIF neurons contained in net."""
 
     global is_leaky
+    global is_linearleaky
+    global is_stateleaky
     global is_lapicque
     global is_synaptic
     global is_alpha
@@ -186,6 +192,10 @@ def _layer_check(net):
             is_synaptic = True
         if isinstance(list(net._modules.values())[idx], snn.Leaky):
             is_leaky = True
+        if isinstance(list(net._modules.values())[idx], snn.LinearLeaky):
+            is_linearleaky = True
+        if isinstance(list(net._modules.values())[idx], snn.StateLeaky):
+            is_stateleaky = True
         if isinstance(list(net._modules.values())[idx], snn.Alpha):
             is_alpha = True
         if isinstance(list(net._modules.values())[idx], snn.RLeaky):

@@ -12,6 +12,8 @@ __neuron__ = [
     "alpha",
     "lapicque",
     "leaky",
+    "linearleaky",
+    "stateleaky",
     "leakyparallel",
     "rleaky",
     "rsynaptic",
@@ -25,6 +27,8 @@ from .neurons import LIF
 from .alpha import Alpha
 from .lapicque import Lapicque
 from .leaky import Leaky
+from .linearleaky import LinearLeaky
+from .stateleaky import StateLeaky
 from .synaptic import Synaptic
 
 from .rleaky import RLeaky
