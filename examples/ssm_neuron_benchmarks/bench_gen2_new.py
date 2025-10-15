@@ -14,17 +14,18 @@ import matplotlib.pyplot as plt
 
 from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
+from snntorch._neurons.gen2 import Gen2SingleInput
 
 
 # Sweep configurations: (batch_size, channels)
 SWEEP_CONFIGS = [
-    (64, 256),
+    (64, 64),
 ]
 N_RUNS = 1
 
 # Same timestep schedule as baseline
-TIMESTEPS = np.logspace(1, 4.5, num=10, dtype=int)
-BATCHWISE_CHUNK_SIZE = 32
+TIMESTEPS = np.logspace(1, 3, num=10, dtype=int)
+BATCHWISE_CHUNK_SIZE = 8
 
 
 device = "cuda:1"
@@ -222,6 +223,67 @@ def bench_stateleaky(
     return baseline_mem, start_event.elapsed_time(end_event) / 1000.0
 
 
+def bench_gen2(
+    num_steps: int,
+    batch_size: int,
+    channels: int,
+    train: bool = False,
+    multi_beta: bool = True,
+) -> float:
+    # Keep identical data/linear shaping and timing to match baseline
+    model = Gen2SingleInput(channels, channels, channels).to(device)
+
+    input_tensor = torch.arange(
+        1,
+        num_steps * batch_size * channels + 1,
+        device=device,
+        dtype=torch.float32,
+    ).view(num_steps, batch_size, channels)
+    input_tensor.requires_grad_(False)
+
+    if train:
+        ctx = torch.enable_grad()
+    else:
+        ctx = torch.no_grad()
+
+    linear = torch.nn.Linear(channels, channels, bias=False).to(device)
+
+    # warmup consistent with leaky
+    _ = model(linear(input_tensor[:2, :2, :]))
+    time.sleep(2)
+
+    baseline_mem = get_cur_bytes(device)
+
+    start_event = torch.cuda.Event(enable_timing=True)
+    end_event = torch.cuda.Event(enable_timing=True)
+    torch.cuda.synchronize()
+    start_event.record()
+
+    with ctx:
+        for b_start in range(0, batch_size, BATCHWISE_CHUNK_SIZE):
+            b_end = min(b_start + BATCHWISE_CHUNK_SIZE, batch_size)
+            z_chunk = linear(input_tensor[:, b_start:b_end, :])
+            S_chunk = model(z_chunk)
+            if train:
+                loss = S_chunk.sum()
+                loss.backward()
+                del loss
+        if train:
+            if linear.weight.grad is not None:
+                linear.weight.grad = None
+            if input_tensor.grad is not None:
+                input_tensor.grad = None
+
+    end_event.record()
+    end_event.synchronize()
+
+    del model, linear, input_tensor
+    torch.cuda.synchronize()
+    gc.collect()
+    torch.cuda.empty_cache()
+    return baseline_mem, start_event.elapsed_time(end_event) / 1000.0
+
+
 def run_all_configs_one_run(run_idx: int):
     results_infer_all = []
     results_train_all = []
@@ -236,10 +298,14 @@ def run_all_configs_one_run(run_idx: int):
             times_leaky_multi=[],
             times_state_single=[],
             times_state_multi=[],
+            times_gen2_single=[],
+            times_gen2_multi=[],
             mems_leaky_single=[],
             mems_leaky_multi=[],
             mems_state_single=[],
             mems_state_multi=[],
+            mems_gen2_single=[],
+            mems_gen2_multi=[],
         )
         results_train = dict(
             batch_size=batch_size,
@@ -248,10 +314,14 @@ def run_all_configs_one_run(run_idx: int):
             times_leaky_multi=[],
             times_state_single=[],
             times_state_multi=[],
+            times_gen2_single=[],
+            times_gen2_multi=[],
             mems_leaky_single=[],
             mems_leaky_multi=[],
             mems_state_single=[],
             mems_state_multi=[],
+            mems_gen2_single=[],
+            mems_gen2_multi=[],
         )
 
         for steps in tqdm(
@@ -302,6 +372,28 @@ def run_all_configs_one_run(run_idx: int):
             results_infer["times_state_multi"].append(t)
             results_infer["mems_state_multi"].append(dmem)
 
+            # Gen2 single
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats(device)
+            baseline_mem, t = bench_gen2(
+                int(steps), batch_size, channels, train=False, multi_beta=False
+            )
+            peak = get_peak_bytes(device)
+            dmem = max(0, peak - baseline_mem) / 1024**2
+            results_infer["times_gen2_single"].append(t)
+            results_infer["mems_gen2_single"].append(dmem)
+
+            # Gen2 multi
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats(device)
+            baseline_mem, t = bench_gen2(
+                int(steps), batch_size, channels, train=False, multi_beta=True
+            )
+            peak = get_peak_bytes(device)
+            dmem = max(0, peak - baseline_mem) / 1024**2
+            results_infer["times_gen2_multi"].append(t)
+            results_infer["mems_gen2_multi"].append(dmem)
+
             # --- Training ---
             # Leaky single
             torch.cuda.synchronize()
@@ -347,6 +439,28 @@ def run_all_configs_one_run(run_idx: int):
             results_train["times_state_multi"].append(t)
             results_train["mems_state_multi"].append(dmem)
 
+            # Gen2 single
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats(device)
+            baseline_mem, t = bench_gen2(
+                int(steps), batch_size, channels, train=True, multi_beta=False
+            )
+            peak = get_peak_bytes(device)
+            dmem = max(0, peak - baseline_mem) / 1024**2
+            results_train["times_gen2_single"].append(t)
+            results_train["mems_gen2_single"].append(dmem)
+
+            # Gen2 multi
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats(device)
+            baseline_mem, t = bench_gen2(
+                int(steps), batch_size, channels, train=True, multi_beta=True
+            )
+            peak = get_peak_bytes(device)
+            dmem = max(0, peak - baseline_mem) / 1024**2
+            results_train["times_gen2_multi"].append(t)
+            results_train["mems_gen2_multi"].append(dmem)
+
         results_infer_all.append(results_infer)
         results_train_all.append(results_train)
 
@@ -379,10 +493,14 @@ if __name__ == "__main__":
         "times_leaky_multi",
         "times_state_single",
         "times_state_multi",
+        "times_gen2_single",
+        "times_gen2_multi",
         "mems_leaky_single",
         "mems_leaky_multi",
         "mems_state_single",
         "mems_state_multi",
+        "mems_gen2_single",
+        "mems_gen2_multi",
     ]
 
     # Accumulators for mean/std across runs
@@ -542,6 +660,24 @@ if __name__ == "__main__":
             label=f"StateLeaky multi {label_suffix}",
             capsize=3,
         )
+        ax_time_inf.errorbar(
+            TIMESTEPS,
+            res["times_gen2_single"],
+            yerr=res.get("std_times_gen2_single", None),
+            fmt="o-",
+            color=color,
+            label=f"Gen2 single {label_suffix}",
+            capsize=3,
+        )
+        ax_time_inf.errorbar(
+            TIMESTEPS,
+            res["times_gen2_multi"],
+            yerr=res.get("std_times_gen2_multi", None),
+            fmt="o--",
+            color=color,
+            label=f"Gen2 multi {label_suffix}",
+            capsize=3,
+        )
 
         # Inference Memory
         ax_mem_inf.errorbar(
@@ -578,6 +714,24 @@ if __name__ == "__main__":
             fmt=":",
             color=color,
             label=f"StateLeaky multi {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_inf.errorbar(
+            TIMESTEPS,
+            res["mems_gen2_single"],
+            yerr=res.get("std_mems_gen2_single", None),
+            fmt="o-",
+            color=color,
+            label=f"Gen2 single {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_inf.errorbar(
+            TIMESTEPS,
+            res["mems_gen2_multi"],
+            yerr=res.get("std_mems_gen2_multi", None),
+            fmt="o--",
+            color=color,
+            label=f"Gen2 multi {label_suffix}",
             capsize=3,
         )
 
@@ -621,6 +775,24 @@ if __name__ == "__main__":
             label=f"StateLeaky multi (train) {label_suffix}",
             capsize=3,
         )
+        ax_time_trn.errorbar(
+            TIMESTEPS,
+            res["times_gen2_single"],
+            yerr=res.get("std_times_gen2_single", None),
+            fmt="o-",
+            color=color,
+            label=f"Gen2 single (train) {label_suffix}",
+            capsize=3,
+        )
+        ax_time_trn.errorbar(
+            TIMESTEPS,
+            res["times_gen2_multi"],
+            yerr=res.get("std_times_gen2_multi", None),
+            fmt="o--",
+            color=color,
+            label=f"Gen2 multi (train) {label_suffix}",
+            capsize=3,
+        )
 
         # Training Memory
         ax_mem_trn.errorbar(
@@ -659,6 +831,24 @@ if __name__ == "__main__":
             label=f"StateLeaky multi (train) {label_suffix}",
             capsize=3,
         )
+        ax_mem_trn.errorbar(
+            TIMESTEPS,
+            res["mems_gen2_single"],
+            yerr=res.get("std_mems_gen2_single", None),
+            fmt="o-",
+            color=color,
+            label=f"Gen2 single (train) {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_trn.errorbar(
+            TIMESTEPS,
+            res["mems_gen2_multi"],
+            yerr=res.get("std_mems_gen2_multi", None),
+            fmt="o--",
+            color=color,
+            label=f"Gen2 multi (train) {label_suffix}",
+            capsize=3,
+        )
 
     for ax in (ax_time_inf, ax_mem_inf, ax_time_trn, ax_mem_trn):
         ax.set_xscale("log")
@@ -686,5 +876,5 @@ if __name__ == "__main__":
     # mkdir if not exists
     os.makedirs("snn_performance", exist_ok=True)
     plt.tight_layout()
-    plt.savefig("snn_performance/snn_performance_variants.png", dpi=150)
+    plt.savefig("snn_performance/snn_performance_variants_gen2.png", dpi=150)
     plt.show()
