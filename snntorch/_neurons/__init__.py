@@ -39,4 +39,4 @@ from .sconv2dlstm import SConv2dLSTM
 from .slstm import SLSTM
 
 from .leakyparallel import LeakyParallel
-from .gen2 import StateOuterProductCumsum
+from .gen2 import Gen2SingleInputReadout

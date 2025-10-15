@@ -14,18 +14,19 @@ import matplotlib.pyplot as plt
 
 from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
-from snntorch._neurons.gen2 import Gen2SingleInput
+from snntorch._neurons.gen2 import Gen2SingleInputReadout
 
 
 # Sweep configurations: (batch_size, channels)
 SWEEP_CONFIGS = [
-    (64, 64),
+    (64, 256),
 ]
 N_RUNS = 1
 
 # Same timestep schedule as baseline
-TIMESTEPS = np.logspace(1, 3, num=10, dtype=int)
-BATCHWISE_CHUNK_SIZE = 8
+TIMESTEPS = np.logspace(1, 4.5, num=10, dtype=int)[::3]
+BATCHWISE_CHUNK_SIZE = 32
+TIME_CHUNK_SIZE = None
 
 
 device = "cuda:1"
@@ -231,7 +232,12 @@ def bench_gen2(
     multi_beta: bool = True,
 ) -> float:
     # Keep identical data/linear shaping and timing to match baseline
-    model = Gen2SingleInput(channels, channels, channels).to(device)
+    model = Gen2SingleInputReadout(
+        channels,
+        channels,
+        channels,
+        time_chunk_size=TIME_CHUNK_SIZE,
+    ).to(device)
 
     input_tensor = torch.arange(
         1,
