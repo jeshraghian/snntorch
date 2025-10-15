@@ -425,17 +425,15 @@ if __name__ == "__main__":
     ax_time_inf, ax_mem_inf = axes[0]
     ax_time_trn, ax_mem_trn = axes[1]
 
-    # Choose distinct styles for chunk sizes
-    styles = {
-        8: ("-", "C0"),
-        16: ("--", "C1"),
-        32: ("-.", "C2"),
+    # Use color-only separation for chunk sizes (uniform line style)
+    color_map = {
+        cs: plt.get_cmap("tab10")(i % 10) for i, cs in enumerate(CHUNK_SIZES)
     }
 
     for res in results_infer:
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
         for cs in CHUNK_SIZES:
-            ls, color = styles[cs]
+            ls, color = ("-", color_map[cs])
             ax_time_inf.errorbar(
                 TIMESTEPS,
                 res[f"times_state_{cs}"],
@@ -458,7 +456,7 @@ if __name__ == "__main__":
     for res in results_train:
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
         for cs in CHUNK_SIZES:
-            ls, color = styles[cs]
+            ls, color = ("-", color_map[cs])
             ax_time_trn.errorbar(
                 TIMESTEPS,
                 res[f"times_state_{cs}"],
@@ -482,6 +480,10 @@ if __name__ == "__main__":
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.grid(True, which="both", ls="-", alpha=0.2)
+
+    # Limit y-axis top for time plots (left column)
+    ax_time_inf.set_ylim(top=1e1)
+    ax_time_trn.set_ylim(top=1e1)
 
     ax_time_inf.set_title("SNN Performance (Time) - Inference")
     ax_time_inf.set_xlabel("Timesteps")
@@ -507,4 +509,4 @@ if __name__ == "__main__":
     plt.savefig(
         "snn_performance/snn_performance_stateleaky_chunk_sweep.png", dpi=150
     )
-    plt.show()
+    plt.savefig("snn_performance/snn_performance_stateleaky_chunk_sweep.pdf")

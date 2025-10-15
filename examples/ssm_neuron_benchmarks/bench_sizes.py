@@ -547,4 +547,4 @@ if __name__ == "__main__":
     os.makedirs("snn_performance", exist_ok=True)
     plt.tight_layout()
     plt.savefig("snn_performance/snn_performance_comparison.png", dpi=150)
-    plt.show()
+    plt.savefig("snn_performance/snn_performance_comparison.pdf")

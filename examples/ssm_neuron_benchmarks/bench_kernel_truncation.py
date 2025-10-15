@@ -359,6 +359,7 @@ if __name__ == "__main__":
 
     cmap = plt.get_cmap("tab10")
     for idx, res in enumerate(results_infer):
+        # Use color-only separation for truncation levels; uniform line style
         color_map = {kl: cmap(i % 10) for i, kl in enumerate(klabels)}
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
 
@@ -368,7 +369,7 @@ if __name__ == "__main__":
                 TIMESTEPS,
                 res[f"times_state_{kl}"],
                 yerr=res.get(f"std_times_state_{kl}", None),
-                fmt="--",
+                fmt="-",
                 color=color,
                 label=f"State {kl} {label_suffix}",
                 capsize=3,
@@ -378,7 +379,7 @@ if __name__ == "__main__":
                 TIMESTEPS,
                 res[f"mems_state_{kl}"],
                 yerr=res.get(f"std_mems_state_{kl}", None),
-                fmt="--",
+                fmt="-",
                 color=color,
                 label=f"State {kl} {label_suffix}",
                 capsize=3,
@@ -394,7 +395,7 @@ if __name__ == "__main__":
                 TIMESTEPS,
                 res[f"times_state_{kl}"],
                 yerr=res.get(f"std_times_state_{kl}", None),
-                fmt="--",
+                fmt="-",
                 color=color,
                 label=f"State {kl} (train) {label_suffix}",
                 capsize=3,
@@ -404,7 +405,7 @@ if __name__ == "__main__":
                 TIMESTEPS,
                 res[f"mems_state_{kl}"],
                 yerr=res.get(f"std_mems_state_{kl}", None),
-                fmt="--",
+                fmt="-",
                 color=color,
                 label=f"State {kl} (train) {label_suffix}",
                 capsize=3,
@@ -438,4 +439,4 @@ if __name__ == "__main__":
     plt.savefig(
         "snn_performance/snn_performance_kernel_truncation.png", dpi=150
     )
-    plt.show()
+    plt.savefig("snn_performance/snn_performance_kernel_truncation.pdf")
