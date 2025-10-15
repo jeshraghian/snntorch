@@ -890,3 +890,4 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig("snn_performance/snn_performance_variants_gen2.png", dpi=150)
     plt.savefig("snn_performance/snn_performance_variants_gen2.pdf")
+    plt.savefig("snn_performance/snn_performance_variants_gen2.svg")
