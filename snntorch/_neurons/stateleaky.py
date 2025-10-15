@@ -3,7 +3,6 @@ from warnings import warn
 import torch
 from torch import nn
 from torch.nn import functional as F
-from profilehooks import profile
 import torch
 from torch.autograd import Function
 from torch.nn import functional as F
