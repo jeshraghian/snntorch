@@ -358,17 +358,23 @@ if __name__ == "__main__":
     ax_time_trn, ax_mem_trn = axes[1]
 
     cmap = plt.get_cmap("tab10")
+    base_color = cmap(1)  # StateLeaky conceptual color
+    # Assign distinct linestyles per truncation label, same color
+    ls_map = {}
+    choices = ["-", "--", "-.", ":"]
+    for i, kl in enumerate(klabels):
+        ls_map[kl] = choices[i % len(choices)]
     for idx, res in enumerate(results_infer):
-        color_map = {kl: cmap(i % 10) for i, kl in enumerate(klabels)}
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
 
         for kl in klabels:
-            color = color_map[kl]
+            color = base_color
+            ls = ls_map[kl]
             ax_time_inf.errorbar(
                 TIMESTEPS,
                 res[f"times_state_{kl}"],
                 yerr=res.get(f"std_times_state_{kl}", None),
-                fmt="--",
+                fmt=ls,
                 color=color,
                 label=f"State {kl} {label_suffix}",
                 capsize=3,
@@ -378,23 +384,23 @@ if __name__ == "__main__":
                 TIMESTEPS,
                 res[f"mems_state_{kl}"],
                 yerr=res.get(f"std_mems_state_{kl}", None),
-                fmt="--",
+                fmt=ls,
                 color=color,
                 label=f"State {kl} {label_suffix}",
                 capsize=3,
             )
 
     for idx, res in enumerate(results_train):
-        color_map = {kl: cmap(i % 10) for i, kl in enumerate(klabels)}
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
 
         for kl in klabels:
-            color = color_map[kl]
+            color = base_color
+            ls = ls_map[kl]
             ax_time_trn.errorbar(
                 TIMESTEPS,
                 res[f"times_state_{kl}"],
                 yerr=res.get(f"std_times_state_{kl}", None),
-                fmt="--",
+                fmt=ls,
                 color=color,
                 label=f"State {kl} (train) {label_suffix}",
                 capsize=3,
@@ -404,7 +410,7 @@ if __name__ == "__main__":
                 TIMESTEPS,
                 res[f"mems_state_{kl}"],
                 yerr=res.get(f"std_mems_state_{kl}", None),
-                fmt="--",
+                fmt=ls,
                 color=color,
                 label=f"State {kl} (train) {label_suffix}",
                 capsize=3,
@@ -438,3 +444,4 @@ if __name__ == "__main__":
     plt.savefig(
         "snn_performance/snn_performance_kernel_truncation.png", dpi=150
     )
+    plt.savefig("snn_performance/snn_performance_kernel_truncation.pdf")

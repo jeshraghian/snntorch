@@ -20,7 +20,7 @@ from snntorch._neurons.stateleaky import StateLeaky
 SWEEP_CONFIGS = [
     (64, 256),
 ]
-N_RUNS = 1
+N_RUNS = 10
 
 # Same timestep schedule as baseline
 TIMESTEPS = np.logspace(1, 4.5, num=10, dtype=int)
@@ -687,4 +687,3 @@ if __name__ == "__main__":
     os.makedirs("snn_performance", exist_ok=True)
     plt.tight_layout()
     plt.savefig("snn_performance/snn_performance_variants.png", dpi=150)
-    plt.show()

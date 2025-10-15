@@ -12,7 +12,9 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
+
 
 # Sweep configurations: (batch_size, channels)
 SWEEP_CONFIGS = [
@@ -20,21 +22,17 @@ SWEEP_CONFIGS = [
 ]
 N_RUNS = 10
 
-# Same timestep schedule as other benches
+# Same timestep schedule as baseline
 TIMESTEPS = np.logspace(1, 4.5, num=10, dtype=int)
+# Default; will be overridden per-run by chunk sweep
 BATCHWISE_CHUNK_SIZE = 32
 
-# Truncation sweep: None = full kernel, others are window sizes.
-# For small T, values greater than T effectively become full.
-TRUNCATION_STEPS = [None, 512, 4096]
+# Chunk sizes to sweep for StateLeaky
+CHUNK_SIZES = [8, 16, 32]
 
 
 device = "cuda:1"
 torch.set_grad_enabled(True)
-
-
-def _klabel(k):
-    return "full" if k is None else f"k{int(k)}"
 
 
 def get_peak_bytes(cuda_device):
@@ -48,23 +46,81 @@ def get_cur_bytes(cuda_device):
     return torch.cuda.memory_allocated(cuda_device)
 
 
-# @profile(skip=True, stdout=False, filename="kernel_trunc_state.prof")
+def bench_leaky(
+    num_steps: int, batch_size: int, channels: int, train: bool = False
+) -> float:
+    beta = torch.full((channels,), 0.9).to(device)
+    lif = Leaky(beta=beta, learn_beta=True).to(device)
+
+    # Create per-timestep inputs with shape [T, B, C]
+    input_tensor = torch.arange(
+        1,
+        num_steps * batch_size * channels + 1,
+        device=device,
+        dtype=torch.float32,
+    ).view(num_steps, batch_size, channels)
+
+    if train:
+        input_tensor.requires_grad_(False)
+        ctx = torch.enable_grad()
+    else:
+        ctx = torch.no_grad()
+
+    # Linear projection: channels -> channels, no bias
+    linear = torch.nn.Linear(channels, channels, bias=False).to(device)
+
+    mem = torch.zeros(batch_size, channels, device=device)
+    spk = torch.zeros(batch_size, channels, device=device)
+
+    # warmup
+    lif.forward(linear(input_tensor[:2, :2, :]))
+    time.sleep(2)
+
+    baseline_mem = get_cur_bytes(device)
+
+    start_event = torch.cuda.Event(enable_timing=True)
+    end_event = torch.cuda.Event(enable_timing=True)
+    torch.cuda.synchronize()
+    start_event.record()
+    start_time = time.time()
+    with ctx:
+        spk_sum = torch.zeros(batch_size, channels, device=device)
+        for step_idx in range(num_steps):
+            z = linear(input_tensor[step_idx])
+            spk, mem = lif(z, mem=mem)
+            spk_sum += spk
+
+        if train:
+            # Use spk only
+            loss = spk_sum.sum()
+            loss.backward()
+            if linear.weight.grad is not None:
+                linear.weight.grad = None
+            if input_tensor.grad is not None:
+                input_tensor.grad = None
+            del loss
+    end_event.record()
+    end_event.synchronize()
+    end_time = time.time()
+
+    del lif, linear, input_tensor, mem, spk, spk_sum
+    torch.cuda.synchronize()
+    gc.collect()
+    torch.cuda.empty_cache()
+    return baseline_mem, start_event.elapsed_time(end_event) / 1000.0
+
+
+# @profile(skip=True, stdout=False, filename="baseline.prof")
 def bench_stateleaky(
     num_steps: int,
     batch_size: int,
     channels: int,
-    truncation_steps,
     train: bool = False,
+    batchwise_chunk_size: int = BATCHWISE_CHUNK_SIZE,
 ) -> float:
     # define lif and input
     beta = torch.full((channels,), 0.9).to(device)
-    lif = StateLeaky(
-        beta=beta,
-        channels=channels,
-        learn_beta=True,
-        kernel_truncation_steps=truncation_steps,
-    ).to(device)
-
+    lif = StateLeaky(beta=beta, channels=channels, learn_beta=True).to(device)
     input_tensor = (
         torch.arange(
             1,
@@ -84,57 +140,78 @@ def bench_stateleaky(
     else:
         ctx = torch.no_grad()
 
-    # define external linear to match StateLeaky usage elsewhere
+    # define linear
     linear = torch.nn.Linear(channels, channels, bias=False).to(device)
 
     def forward_wrapper(lif_input):
         spk, mem = lif.forward(lif_input)
         return spk, mem
 
-    # warmup
+    # conduct a warmup on the lif
     b_start = 0
-    b_end = min(b_start + BATCHWISE_CHUNK_SIZE, batch_size)
-    z_chunk = linear(
-        input_tensor[:, b_start:b_end, :].reshape(-1, channels)
-    ).view(
-        num_steps,
-        b_end - b_start,
-        channels,
+    b_end = min(b_start + batchwise_chunk_size, batch_size)
+    z_chunk = (
+        linear(input_tensor[:, b_start:b_end, :].reshape(-1, channels)).view(
+            num_steps,
+            b_end - b_start,
+            channels,
+        )
+        # .contiguous()
     )
     forward_wrapper(z_chunk)
 
+    # make sure cuda is synchronized
     torch.cuda.synchronize()
 
     with ctx:
+        # setup
         baseline_mem = get_cur_bytes(device)
         time.sleep(2)
         start_event = torch.cuda.Event(enable_timing=True)
         end_event = torch.cuda.Event(enable_timing=True)
         torch.cuda.synchronize()
 
+        # record start event
         start_event.record()
-        for b_start in range(0, batch_size, BATCHWISE_CHUNK_SIZE):
-            b_end = min(b_start + BATCHWISE_CHUNK_SIZE, batch_size)
+        start_time = time.time()
+
+        chunks_processed = 0
+        log = False
+        for b_start in range(0, batch_size, batchwise_chunk_size):
+            chunks_processed += 1
+
+            # chunked forward
+            # will materialize in the output view
+            b_end = min(b_start + batchwise_chunk_size, batch_size)
             z_chunk = linear(
                 input_tensor[:, b_start:b_end, :].reshape(-1, channels)
             ).view(num_steps, b_end - b_start, channels)
 
+            # forward
+            # stride doesn't seem to matter
             spk_chunk, _ = forward_wrapper(z_chunk)
+            assert spk_chunk.shape == (num_steps, b_end - b_start, channels)
 
+            # backwards w/ grad accum
             if train:
                 chunk_loss = spk_chunk.sum()
                 chunk_loss.backward()
                 del chunk_loss
 
+        # zero grads
         if train:
             if linear.weight.grad is not None:
                 linear.weight.grad = None
             if input_tensor.grad is not None:
                 input_tensor.grad = None
 
+    # end timer
     end_event.record()
     end_event.synchronize()
     torch.cuda.synchronize()
+    end_time = time.time()
+
+    print(f"chunks_processed: {chunks_processed}")
 
     # clean up
     del lif, linear, input_tensor, z_chunk
@@ -149,63 +226,56 @@ def run_all_configs_one_run(run_idx: int):
     results_infer_all = []
     results_train_all = []
 
-    klabels = [_klabel(k) for k in TRUNCATION_STEPS]
-
     for cfg in SWEEP_CONFIGS:
         batch_size, channels = cfg
 
-        # Initialize result dicts with per-K arrays (StateLeaky only)
         results_infer = dict(
             batch_size=batch_size,
             channels=channels,
+            **{f"times_state_{cs}": [] for cs in CHUNK_SIZES},
+            **{f"mems_state_{cs}": [] for cs in CHUNK_SIZES},
         )
         results_train = dict(
             batch_size=batch_size,
             channels=channels,
+            **{f"times_state_{cs}": [] for cs in CHUNK_SIZES},
+            **{f"mems_state_{cs}": [] for cs in CHUNK_SIZES},
         )
-
-        for kl in klabels:
-            results_infer[f"times_state_{kl}"] = []
-            results_infer[f"mems_state_{kl}"] = []
-
-            results_train[f"times_state_{kl}"] = []
-            results_train[f"mems_state_{kl}"] = []
 
         for steps in tqdm(
             TIMESTEPS, desc=f"RUN{run_idx} B{batch_size}-C{channels}"
         ):
-            for trunc in TRUNCATION_STEPS:
-                kl = _klabel(trunc)
-
-                # --- Inference ---
+            # --- Inference ---
+            for cs in CHUNK_SIZES:
                 torch.cuda.synchronize()
                 torch.cuda.reset_peak_memory_stats(device)
                 baseline_mem, t = bench_stateleaky(
                     int(steps),
                     batch_size,
                     channels,
-                    truncation_steps=trunc,
                     train=False,
+                    batchwise_chunk_size=cs,
                 )
                 peak = get_peak_bytes(device)
                 dmem = max(0, peak - baseline_mem) / 1024**2
-                results_infer[f"times_state_{kl}"].append(t)
-                results_infer[f"mems_state_{kl}"].append(dmem)
+                results_infer[f"times_state_{cs}"].append(t)
+                results_infer[f"mems_state_{cs}"].append(dmem)
 
-                # --- Training ---
+            # --- Training ---
+            for cs in CHUNK_SIZES:
                 torch.cuda.synchronize()
                 torch.cuda.reset_peak_memory_stats(device)
                 baseline_mem, t = bench_stateleaky(
                     int(steps),
                     batch_size,
                     channels,
-                    truncation_steps=trunc,
                     train=True,
+                    batchwise_chunk_size=cs,
                 )
                 peak = get_peak_bytes(device)
                 dmem = max(0, peak - baseline_mem) / 1024**2
-                results_train[f"times_state_{kl}"].append(t)
-                results_train[f"mems_state_{kl}"].append(dmem)
+                results_train[f"times_state_{cs}"].append(t)
+                results_train[f"mems_state_{cs}"].append(dmem)
 
         results_infer_all.append(results_infer)
         results_train_all.append(results_train)
@@ -234,20 +304,15 @@ if __name__ == "__main__":
         sys.exit(0)
 
     # Main mode: launch workers
-    klabels = [_klabel(k) for k in TRUNCATION_STEPS]
-    METRIC_KEYS = []
-    for kl in klabels:
-        METRIC_KEYS.extend(
-            [
-                f"times_state_{kl}",
-                f"mems_state_{kl}",
-            ]
-        )
+    METRIC_KEYS = [
+        *[f"times_state_{cs}" for cs in CHUNK_SIZES],
+        *[f"mems_state_{cs}" for cs in CHUNK_SIZES],
+    ]
 
     # Accumulators for mean/std across runs
     infer_sum = None
     infer_sumsq = None
-    infer_meta = None
+    infer_meta = None  # holds batch_size/channels per cfg
 
     train_sum = None
     train_sumsq = None
@@ -271,6 +336,7 @@ if __name__ == "__main__":
         infer, train = data["infer"], data["train"]
 
         if infer_sum is None:
+            # initialize accumulators and metadata
             infer_sum = []
             infer_sumsq = []
             infer_meta = []
@@ -326,6 +392,7 @@ if __name__ == "__main__":
     results_infer = []
     results_train = []
     for cfg_idx in range(len(SWEEP_CONFIGS)):
+        # Inference
         cfg_res = {
             "batch_size": infer_meta[cfg_idx]["batch_size"],
             "channels": infer_meta[cfg_idx]["channels"],
@@ -339,6 +406,7 @@ if __name__ == "__main__":
             cfg_res[f"std_{k}"] = std_arr.tolist()
         results_infer.append(cfg_res)
 
+        # Training
         cfg_res_t = {
             "batch_size": train_meta[cfg_idx]["batch_size"],
             "channels": train_meta[cfg_idx]["channels"],
@@ -353,60 +421,61 @@ if __name__ == "__main__":
         results_train.append(cfg_res_t)
 
     # ---- Plots ----
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
     ax_time_inf, ax_mem_inf = axes[0]
     ax_time_trn, ax_mem_trn = axes[1]
 
-    cmap = plt.get_cmap("tab10")
-    for idx, res in enumerate(results_infer):
-        color_map = {kl: cmap(i % 10) for i, kl in enumerate(klabels)}
-        label_suffix = f"B{res['batch_size']}-C{res['channels']}"
+    # Choose consistent single color (StateLeaky) and distinct linestyles per chunk
+    base_color = plt.get_cmap("tab10")(1)  # StateLeaky conceptual color
+    styles = {
+        8: ("-", base_color),
+        16: ("--", base_color),
+        32: ("-.", base_color),
+    }
 
-        for kl in klabels:
-            color = color_map[kl]
+    for res in results_infer:
+        label_suffix = f"B{res['batch_size']}-C{res['channels']}"
+        for cs in CHUNK_SIZES:
+            ls, color = styles[cs]
             ax_time_inf.errorbar(
                 TIMESTEPS,
-                res[f"times_state_{kl}"],
-                yerr=res.get(f"std_times_state_{kl}", None),
-                fmt="--",
+                res[f"times_state_{cs}"],
+                yerr=res.get(f"std_times_state_{cs}", None),
+                fmt=ls,
                 color=color,
-                label=f"State {kl} {label_suffix}",
+                label=f"StateLeaky chunk {cs} {label_suffix}",
                 capsize=3,
             )
-
             ax_mem_inf.errorbar(
                 TIMESTEPS,
-                res[f"mems_state_{kl}"],
-                yerr=res.get(f"std_mems_state_{kl}", None),
-                fmt="--",
+                res[f"mems_state_{cs}"],
+                yerr=res.get(f"std_mems_state_{cs}", None),
+                fmt=ls,
                 color=color,
-                label=f"State {kl} {label_suffix}",
+                label=f"StateLeaky chunk {cs} {label_suffix}",
                 capsize=3,
             )
 
-    for idx, res in enumerate(results_train):
-        color_map = {kl: cmap(i % 10) for i, kl in enumerate(klabels)}
+    for res in results_train:
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
-
-        for kl in klabels:
-            color = color_map[kl]
+        for cs in CHUNK_SIZES:
+            ls, color = styles[cs]
             ax_time_trn.errorbar(
                 TIMESTEPS,
-                res[f"times_state_{kl}"],
-                yerr=res.get(f"std_times_state_{kl}", None),
-                fmt="--",
+                res[f"times_state_{cs}"],
+                yerr=res.get(f"std_times_state_{cs}", None),
+                fmt=ls,
                 color=color,
-                label=f"State {kl} (train) {label_suffix}",
+                label=f"StateLeaky chunk {cs} (train) {label_suffix}",
                 capsize=3,
             )
-
             ax_mem_trn.errorbar(
                 TIMESTEPS,
-                res[f"mems_state_{kl}"],
-                yerr=res.get(f"std_mems_state_{kl}", None),
-                fmt="--",
+                res[f"mems_state_{cs}"],
+                yerr=res.get(f"std_mems_state_{cs}", None),
+                fmt=ls,
                 color=color,
-                label=f"State {kl} (train) {label_suffix}",
+                label=f"StateLeaky chunk {cs} (train) {label_suffix}",
                 capsize=3,
             )
 
@@ -415,16 +484,16 @@ if __name__ == "__main__":
         ax.set_yscale("log")
         ax.grid(True, which="both", ls="-", alpha=0.2)
 
-    ax_time_inf.set_title("Kernel Truncation Sweep (Time) - Inference")
+    ax_time_inf.set_title("SNN Performance (Time) - Inference")
     ax_time_inf.set_xlabel("Timesteps")
     ax_time_inf.set_ylabel("Time (s)")
-    ax_mem_inf.set_title("Kernel Truncation Sweep (Peak Memory) - Inference")
+    ax_mem_inf.set_title("SNN Memory (Peak) - Inference")
     ax_mem_inf.set_xlabel("Timesteps")
     ax_mem_inf.set_ylabel("Δ Memory (MB)")
-    ax_time_trn.set_title("Kernel Truncation Sweep (Time) - Training")
+    ax_time_trn.set_title("SNN Performance (Time) - Training")
     ax_time_trn.set_xlabel("Timesteps")
     ax_time_trn.set_ylabel("Time (s)")
-    ax_mem_trn.set_title("Kernel Truncation Sweep (Peak Memory) - Training")
+    ax_mem_trn.set_title("SNN Memory (Peak) - Training")
     ax_mem_trn.set_xlabel("Timesteps")
     ax_mem_trn.set_ylabel("Δ Memory (MB)")
 
@@ -433,8 +502,10 @@ if __name__ == "__main__":
     ax_time_trn.legend(ncol=2, fontsize=8)
     ax_mem_trn.legend(ncol=2, fontsize=8)
 
+    # mkdir if not exists
     os.makedirs("snn_performance", exist_ok=True)
     plt.tight_layout()
     plt.savefig(
-        "snn_performance/snn_performance_kernel_truncation.png", dpi=150
+        "snn_performance/snn_performance_stateleaky_chunk_sweep.png", dpi=150
     )
+    plt.savefig("snn_performance/snn_performance_stateleaky_chunk_sweep.pdf")

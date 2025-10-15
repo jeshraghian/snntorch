@@ -507,4 +507,3 @@ if __name__ == "__main__":
     plt.savefig(
         "snn_performance/snn_performance_stateleaky_chunk_sweep.png", dpi=150
     )
-    plt.show()
