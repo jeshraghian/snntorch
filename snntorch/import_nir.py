@@ -322,7 +322,63 @@ def _nir_to_snntorch_module(
         lif_node, wrec_node, lif_size = _parse_rnn_subgraph(node)
 
         if isinstance(lif_node, nir.LIF):
-            raise NotImplementedError("LIF in subgraph not supported")
+            dt = 1e-4
+
+            assert np.allclose(lif_node.v_leak, 0), "v_leak not supported"
+            assert np.allclose(lif_node.r, lif_node.tau / dt), "r not supported in LIF"
+
+            beta = 1 - (dt / lif_node.tau)
+            vthr = lif_node.v_threshold
+            w_scale = lif_node.r * dt / lif_node.tau
+
+            if not np.allclose(w_scale, 1.0):
+                if hack_w_scale:
+                    vthr = vthr / np.unique(w_scale)[0]
+                    print(
+                        f"[warning] scaling weights to avoid scaling inputs. w_scale: {w_scale}"
+                    )
+                else:
+                    raise NotImplementedError(
+                        "w_scale must be 1, or the same for all neurons"
+                    )
+
+            assert np.unique(vthr).size == 1, "LIF v_thr must be same for all neurons"
+
+            diagonal = np.array_equal(
+                wrec_node.weight, np.diag(np.diag(wrec_node.weight))
+            )
+
+            if np.unique(beta).size == 1:
+                beta = float(np.unique(beta)[0])
+
+            if diagonal:
+                V = torch.from_numpy(np.diag(wrec_node.weight)).to(dtype=torch.float32)
+            else:
+                V = None
+
+            rleaky = snn.RLeaky(
+                beta=beta,
+                threshold=float(np.unique(vthr)[0]),
+                reset_mechanism="zero",
+                init_hidden=init_hidden,
+                all_to_all=not diagonal,
+                linear_features=lif_size if not diagonal else None,
+                V=V if diagonal else None,
+                reset_delay=False,
+            )
+
+            if isinstance(rleaky.recurrent, torch.nn.Linear):
+                rleaky.recurrent.weight.data = torch.Tensor(wrec_node.weight)
+                if isinstance(wrec_node, nir.Affine):
+                    rleaky.recurrent.bias.data = torch.Tensor(wrec_node.bias)
+                else:
+                    rleaky.recurrent.bias.data = torch.zeros_like(
+                        rleaky.recurrent.bias
+                    )
+            else:
+                rleaky.recurrent.V.data = torch.diagonal(torch.Tensor(wrec_node.weight))
+
+            return rleaky
 
         elif isinstance(lif_node, nir.CubaLIF):
             dt = 1e-4
@@ -418,14 +474,12 @@ def import_from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
     NIR module into the equivalent snnTorch module, and wraps them into a torch.nn.Module
     using the generic GraphExecutor from NIRTorch to execute all modules in the right order.
 
-    Missing features:
-    - RLeaky (LIF inside RNN)
-
     Example::
 
         import snntorch as snn
         import torch
-        from snntorch import export_to_nir, import_from_nir
+        from snntorch.export_nir import export_to_nir
+        from snntorch.import_nir import import_from_nir
 
         lif1 = snn.Leaky(beta=0.9, init_hidden=True)
         lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
@@ -451,5 +505,16 @@ def import_from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
     """
     # find valid RNN subgraphs, and replace them with a single NIRGraph node
     graph = _replace_rnn_subgraph_with_nirgraph(graph)
-    # convert the NIR graph into a torch.nn.Module using snnTorch modules
-    return nirtorch.load(graph, _nir_to_snntorch_module)
+    # convert the NIR graph into a torch.fx.GraphModule using the newer
+    # nirtorch.nir_to_torch API to avoid issues with strict type checking
+    node_map = {
+        nir.Affine: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.Linear: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.Conv2d: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.Flatten: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.AvgPool2d: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.IF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.LIF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.CubaLIF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+    }
+    return nirtorch.nir_to_torch(graph, node_map)

@@ -14,7 +14,7 @@ Example::
 
       net = Net().to(device)
       optimizer = torch.optim.Adam(net.parameters(), lr=lr, betas=betas)
-      criterion = SF.ce_count_loss()  # apply cross-entropy to spike count
+      loss_fn = SF.ce_count_loss()  # apply cross-entropy to spike count
 
       spk_rec, mem_rec = net(input_data)
       loss = loss_fn(spk_rec, targets)

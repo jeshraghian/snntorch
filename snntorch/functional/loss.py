@@ -725,26 +725,25 @@ class mse_temporal_loss:
         import snntorch.functional as SF
 
         # default takes in idx labels as targets
-        # correct classes aimed to fire by default at t=0, incorrect at t=-1
-        (final time step)
-        loss_fn = mse_temporal_loss()
+        # correct classes aimed to fire by default at t=0, incorrect at t=-1 (final time step)
+        loss_fn = SF.mse_temporal_loss()
         loss = loss_fn(spk_out, targets)
 
         # as above, but correct class fire @ t=5, incorrect at t=100 with a
-        tolerance of 2 steps
-        loss_fn = mse_temporal_loss(on_target=5, off_target=100, tolerance=2)
+        # tolerance of 2 steps
+        loss_fn = SF.mse_temporal_loss(on_target=5, off_target=100, tolerance=2)
         loss = loss_fn(spk_out, targets)
 
         # as above with multiple spike time targets
-        on_target = torch.tensor(5, 10)
-        off_target = torch.tensor(100, 105)
-        loss_fn = mse_temporal_loss(on_target=on_target,
+        on_target = torch.tensor((5, 10))
+        off_target = torch.tensor((100, 105))
+        loss_fn = SF.mse_temporal_loss(on_target=on_target,
         off_target=off_target, tolerance=2)
         loss = loss_fn(spk_out, targets)
 
         # specify first spike time for 5 neurons individually, zero tolerance
-        target = torch.tensor(5, 10, 15, 20, 25)
-        loss_fn = mse_temporal_loss(target_is_time=True)
+        target = torch.tensor((5, 10, 15, 20, 25))
+        loss_fn = SF.mse_temporal_loss(target_is_time=True)
         loss = loss_fn(spk_out, target)
 
 

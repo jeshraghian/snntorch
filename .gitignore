@@ -49,6 +49,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+nir_model.nir
 *.cover
 .hypothesis/
 .pytest_cache/
@@ -95,6 +96,7 @@ venv/
 ENV/
 snnenv/
 snnenv-rog/
+snnenv-home/
 
 # Spyder project settings
 .spyderproject
