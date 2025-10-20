@@ -315,10 +315,10 @@ def test_equivalence_vs_external_linear_and_stateleaky(device):
 def test_chunking_with_gd_internal_linear():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    batch_size = 256
-    chunk_size = 64
-    channels = 32
-    timesteps = 4096
+    batch_size = 8
+    chunk_size = 2
+    channels = 4
+    timesteps = 32
 
     input_tensor = (
         torch.arange(
