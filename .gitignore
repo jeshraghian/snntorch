@@ -5,6 +5,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Local secrets/config for GitHub App helper
+.secrets/
+*.pem
+
 # C extensions
 *.so
 
@@ -111,5 +115,5 @@ snnenv-home/
 .vscode/
 .idea/
 
-# Additional Files
-dataset/
+# wandb
+wandb/
