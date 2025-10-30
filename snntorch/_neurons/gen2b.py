@@ -1,44 +1,14 @@
 import torch
 from torch import nn
-from torch.autograd import Function
-
-
-# ===============================================================
-# Custom autograd Function: fused readout + recomputation backward
-# ===============================================================
-# class StateOuterProductCumsumReadoutFn(Function):
-#     @staticmethod
-#     def forward(ctx, v, k, alpha, q, time_chunk_size=None):
-#         pass
-
-#     @staticmethod
-#     def backward(ctx, grad_y):
-#         pass
-
-"""
-        # y = StateOuterProductCumsumReadoutFn.apply(
-        #     v, k, alpha, q, self.time_chunk_size
-        # )
-"""
-
-# ===============================================================
-# High-level single-input wrapper (unfused; chunked forward)
-# ===============================================================
 
 
 class Gen2SingleInputReadout(nn.Module):
-    def __init__(
-        self,
-        in_dim,
-        d_value,
-        d_key,
-        time_chunk_size=None,
-    ):
+    def __init__(self, in_dim, d_value, d_key, time_chunk_size=None):
         super().__init__()
-        self.to_v = nn.Linear(in_dim, d_value)   # (T, B, in_dim) -> (T, B, d)
-        self.to_k = nn.Linear(in_dim, d_key)     # (T, B, in_dim) -> (T, B, n)
-        self.to_q = nn.Linear(in_dim, d_key)     # (T, B, in_dim) -> (T, B, n)
-        self.to_alpha = nn.Linear(in_dim, d_key)  # (T, B, in_dim) -> (T, B, n)
+        self.to_v = nn.Linear(in_dim, d_value)  # (T,B,in)->(T,B,d)
+        self.to_k = nn.Linear(in_dim, d_key)  # (T,B,in)->(T,B,n)
+        self.to_q = nn.Linear(in_dim, d_key)  # (T,B,in)->(T,B,n)
+        self.to_alpha = nn.Linear(in_dim, d_key)  # (T,B,in)->(T,B,n)
         self.time_chunk_size = time_chunk_size
         self.eps = 1e-8
 
@@ -46,86 +16,58 @@ class Gen2SingleInputReadout(nn.Module):
         # x: (T, B, in_dim)
         T, B, _ = x.shape
 
-        v = self.to_v(x)                        # (T, B, d)
-        k = self.to_k(x)                        # (T, B, n)
-        q = self.to_q(x)                        # (T, B, n)
+        v = self.to_v(x)  # (T, B, d)
+        k = self.to_k(x)  # (T, B, n)
+        q = self.to_q(x)  # (T, B, n)
         alpha = torch.sigmoid(self.to_alpha(x))  # (T, B, n)
 
-        chunk = self.time_chunk_size or T
-        y_chunks = []
-        S_prev = None  # carry: (B, d, n)
+        C = self.time_chunk_size or T
+        S_prev = None  # (B, d, n)
+        d = v.shape[2]
+        y = x.new_zeros((T, B, d))  # preallocate output
 
-        for t0 in range(0, T, chunk):
-            t1 = min(t0 + chunk, T)
+        for t0 in range(0, T, C):
+            t1 = min(t0 + C, T)
 
-            v_ch = v[t0:t1]        # (Tc, B, d)
-            k_ch = k[t0:t1]        # (Tc, B, n)
-            q_ch = q[t0:t1]        # (Tc, B, n)
-            a_ch = alpha[t0:t1]    # (Tc, B, n)
-
+            v_ch = v[t0:t1]  # (Tc, B, d)
+            k_ch = k[t0:t1]  # (Tc, B, n)
+            q_ch = q[t0:t1]  # (Tc, B, n)
+            a_ch = alpha[t0:t1]  # (Tc, B, n)
             Tc = v_ch.shape[0]
-            d = v_ch.shape[2]
             n = k_ch.shape[2]
 
-            # Outer-product writes per step: v_t k_t^T -> (Tc, B, d, n)
-            outer = torch.einsum("tbd,tbn->tbdn", v_ch, k_ch)  # (Tc, B, d, n)
+            # Writes per step: v_t k_t^T -> (Tc,B,d,n)
+            outer = torch.einsum("tbd,tbn->tbdn", v_ch, k_ch)
 
-            # Decay weights inside the chunk via cumprod in log-space
-            log_a = (a_ch.clamp_min(self.eps)).log()   # (Tc, B, n)
-            log_cumprod = torch.cumsum(log_a, dim=0)   # (Tc, B, n)
-            cumprod = log_cumprod.exp()                # (Tc, B, n) = p_t = ∏_{u<=t} a_u
+            # Prefix products p_t = ∏_{u<=t} a_u   (faster than log/exp)
+            cumprod = torch.cumprod(
+                a_ch.clamp_min(self.eps), dim=0
+            )  # (Tc,B,n)
 
-            # --- Shape assert as a tuple of named labels ---
-            assert cumprod.shape == (Tc, B, n), (
-                f"cumprod shape {tuple(cumprod.shape)} != expected (Tc, B, n)=({Tc}, {B}, {n})"
-            )
+            # Divide-by-prefix, cumsum, then multiply-by-current-prefix
+            inv_prefix = (1.0 / (cumprod + self.eps)).unsqueeze(
+                2
+            )  # (Tc,B,1,n)
+            scaled = outer * inv_prefix  # (Tc,B,d,n) = B_r/p_r
+            scaled = torch.cumsum(scaled, dim=0)  # Σ_{r<=t} B_r/p_r
+            S_local = scaled * cumprod.unsqueeze(2)  # p_t * Σ_{r<=t} ...
 
-            # === Divide (per write r) by its own prefix p_r ===
-            inv_prefix = 1.0 / (cumprod + 1e-8)       # (Tc, B, n); at time r this is 1/p_r
-            # expand inv_prefix to (Tc, B, d, n)
-            inv_prefix = inv_prefix.unsqueeze(2).expand(-1, -1, d, -1)  # TODO: WARNING CHECK STRIDES
-            scaled_writes = outer * inv_prefix  # (Tc, B, d, n): B_r / p_r
-
-            # scaled_writes: (Tc, B, d, n)  = B_r / p_r  per time-slice r
-            S_scaled = torch.cumsum(scaled_writes, dim=0)            # (Tc, B, d, n) = sum_{r<=t} B_r/p_r
-            S_local = S_scaled * cumprod.unsqueeze(2).expand(-1, -1, d, -1)
-            assert S_local.shape == (Tc, B, d, n), (
-                f"S_local shape {tuple(S_local.shape)} != expected (Tc, B, d, n)=({Tc}, {B}, {d}, {n})"
-            )
-
-            # --- add carry from previous chunk BEFORE readout ---
+            # Add carry from previous chunk: (∏_{u=t0..t} α_u) * S_prev
             if S_prev is not None:
-                # Decay previous state across this chunk with cumprod[t_rel]
-                # Shapes: S_prev (B,d,n), cumprod (Tc,B,n) -> broadcast over d via unsqueeze(2)
-                assert S_local.shape == (Tc, B, d, n), (
-                    f"S_local shape {tuple(S_local.shape)} != expected (Tc, B, d, n)=({Tc}, {B}, {d}, {n})"
-                )
-                assert S_prev.shape == (B, d, n), (
-                    f"S_prev shape {tuple(S_prev.shape)} != expected (B, d, n)=({B}, {d}, {n})"
-                )
-                assert cumprod.shape == (Tc, B, n), (
-                    f"cumprod shape {tuple(cumprod.shape)} != expected (Tc, B, n)=({Tc}, {B}, {n})"
-                )
+                S_local = S_local + S_prev.unsqueeze(0) * cumprod.unsqueeze(2)
 
-                # Expand S_prev across time
-                S_prev_time = S_prev.unsqueeze(0)                 # (1,  B, d, n)
-                S_prev_time = S_prev_time.expand(Tc, -1, -1, -1)  # (Tc, B, d, n)
+            # Readout with bmm instead of einsum
+            Sb = S_local.reshape(Tc * B, d, n)  # (TcB,d,n)
+            qb = q_ch.reshape(Tc * B, n, 1)  # (TcB,n,1)
+            y_ch = torch.bmm(Sb, qb).reshape(Tc, B, d)  # (Tc,B,d)
 
-                # Expand cumprod across rows (d)
-                decay_time = cumprod.unsqueeze(2)                 # (Tc, B, 1, n)
-                decay_time = decay_time.expand(-1, -1, d, -1)     # (Tc, B, d, n)
+            # Write into preallocated output
+            y[t0:t1] = y_ch
 
-                # Elementwise multiply to get the carry at each step
-                carry = S_prev_time * decay_time                  # (Tc, B, d, n)
+            # Update carry for next chunk
+            S_prev = S_local[-1]  # (B,d,n)
 
-                # Add carry to the in-chunk state
-                S_local = S_local + carry
+            # (Optional) free big temps ASAP
+            del outer, scaled, S_local, Sb, qb, y_ch
 
-            # y_t = S_t q_t
-            y_ch = torch.einsum("tbdn,tbn->tbd", S_local, q_ch)      # (Tc, B, d)
-            y_chunks.append(y_ch)
-
-            S_prev = S_local[-1]  # (B, d, n)
-
-        y = torch.cat(y_chunks, dim=0)
         return y
