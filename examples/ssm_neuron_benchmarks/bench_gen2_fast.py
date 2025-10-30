@@ -18,6 +18,9 @@ from snntorch._neurons.gen2b import Gen2SingleInputReadout
 
 
 # Sweep configurations: (batch_size, channels)
+# SWEEP_CONFIGS = [
+#     (64, 256),
+# ]
 SWEEP_CONFIGS = [
     (64, 8),
 ]
@@ -33,7 +36,7 @@ TIME_CHUNK_SIZE = 109000000
 # Quick toggles (set to False to disable specific parts of the benchmark)
 # Re-enable by setting back to True.
 ENABLE_TRAINING = False
-ENABLE_LEAKY = False
+ENABLE_LEAKY = True
 GEN2_USE_COMPILE = False
 
 

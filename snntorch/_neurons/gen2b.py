@@ -3,19 +3,21 @@ from torch import nn
 
 
 class Gen2SingleInputReadout(nn.Module):
-    def __init__(self, in_dim, d_value, d_key, time_chunk_size=None):
+    def __init__(
+        self, in_dim, d_value, d_key, time_chunk_size=None, r_block=1024 * 10
+    ):
         super().__init__()
-        self.to_v = nn.Linear(in_dim, d_value)  # (T,B,in)->(T,B,d)
-        self.to_k = nn.Linear(in_dim, d_key)  # (T,B,in)->(T,B,n)
-        self.to_q = nn.Linear(in_dim, d_key)  # (T,B,in)->(T,B,n)
-        self.to_alpha = nn.Linear(in_dim, d_key)  # (T,B,in)->(T,B,n)
+        self.to_v = nn.Linear(in_dim, d_value)
+        self.to_k = nn.Linear(in_dim, d_key)
+        self.to_q = nn.Linear(in_dim, d_key)
+        self.to_alpha = nn.Linear(in_dim, d_key)
         self.time_chunk_size = time_chunk_size
+        self.r_block = r_block
         self.eps = 1e-8
 
     def forward(self, x):
         # x: (T, B, in_dim)
         T, B, _ = x.shape
-
         v = self.to_v(x)  # (T,B,d)
         k = self.to_k(x)  # (T,B,n)
         q = self.to_q(x)  # (T,B,n)
@@ -24,11 +26,10 @@ class Gen2SingleInputReadout(nn.Module):
         C = self.time_chunk_size or T
         d = v.shape[2]
         n = k.shape[2]
-        y = x.new_zeros((T, B, d))  # preallocate
-        S_prev = None  # (B,d,n)
+        y = x.new_zeros((T, B, d))
+        S_prev = None
 
-        # constant lower-triangular mask (on device and dtype)
-        tril_cache = None
+        tril_cache = None  # optional cache if you later go back to T×T path
 
         for t0 in range(0, T, C):
             t1 = min(t0 + C, T)
@@ -39,58 +40,69 @@ class Gen2SingleInputReadout(nn.Module):
             q_ch = q[t0:t1].contiguous()  # (Tc,B,n)
             a_ch = alpha[t0:t1].contiguous()  # (Tc,B,n)
 
-            # prefix products p_t (per n), faster than log/exp for moderate Tc
+            # Prefix products p_t in the chunk
             p = torch.cumprod(a_ch.clamp_min(self.eps), dim=0)  # (Tc,B,n)
 
-            # Pre-scale for weights: q̃_t = q_t ⊙ p_t, k̃_r = k_r ⊘ p_r
+            # q̃ and k̃ in (B,Tc,n) order for batched GEMMs
             q_tilde = (q_ch * p).permute(1, 0, 2).contiguous()  # (B,Tc,n)
-            k_tilde = (
+            k_tilde_all = (
                 (k_ch / (p + self.eps)).permute(1, 0, 2).contiguous()
             )  # (B,Tc,n)
+            V_all = v_ch.permute(1, 0, 2).contiguous()  # (B,Tc,d)
 
-            # Weight matrix per batch: W = q̃ @ k̃^T  -> (B, Tc, Tc)
-            W = torch.bmm(q_tilde, k_tilde.transpose(1, 2))
+            # Per-chunk output buffer in (B,Tc,d)
+            y_ch = v_ch.new_zeros((B, Tc, d))
 
-            # Causalize: keep r <= t
-            if tril_cache is None or tril_cache.shape[-1] != Tc:
-                tril_cache = torch.tril(
-                    torch.ones((Tc, Tc), device=W.device, dtype=W.dtype)
-                )
-            W = W * tril_cache  # (B,Tc,Tc)
+            # Block over r to avoid forming (B,Tc,Tc)
+            R = self.r_block
+            for r0 in range(0, Tc, R):
+                r1 = min(r0 + R, Tc)
+                Rlen = r1 - r0
 
-            # Readout: y_no_carry = W @ V, where V stacks v_r over time
-            V = v_ch.permute(1, 0, 2).contiguous()  # (B,Tc,d)
-            y_no_carry = torch.bmm(W, V)  # (B,Tc,d)
+                # (B,R,n), (B,R,d)
+                k_blk = k_tilde_all[:, r0:r1, :]  # (B,R,n)
+                v_blk = V_all[:, r0:r1, :]  # (B,R,d)
 
-            # Carry contribution: y_carry_t = S_prev @ (q_t ⊙ p_t)^T
+                # A = q̃ @ k̃^T  -> (B,Tc,R)
+                A = torch.bmm(q_tilde, k_blk.transpose(1, 2))  # (B,Tc,R)
+
+                # Causal mask for the current r-block: keep r<=t
+                t_idx = torch.arange(Tc, device=A.device).unsqueeze(
+                    1
+                )  # (Tc,1)
+                r_idx = torch.arange(r0, r1, device=A.device).unsqueeze(
+                    0
+                )  # (1,R)
+                causal = (t_idx >= r_idx).to(A.dtype)  # (Tc,R)
+                A = A * causal.unsqueeze(0)  # (B,Tc,R)
+
+                # Accumulate contribution: (B,Tc,R) @ (B,R,d) -> (B,Tc,d)
+                y_ch += torch.bmm(A, v_blk)
+
+                del k_blk, v_blk, A, causal
+
+            # Carry: y_carry_t = S_prev @ (q̃_t)^T, shape (B,Tc,d)
             if S_prev is not None:
-                # q̃^T : (B,n,Tc); S_prev:(B,d,n) -> (B,d,Tc)
                 y_carry = torch.bmm(
                     S_prev, q_tilde.transpose(1, 2)
                 )  # (B,d,Tc)
-                y_carry = y_carry.transpose(1, 2).contiguous()  # (B,Tc,d)
-                y_ch = y_no_carry + y_carry
-            else:
-                y_ch = y_no_carry
+                y_ch += y_carry.transpose(1, 2).contiguous()  # (B,Tc,d)
+                del y_carry
 
-            # write back to output
-            y[t0:t1] = y_ch.permute(
-                1, 0, 2
-            ).contiguous()  # (Tc,B,d) -> (T,B,d)
+            # Write back to (T,B,d)
+            y[t0:t1] = y_ch.permute(1, 0, 2).contiguous()  # (Tc,B,d)
 
-            # ---- Update carry S_prev for next chunk, without (Tc,B,d,n) tensors ----
-            # S_end = p_end * S_prev + sum_r (p_end/p_r) * (v_r k_r^T)
+            # Update carry for next chunk (no T×T / (Tc,B,d,n) tensors)
             p_end = p[-1]  # (B,n)
-            # weights_r(n) = (p_end / p_r) * k_r(n)  -> (Tc,B,n)
-            weights = (k_ch / (p + self.eps)) * p_end.unsqueeze(0)
-            # sum over r: v_r (B,d) times scalar weights_r(n) -> (B,d,n)
-            S_writes_end = torch.einsum("tbd,tbn->bdn", v_ch, weights)
-            if S_prev is None:
-                S_prev = S_writes_end
-            else:
-                S_prev = S_prev * p_end.unsqueeze(1) + S_writes_end  # (B,d,n)
-
-            # free large temporaries early
-            del q_tilde, k_tilde, W, V, y_no_carry, weights, S_writes_end
+            weights = (k_ch / (p + self.eps)) * p_end.unsqueeze(0)  # (Tc,B,n)
+            S_writes_end = torch.einsum(
+                "tbd,tbn->bdn", v_ch, weights
+            )  # (B,d,n)
+            S_prev = (
+                S_writes_end
+                if S_prev is None
+                else S_prev * p_end.unsqueeze(1) + S_writes_end
+            )
+            del weights, S_writes_end, q_tilde, k_tilde_all, V_all, y_ch, p
 
         return y
