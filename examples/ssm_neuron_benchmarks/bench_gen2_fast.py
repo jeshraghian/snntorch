@@ -19,14 +19,15 @@ from snntorch._neurons.gen2b import Gen2SingleInputReadout
 
 # Sweep configurations: (batch_size, channels)
 SWEEP_CONFIGS = [
-    (64, 256),
+    (64, 8),
 ]
 N_RUNS = 1
 
 # Same timestep schedule as baseline
-TIMESTEPS = np.logspace(1, 4, num=10, dtype=int)[::3]
+TIMESTEPS = np.logspace(1, 4.25, num=10, dtype=int)[::3]
 BATCHWISE_CHUNK_SIZE = 4
-TIME_CHUNK_SIZE = 1024
+# TIME_CHUNK_SIZE = 512
+TIME_CHUNK_SIZE = 109000000
 
 
 # Quick toggles (set to False to disable specific parts of the benchmark)
