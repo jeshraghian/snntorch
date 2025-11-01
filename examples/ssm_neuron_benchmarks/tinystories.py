@@ -116,7 +116,8 @@ class SNNLanguageModel(nn.Module):
 
     def forward(self, x):
         # x: [SEQ_LENGTH-1, B] token IDs (torch.long)
-        hidden = self.embedding(x)  # [SEQ_LENGTH-1, B, hidden_dim]
+        T = x.size(0)
+        hidden = self.embedding(x)  # [T, B, hidden_dim]
         pos = torch.arange(hidden.size(0), device=hidden.device)
         pos_table = self.pos_embedding(pos).unsqueeze(1)  # [T, 1, H]
         hidden = hidden + pos_table
@@ -126,20 +127,20 @@ class SNNLanguageModel(nn.Module):
         # nonlinear hidden
         hidden = self.fc2(hidden)
         hidden = torch.relu(hidden)
-        hidden = hidden.reshape(SEQ_LENGTH - 1, -1, hidden.shape[-1])
+        hidden = hidden.reshape(T, -1, hidden.shape[-1])
         hidden, _ = self.lif2(hidden)
         hidden = hidden.reshape(-1, hidden.shape[-1])
 
         # nonlinear hidden
         hidden = self.fc3(hidden)
         hidden = torch.relu(hidden)
-        hidden = hidden.reshape(SEQ_LENGTH - 1, -1, hidden.shape[-1])
+        hidden = hidden.reshape(T, -1, hidden.shape[-1])
         hidden, _ = self.lif3(hidden)
         hidden = hidden.reshape(-1, hidden.shape[-1])
 
         # output transformation
         output = self.fc_out(hidden)
-        output = output.reshape(SEQ_LENGTH - 1, -1, output.shape[-1])
+        output = output.reshape(T, -1, output.shape[-1])
         return output
 
 
