@@ -28,7 +28,7 @@ EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 8
 LEARN_BETA = True
-DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 DECODE_EVERY_N_BATCHES = 50
 print("Device: ", DEVICE)
 
@@ -95,26 +95,22 @@ class SNNLanguageModelLeaky(nn.Module):
         super(SNNLanguageModelLeaky, self).__init__()
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.pos_embedding = nn.Embedding(SEQ_LENGTH, hidden_dim)
-        self.ln_emb = nn.LayerNorm(hidden_dim)
         self.lif1 = Leaky(
             beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
             learn_beta=LEARN_BETA,
         )
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.ln2 = nn.LayerNorm(hidden_dim)
         self.lif2 = Leaky(
             beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
             learn_beta=LEARN_BETA,
         )
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
-        self.ln3 = nn.LayerNorm(hidden_dim)
         self.lif3 = Leaky(
             beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
             learn_beta=LEARN_BETA,
         )
         self.fc_out = nn.Linear(hidden_dim, vocab_size)
-        # tie to embedding
-        self.fc_out.weight = self.embedding.weight
+        # untied output head
 
     def forward(self, x):
         # x: [SEQ_LENGTH-1, B] token IDs (torch.long)
@@ -128,18 +124,15 @@ class SNNLanguageModelLeaky(nn.Module):
         pos_table = self.pos_embedding(pos)  # [T, HIDDEN_DIM]
         for t in range(T):
             hidden = self.embedding(x[t]) + pos_table[t]  # [B, hidden_dim]
-            hidden = self.ln_emb(hidden)
 
             spk1, mem1 = self.lif1(hidden, mem1)
 
             hidden = self.fc2(spk1)
             hidden = torch.relu(hidden)
-            hidden = self.ln2(hidden)
             spk2, mem2 = self.lif2(hidden, mem2)
 
             hidden = self.fc3(spk2)
             hidden = torch.relu(hidden)
-            hidden = self.ln3(hidden)
             spk3, mem3 = self.lif3(hidden, mem3)
             output_t = self.fc_out(spk3)  # [B, vocab_size]
             logits_list.append(output_t)

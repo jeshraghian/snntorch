@@ -94,29 +94,25 @@ class SNNLanguageModel(nn.Module):
         super(SNNLanguageModel, self).__init__()
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.pos_embedding = nn.Embedding(SEQ_LENGTH, hidden_dim)
-        self.ln_emb = nn.LayerNorm(hidden_dim)
         self.lif1 = StateLeaky(
             beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
             channels=hidden_dim,
             learn_beta=LEARN_BETA,
         )
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.ln2 = nn.LayerNorm(hidden_dim)
         self.lif2 = StateLeaky(
             beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
             channels=hidden_dim,
             learn_beta=LEARN_BETA,
         )
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
-        self.ln3 = nn.LayerNorm(hidden_dim)
         self.lif3 = StateLeaky(
             beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
             channels=hidden_dim,
             learn_beta=LEARN_BETA,
         )
         self.fc_out = nn.Linear(hidden_dim, vocab_size)
-        # tie to embedding
-        self.fc_out.weight = self.embedding.weight
+        # untied output head
 
     def forward(self, x):
         # x: [SEQ_LENGTH-1, B] token IDs (torch.long)
@@ -124,7 +120,6 @@ class SNNLanguageModel(nn.Module):
         pos = torch.arange(hidden.size(0), device=hidden.device)
         pos_table = self.pos_embedding(pos).unsqueeze(1)  # [T, 1, H]
         hidden = hidden + pos_table
-        hidden = self.ln_emb(hidden)
         hidden, _ = self.lif1(hidden)
         hidden = hidden.reshape(-1, hidden.shape[-1])
 
@@ -132,7 +127,6 @@ class SNNLanguageModel(nn.Module):
         hidden = self.fc2(hidden)
         hidden = torch.relu(hidden)
         hidden = hidden.reshape(SEQ_LENGTH - 1, -1, hidden.shape[-1])
-        hidden = self.ln2(hidden)
         hidden, _ = self.lif2(hidden)
         hidden = hidden.reshape(-1, hidden.shape[-1])
 
@@ -140,7 +134,6 @@ class SNNLanguageModel(nn.Module):
         hidden = self.fc3(hidden)
         hidden = torch.relu(hidden)
         hidden = hidden.reshape(SEQ_LENGTH - 1, -1, hidden.shape[-1])
-        hidden = self.ln3(hidden)
         hidden, _ = self.lif3(hidden)
         hidden = hidden.reshape(-1, hidden.shape[-1])
 
