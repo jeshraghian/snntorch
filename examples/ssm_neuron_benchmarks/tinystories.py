@@ -95,19 +95,19 @@ class SNNLanguageModel(nn.Module):
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.pos_embedding = nn.Embedding(SEQ_LENGTH, hidden_dim)
         self.lif1 = StateLeaky(
-            beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
+            beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             channels=hidden_dim,
             learn_beta=LEARN_BETA,
         )
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.lif2 = StateLeaky(
-            beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
+            beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             channels=hidden_dim,
             learn_beta=LEARN_BETA,
         )
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
         self.lif3 = StateLeaky(
-            beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
+            beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             channels=hidden_dim,
             learn_beta=LEARN_BETA,
         )
@@ -148,6 +148,8 @@ initialize_wandb()
 # Initialize model, loss, and optimizer
 model = SNNLanguageModel(VOCAB_SIZE, HIDDEN_DIM).to(DEVICE)
 criterion = nn.CrossEntropyLoss()
+
+
 optimizer = optim.AdamW(model.parameters(), lr=LR)
 
 # Training Loop

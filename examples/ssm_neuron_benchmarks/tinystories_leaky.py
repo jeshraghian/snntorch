@@ -28,7 +28,7 @@ EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 8
 LEARN_BETA = True
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
 DECODE_EVERY_N_BATCHES = 50
 print("Device: ", DEVICE)
 
@@ -96,17 +96,17 @@ class SNNLanguageModelLeaky(nn.Module):
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.pos_embedding = nn.Embedding(SEQ_LENGTH, hidden_dim)
         self.lif1 = Leaky(
-            beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
+            beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             learn_beta=LEARN_BETA,
         )
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.lif2 = Leaky(
-            beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
+            beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             learn_beta=LEARN_BETA,
         )
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
         self.lif3 = Leaky(
-            beta=torch.tensor([0.9]).to(DEVICE).expand(hidden_dim),
+            beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             learn_beta=LEARN_BETA,
         )
         self.fc_out = nn.Linear(hidden_dim, vocab_size)
@@ -146,6 +146,8 @@ initialize_wandb()
 # Initialize model, loss, and optimizer
 model = SNNLanguageModelLeaky(VOCAB_SIZE, HIDDEN_DIM).to(DEVICE)
 criterion = nn.CrossEntropyLoss()
+
+
 optimizer = optim.AdamW(model.parameters(), lr=LR)
 
 
