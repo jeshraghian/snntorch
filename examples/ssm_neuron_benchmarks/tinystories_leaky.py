@@ -206,11 +206,24 @@ for epoch in range(EPOCHS):
                 and not have_already_decoded_this_batch
                 and (b_end - b_start) > 0
             ):
-                # output_chunk: [SEQ_LENGTH-1, b_chunk, VOCAB_SIZE]
-                seq_translate = torch.argmax(output_chunk[:, 0, :], dim=-1)
-                assert seq_translate.shape[0] == SEQ_LENGTH - 1
+                # Autoregressive greedy decode using the first sample in the chunk
+                with torch.no_grad():
+                    eos_id = tokenizer.eos_token_id
+                    # seed with the first input token
+                    seq_ids = x_chunk[0:1, 0:1].clone()  # [1,1]
+                    gen_ids = []
+                    for _ in range(SEQ_LENGTH - 1):
+                        logits_all = model(seq_ids)
+                        next_token = torch.argmax(logits_all[-1, 0, :], dim=-1)
+                        gen_ids.append(int(next_token.item()))
+                        if int(next_token.item()) == eos_id:
+                            break
+                        next_token_long = next_token.view(1, 1).to(
+                            seq_ids.dtype
+                        )
+                        seq_ids = torch.cat([seq_ids, next_token_long], dim=0)
                 with open(filename, "a") as f:
-                    f.write(tokenizer.decode(seq_translate.tolist()))
+                    f.write(tokenizer.decode(gen_ids))
                     f.write("\n")
                 have_already_decoded_this_batch = True
 
