@@ -1,4 +1,5 @@
 from datetime import datetime
+import math
 
 import torch
 import torch.nn as nn
@@ -8,7 +9,6 @@ from datasets import load_dataset
 from transformers import AutoTokenizer
 from tqdm import tqdm
 import torch.nn.functional as F
-import math
 import wandb
 
 from snntorch._neurons.stateleaky import StateLeaky
@@ -115,7 +115,6 @@ class SNNLanguageModel(nn.Module):
         # untied output head
 
     def forward(self, x):
-        # x: [SEQ_LENGTH-1, B] token IDs (torch.long)
         T = x.size(0)
         hidden = self.embedding(x)  # [T, B, hidden_dim]
         pos = torch.arange(hidden.size(0), device=hidden.device)
