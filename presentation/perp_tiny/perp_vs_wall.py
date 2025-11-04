@@ -177,11 +177,18 @@ def main():
 
     # --- Overlay (log y) ---
     plt.figure()
+    # Swap colors: make 'leaky' orange (C1) and 'stateleaky' blue (C0)
+    color_map = {"leaky": "C1", "stateleaky": "C0"}
     for r in runs:
         ppl_col = f"{r} - ppl" if f"{r} - ppl" in df_hist.columns else None
         if (r in sec_per_step) and ppl_col is not None:
             secs = df_hist[step_col].astype(float) * sec_per_step[r]
-            plt.plot(secs, df_hist[ppl_col].astype(float), label=r)
+            plt.plot(
+                secs,
+                df_hist[ppl_col].astype(float),
+                label=r,
+                color=color_map.get(r),
+            )
     plt.xlabel("Elapsed seconds (avg sec/step)")
     plt.ylabel("Perplexity (log scale)")
     plt.yscale("log")
