@@ -118,7 +118,7 @@ def main():
     plt.ylabel("Perplexity (ppl)")
     plt.ylim(0, ycap)
     title_suffix = f"P{args.ycap}" if use_percentile else f"{ycap:g}"
-    plt.title(f"Perplexity vs Batch/Step (y truncated at {title_suffix})")
+    plt.title(f"Perplexity vs Batches Processed")
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
