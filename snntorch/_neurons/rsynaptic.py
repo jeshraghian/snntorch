@@ -18,7 +18,7 @@ class RSynaptic(LIF):
 
     .. math::
 
-            I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + V(S_{\\rm out}[t]
+            I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + VS_{\\rm out}[t]
             + I_{\\rm in}[t+1] \\\\
             U[t+1] = βU[t] + I_{\\rm syn}[t+1] - RU_{\\rm thr}
 
