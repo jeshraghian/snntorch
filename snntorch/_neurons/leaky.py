@@ -235,19 +235,16 @@ class Leaky(LIF):
         else:
             return spk, self.mem
 
-    def _base_state_function(self, input_):
-        base_fn = self.beta.clamp(0, 1) * self.mem + input_
-        return base_fn
+    def _base_sub(self, input_): # reset by subtraction, soft reset
+        base_fn = self._base_int(input_)
+        return base_fn - self.reset * self.threshold * self.beta.clamp(0, 1)
 
-    def _base_sub(self, input_):
-        return self._base_state_function(input_) - self.reset * self.threshold
+    def _base_zero(self, input_): # reset to zero, hard reset
+        base_fn = self._base_int(input_)
+        return base_fn - self.reset * base_fn
 
-    def _base_zero(self, input_):
-        self.mem = (1 - self.reset) * self.mem
-        return self._base_state_function(input_)
-
-    def _base_int(self, input_):
-        return self._base_state_function(input_)
+    def _base_int(self, input_): # pure integration, no reset
+        return self.beta.clamp(0, 1) * self.mem + input_
 
     @classmethod
     def detach_hidden(cls):
