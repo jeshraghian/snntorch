@@ -18,6 +18,7 @@ __neuron__ = [
     "rleaky",
     "rsynaptic",
     "synaptic",
+    "sconv1dlstm",
     "sconv2dlstm",
     "slstm",
 ]
@@ -34,6 +35,7 @@ from .synaptic import Synaptic
 from .rleaky import RLeaky
 from .rsynaptic import RSynaptic
 
+from .sconv1dlstm import SConv1dLSTM
 from .sconv2dlstm import SConv2dLSTM
 from .slstm import SLSTM
 

@@ -31,6 +31,7 @@ Neuron models that accelerate training require passing data in parallel. Availab
 Additional models include spiking-LSTMs and spiking-ConvLSTMs:
 
 * **SLSTM** - Spiking long short-term memory cell with state-thresholding 
+* **SConv1dLSTM** - Spiking 1d convolutional short-term memory cell with state thresholding
 * **SConv2dLSTM** - Spiking 2d convolutional short-term memory cell with state thresholding
 
 
