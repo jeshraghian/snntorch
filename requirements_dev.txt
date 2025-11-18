@@ -10,3 +10,7 @@ twine==2.0.0
 pytest==6.2.5
 sphinx-rtd-theme
 pre-commit
+torch
+nir>=1.0.6
+nirtorch>=2.0.5
+matplotlib

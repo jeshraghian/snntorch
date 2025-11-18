@@ -31,9 +31,6 @@ DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 DECODE_EVERY_N_BATCHES = 50
 print("Device: ", DEVICE)
 
-# Model options
-
-# Reproducibility
 torch.manual_seed(1337)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(1337)
@@ -112,7 +109,6 @@ class SNNLanguageModel(nn.Module):
             learn_beta=LEARN_BETA,
         )
         self.fc_out = nn.Linear(hidden_dim, vocab_size)
-        # untied output head
 
     def forward(self, x):
         T = x.size(0)

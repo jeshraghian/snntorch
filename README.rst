@@ -20,7 +20,10 @@ Introduction
 .. |downloads| image:: https://static.pepy.tech/personalized-badge/snntorch?period=total&units=international_system&left_color=grey&right_color=orange&left_text=Downloads
    :target: https://pepy.tech/project/snntorch
 
-|build| |docs| |discord| |pypi| |conda| |downloads|
+.. |neuromorphiccomputing| image:: https://img.shields.io/badge/Collaboration_Network-Open_Neuromorphic-blue
+   :target: https://open-neuromorphic.org/neuromorphic-computing/
+
+|build| |docs| |discord| |pypi| |conda| |downloads| |neuromorphiccomputing|
 
 
 The brain is the perfect place to look for inspiration to develop more efficient neural networks. One of the main differences with modern deep learning is that the brain encodes information in spikes rather than continuous activations. 
@@ -49,10 +52,12 @@ snnTorch contains the following components:
      - Description
    * - `snntorch <https://snntorch.readthedocs.io/en/latest/snntorch.html>`_
      - a spiking neuron library like torch.nn, deeply integrated with autograd
-   * - `snntorch.export <https://snntorch.readthedocs.io/en/latest/snntorch.export.html>`_
-     - enables cross-compatibility with other SNN libraries via `NIR <https://nnir.readthedocs.io/en/latest/>`_
+   * - `snntorch.export_nir <https://snntorch.readthedocs.io/en/latest/snntorch.export_nir.html>`_
+     - enables exporting to other SNN libraries via `NIR <https://nnir.readthedocs.io/en/latest/>`_
    * - `snntorch.functional <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html>`_
      - common arithmetic operations on spikes, e.g., loss, regularization etc.
+   * - `snntorch.import_nir <https://snntorch.readthedocs.io/en/latest/snntorch.import_nir.html>`_
+     - enables importing from other SNN libraries via `NIR <https://nnir.readthedocs.io/en/latest/>`_
    * - `snntorch.spikegen <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`_
      - a library for spike generation and data conversion
    * - `snntorch.spikeplot <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`_
@@ -97,17 +102,21 @@ Let us know if you are using snnTorch in any interesting work, research or blogs
 
 Requirements 
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The following packages need to be installed to use snnTorch:
+PyTorch should be installed to use snnTorch. Ensure the correct version of torch is installed for your system to enable CUDA compatibility.
 
-* torch >= 1.1.0
-* numpy >= 1.17
+The following packages are automatically installed if using the pip command:
+
+* numpy
 * pandas
-* matplotlib
-* math
-* nir
-* nirtorch
 
-They are automatically installed if snnTorch is installed using the pip command. Ensure the correct version of torch is installed for your system to enable CUDA compatibility. 
+The following packages are required for using `export_nir` and `import_nir`:
+
+* nir>=1.0.6
+* nirtorch>=2.0.5
+
+The following packages are required for using `spikeplot`:
+
+* matplotlib
 
 Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -284,32 +293,6 @@ It consists of interactive notebooks with complete explanations that can get you
 
    * - `Accelerating snnTorch on IPUs <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`_
      -       —
-
-Intelligent Processing Unit (IPU) Acceleration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-snnTorch has been optimized for `Graphcore's IPU accelerators <https://www.graphcore.ai/>`_. 
-To install an IPU based build of snnTorch::
-
-  $ pip install snntorch-ipu
-
-Low-level custom operations for IPU compatibility will be automatically compiled when :code:`import snntorch` is called for the first time. 
-
-When updating the Poplar SDK, these operations may need to be recompiled. 
-This can be done by reinstalling :code:`snntorch-ipu`, or deleting files in the base directory with an .so extension.
-
-The :code:`snntorch.backprop` module, and several functions from :code:`snntorch.functional` and :code:`snntorch.surrogate`, are incompatible with IPUs, but can be recreated using PyTorch primitives.
-
-Additional requirements include:
-
-* poptorch 
-* The Poplar SDK 
-
-Refer to `Graphcore's documentation <https://github.com/graphcore/poptorch>`_ for installation instructions of poptorch and the Poplar SDK.
-
-The homepage for the snnTorch IPU project can be found `here <https://github.com/vinniesun/snntorch-ipu>`__.
-A tutorial for training SNNs is provided `here <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_ipu_1.html>`__.
-
 
 Contributing
 ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -213,7 +213,7 @@ def atan(alpha=2.0):
     return inner
 
 
-@staticmethod
+# @staticmethod
 class Heaviside(torch.autograd.Function):
     """Default spiking function for neuron.
 

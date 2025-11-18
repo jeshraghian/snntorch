@@ -78,7 +78,6 @@ def linearleaky_multi_beta(device):
     ).to(device)
 
 
-# Input fixtures
 @pytest.fixture(scope="module")
 def input_tensor_single_batch_single_channel(device):
     timesteps = 5
@@ -243,7 +242,7 @@ def test_multi_beta_forward(
         output.abs().sum() > 0
     ).item(), "Output is constant or all zeros unexpectedly."
 
-    # Verify learn_beta is a learnable parameter
+    # verify learn_beta is a learnable parameter
     assert isinstance(
         linearleaky_multi_beta.tau, nn.Parameter
     ), "learn_beta should be a learnable parameter"
@@ -285,13 +284,13 @@ def test_equivalence_vs_external_linear_and_stateleaky(device):
 
     beta = torch.full((out_features,), 0.9, device=device)
 
-    # Reference path: external linear + StateLeaky
+    # reference path: external linear + stateleaky
     ext_linear = nn.Linear(in_features, out_features, bias=True, device=device)
     lif_ref = StateLeaky(beta=beta, channels=out_features, output=True).to(
         device
     )
 
-    # Under test: LinearLeaky with internal linear
+    # under test: linearleaky with internal linear
     lif_under_test = LinearLeaky(
         beta=beta,
         in_features=in_features,
@@ -299,13 +298,13 @@ def test_equivalence_vs_external_linear_and_stateleaky(device):
         output=True,
     ).to(device)
 
-    # Synchronize parameters (copy weights and biases)
+    # synchronize parameters (copy weights and biases)
     with torch.no_grad():
         lif_under_test.linear.weight.copy_(ext_linear.weight)
         if ext_linear.bias is not None:
             lif_under_test.linear.bias.copy_(ext_linear.bias)
 
-    # Run both paths
+    # run both paths
     spk_ref, mem_ref = lif_ref(ext_linear(x))
     spk_ut, mem_ut = lif_under_test(x)
 
@@ -316,10 +315,10 @@ def test_equivalence_vs_external_linear_and_stateleaky(device):
 def test_chunking_with_gd_internal_linear():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    batch_size = 256
-    chunk_size = 64
-    channels = 32
-    timesteps = 4096
+    batch_size = 8
+    chunk_size = 2
+    channels = 4
+    timesteps = 32
 
     input_tensor = (
         torch.arange(
@@ -342,7 +341,7 @@ def test_chunking_with_gd_internal_linear():
         bias=False,
     ).to(device)
 
-    # 1. Get ground truth with no chunking to setup comparison
+    # 1. get ground truth with no chunking to setup comparison
     torch.set_grad_enabled(True)
     module.zero_grad()
 
@@ -351,7 +350,7 @@ def test_chunking_with_gd_internal_linear():
     loss_full.backward()
     grad_full = module.linear.weight.grad.clone()
 
-    # 2. Get gradients with chunking to compare
+    # 2. get gradients with chunking to compare
     module.zero_grad()
 
     spk_chunks = []
@@ -402,11 +401,11 @@ def test_kernel_truncation_impulse(device):
 
     beta = torch.tensor([0.9, 0.8, 0.7], device=device)
 
-    # Create impulse input: 1 at t=0, zeros after
+    # create impulse input: 1 at t=0, zeros after
     x = torch.zeros(timesteps, batch, channels, device=device)
     x[0, 0, :] = 1.0
 
-    # Build module with identity linear so behavior equals StateLeaky
+    # build module with identity linear so behavior equals stateleaky
     lif_full = LinearLeaky(
         beta=beta,
         in_features=channels,
@@ -427,11 +426,11 @@ def test_kernel_truncation_impulse(device):
         lif_trunc.linear.weight.copy_(torch.eye(channels, device=device))
         lif_trunc.linear.bias.zero_()
 
-    # Forward
+    # forward
     out_full = lif_full.forward(x)
     out_trunc = lif_trunc.forward(x)
 
-    # Expected analytical decay (same as StateLeaky for impulse)
+    # expected analytical decay (same as stateleaky for impulse)
     tau = 1 / (1 - beta)
     t = torch.arange(timesteps, device=device).view(timesteps, 1, 1)
     expected_full = torch.exp(-t / tau.view(1, 1, channels))

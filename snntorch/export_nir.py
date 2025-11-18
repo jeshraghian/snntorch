@@ -79,6 +79,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
             v_threshold=vthr,
             v_leak=v_leak,
             r=r,
+            v_reset=np.zeros_like(vthr),
         )
 
     elif isinstance(module, torch.nn.Linear):
@@ -112,11 +113,57 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
             v_leak=v_leak,
             r=r,
             w_in=w_in,
+            v_reset=np.zeros_like(vthr),
         )
 
     elif isinstance(module, snn.RLeaky):
-        # TODO(stevenabreu7): implement RLeaky
-        raise NotImplementedError("RLeaky not supported")
+        if module.all_to_all:
+            w_rec = _extract_snntorch_module(module.recurrent)
+            if hasattr(w_rec, "weight"):
+                n_neurons = w_rec.weight.shape[0]
+            else:
+                # fallback for conv layers
+                n_neurons = w_rec.weight.shape[0]
+        else:
+            if len(module.recurrent.V.shape) == 0:
+                raise ValueError(
+                    "V must be a vector, cannot infer layer size for scalar V"
+                )
+            n_neurons = module.recurrent.V.shape[0]
+            w = np.diag(module.recurrent.V.data.detach().numpy())
+            w_rec = nir.Linear(weight=w)
+
+        dt = 1e-4
+
+        beta = module.beta.detach().numpy()
+        vthr = module.threshold.detach().numpy()
+        beta = np.ones(n_neurons) * beta
+        vthr = np.ones(n_neurons) * vthr
+
+        tau_mem = dt / (1 - beta)
+        r = tau_mem / dt
+        v_leak = np.zeros_like(beta)
+
+        return nir.NIRGraph(
+            nodes={
+                "input": nir.Input(input_type=[n_neurons]),
+                "lif": nir.LIF(
+                    v_threshold=vthr,
+                    tau=tau_mem,
+                    r=r,
+                    v_leak=v_leak,
+                    v_reset=np.zeros_like(vthr),
+                ),
+                "w_rec": w_rec,
+                "output": nir.Output(output_type=[n_neurons]),
+            },
+            edges=[
+                ("input", "lif"),
+                ("lif", "w_rec"),
+                ("w_rec", "lif"),
+                ("lif", "output"),
+            ],
+        )
 
     elif isinstance(module, snn.RSynaptic):
         if module.all_to_all:
@@ -157,6 +204,7 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
                     r=r,
                     v_leak=v_leak,
                     w_in=w_in,
+                    v_reset=np.zeros_like(vthr),
                 ),
                 "w_rec": w_rec,
                 "output": nir.Output(output_type=[n_neurons]),
@@ -200,14 +248,11 @@ def export_to_nir(
     The NIR is a graph-based representation of a spiking neural network, which can be used to
     port the network to different neuromorphic hardware and software platforms.
 
-    Missing features:
-    - RLeaky
-
     Example::
 
         import snntorch as snn
         import torch
-        from snntorch import export_to_nir
+        from snntorch.export_nir import export_to_nir
 
         lif1 = snn.Leaky(beta=0.9, init_hidden=True)
         lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
@@ -250,4 +295,6 @@ def export_to_nir(
         model_fwd_args=model_fwd_args,
         ignore_dims=ignore_dims,
     )
+    # ensure node input and output types are fully defined
+    nir_graph.infer_types()
     return nir_graph

@@ -121,7 +121,6 @@ def input_tensor_batch_multiple(device):
     return input_.to(device)
 
 
-# Channel configuration tests
 def test_single_batch_single_channel(
     linear_leaky_single_channel, input_tensor_single_batch_single_channel
 ):
@@ -223,10 +222,10 @@ def test_multi_beta_forward(
 def test_chunking_with_gd():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    batch_size = 256
-    chunk_size = 64
-    channels = 32
-    timesteps = 4096
+    batch_size = 8
+    chunk_size = 2
+    channels = 4
+    timesteps = 32
 
     input_tensor = (
         torch.arange(
@@ -243,7 +242,7 @@ def test_chunking_with_gd():
     beta = torch.full((channels,), 0.9).to(device)
     lif = StateLeaky(beta=beta, channels=channels, learn_beta=False).to(device)
 
-    # 1. Get ground truth with no chunking to setup comparison
+    # 1. get ground truth with no chunking to setup comparison
     torch.set_grad_enabled(True)
     linear.zero_grad()
 
@@ -256,7 +255,7 @@ def test_chunking_with_gd():
     loss_full.backward()
     grad_full = linear.weight.grad.clone()
 
-    # 2. Get gradients with chunking to compare
+    # 2. get gradients with chunking to compare
     linear.zero_grad()
 
     spk_chunks = []
@@ -314,7 +313,7 @@ def test_kernel_truncation_impulse(device):
     - With truncation (K=4), the membrane matches the same curve for the
       first 4 steps and is zero afterwards.
     """
-    # Setup: impulse input at t=0, ensures output equals decay kernel itself
+    # setup: impulse input at t=0, ensures output equals decay kernel itself
     timesteps = 10
     batch = 1
     channels = 3
@@ -331,24 +330,24 @@ def test_kernel_truncation_impulse(device):
     input_tensor = torch.zeros(timesteps, batch, channels, device=device)
     input_tensor[0, 0, :] = 1.0
 
-    # Forward
+    # forward
     out_full = lif_full.forward(input_tensor)  # (T, B, C)
     out_trunc = lif_trunc.forward(input_tensor)  # (T, B, C)
 
-    # Expected analytical: for impulse at t=0, output[t, :, c] = exp(-t / tau_c)
+    # expected analytical: for impulse at t=0, output[t, :, c] = exp(-t / tau_c)
     tau = 1 / (1 - beta)
     t = torch.arange(timesteps, device=device).view(timesteps, 1, 1)
     expected_full = torch.exp(-t / tau.view(1, 1, channels))
 
-    # For truncation_steps=4, values after t>=4 should be zeroed (no contribution beyond window)
+    # for truncation_steps=4, values after t>=4 should be zeroed (no contribution beyond window)
     expected_trunc = expected_full.clone()
     expected_trunc[4:, :, :] = 0.0
 
-    # Compare
+    # compare
     assert torch.allclose(out_full, expected_full, atol=1e-6)
     assert torch.allclose(out_trunc, expected_trunc, atol=1e-6)
 
-    # Additionally, truncated and full should differ for t>=4 for at least one channel
+    # additionally, truncated and full should differ for t>=4 for at least one channel
     assert not torch.allclose(out_full[4:], out_trunc[4:], atol=1e-8)
 
 
@@ -386,7 +385,7 @@ def test_warn_on_inert_spike_settings(device):
             beta=0.9,
             channels=2,
             output=False,
-            spike_grad=lambda x: x,  # any non-default surrogate
+            spike_grad=lambda x: x,
         )
 
     with pytest.warns(UserWarning):

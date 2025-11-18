@@ -30,19 +30,13 @@ class LeakyParallel(nn.Module):
     * Linear weights are included in addition to 
         recurrent weights.
     * `beta` is clipped between [0,1] and cloned to 
-        `weight_hh_l` only upon layer initialization. 
-        It is unused otherwise.
+        `weight_hh_l` only upon layer initialization. It is unused otherwise.
     * There is no explicit reset mechanism.
     * Several functions such as `init_hidden`, `output`, 
-        `inhibition`, and `state_quant` are unavailable 
-        in `LeakyParallel`.
-    * Only the output spike is returned. Membrane potential
-        is not accessible by default.
-    * RNN uses a hidden matrix of size (num_hidden, num_hidden)
-        to transform the hidden state vector. This would 'leak' 
-        the membrane potential between LIF neurons, and so the 
-        hidden matrix is forced to a diagonal matrix by default. 
-        This can be disabled by setting `weight_hh_enable=True`.
+        `inhibition`, and `state_quant` are unavailable in `LeakyParallel`.
+    * Only the output spike is returned. Membrane potential is not accessible by default.
+    * RNN uses a hidden matrix of size (num_hidden, num_hidden) 
+    to transform the hidden state vector. This would 'leak' the membrane potential between LIF neurons, and so the hidden matrix is forced to a diagonal matrix by default.  This can be disabled by setting `weight_hh_enable=True`.
 
     Example::
 
@@ -78,10 +72,8 @@ class LeakyParallel(nn.Module):
     :param hidden_size: The number of features in the hidden state `h`
     :type hidden_size: int
 
-    :param beta: membrane potential decay rate. Clipped between 0 and 1
-        during the forward-pass. May be a single-valued tensor (i.e., equal
-        decay rate for all neurons in a layer), or multi-valued (one weight per
-        neuron). If left unspecified, then the decay rates will be randomly initialized based on PyTorch's initialization for RNN. Defaults to None
+    :param beta: membrane potential decay rate. Clipped between 0 and 1 
+    during the forward-pass. May be a single-valued tensor (i.e., equal decay rate for all neurons in a layer), or multi-valued (one weight per neuron). If left unspecified, then the decay rates will be randomly initialized based on PyTorch's initialization for RNN. Defaults to None
     :type beta: float or torch.tensor, optional
 
     :param bias: If `False`, then the layer does not use bias weights `b_ih` and `b_hh`. Defaults to True
@@ -113,9 +105,7 @@ class LeakyParallel(nn.Module):
     :type learn_threshold: bool, optional
 
     :param weight_hh_enable: Option to set the hidden matrix to be dense or 
-        diagonal. Diagonal (i.e., False) adheres to how a LIF neuron works. 
-        Dense (True) would allow the membrane potential of one LIF neuron to 
-        influence all others, and follow the RNN default implementation. Defaults to False
+    diagonal. Diagonal (i.e., False) adheres to how a LIF neuron works. Dense (True) would allow the membrane potential of one LIF neuron to influence all others, and follow the RNN default implementation. Defaults to False
     :type weight_hh_enable: bool, optional
 
 

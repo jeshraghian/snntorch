@@ -199,8 +199,6 @@ def bench_stateleaky(
             if input_tensor.grad is not None:
                 input_tensor.grad = None
 
-        input()
-
     # end timer
     end_event.record()
     end_event.synchronize()

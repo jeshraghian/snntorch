@@ -11,17 +11,25 @@ with open("README.rst", encoding="utf-8") as readme_file:
 #     history = history_file.read()
 
 # fmt: off
-__version__ = '0.9.1'
+__version__ = '0.9.4'
 # fmt: on
 
-requirements = [
-    "torch>=1.1.0",
-    "pandas",
-    "matplotlib",
-    "numpy>=1.17",
-    "nir",
-    "nirtorch",
-]
+install_requires = [
+    "numpy",
+    "pandas"]
+
+extras_require = {
+    "full": ["torch", "matplotlib", "nir", "nirtorch"]
+}
+
+# requirements = [
+#     "torch>=1.1.0",
+#     "pandas",
+#     "matplotlib",
+#     "numpy>=1.17",
+#     "nir",
+#     "nirtorch",
+# ]
 
 
 test_requirements = ["pytest>=6"]
@@ -53,7 +61,7 @@ setup(
     #         "snntorch=snntorch.cli:main",
     #     ],
     # },
-    install_requires=requirements,
+    # install_requires=requirements,
     license="MIT License",
     long_description=readme,
     include_package_data=True,
