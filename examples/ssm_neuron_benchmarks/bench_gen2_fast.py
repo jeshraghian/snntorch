@@ -16,7 +16,7 @@ from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
 
 # from snntorch._neurons.gen2_unoptimized import Gen2SingleInputReadout
-from snntorch._neurons.gen2_optimized import Gen2SingleInputReadout
+from snntorch._neurons.gen2_unoptimized_mem_eff import Gen2SingleInputReadout
 
 
 # Sweep configurations: (batch_size, channels)
@@ -246,12 +246,11 @@ def bench_gen2(
     train: bool = False,
     multi_beta: bool = True,
 ) -> float:
-    # Keep identical data/linear shaping and timing to match baseline
-    model = Gen2SingleInputReadout(
-        channels,
-        channels,
-        channels,
+    model = Gen2SingleInputReadout.from_num_spiking_neurons(
+        in_dim=channels,
+        num_spiking_neurons=channels,
         time_chunk_size=TIME_CHUNK_SIZE,
+        use_q_projection=False,
     ).to(device)
 
     input_tensor = torch.arange(

@@ -3,8 +3,10 @@ import torch
 from torch import nn
 from torch.autograd import Function
 
+from snntorch._neurons.neurons import SpikingNeuron
 
-class Gen2SingleInputReadout(nn.Module):
+
+class Gen2SingleInputReadout(SpikingNeuron):
     def __init__(
         self,
         in_dim,
@@ -208,7 +210,17 @@ class Gen2SingleInputReadout(nn.Module):
             S_prev = S_local[-1]  # (B,d,n)
 
         y = torch.cat(y_chunks, dim=0)  # (T,B,N_spike)
-        return y
+        mem = y
+
+        if self.state_quant:
+            mem = self.state_quant(mem)
+
+        if self.output:
+            self.spk = self.fire(mem) * self.graded_spikes_factor
+            return self.spk, mem
+
+        else:
+            return mem
 
 
 if __name__ == "__main__":
