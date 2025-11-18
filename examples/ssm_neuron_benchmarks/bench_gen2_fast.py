@@ -31,15 +31,15 @@ N_RUNS = 1
 
 # Same timestep schedule as baseline
 # TIMESTEPS = np.logspace(1, 4.25, num=10, dtype=int)[::3]
-TIMESTEPS = np.logspace(1, 4.25, num=10, dtype=int)[::3]
-BATCHWISE_CHUNK_SIZE = 4
+TIMESTEPS = np.logspace(1, 4.25, num=10, dtype=int)[::2]
+BATCHWISE_CHUNK_SIZE = 64
 # TIME_CHUNK_SIZE = 512
 TIME_CHUNK_SIZE = 1024 * 7000000000
 
 
 # Quick toggles (set to False to disable specific parts of the benchmark)
 # Re-enable by setting back to True.
-ENABLE_TRAINING = False
+ENABLE_TRAINING = True
 ENABLE_LEAKY = True
 GEN2_USE_COMPILE = False
 
@@ -695,283 +695,281 @@ if __name__ == "__main__":
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
         ax_time_inf, ax_mem_inf = axes
 
-        cmap = plt.get_cmap("tab10")
-        # Distinct colors per variant
-        color_leaky = cmap(0)
-        color_state = cmap(1)
-        color_gen2 = cmap(2)
-        # Linestyles: solid for single, dashed for multi; dashdot reserved if needed
-        style_single = "-"
-        style_multi = "--"
-        style_extra = "-."
-        for idx, res in enumerate(results_infer):
+    cmap = plt.get_cmap("tab10")
+    # Distinct colors per variant
+    color_leaky = cmap(0)
+    color_state = cmap(1)
+    color_gen2 = cmap(2)
+    # Linestyles: solid for single, dashed for multi; dashdot reserved if needed
+    style_single = "-"
+    style_multi = "--"
+    style_extra = "-."
+    for idx, res in enumerate(results_infer):
+        label_suffix = f"B{res['batch_size']}-C{res['channels']}"
+        # Inference Time
+        if ENABLE_LEAKY:
+            ax_time_inf.errorbar(
+                TIMESTEPS,
+                res["times_leaky_single"],
+                yerr=res.get("std_times_leaky_single", None),
+                fmt=style_single,
+                color=color_leaky,
+                label=f"Leaky single {label_suffix}",
+                capsize=3,
+            )
+            ax_time_inf.errorbar(
+                TIMESTEPS,
+                res["times_leaky_multi"],
+                yerr=res.get("std_times_leaky_multi", None),
+                fmt=style_multi,
+                color=color_leaky,
+                label=f"Leaky multi {label_suffix}",
+                capsize=3,
+            )
+        ax_time_inf.errorbar(
+            TIMESTEPS,
+            res["times_state_single"],
+            yerr=res.get("std_times_state_single", None),
+            fmt=style_single,
+            color=color_state,
+            label=f"StateLeaky single {label_suffix}",
+            capsize=3,
+        )
+        ax_time_inf.errorbar(
+            TIMESTEPS,
+            res["times_state_multi"],
+            yerr=res.get("std_times_state_multi", None),
+            fmt=style_multi,
+            color=color_state,
+            label=f"StateLeaky multi {label_suffix}",
+            capsize=3,
+        )
+        ax_time_inf.errorbar(
+            TIMESTEPS,
+            res["times_gen2_single"],
+            yerr=res.get("std_times_gen2_single", None),
+            fmt=style_single,
+            color=color_gen2,
+            label=f"Gen2 single {label_suffix}",
+            capsize=3,
+        )
+        ax_time_inf.errorbar(
+            TIMESTEPS,
+            res["times_gen2_multi"],
+            yerr=res.get("std_times_gen2_multi", None),
+            fmt=style_multi,
+            color=color_gen2,
+            label=f"Gen2 multi {label_suffix}",
+            capsize=3,
+        )
+
+        # Inference Memory
+        if ENABLE_LEAKY:
+            ax_mem_inf.errorbar(
+                TIMESTEPS,
+                res["mems_leaky_single"],
+                yerr=res.get("std_mems_leaky_single", None),
+                fmt=style_single,
+                color=color_leaky,
+                label=f"Leaky single {label_suffix}",
+                capsize=3,
+            )
+            ax_mem_inf.errorbar(
+                TIMESTEPS,
+                res["mems_leaky_multi"],
+                yerr=res.get("std_mems_leaky_multi", None),
+                fmt=style_multi,
+                color=color_leaky,
+                label=f"Leaky multi {label_suffix}",
+                capsize=3,
+            )
+        ax_mem_inf.errorbar(
+            TIMESTEPS,
+            res["mems_state_single"],
+            yerr=res.get("std_mems_state_single", None),
+            fmt=style_single,
+            color=color_state,
+            label=f"StateLeaky single {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_inf.errorbar(
+            TIMESTEPS,
+            res["mems_state_multi"],
+            yerr=res.get("std_mems_state_multi", None),
+            fmt=style_multi,
+            color=color_state,
+            label=f"StateLeaky multi {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_inf.errorbar(
+            TIMESTEPS,
+            res["mems_gen2_single"],
+            yerr=res.get("std_mems_gen2_single", None),
+            fmt=style_single,
+            color=color_gen2,
+            label=f"Gen2 single {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_inf.errorbar(
+            TIMESTEPS,
+            res["mems_gen2_multi"],
+            yerr=res.get("std_mems_gen2_multi", None),
+            fmt=style_multi,
+            color=color_gen2,
+            label=f"Gen2 multi {label_suffix}",
+            capsize=3,
+        )
+
+    if ENABLE_TRAINING:
+        for idx, res in enumerate(results_train):
             label_suffix = f"B{res['batch_size']}-C{res['channels']}"
-            # Inference Time
+            # Training Time
             if ENABLE_LEAKY:
-                ax_time_inf.errorbar(
+                ax_time_trn.errorbar(
                     TIMESTEPS,
                     res["times_leaky_single"],
                     yerr=res.get("std_times_leaky_single", None),
                     fmt=style_single,
                     color=color_leaky,
-                    label=f"Leaky single {label_suffix}",
+                    label=f"Leaky single (train) {label_suffix}",
                     capsize=3,
                 )
-                ax_time_inf.errorbar(
+                ax_time_trn.errorbar(
                     TIMESTEPS,
                     res["times_leaky_multi"],
                     yerr=res.get("std_times_leaky_multi", None),
                     fmt=style_multi,
                     color=color_leaky,
-                    label=f"Leaky multi {label_suffix}",
+                    label=f"Leaky multi (train) {label_suffix}",
                     capsize=3,
                 )
-            ax_time_inf.errorbar(
+            ax_time_trn.errorbar(
                 TIMESTEPS,
                 res["times_state_single"],
                 yerr=res.get("std_times_state_single", None),
                 fmt=style_single,
                 color=color_state,
-                label=f"StateLeaky single {label_suffix}",
+                label=f"StateLeaky single (train) {label_suffix}",
                 capsize=3,
             )
-            ax_time_inf.errorbar(
+            ax_time_trn.errorbar(
                 TIMESTEPS,
                 res["times_state_multi"],
                 yerr=res.get("std_times_state_multi", None),
                 fmt=style_multi,
                 color=color_state,
-                label=f"StateLeaky multi {label_suffix}",
+                label=f"StateLeaky multi (train) {label_suffix}",
                 capsize=3,
             )
-            ax_time_inf.errorbar(
+            ax_time_trn.errorbar(
                 TIMESTEPS,
                 res["times_gen2_single"],
                 yerr=res.get("std_times_gen2_single", None),
                 fmt=style_single,
                 color=color_gen2,
-                label=f"Gen2 single {label_suffix}",
+                label=f"Gen2 single (train) {label_suffix}",
                 capsize=3,
             )
-            ax_time_inf.errorbar(
+            ax_time_trn.errorbar(
                 TIMESTEPS,
                 res["times_gen2_multi"],
                 yerr=res.get("std_times_gen2_multi", None),
                 fmt=style_multi,
                 color=color_gen2,
-                label=f"Gen2 multi {label_suffix}",
+                label=f"Gen2 multi (train) {label_suffix}",
                 capsize=3,
             )
 
-            # Inference Memory
+            # Training Memory
             if ENABLE_LEAKY:
-                ax_mem_inf.errorbar(
+                ax_mem_trn.errorbar(
                     TIMESTEPS,
                     res["mems_leaky_single"],
                     yerr=res.get("std_mems_leaky_single", None),
                     fmt=style_single,
                     color=color_leaky,
-                    label=f"Leaky single {label_suffix}",
+                    label=f"Leaky single (train) {label_suffix}",
                     capsize=3,
                 )
-                ax_mem_inf.errorbar(
+                ax_mem_trn.errorbar(
                     TIMESTEPS,
                     res["mems_leaky_multi"],
                     yerr=res.get("std_mems_leaky_multi", None),
                     fmt=style_multi,
                     color=color_leaky,
-                    label=f"Leaky multi {label_suffix}",
+                    label=f"Leaky multi (train) {label_suffix}",
                     capsize=3,
                 )
-            ax_mem_inf.errorbar(
+            ax_mem_trn.errorbar(
                 TIMESTEPS,
                 res["mems_state_single"],
                 yerr=res.get("std_mems_state_single", None),
                 fmt=style_single,
                 color=color_state,
-                label=f"StateLeaky single {label_suffix}",
+                label=f"StateLeaky single (train) {label_suffix}",
                 capsize=3,
             )
-            ax_mem_inf.errorbar(
+            ax_mem_trn.errorbar(
                 TIMESTEPS,
                 res["mems_state_multi"],
                 yerr=res.get("std_mems_state_multi", None),
                 fmt=style_multi,
                 color=color_state,
-                label=f"StateLeaky multi {label_suffix}",
+                label=f"StateLeaky multi (train) {label_suffix}",
                 capsize=3,
             )
-            ax_mem_inf.errorbar(
+            ax_mem_trn.errorbar(
                 TIMESTEPS,
                 res["mems_gen2_single"],
                 yerr=res.get("std_mems_gen2_single", None),
                 fmt=style_single,
                 color=color_gen2,
-                label=f"Gen2 single {label_suffix}",
+                label=f"Gen2 single (train) {label_suffix}",
                 capsize=3,
             )
-            ax_mem_inf.errorbar(
+            ax_mem_trn.errorbar(
                 TIMESTEPS,
                 res["mems_gen2_multi"],
                 yerr=res.get("std_mems_gen2_multi", None),
                 fmt=style_multi,
                 color=color_gen2,
-                label=f"Gen2 multi {label_suffix}",
+                label=f"Gen2 multi (train) {label_suffix}",
                 capsize=3,
             )
 
-        if ENABLE_TRAINING:
-            for idx, res in enumerate(results_train):
-                label_suffix = f"B{res['batch_size']}-C{res['channels']}"
-                # Training Time
-                if ENABLE_LEAKY:
-                    ax_time_trn.errorbar(
-                        TIMESTEPS,
-                        res["times_leaky_single"],
-                        yerr=res.get("std_times_leaky_single", None),
-                        fmt=style_single,
-                        color=color_leaky,
-                        label=f"Leaky single (train) {label_suffix}",
-                        capsize=3,
-                    )
-                    ax_time_trn.errorbar(
-                        TIMESTEPS,
-                        res["times_leaky_multi"],
-                        yerr=res.get("std_times_leaky_multi", None),
-                        fmt=style_multi,
-                        color=color_leaky,
-                        label=f"Leaky multi (train) {label_suffix}",
-                        capsize=3,
-                    )
-                ax_time_trn.errorbar(
-                    TIMESTEPS,
-                    res["times_state_single"],
-                    yerr=res.get("std_times_state_single", None),
-                    fmt=style_single,
-                    color=color_state,
-                    label=f"StateLeaky single (train) {label_suffix}",
-                    capsize=3,
-                )
-                ax_time_trn.errorbar(
-                    TIMESTEPS,
-                    res["times_state_multi"],
-                    yerr=res.get("std_times_state_multi", None),
-                    fmt=style_multi,
-                    color=color_state,
-                    label=f"StateLeaky multi (train) {label_suffix}",
-                    capsize=3,
-                )
-                ax_time_trn.errorbar(
-                    TIMESTEPS,
-                    res["times_gen2_single"],
-                    yerr=res.get("std_times_gen2_single", None),
-                    fmt=style_single,
-                    color=color_gen2,
-                    label=f"Gen2 single (train) {label_suffix}",
-                    capsize=3,
-                )
-                ax_time_trn.errorbar(
-                    TIMESTEPS,
-                    res["times_gen2_multi"],
-                    yerr=res.get("std_times_gen2_multi", None),
-                    fmt=style_multi,
-                    color=color_gen2,
-                    label=f"Gen2 multi (train) {label_suffix}",
-                    capsize=3,
-                )
+    axes_to_format = (
+        (ax_time_inf, ax_mem_inf, ax_time_trn, ax_mem_trn)
+        if ENABLE_TRAINING
+        else (ax_time_inf, ax_mem_inf)
+    )
+    for ax in axes_to_format:
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.grid(True, which="both", ls="-", alpha=0.2)
 
-                # Training Memory
-                if ENABLE_LEAKY:
-                    ax_mem_trn.errorbar(
-                        TIMESTEPS,
-                        res["mems_leaky_single"],
-                        yerr=res.get("std_mems_leaky_single", None),
-                        fmt=style_single,
-                        color=color_leaky,
-                        label=f"Leaky single (train) {label_suffix}",
-                        capsize=3,
-                    )
-                    ax_mem_trn.errorbar(
-                        TIMESTEPS,
-                        res["mems_leaky_multi"],
-                        yerr=res.get("std_mems_leaky_multi", None),
-                        fmt=style_multi,
-                        color=color_leaky,
-                        label=f"Leaky multi (train) {label_suffix}",
-                        capsize=3,
-                    )
-                ax_mem_trn.errorbar(
-                    TIMESTEPS,
-                    res["mems_state_single"],
-                    yerr=res.get("std_mems_state_single", None),
-                    fmt=style_single,
-                    color=color_state,
-                    label=f"StateLeaky single (train) {label_suffix}",
-                    capsize=3,
-                )
-                ax_mem_trn.errorbar(
-                    TIMESTEPS,
-                    res["mems_state_multi"],
-                    yerr=res.get("std_mems_state_multi", None),
-                    fmt=style_multi,
-                    color=color_state,
-                    label=f"StateLeaky multi (train) {label_suffix}",
-                    capsize=3,
-                )
-                ax_mem_trn.errorbar(
-                    TIMESTEPS,
-                    res["mems_gen2_single"],
-                    yerr=res.get("std_mems_gen2_single", None),
-                    fmt=style_single,
-                    color=color_gen2,
-                    label=f"Gen2 single (train) {label_suffix}",
-                    capsize=3,
-                )
-                ax_mem_trn.errorbar(
-                    TIMESTEPS,
-                    res["mems_gen2_multi"],
-                    yerr=res.get("std_mems_gen2_multi", None),
-                    fmt=style_multi,
-                    color=color_gen2,
-                    label=f"Gen2 multi (train) {label_suffix}",
-                    capsize=3,
-                )
+    ax_time_inf.set_title("SNN Performance (Time) - Inference")
+    ax_time_inf.set_xlabel("Timesteps")
+    ax_time_inf.set_ylabel("Time (s)")
+    ax_mem_inf.set_title("SNN Memory (Peak) - Inference")
+    ax_mem_inf.set_xlabel("Timesteps")
+    ax_mem_inf.set_ylabel("Δ Memory (MB)")
+    if ENABLE_TRAINING:
+        ax_time_trn.set_title("SNN Performance (Time) - Training")
+        ax_time_trn.set_xlabel("Timesteps")
+        ax_time_trn.set_ylabel("Time (s)")
+        ax_mem_trn.set_title("SNN Memory (Peak) - Training")
+        ax_mem_trn.set_xlabel("Timesteps")
+        ax_mem_trn.set_ylabel("Δ Memory (MB)")
 
-        axes_to_format = (
-            (ax_time_inf, ax_mem_inf, ax_time_trn, ax_mem_trn)
-            if ENABLE_TRAINING
-            else (ax_time_inf, ax_mem_inf)
-        )
-        for ax in axes_to_format:
-            ax.set_xscale("log")
-            ax.set_yscale("log")
-            ax.grid(True, which="both", ls="-", alpha=0.2)
+    ax_time_inf.legend(ncol=2, fontsize=8)
+    ax_mem_inf.legend(ncol=2, fontsize=8)
+    if ENABLE_TRAINING:
+        ax_time_trn.legend(ncol=2, fontsize=8)
+        ax_mem_trn.legend(ncol=2, fontsize=8)
 
-        ax_time_inf.set_title("SNN Performance (Time) - Inference")
-        ax_time_inf.set_xlabel("Timesteps")
-        ax_time_inf.set_ylabel("Time (s)")
-        ax_mem_inf.set_title("SNN Memory (Peak) - Inference")
-        ax_mem_inf.set_xlabel("Timesteps")
-        ax_mem_inf.set_ylabel("Δ Memory (MB)")
-        if ENABLE_TRAINING:
-            ax_time_trn.set_title("SNN Performance (Time) - Training")
-            ax_time_trn.set_xlabel("Timesteps")
-            ax_time_trn.set_ylabel("Time (s)")
-            ax_mem_trn.set_title("SNN Memory (Peak) - Training")
-            ax_mem_trn.set_xlabel("Timesteps")
-            ax_mem_trn.set_ylabel("Δ Memory (MB)")
-
-        ax_time_inf.legend(ncol=2, fontsize=8)
-        ax_mem_inf.legend(ncol=2, fontsize=8)
-        if ENABLE_TRAINING:
-            ax_time_trn.legend(ncol=2, fontsize=8)
-            ax_mem_trn.legend(ncol=2, fontsize=8)
-
-        # mkdir if not exists
-        os.makedirs("snn_performance", exist_ok=True)
-        plt.tight_layout()
-        plt.savefig(
-            "snn_performance/snn_performance_variants_gen2.png", dpi=150
-        )
-        plt.savefig("snn_performance/snn_performance_variants_gen2.pdf")
-        plt.savefig("snn_performance/snn_performance_variants_gen2.svg")
+    # mkdir if not exists
+    os.makedirs("snn_performance", exist_ok=True)
+    plt.tight_layout()
+    plt.savefig("snn_performance/snn_performance_variants_gen2.png", dpi=150)
+    plt.savefig("snn_performance/snn_performance_variants_gen2.pdf")
+    plt.savefig("snn_performance/snn_performance_variants_gen2.svg")
