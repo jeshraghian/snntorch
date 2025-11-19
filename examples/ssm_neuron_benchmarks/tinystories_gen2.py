@@ -26,7 +26,7 @@ with open(filename, "w") as f:
 # Hyperparameters
 SEQ_LENGTH = 128
 HIDDEN_DIM = 256
-LR = 4e-3
+LR = 1e-3
 EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 32
@@ -207,7 +207,7 @@ class SNNLanguageModelGen2(nn.Module):
         hidden = self.fc4(hidden)
         hidden = torch.relu(hidden)
 
-        hidden = self.ln_out(hidden)
+        # hidden = self.ln_out(hidden)
         output = self.fc_out(hidden)
         output = output.reshape(T, -1, output.shape[-1])
         return output
