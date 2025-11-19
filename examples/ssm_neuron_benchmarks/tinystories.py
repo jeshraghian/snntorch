@@ -21,13 +21,13 @@ with open(filename, "w") as f:
 
 # Hyperparameters
 SEQ_LENGTH = 128
-HIDDEN_DIM = 512
+HIDDEN_DIM = 256
 LR = 1e-3
 EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 8
 LEARN_BETA = True
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
 DECODE_EVERY_N_BATCHES = 50
 print("Device: ", DEVICE)
 

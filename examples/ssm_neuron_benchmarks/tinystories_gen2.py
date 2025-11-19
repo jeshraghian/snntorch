@@ -22,7 +22,7 @@ with open(filename, "w") as f:
 
 # Hyperparameters
 SEQ_LENGTH = 128
-HIDDEN_DIM = 512
+HIDDEN_DIM = 256
 LR = 1e-3
 EPOCHS = 10000
 BATCH_SIZE = 64
