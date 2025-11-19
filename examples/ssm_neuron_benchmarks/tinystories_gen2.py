@@ -26,10 +26,10 @@ with open(filename, "w") as f:
 # Hyperparameters
 SEQ_LENGTH = 128
 HIDDEN_DIM = 256
-LR = 5e-4
+LR = 1e-3
 EPOCHS = 10000
 BATCH_SIZE = 64
-CHUNKED_BATCH_SIZE = 64
+CHUNKED_BATCH_SIZE = 32
 
 
 def get_least_busy_gpu() -> int:
@@ -121,6 +121,12 @@ class SNNLanguageModelGen2(nn.Module):
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.pos_embedding = nn.Embedding(SEQ_LENGTH, hidden_dim)
 
+        # LayerNorms to stabilize inputs to each Gen2 block and the output head
+        self.ln1 = nn.LayerNorm(hidden_dim)
+        self.ln2 = nn.LayerNorm(hidden_dim)
+        self.ln3 = nn.LayerNorm(hidden_dim)
+        self.ln_out = nn.LayerNorm(hidden_dim)
+
         # Require perfect square hidden_dim to use the convenient constructor
         m = int(math.isqrt(hidden_dim))
         if m * m != hidden_dim:
@@ -169,6 +175,7 @@ class SNNLanguageModelGen2(nn.Module):
             input_topk_tau=INPUT_TOPK_TAU,
             key_topk_tau=KEY_TOPK_TAU,
         ).to(DEVICE)
+        self.fc4 = nn.Linear(hidden_dim, hidden_dim)
         self.fc_out = nn.Linear(hidden_dim, vocab_size)
 
     def forward(self, x):
@@ -177,30 +184,30 @@ class SNNLanguageModelGen2(nn.Module):
         pos = torch.arange(hidden.size(0), device=hidden.device)
         pos_table = self.pos_embedding(pos).unsqueeze(1)  # [T, 1, H]
         hidden = hidden + pos_table
+        hidden = hidden.reshape(-1, hidden.shape[-1])
 
-        # Gen2 layer 1
+        # hidden = self.ln1(hidden)
+        hidden = hidden.reshape(T, -1, hidden.shape[-1])
         hidden, _ = self.gen2_1(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
-
-        # Nonlinear hidden
         hidden = self.fc2(hidden)
         hidden = torch.relu(hidden)
-        hidden = hidden.reshape(T, -1, hidden.shape[-1])
 
-        # Gen2 layer 2
+        hidden = self.ln2(hidden)
+        hidden = hidden.reshape(T, -1, hidden.shape[-1])
         hidden, _ = self.gen2_2(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
-
-        # Nonlinear hidden
         hidden = self.fc3(hidden)
         hidden = torch.relu(hidden)
-        hidden = hidden.reshape(T, -1, hidden.shape[-1])
 
-        # Gen2 layer 3
+        hidden = self.ln3(hidden)
+        hidden = hidden.reshape(T, -1, hidden.shape[-1])
         hidden, _ = self.gen2_3(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
+        hidden = self.fc4(hidden)
+        hidden = torch.relu(hidden)
 
-        # Output transformation
+        hidden = self.ln_out(hidden)
         output = self.fc_out(hidden)
         output = output.reshape(T, -1, output.shape[-1])
         return output
