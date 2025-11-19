@@ -11,6 +11,8 @@ from tqdm import tqdm
 import torch.nn.functional as F
 import wandb
 import sys
+import subprocess
+from typing import List
 
 from snntorch._neurons.gen2_unoptimized_mem_eff import Gen2SingleInputReadout
 
@@ -27,8 +29,30 @@ HIDDEN_DIM = 256
 LR = 8e-3
 EPOCHS = 10000
 BATCH_SIZE = 64
-CHUNKED_BATCH_SIZE = 8
-DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
+CHUNKED_BATCH_SIZE = 64
+
+
+def get_least_busy_gpu() -> int:
+    """Return the index of the GPU with the least memory usage."""
+    try:
+        result: str = subprocess.check_output(
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.used",
+                "--format=csv,nounits,noheader",
+            ],
+            encoding="utf-8",
+        )
+        memory_used: List[int] = [int(x) for x in result.strip().split("\n")]
+        if memory_used:
+            return memory_used.index(min(memory_used))
+        return 0
+    except (subprocess.SubprocessError, FileNotFoundError):
+        print("nvidia-smi failed or isn't available, defaulting to GPU 0")
+        return 0
+
+
+DEVICE = f"cuda:{get_least_busy_gpu()}" if torch.cuda.is_available() else "cpu"
 DECODE_EVERY_N_BATCHES = 50
 INPUT_TOPK_TAU = 2.0
 KEY_TOPK_TAU = 2.0
