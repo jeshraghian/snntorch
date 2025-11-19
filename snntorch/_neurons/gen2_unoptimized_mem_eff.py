@@ -195,7 +195,7 @@ class Gen2SingleInputReadout(SpikingNeuron):
         if self.key_topk is not None:
             vals, idx = torch.topk(k, self.key_topk, dim=-1)
             k_hard = torch.zeros_like(k).scatter(-1, idx, vals)
-            if self.training and False:  ##############
+            if self.training:
                 m_soft_k = torch.softmax(k / self.key_topk_tau, dim=-1)
                 k_soft = k * m_soft_k
                 k = k_hard.detach() + k_soft - k_soft.detach()

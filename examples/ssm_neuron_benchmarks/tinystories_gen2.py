@@ -105,8 +105,8 @@ class SNNLanguageModelGen2(nn.Module):
         # Choose Top-K values based on hidden_dim and n=m
         # input_topk = max(1, min(hidden_dim - 1, hidden_dim // 16))  # ~6.25%
         input_topk = hidden_dim
-        # key_topk = max(1, min(m - 1, m // 4))  # ~25% of n
-        key_topk = m
+        key_topk = max(1, min(m - 1, m // 4))  # ~25% of n
+        # key_topk = m
 
         # Gen2 layers produce (T, B, hidden_dim) with use_q_projection=False
         self.gen2_1 = Gen2SingleInputReadout.from_num_spiking_neurons(
