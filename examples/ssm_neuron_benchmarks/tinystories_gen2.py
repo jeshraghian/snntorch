@@ -10,6 +10,7 @@ from transformers import AutoTokenizer
 from tqdm import tqdm
 import torch.nn.functional as F
 import wandb
+import sys
 
 from snntorch._neurons.gen2_unoptimized_mem_eff import Gen2SingleInputReadout
 
@@ -38,7 +39,7 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(1337)
 
 
-def initialize_wandb():
+def initialize_wandb(run_name=None):
     wandb.init(
         project="snntorch-ssm",
         config={
@@ -49,6 +50,7 @@ def initialize_wandb():
             "batch_size": BATCH_SIZE,
             "variant": "Gen2",
         },
+        name=run_name,
     )
 
 
@@ -178,7 +180,9 @@ class SNNLanguageModelGen2(nn.Module):
         return output
 
 
-initialize_wandb()
+# Optional run name from first CLI arg
+RUN_NAME = sys.argv[1] if len(sys.argv) > 1 else None
+initialize_wandb(run_name=RUN_NAME)
 
 # Initialize model, loss, and optimizer
 model = SNNLanguageModelGen2(VOCAB_SIZE, HIDDEN_DIM).to(DEVICE)
