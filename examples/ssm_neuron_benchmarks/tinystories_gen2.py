@@ -23,12 +23,14 @@ with open(filename, "w") as f:
 # Hyperparameters
 SEQ_LENGTH = 128
 HIDDEN_DIM = 256
-LR = 1e-4
+LR = 5e-5
 EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 8
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
 DECODE_EVERY_N_BATCHES = 50
+INPUT_TOPK_TAU = 2.0
+KEY_TOPK_TAU = 2.0
 print("Device: ", DEVICE)
 
 torch.manual_seed(1337)
@@ -112,6 +114,8 @@ class SNNLanguageModelGen2(nn.Module):
             use_q_projection=False,
             input_topk=input_topk,
             key_topk=key_topk,
+            input_topk_tau=INPUT_TOPK_TAU,
+            key_topk_tau=KEY_TOPK_TAU,
         ).to(DEVICE)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.gen2_2 = Gen2SingleInputReadout.from_num_spiking_neurons(
@@ -121,6 +125,8 @@ class SNNLanguageModelGen2(nn.Module):
             use_q_projection=False,
             input_topk=input_topk,
             key_topk=key_topk,
+            input_topk_tau=INPUT_TOPK_TAU,
+            key_topk_tau=KEY_TOPK_TAU,
         ).to(DEVICE)
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
         self.gen2_3 = Gen2SingleInputReadout.from_num_spiking_neurons(
@@ -130,6 +136,8 @@ class SNNLanguageModelGen2(nn.Module):
             use_q_projection=False,
             input_topk=input_topk,
             key_topk=key_topk,
+            input_topk_tau=INPUT_TOPK_TAU,
+            key_topk_tau=KEY_TOPK_TAU,
         ).to(DEVICE)
         self.fc_out = nn.Linear(hidden_dim, vocab_size)
 

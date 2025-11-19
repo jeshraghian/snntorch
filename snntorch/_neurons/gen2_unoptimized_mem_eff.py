@@ -17,6 +17,8 @@ class Gen2SingleInputReadout(SpikingNeuron):
         use_q_projection: bool = True,
         input_topk: int | None = None,
         key_topk: int | None = None,
+        input_topk_tau: float = 1.0,
+        key_topk_tau: float = 1.0,
     ):
         """
         Base initializer where you specify d_value and d_key directly.
@@ -36,6 +38,10 @@ class Gen2SingleInputReadout(SpikingNeuron):
             key_topk:             if set, keep only top-k entries of k_t along the
                                    key dimension per (t, b). Others are zeroed.
                                    Must satisfy 1 <= key_topk < d_key.
+            input_topk_tau:       temperature (>0) for the input soft surrogate
+                                   used in training for straight-through estimation.
+            key_topk_tau:         temperature (>0) for the k soft surrogate used in
+                                   training for straight-through estimation.
         """
         super().__init__()
         if d_value <= 0 or d_key <= 0:
@@ -63,8 +69,14 @@ class Gen2SingleInputReadout(SpikingNeuron):
                 raise ValueError(
                     f"key_topk must be in [1, d_key={d_key}-1] when provided; got {key_topk}"
                 )
+        if input_topk_tau <= 0.0:
+            raise ValueError("input_topk_tau must be > 0")
+        if key_topk_tau <= 0.0:
+            raise ValueError("key_topk_tau must be > 0")
         self.input_topk = input_topk
         self.key_topk = key_topk
+        self.input_topk_tau = input_topk_tau
+        self.key_topk_tau = key_topk_tau
 
         # Projections for the Gen-2 update
         self.to_v = nn.Linear(in_dim, d_value)  # (T,B,in_dim) -> (T,B,d)
@@ -95,6 +107,8 @@ class Gen2SingleInputReadout(SpikingNeuron):
         use_q_projection: bool = True,
         input_topk: int | None = None,
         key_topk: int | None = None,
+        input_topk_tau: float = 1.0,
+        key_topk_tau: float = 1.0,
     ):
         """
         Convenience constructor:
@@ -111,6 +125,8 @@ class Gen2SingleInputReadout(SpikingNeuron):
                                    its feature dimension per (t, b).
             key_topk:             if set, keep only top-k entries of k_t along the
                                    key dimension per (t, b).
+            input_topk_tau:       temperature (>0) for input soft surrogate in STE.
+            key_topk_tau:         temperature (>0) for k soft surrogate in STE.
         """
         if num_spiking_neurons <= 0:
             raise ValueError("num_spiking_neurons must be positive")
@@ -133,6 +149,8 @@ class Gen2SingleInputReadout(SpikingNeuron):
             use_q_projection=use_q_projection,
             input_topk=input_topk,
             key_topk=key_topk,
+            input_topk_tau=input_topk_tau,
+            key_topk_tau=key_topk_tau,
         )
 
     # -----------------------------------------------------------
@@ -156,22 +174,33 @@ class Gen2SingleInputReadout(SpikingNeuron):
         n = self.d_key
         N_spike = self.num_spiking_neurons
 
-        # Optional top-k masking on input x along feature dimension per (t, b)
+        # Optional Top-K on input x along feature dimension per (t, b)
         if self.input_topk is not None:
             vals_x, idx_x = torch.topk(x, self.input_topk, dim=-1)
-            x_masked = torch.zeros_like(x)
-            x = x_masked.scatter(-1, idx_x, vals_x)
+            x_hard = torch.zeros_like(x).scatter(-1, idx_x, vals_x)
+            if self.training:
+                # Straight-through: forward = hard, backward = soft surrogate
+                m_soft = torch.softmax(x / self.input_topk_tau, dim=-1)
+                x_soft = x * m_soft
+                x = x_hard.detach() + x_soft - x_soft.detach()
+            else:
+                x = x_hard
 
         # Projections for Gen-2 update
         v = self.to_v(x)  # (T,B,d)
         k = self.to_k(x)  # (T,B,n)
         alpha = torch.sigmoid(self.to_alpha(x))  # (T,B,n)
 
-        # Optional top-k masking on k along key dimension per (t, b)
+        # Optional Top-K on k along key dimension per (t, b)
         if self.key_topk is not None:
             vals, idx = torch.topk(k, self.key_topk, dim=-1)
-            k_masked = torch.zeros_like(k)
-            k = k_masked.scatter(-1, idx, vals)
+            k_hard = torch.zeros_like(k).scatter(-1, idx, vals)
+            if self.training:
+                m_soft_k = torch.softmax(k / self.key_topk_tau, dim=-1)
+                k_soft = k * m_soft_k
+                k = k_hard.detach() + k_soft - k_soft.detach()
+            else:
+                k = k_hard
 
         # Optional q projection
         if self.use_q_projection:
