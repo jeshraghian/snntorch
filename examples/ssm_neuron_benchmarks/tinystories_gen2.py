@@ -28,7 +28,7 @@ LR = 5e-4
 EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 8
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
 DECODE_EVERY_N_BATCHES = 50
 INPUT_TOPK_TAU = 2.0
 KEY_TOPK_TAU = 2.0
@@ -105,8 +105,8 @@ class SNNLanguageModelGen2(nn.Module):
             )
 
         # Choose Top-K values based on hidden_dim and n=m
-        # input_topk = max(1, min(hidden_dim - 1, hidden_dim // 16))  # ~6.25%
-        input_topk = hidden_dim
+        input_topk = max(1, min(hidden_dim - 1, hidden_dim // 16))  # ~6.25%
+        # input_topk = hidden_dim
         key_topk = max(1, min(m - 1, m // 4))  # ~25% of n
         # key_topk = m
 

@@ -175,10 +175,10 @@ class Gen2SingleInputReadout(SpikingNeuron):
         N_spike = self.num_spiking_neurons
 
         # Optional Top-K on input x along feature dimension per (t, b)
-        if self.input_topk is not None and False:  ##############
+        if self.input_topk is not None:
             vals_x, idx_x = torch.topk(x, self.input_topk, dim=-1)
             x_hard = torch.zeros_like(x).scatter(-1, idx_x, vals_x)
-            if self.training and False:  ##############
+            if self.training:
                 # Straight-through: forward = hard, backward = soft surrogate
                 m_soft = torch.softmax(x / self.input_topk_tau, dim=-1)
                 x_soft = x * m_soft
