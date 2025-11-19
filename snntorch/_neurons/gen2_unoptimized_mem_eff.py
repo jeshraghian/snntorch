@@ -43,7 +43,7 @@ class Gen2SingleInputReadout(SpikingNeuron):
             key_topk_tau:         temperature (>0) for the k soft surrogate used in
                                    training for straight-through estimation.
         """
-        super().__init__()
+        super().__init__(output=True)
         if d_value <= 0 or d_key <= 0:
             raise ValueError("d_value and d_key must be positive integers")
 

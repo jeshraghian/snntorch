@@ -153,7 +153,7 @@ class SNNLanguageModelGen2(nn.Module):
         hidden = hidden + pos_table
 
         # Gen2 layer 1
-        hidden = self.gen2_1(hidden)  # (T, B, H)
+        hidden, _ = self.gen2_1(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
 
         # Nonlinear hidden
@@ -162,7 +162,7 @@ class SNNLanguageModelGen2(nn.Module):
         hidden = hidden.reshape(T, -1, hidden.shape[-1])
 
         # Gen2 layer 2
-        hidden = self.gen2_2(hidden)  # (T, B, H)
+        hidden, _ = self.gen2_2(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
 
         # Nonlinear hidden
@@ -171,7 +171,7 @@ class SNNLanguageModelGen2(nn.Module):
         hidden = hidden.reshape(T, -1, hidden.shape[-1])
 
         # Gen2 layer 3
-        hidden = self.gen2_3(hidden)  # (T, B, H)
+        hidden, _ = self.gen2_3(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
 
         # Output transformation
