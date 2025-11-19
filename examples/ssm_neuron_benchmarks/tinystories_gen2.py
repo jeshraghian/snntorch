@@ -116,7 +116,7 @@ class SNNLanguageModelGen2(nn.Module):
             num_spiking_neurons=hidden_dim,
             time_chunk_size=None,
             use_q_projection=False,
-            input_topk=None,
+            input_topk=input_topk,
             key_topk=key_topk,
             input_topk_tau=INPUT_TOPK_TAU,
             key_topk_tau=KEY_TOPK_TAU,
