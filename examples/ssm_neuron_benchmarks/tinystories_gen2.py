@@ -24,7 +24,7 @@ with open(filename, "w") as f:
 # Hyperparameters
 SEQ_LENGTH = 128
 HIDDEN_DIM = 256
-LR = 5e-4
+LR = 5e-3
 EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 8
@@ -105,10 +105,12 @@ class SNNLanguageModelGen2(nn.Module):
             )
 
         # Choose Top-K values based on hidden_dim and n=m
-        input_topk = max(1, min(hidden_dim - 1, hidden_dim // 16))  # ~6.25%
+        # input_topk = max(1, min(hidden_dim - 1, hidden_dim // 16))  # ~6.25%
         # input_topk = hidden_dim
-        key_topk = max(1, min(m - 1, m // 4))  # ~25% of n
+        input_topk = None
+        # key_topk = max(1, min(m - 1, m // 4))  # ~25% of n
         # key_topk = m
+        key_topk = None
 
         # Gen2 layers produce (T, B, hidden_dim) with use_q_projection=False
         self.gen2_1 = Gen2SingleInputReadout.from_num_spiking_neurons(
