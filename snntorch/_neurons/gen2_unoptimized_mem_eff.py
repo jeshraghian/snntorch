@@ -60,14 +60,14 @@ class Gen2SingleInputReadout(SpikingNeuron):
         self.num_spiking_neurons = num_spiking_neurons
         self.use_q_projection = use_q_projection
         if input_topk is not None:
-            if input_topk <= 0 or input_topk >= in_dim:
+            if input_topk <= 0 or input_topk > in_dim:
                 raise ValueError(
-                    f"input_topk must be in [1, in_dim={in_dim}-1] when provided; got {input_topk}"
+                    f"input_topk must be in [1, in_dim={in_dim}] when provided; got {input_topk}"
                 )
         if key_topk is not None:
-            if key_topk <= 0 or key_topk >= d_key:
+            if key_topk <= 0 or key_topk > d_key:
                 raise ValueError(
-                    f"key_topk must be in [1, d_key={d_key}-1] when provided; got {key_topk}"
+                    f"key_topk must be in [1, d_key={d_key}] when provided; got {key_topk}"
                 )
         if input_topk_tau <= 0.0:
             raise ValueError("input_topk_tau must be > 0")
@@ -178,7 +178,7 @@ class Gen2SingleInputReadout(SpikingNeuron):
         if self.input_topk is not None:
             vals_x, idx_x = torch.topk(x, self.input_topk, dim=-1)
             x_hard = torch.zeros_like(x).scatter(-1, idx_x, vals_x)
-            if self.training:
+            if self.training and False:  ##############
                 # Straight-through: forward = hard, backward = soft surrogate
                 m_soft = torch.softmax(x / self.input_topk_tau, dim=-1)
                 x_soft = x * m_soft
@@ -195,7 +195,7 @@ class Gen2SingleInputReadout(SpikingNeuron):
         if self.key_topk is not None:
             vals, idx = torch.topk(k, self.key_topk, dim=-1)
             k_hard = torch.zeros_like(k).scatter(-1, idx, vals)
-            if self.training:
+            if self.training and False:  ##############
                 m_soft_k = torch.softmax(k / self.key_topk_tau, dim=-1)
                 k_soft = k * m_soft_k
                 k = k_hard.detach() + k_soft - k_soft.detach()
