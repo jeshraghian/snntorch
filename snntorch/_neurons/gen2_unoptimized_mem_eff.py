@@ -15,7 +15,8 @@ class Gen2SingleInputReadout(SpikingNeuron):
         num_spiking_neurons=None,
         time_chunk_size=None,
         use_q_projection: bool = True,
-        topk: int | None = None,
+        input_topk: int | None = None,
+        key_topk: int | None = None,
     ):
         """
         Base initializer where you specify d_value and d_key directly.
@@ -29,9 +30,12 @@ class Gen2SingleInputReadout(SpikingNeuron):
             time_chunk_size:      optional time chunk size (Tc); if None, use full T
             use_q_projection:     if True, use S_t @ Q_t readout;
                                    if False, return flattened S_t (no q)
-            topk:                 if set, keep only top-k entries of k_t along the
+            input_topk:           if set, keep only top-k entries of input x along
+                                   its feature dimension per (t, b). Others are zeroed.
+                                   Must satisfy 1 <= input_topk < in_dim.
+            key_topk:             if set, keep only top-k entries of k_t along the
                                    key dimension per (t, b). Others are zeroed.
-                                   Must satisfy 1 <= topk < d_key.
+                                   Must satisfy 1 <= key_topk < d_key.
         """
         super().__init__()
         if d_value <= 0 or d_key <= 0:
@@ -49,12 +53,18 @@ class Gen2SingleInputReadout(SpikingNeuron):
         self.d_key = d_key  # n
         self.num_spiking_neurons = num_spiking_neurons
         self.use_q_projection = use_q_projection
-        if topk is not None:
-            if topk <= 0 or topk >= d_key:
+        if input_topk is not None:
+            if input_topk <= 0 or input_topk >= in_dim:
                 raise ValueError(
-                    f"topk must be in [1, d_key={d_key}-1] when provided; got {topk}"
+                    f"input_topk must be in [1, in_dim={in_dim}-1] when provided; got {input_topk}"
                 )
-        self.topk = topk
+        if key_topk is not None:
+            if key_topk <= 0 or key_topk >= d_key:
+                raise ValueError(
+                    f"key_topk must be in [1, d_key={d_key}-1] when provided; got {key_topk}"
+                )
+        self.input_topk = input_topk
+        self.key_topk = key_topk
 
         # Projections for the Gen-2 update
         self.to_v = nn.Linear(in_dim, d_value)  # (T,B,in_dim) -> (T,B,d)
@@ -83,7 +93,8 @@ class Gen2SingleInputReadout(SpikingNeuron):
         num_spiking_neurons,
         time_chunk_size=None,
         use_q_projection: bool = True,
-        topk: int | None = None,
+        input_topk: int | None = None,
+        key_topk: int | None = None,
     ):
         """
         Convenience constructor:
@@ -96,8 +107,10 @@ class Gen2SingleInputReadout(SpikingNeuron):
             time_chunk_size:      optional time chunk size
             use_q_projection:     if True, use S_t @ Q_t readout;
                                    if False, return flattened S_t
-            topk:                 if set, keep only top-k entries of k_t along the
-                                   key dimension per (t, b). Others are zeroed.
+            input_topk:           if set, keep only top-k entries of input x along
+                                   its feature dimension per (t, b).
+            key_topk:             if set, keep only top-k entries of k_t along the
+                                   key dimension per (t, b).
         """
         if num_spiking_neurons <= 0:
             raise ValueError("num_spiking_neurons must be positive")
@@ -118,7 +131,8 @@ class Gen2SingleInputReadout(SpikingNeuron):
             num_spiking_neurons=num_spiking_neurons,
             time_chunk_size=time_chunk_size,
             use_q_projection=use_q_projection,
-            topk=topk,
+            input_topk=input_topk,
+            key_topk=key_topk,
         )
 
     # -----------------------------------------------------------
@@ -142,15 +156,20 @@ class Gen2SingleInputReadout(SpikingNeuron):
         n = self.d_key
         N_spike = self.num_spiking_neurons
 
+        # Optional top-k masking on input x along feature dimension per (t, b)
+        if self.input_topk is not None:
+            vals_x, idx_x = torch.topk(x, self.input_topk, dim=-1)
+            x_masked = torch.zeros_like(x)
+            x = x_masked.scatter(-1, idx_x, vals_x)
+
         # Projections for Gen-2 update
         v = self.to_v(x)  # (T,B,d)
         k = self.to_k(x)  # (T,B,n)
         alpha = torch.sigmoid(self.to_alpha(x))  # (T,B,n)
 
         # Optional top-k masking on k along key dimension per (t, b)
-        if self.topk is not None and self.topk < n:
-            # vals, idx: (T,B,topk)
-            vals, idx = torch.topk(k, self.topk, dim=-1)
+        if self.key_topk is not None:
+            vals, idx = torch.topk(k, self.key_topk, dim=-1)
             k_masked = torch.zeros_like(k)
             k = k_masked.scatter(-1, idx, vals)
 

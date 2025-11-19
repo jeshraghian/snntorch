@@ -23,7 +23,7 @@ with open(filename, "w") as f:
 # Hyperparameters
 SEQ_LENGTH = 128
 HIDDEN_DIM = 256
-LR = 1e-4
+LR = 1e-3
 EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 8
@@ -100,18 +100,12 @@ class SNNLanguageModelGen2(nn.Module):
                 f"HIDDEN_DIM must be a perfect square to use from_num_spiking_neurons; got {hidden_dim}"
             )
 
-        # Choose Top-K values based on hidden_dim and n=m
-        input_topk = max(1, min(hidden_dim - 1, hidden_dim // 16))  # ~6.25%
-        key_topk = max(1, min(m - 1, m // 4))  # ~25% of n
-
         # Gen2 layers produce (T, B, hidden_dim) with use_q_projection=False
         self.gen2_1 = Gen2SingleInputReadout.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
             time_chunk_size=None,
             use_q_projection=False,
-            input_topk=input_topk,
-            key_topk=key_topk,
         ).to(DEVICE)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.gen2_2 = Gen2SingleInputReadout.from_num_spiking_neurons(
@@ -119,8 +113,6 @@ class SNNLanguageModelGen2(nn.Module):
             num_spiking_neurons=hidden_dim,
             time_chunk_size=None,
             use_q_projection=False,
-            input_topk=input_topk,
-            key_topk=key_topk,
         ).to(DEVICE)
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
         self.gen2_3 = Gen2SingleInputReadout.from_num_spiking_neurons(
@@ -128,8 +120,6 @@ class SNNLanguageModelGen2(nn.Module):
             num_spiking_neurons=hidden_dim,
             time_chunk_size=None,
             use_q_projection=False,
-            input_topk=input_topk,
-            key_topk=key_topk,
         ).to(DEVICE)
         self.fc_out = nn.Linear(hidden_dim, vocab_size)
 
