@@ -211,6 +211,9 @@ class Gen2SingleInputReadout(SpikingNeuron):
         chunk = self.time_chunk_size or T
         y_chunks = []
         S_prev = None  # carry: (B,d,n)
+        # Debug: accumulate S-level mem/spk across the whole sequence
+        mem_S_chunks = []
+        spk_S_chunks = []
 
         for t0 in range(0, T, chunk):
             t1 = min(t0 + chunk, T)
@@ -256,6 +259,13 @@ class Gen2SingleInputReadout(SpikingNeuron):
                 carry = S_prev_time * decay_time  # (Tc,B,d,n)
                 S_local = S_local + carry
 
+            # Capture S-level mem/spk after carry
+            S_flat = S_local.reshape(Tc, B, d * n)  # (Tc,B,d*n)
+            mem_S = self.state_quant(S_flat) if self.state_quant else S_flat
+            spk_S = self.fire(mem_S) * self.graded_spikes_factor
+            mem_S_chunks.append(mem_S.detach())
+            spk_S_chunks.append(spk_S.detach())
+
             # ------- Readout -------
             if self.use_q_projection:
                 # Readout: S_t (d×n) @ Q_t (n×d) -> (d×d) -> flatten to N_spike
@@ -279,17 +289,27 @@ class Gen2SingleInputReadout(SpikingNeuron):
             S_prev = S_local[-1]  # (B,d,n)
 
         y = torch.cat(y_chunks, dim=0)  # (T,B,N_spike)
-        mem = y
 
-        if self.state_quant:
-            mem = self.state_quant(mem)
+        # Expose concatenated S-level mem/spk for debugging
+        self.debug_mem_S = (
+            torch.cat(mem_S_chunks, dim=0) if mem_S_chunks else None
+        )
+        self.debug_spk_S = (
+            torch.cat(spk_S_chunks, dim=0) if spk_S_chunks else None
+        )
 
-        if self.output:
-            self.spk = self.fire(mem) * self.graded_spikes_factor
-            return self.spk, mem
+        return y, y
+        # mem = y
 
-        else:
-            return mem
+        # if self.state_quant:
+        #     mem = self.state_quant(mem)
+
+        # if self.output:
+        #     self.spk = self.fire(mem) * self.graded_spikes_factor
+        #     return self.spk, mem
+
+        # else:
+        #     return mem
 
 
 if __name__ == "__main__":
