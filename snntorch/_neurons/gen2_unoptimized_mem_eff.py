@@ -6,6 +6,47 @@ from torch.autograd import Function
 from snntorch._neurons.neurons import SpikingNeuron
 
 
+def __validate_inputs(
+    d_value,
+    d_key,
+    num_spiking_neurons,
+    input_topk,
+    key_topk,
+    input_topk_tau,
+    key_topk_tau,
+):
+    # dims are positive integers
+    if d_value <= 0 or d_key <= 0:
+        raise ValueError("d_value and d_key must be positive integers")
+
+    # ensure num_spiking_neurons is consistent with d_value * d_key
+    inferred = d_value * d_key
+    if num_spiking_neurons is None:
+        num_spiking_neurons = inferred
+    elif num_spiking_neurons != inferred:
+        raise ValueError(
+            f"num_spiking_neurons={num_spiking_neurons} must equal d_value * d_key={inferred}"
+        )
+
+    # topk is in [1, dim]
+    if input_topk is not None:
+        if input_topk <= 0 or input_topk > in_dim:
+            raise ValueError(
+                f"input_topk must be in [1, in_dim={in_dim}] when provided; got {input_topk}"
+            )
+    if key_topk is not None:
+        if key_topk <= 0 or key_topk > d_key:
+            raise ValueError(
+                f"key_topk must be in [1, d_key={d_key}] when provided; got {key_topk}"
+            )
+
+    # tau is positive
+    if input_topk_tau <= 0.0:
+        raise ValueError("input_topk_tau must be > 0")
+    if key_topk_tau <= 0.0:
+        raise ValueError("key_topk_tau must be > 0")
+
+
 class Gen2SingleInputReadout(SpikingNeuron):
     def __init__(
         self,
@@ -22,6 +63,10 @@ class Gen2SingleInputReadout(SpikingNeuron):
     ):
         """
         Base initializer where you specify d_value and d_key directly.
+
+        The spirit of this implementation is to implement an associative-memory
+        based SSM-based SNN, where the projection after the matrix-value hidden
+        state (S_t), projects to the same dimensionality as (S_t).
 
         Args:
             in_dim:               input feature dimension
@@ -44,35 +89,21 @@ class Gen2SingleInputReadout(SpikingNeuron):
                                    training for straight-through estimation.
         """
         super().__init__(output=True)
-        if d_value <= 0 or d_key <= 0:
-            raise ValueError("d_value and d_key must be positive integers")
 
-        inferred = d_value * d_key
-        if num_spiking_neurons is None:
-            num_spiking_neurons = inferred
-        elif num_spiking_neurons != inferred:
-            raise ValueError(
-                f"num_spiking_neurons={num_spiking_neurons} must equal d_value * d_key={inferred}"
-            )
+        __validate_inputs(
+            d_value,
+            d_key,
+            num_spiking_neurons,
+            input_topk,
+            key_topk,
+            input_topk_tau,
+            key_topk_tau,
+        )
 
         self.d_value = d_value  # d
         self.d_key = d_key  # n
         self.num_spiking_neurons = num_spiking_neurons
         self.use_q_projection = use_q_projection
-        if input_topk is not None:
-            if input_topk <= 0 or input_topk > in_dim:
-                raise ValueError(
-                    f"input_topk must be in [1, in_dim={in_dim}] when provided; got {input_topk}"
-                )
-        if key_topk is not None:
-            if key_topk <= 0 or key_topk > d_key:
-                raise ValueError(
-                    f"key_topk must be in [1, d_key={d_key}] when provided; got {key_topk}"
-                )
-        if input_topk_tau <= 0.0:
-            raise ValueError("input_topk_tau must be > 0")
-        if key_topk_tau <= 0.0:
-            raise ValueError("key_topk_tau must be > 0")
         self.input_topk = input_topk
         self.key_topk = key_topk
         self.input_topk_tau = input_topk_tau
@@ -95,9 +126,6 @@ class Gen2SingleInputReadout(SpikingNeuron):
         self.time_chunk_size = time_chunk_size
         self.eps = 1e-8
 
-    # -----------------------------------------------------------
-    # Alternative constructor: from num_spiking_neurons
-    # -----------------------------------------------------------
     @classmethod
     def from_num_spiking_neurons(
         cls,
@@ -153,9 +181,6 @@ class Gen2SingleInputReadout(SpikingNeuron):
             key_topk_tau=key_topk_tau,
         )
 
-    # -----------------------------------------------------------
-    # Forward
-    # -----------------------------------------------------------
     def forward(self, x):
         """
         x: (T, B, in_dim)
@@ -301,30 +326,10 @@ class Gen2SingleInputReadout(SpikingNeuron):
             S_prev = S_local[-1]  # (B,d,n)
 
         y = torch.cat(y_chunks, dim=0)  # (T,B,N_spike)
-
-        # Expose concatenated S-level mem/spk for debugging
-        self.debug_mem_S = (
-            torch.cat(mem_S_chunks, dim=0) if mem_S_chunks else None
-        )
-        self.debug_spk_S = (
-            torch.cat(spk_S_chunks, dim=0) if spk_S_chunks else None
-        )
-
         return y
 
-        # mem = y
 
-        # if self.state_quant:
-        #     mem = self.state_quant(mem)
-
-        # if self.output:
-        #     self.spk = self.fire(mem) * self.graded_spikes_factor
-        #     return self.spk, mem
-
-        # else:
-        #     return mem
-
-
+# TODO: remove this dunder
 if __name__ == "__main__":
     # Simple smoke test for from_num_spiking_neurons
 
