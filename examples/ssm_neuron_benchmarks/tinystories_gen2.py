@@ -14,7 +14,7 @@ from tqdm import tqdm
 import torch.nn.functional as F
 import wandb
 
-from snntorch._neurons.gen2_unoptimized_mem_eff import Gen2SingleInputReadout
+from snntorch._neurons.associative import AssociativeMemorySSM
 
 
 date_string = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -143,7 +143,7 @@ class SNNLanguageModelGen2(nn.Module):
         key_topk = None
 
         # Gen2 layers produce (T, B, hidden_dim) with use_q_projection=False
-        self.gen2_1 = Gen2SingleInputReadout.from_num_spiking_neurons(
+        self.gen2_1 = AssociativeMemorySSM.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
             use_q_projection=True,
@@ -153,7 +153,7 @@ class SNNLanguageModelGen2(nn.Module):
             key_topk_tau=KEY_TOPK_TAU,
         ).to(DEVICE)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.gen2_2 = Gen2SingleInputReadout.from_num_spiking_neurons(
+        self.gen2_2 = AssociativeMemorySSM.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
             use_q_projection=True,
@@ -163,7 +163,7 @@ class SNNLanguageModelGen2(nn.Module):
             key_topk_tau=KEY_TOPK_TAU,
         ).to(DEVICE)
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
-        self.gen2_3 = Gen2SingleInputReadout.from_num_spiking_neurons(
+        self.gen2_3 = AssociativeMemorySSM.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
             use_q_projection=True,

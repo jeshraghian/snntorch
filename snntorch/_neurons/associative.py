@@ -48,7 +48,7 @@ def __validate_inputs(
         raise ValueError("key_topk_tau must be > 0")
 
 
-class Gen2SingleInputReadout(SpikingNeuron):
+class AssociativeMemorySSM(SpikingNeuron):
     def __init__(
         self,
         in_dim,
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     T, B, in_dim = 16, 2, 32  # time, batch, input dim
     num_spiking_neurons = 16  # must be a perfect square -> d = n = 4
 
-    model = Gen2SingleInputReadout.from_num_spiking_neurons(
+    model = AssociativeMemorySSM.from_num_spiking_neurons(
         in_dim=in_dim,
         num_spiking_neurons=num_spiking_neurons,
         use_q_projection=True,  # or False to just flatten S_t
