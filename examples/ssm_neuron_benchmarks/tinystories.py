@@ -10,6 +10,8 @@ from transformers import AutoTokenizer
 from tqdm import tqdm
 import torch.nn.functional as F
 import wandb
+import subprocess
+from typing import List
 
 from snntorch._neurons.stateleaky import StateLeaky
 
@@ -27,7 +29,29 @@ EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 8
 LEARN_BETA = True
-DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
+
+
+def get_least_busy_gpu() -> int:
+    """Return the index of the GPU with the least memory usage."""
+    try:
+        result: str = subprocess.check_output(
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.used",
+                "--format=csv,nounits,noheader",
+            ],
+            encoding="utf-8",
+        )
+        memory_used: List[int] = [int(x) for x in result.strip().split("\n")]
+        if memory_used:
+            return memory_used.index(min(memory_used))
+        return 0
+    except (subprocess.SubprocessError, FileNotFoundError):
+        print("nvidia-smi failed or isn't available, defaulting to GPU 0")
+        return 0
+
+
+DEVICE = f"cuda:{get_least_busy_gpu()}" if torch.cuda.is_available() else "cpu"
 DECODE_EVERY_N_BATCHES = 50
 print("Device: ", DEVICE)
 
@@ -91,23 +115,29 @@ class SNNLanguageModel(nn.Module):
         super(SNNLanguageModel, self).__init__()
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.pos_embedding = nn.Embedding(SEQ_LENGTH, hidden_dim)
+        # LayerNorms to stabilize inputs to each block and before output
+        self.ln1 = nn.LayerNorm(hidden_dim)
         self.lif1 = StateLeaky(
             beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             channels=hidden_dim,
             learn_beta=LEARN_BETA,
         )
+        self.ln2 = nn.LayerNorm(hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.lif2 = StateLeaky(
             beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             channels=hidden_dim,
             learn_beta=LEARN_BETA,
         )
+        self.ln3 = nn.LayerNorm(hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
         self.lif3 = StateLeaky(
             beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             channels=hidden_dim,
             learn_beta=LEARN_BETA,
         )
+        self.fc4 = nn.Linear(hidden_dim, hidden_dim)
+        self.ln_out = nn.LayerNorm(hidden_dim)
         self.fc_out = nn.Linear(hidden_dim, vocab_size)
 
     def forward(self, x):
@@ -116,24 +146,30 @@ class SNNLanguageModel(nn.Module):
         pos = torch.arange(hidden.size(0), device=hidden.device)
         pos_table = self.pos_embedding(pos).unsqueeze(1)  # [T, 1, H]
         hidden = hidden + pos_table
-        hidden, _ = self.lif1(hidden)
         hidden = hidden.reshape(-1, hidden.shape[-1])
 
-        # nonlinear hidden
-        hidden = self.fc2(hidden)
-        hidden = torch.relu(hidden)
+        # hidden = self.ln1(hidden)
         hidden = hidden.reshape(T, -1, hidden.shape[-1])
-        hidden, _ = self.lif2(hidden)
+        hidden, _ = self.lif1(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
-
-        # nonlinear hidden
-        hidden = self.fc3(hidden)
+        # hidden = self.fc2(hidden)
         hidden = torch.relu(hidden)
-        hidden = hidden.reshape(T, -1, hidden.shape[-1])
-        hidden, _ = self.lif3(hidden)
-        hidden = hidden.reshape(-1, hidden.shape[-1])
 
-        # output transformation
+        hidden = self.ln2(hidden)
+        hidden = hidden.reshape(T, -1, hidden.shape[-1])
+        hidden, _ = self.lif2(hidden)  # (T, B, H)
+        hidden = hidden.reshape(-1, hidden.shape[-1])
+        # hidden = self.fc3(hidden)
+        hidden = torch.relu(hidden)
+
+        hidden = self.ln3(hidden)
+        hidden = hidden.reshape(T, -1, hidden.shape[-1])
+        hidden, _ = self.lif3(hidden)  # (T, B, H)
+        hidden = hidden.reshape(-1, hidden.shape[-1])
+        # hidden = self.fc4(hidden)
+        hidden = torch.relu(hidden)
+
+        # hidden = self.ln_out(hidden)
         output = self.fc_out(hidden)
         output = output.reshape(T, -1, output.shape[-1])
         return output
