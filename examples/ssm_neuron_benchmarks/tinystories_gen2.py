@@ -1,5 +1,8 @@
 from datetime import datetime
 import math
+import sys
+import subprocess
+from typing import List
 
 import torch
 import torch.nn as nn
@@ -10,9 +13,6 @@ from transformers import AutoTokenizer
 from tqdm import tqdm
 import torch.nn.functional as F
 import wandb
-import sys
-import subprocess
-from typing import List
 
 from snntorch._neurons.gen2_unoptimized_mem_eff import Gen2SingleInputReadout
 
@@ -146,7 +146,6 @@ class SNNLanguageModelGen2(nn.Module):
         self.gen2_1 = Gen2SingleInputReadout.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
-            time_chunk_size=None,
             use_q_projection=True,
             input_topk=input_topk,
             key_topk=key_topk,
@@ -157,7 +156,6 @@ class SNNLanguageModelGen2(nn.Module):
         self.gen2_2 = Gen2SingleInputReadout.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
-            time_chunk_size=None,
             use_q_projection=True,
             input_topk=input_topk,
             key_topk=key_topk,
@@ -168,7 +166,6 @@ class SNNLanguageModelGen2(nn.Module):
         self.gen2_3 = Gen2SingleInputReadout.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
-            time_chunk_size=None,
             use_q_projection=True,
             input_topk=input_topk,
             key_topk=key_topk,

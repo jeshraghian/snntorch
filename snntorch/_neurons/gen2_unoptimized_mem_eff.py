@@ -1,4 +1,5 @@
 import math
+
 import torch
 from torch import nn
 from torch.autograd import Function
@@ -54,7 +55,6 @@ class Gen2SingleInputReadout(SpikingNeuron):
         d_value,
         d_key,
         num_spiking_neurons=None,
-        time_chunk_size=None,
         use_q_projection: bool = True,
         input_topk: int | None = None,
         key_topk: int | None = None,
@@ -74,7 +74,6 @@ class Gen2SingleInputReadout(SpikingNeuron):
             d_key (int):          n (cols of S_t, also k_t/alpha_t dim)
             num_spiking_neurons:  total neurons; if None, set to d_value * d_key.
                                    If provided, must equal d_value * d_key.
-            time_chunk_size:      optional time chunk size (Tc); if None, use full T
             use_q_projection:     if True, use S_t @ Q_t readout;
                                    if False, return flattened S_t (no q)
             input_topk:           if set, keep only top-k entries of input x along
@@ -123,7 +122,6 @@ class Gen2SingleInputReadout(SpikingNeuron):
         else:
             self.to_q = None  # not used
 
-        self.time_chunk_size = time_chunk_size
         self.eps = 1e-8
 
     @classmethod
@@ -131,7 +129,6 @@ class Gen2SingleInputReadout(SpikingNeuron):
         cls,
         in_dim,
         num_spiking_neurons,
-        time_chunk_size=None,
         use_q_projection: bool = True,
         input_topk: int | None = None,
         key_topk: int | None = None,
@@ -146,7 +143,6 @@ class Gen2SingleInputReadout(SpikingNeuron):
         Args:
             in_dim:               input feature dimension
             num_spiking_neurons:  total neurons = d * n, must be a perfect square
-            time_chunk_size:      optional time chunk size
             use_q_projection:     if True, use S_t @ Q_t readout;
                                    if False, return flattened S_t
             input_topk:           if set, keep only top-k entries of input x along
@@ -173,7 +169,6 @@ class Gen2SingleInputReadout(SpikingNeuron):
             d_value=d_value,
             d_key=d_key,
             num_spiking_neurons=num_spiking_neurons,
-            time_chunk_size=time_chunk_size,
             use_q_projection=use_q_projection,
             input_topk=input_topk,
             key_topk=key_topk,
@@ -197,9 +192,8 @@ class Gen2SingleInputReadout(SpikingNeuron):
         T, B, _ = x.shape
         d = self.d_value
         n = self.d_key
-        N_spike = self.num_spiking_neurons
 
-        # Optional Top-K on input x along feature dimension per (t, b)
+        # top k on input x
         if self.input_topk is not None:
             vals_x, idx_x = torch.topk(x, self.input_topk, dim=-1)
             x_hard = torch.zeros_like(x).scatter(-1, idx_x, vals_x)
@@ -213,12 +207,12 @@ class Gen2SingleInputReadout(SpikingNeuron):
             else:
                 x = x_hard
 
-        # Projections for Gen-2 update
+        # projections
         v = self.to_v(x)  # (T,B,d)
         k = self.to_k(x)  # (T,B,n)
         alpha = torch.sigmoid(self.to_alpha(x))  # (T,B,n)
 
-        # Optional Top-K on k along key dimension per (t, b)
+        # top k on key
         if self.key_topk is not None:
             vals, idx = torch.topk(k, self.key_topk, dim=-1)
             k_hard = torch.zeros_like(k).scatter(-1, idx, vals)
@@ -231,115 +225,60 @@ class Gen2SingleInputReadout(SpikingNeuron):
             else:
                 k = k_hard
 
-        # Optional q projection
+        # optional q projection
         if self.use_q_projection:
             q_flat = self.to_q(x)  # (T,B,N_spike) = (T,B,d*n)
         else:
             q_flat = None
 
-        chunk = self.time_chunk_size or T
-        y_chunks = []
-        S_prev = None  # carry: (B,d,n)
-        # Debug: accumulate S-level mem/spk across the whole sequence
-        mem_S_chunks = []
-        spk_S_chunks = []
+        # outer-product writes per step: v_t k_t^T -> (T,B,d,n)
+        outer = torch.einsum("tbd,tbn->tbdn", v, k)  # (T,B,d,n)
 
-        for t0 in range(0, T, chunk):
-            t1 = min(t0 + chunk, T)
-            Tc = t1 - t0
+        # decay weights via cumprod in log-space
+        log_a = (alpha.clamp_min(self.eps)).log()  # (T,B,n)
+        log_cumprod = torch.cumsum(log_a, dim=0)  # (T,B,n)
+        cumprod = log_cumprod.exp()  # (T,B,n)
 
-            v_ch = v[t0:t1]  # (Tc,B,d)
-            k_ch = k[t0:t1]  # (Tc,B,n)
-            a_ch = alpha[t0:t1]  # (Tc,B,n)
+        # divide (per write r) by its own prefix p_r
+        inv_prefix = 1.0 / (cumprod + 1e-8)  # (T,B,n)
+        inv_prefix = inv_prefix.unsqueeze(2).expand(-1, -1, d, -1)  # (T,B,d,n)
+        scaled_writes = outer * inv_prefix  # (T,B,d,n)
 
-            if self.use_q_projection:
-                q_flat_ch = q_flat[t0:t1]  # (Tc,B,N_spike)
+        # state accumulation
+        S_scaled = torch.cumsum(scaled_writes, dim=0)  # (T,B,d,n)
+        S_local = S_scaled * cumprod.unsqueeze(2).expand(
+            -1, -1, d, -1
+        )  # (T,B,d,n)
 
-            # Outer-product writes per step: v_t k_t^T -> (Tc,B,d,n)
-            outer = torch.einsum("tbd,tbn->tbdn", v_ch, k_ch)  # (Tc,B,d,n)
+        # capture S-level mem/spk
+        S_flat = S_local.reshape(T, B, d * n)  # (T,B,d*n)
+        mem_S = self.state_quant(S_flat) if self.state_quant else S_flat
+        spk_S = self.fire(mem_S) * self.graded_spikes_factor
 
-            # Decay weights inside the chunk via cumprod in log-space
-            log_a = (a_ch.clamp_min(self.eps)).log()  # (Tc,B,n)
-            log_cumprod = torch.cumsum(log_a, dim=0)  # (Tc,B,n)
-            cumprod = log_cumprod.exp()  # (Tc,B,n) = p_t = ∏_{u<=t} a_u
-
-            # Divide (per write r) by its own prefix p_r
-            inv_prefix = 1.0 / (cumprod + 1e-8)  # (Tc,B,n)
-            inv_prefix = inv_prefix.unsqueeze(2).expand(
-                -1, -1, d, -1
-            )  # (Tc,B,d,n)
-            scaled_writes = outer * inv_prefix  # (Tc,B,d,n)
-
-            # State accumulation
-            S_scaled = torch.cumsum(scaled_writes, dim=0)  # (Tc,B,d,n)
-            S_local = S_scaled * cumprod.unsqueeze(2).expand(
-                -1, -1, d, -1
-            )  # (Tc,B,d,n)
-
-            # --- add carry from previous chunk BEFORE readout ---
-            if S_prev is not None:
-                # S_prev: (B,d,n), cumprod: (Tc,B,n)
-                S_prev_time = S_prev.unsqueeze(0).expand(
-                    Tc, -1, -1, -1
-                )  # (Tc,B,d,n)
-                decay_time = cumprod.unsqueeze(2).expand(
-                    -1, -1, d, -1
-                )  # (Tc,B,d,n)
-                carry = S_prev_time * decay_time  # (Tc,B,d,n)
-                S_local = S_local + carry
-
-            # Capture S-level mem/spk after carry
-            S_flat = S_local.reshape(Tc, B, d * n)  # (Tc,B,d*n)
-            mem_S = self.state_quant(S_flat) if self.state_quant else S_flat
-            spk_S = self.fire(mem_S) * self.graded_spikes_factor
-            mem_S_chunks.append(mem_S.detach())
-            spk_S_chunks.append(spk_S.detach())
-
-            # ------- Readout -------
-            if self.use_q_projection:
-                # Readout: S_t (d×n) @ Q_t (n×d) -> (d×d) -> flatten to N_spike
-
-                # q_flat_ch: (Tc,B,N_spike) = (Tc,B,d*n) -> (Tc,B,n,d)
-                q_matrix = q_flat_ch.view(Tc, B, n, d)  # (Tc,B,n,d)
-
-                # Reshape for batched matmul: (Tc*B,d,n) @ (Tc*B,n,d) -> (Tc*B,d,d)
-                if self.output:
-                    # when output=True, apply q on spiked S
-                    S_2d = spk_S.reshape(Tc * B, d, n)  # (Tc*B,d,n)
-                else:
-                    # when output=False, apply q on membrane S
-                    S_2d = S_local.reshape(Tc * B, d, n)  # (Tc*B,d,n)
-                q_2d = q_matrix.reshape(Tc * B, n, d)  # (Tc*B,n,d)
-
-                Y_block = torch.bmm(S_2d, q_2d)  # (Tc*B,d,d)
-                Y_block = Y_block.reshape(Tc, B, d * d)  # (Tc,B,N_spike)
+        # readout
+        if self.use_q_projection:
+            q_matrix = q_flat.view(T, B, n, d)  # (T,B,n,d)
+            if self.output:
+                S_2d = spk_S.reshape(T * B, d, n)
             else:
-                # Readout: just flatten S_t itself → (Tc,B,d*n)
-                if self.output:
-                    Y_block = spk_S  # (Tc,B,d*n)
-                else:
-                    Y_block = S_flat  # (Tc,B,d*n)
+                S_2d = S_local.reshape(T * B, d, n)
+            q_2d = q_matrix.reshape(T * B, n, d)
+            Y_block = torch.bmm(S_2d, q_2d).reshape(T, B, d * d)  # (T,B,d*d)
+        else:
+            Y_block = spk_S if self.output else S_flat  # (T,B,d*n)
 
-            y_chunks.append(Y_block)
-
-            # Update carry to end-of-chunk state
-            S_prev = S_local[-1]  # (B,d,n)
-
-        y = torch.cat(y_chunks, dim=0)  # (T,B,N_spike)
+        y = Y_block  # (T,B,N_spike)
         return y
 
 
 # TODO: remove this dunder
 if __name__ == "__main__":
-    # Simple smoke test for from_num_spiking_neurons
-
     T, B, in_dim = 16, 2, 32  # time, batch, input dim
     num_spiking_neurons = 16  # must be a perfect square -> d = n = 4
 
     model = Gen2SingleInputReadout.from_num_spiking_neurons(
         in_dim=in_dim,
         num_spiking_neurons=num_spiking_neurons,
-        time_chunk_size=None,  # or e.g. 8
         use_q_projection=True,  # or False to just flatten S_t
     )
 
