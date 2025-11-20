@@ -155,14 +155,14 @@ class SNNLanguageModel(nn.Module):
         # hidden = self.fc2(hidden)
         hidden = torch.relu(hidden)
 
-        hidden = self.ln2(hidden)
+        # hidden = self.ln2(hidden)
         hidden = hidden.reshape(T, -1, hidden.shape[-1])
         hidden, _ = self.lif2(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
         # hidden = self.fc3(hidden)
         hidden = torch.relu(hidden)
 
-        hidden = self.ln3(hidden)
+        # hidden = self.ln3(hidden)
         hidden = hidden.reshape(T, -1, hidden.shape[-1])
         hidden, _ = self.lif3(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
