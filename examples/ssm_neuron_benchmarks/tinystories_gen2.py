@@ -147,7 +147,7 @@ class SNNLanguageModelGen2(nn.Module):
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
             time_chunk_size=None,
-            use_q_projection=False,
+            use_q_projection=True,
             input_topk=input_topk,
             key_topk=key_topk,
             input_topk_tau=INPUT_TOPK_TAU,
@@ -158,7 +158,7 @@ class SNNLanguageModelGen2(nn.Module):
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
             time_chunk_size=None,
-            use_q_projection=False,
+            use_q_projection=True,
             input_topk=input_topk,
             key_topk=key_topk,
             input_topk_tau=INPUT_TOPK_TAU,
@@ -169,7 +169,7 @@ class SNNLanguageModelGen2(nn.Module):
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
             time_chunk_size=None,
-            use_q_projection=False,
+            use_q_projection=True,
             input_topk=input_topk,
             key_topk=key_topk,
             input_topk_tau=INPUT_TOPK_TAU,
@@ -193,14 +193,14 @@ class SNNLanguageModelGen2(nn.Module):
         hidden = self.fc2(hidden)
         hidden = torch.relu(hidden)
 
-        # hidden = self.ln2(hidden)
+        hidden = self.ln2(hidden)
         hidden = hidden.reshape(T, -1, hidden.shape[-1])
         hidden, _ = self.gen2_2(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
         hidden = self.fc3(hidden)
         hidden = torch.relu(hidden)
 
-        # hidden = self.ln3(hidden)
+        hidden = self.ln3(hidden)
         hidden = hidden.reshape(T, -1, hidden.shape[-1])
         hidden, _ = self.gen2_3(hidden)  # (T, B, H)
         hidden = hidden.reshape(-1, hidden.shape[-1])
