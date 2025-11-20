@@ -178,7 +178,9 @@ class Gen2SingleInputReadout(SpikingNeuron):
         if self.input_topk is not None:
             vals_x, idx_x = torch.topk(x, self.input_topk, dim=-1)
             x_hard = torch.zeros_like(x).scatter(-1, idx_x, vals_x)
-            if self.training and False:  ##############
+            if (
+                self.training and False
+            ):  # TODO: once we finish benching topk, enable this
                 # Straight-through: forward = hard, backward = soft surrogate
                 m_soft = torch.softmax(x / self.input_topk_tau, dim=-1)
                 x_soft = x * m_soft
@@ -195,7 +197,9 @@ class Gen2SingleInputReadout(SpikingNeuron):
         if self.key_topk is not None:
             vals, idx = torch.topk(k, self.key_topk, dim=-1)
             k_hard = torch.zeros_like(k).scatter(-1, idx, vals)
-            if self.training:
+            if (
+                self.training and False
+            ):  # TODO: once we finish benching topk, enable this
                 m_soft_k = torch.softmax(k / self.key_topk_tau, dim=-1)
                 k_soft = k * m_soft_k
                 k = k_hard.detach() + k_soft - k_soft.detach()
@@ -274,14 +278,22 @@ class Gen2SingleInputReadout(SpikingNeuron):
                 q_matrix = q_flat_ch.view(Tc, B, n, d)  # (Tc,B,n,d)
 
                 # Reshape for batched matmul: (Tc*B,d,n) @ (Tc*B,n,d) -> (Tc*B,d,d)
-                S_2d = S_local.reshape(Tc * B, d, n)  # (Tc*B,d,n)
+                if self.output:
+                    # when output=True, apply q on spiked S
+                    S_2d = spk_S.reshape(Tc * B, d, n)  # (Tc*B,d,n)
+                else:
+                    # when output=False, apply q on membrane S
+                    S_2d = S_local.reshape(Tc * B, d, n)  # (Tc*B,d,n)
                 q_2d = q_matrix.reshape(Tc * B, n, d)  # (Tc*B,n,d)
 
                 Y_block = torch.bmm(S_2d, q_2d)  # (Tc*B,d,d)
                 Y_block = Y_block.reshape(Tc, B, d * d)  # (Tc,B,N_spike)
             else:
                 # Readout: just flatten S_t itself → (Tc,B,d*n)
-                Y_block = S_local.reshape(Tc, B, d * n)  # (Tc,B,N_spike)
+                if self.output:
+                    Y_block = spk_S  # (Tc,B,d*n)
+                else:
+                    Y_block = S_flat  # (Tc,B,d*n)
 
             y_chunks.append(Y_block)
 
@@ -298,7 +310,8 @@ class Gen2SingleInputReadout(SpikingNeuron):
             torch.cat(spk_S_chunks, dim=0) if spk_S_chunks else None
         )
 
-        return y, y
+        return y
+
         # mem = y
 
         # if self.state_quant:
