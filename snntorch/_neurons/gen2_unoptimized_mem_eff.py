@@ -258,13 +258,17 @@ class Gen2SingleInputReadout(SpikingNeuron):
         # readout
         if self.use_q_projection:
             q_matrix = q_flat.view(T, B, n, d)  # (T,B,n,d)
+            # if spiking, apply q on spiked S
             if self.output:
                 S_2d = spk_S.reshape(T * B, d, n)
+            # if not spiking, apply q on membrane S
             else:
                 S_2d = S_local.reshape(T * B, d, n)
             q_2d = q_matrix.reshape(T * B, n, d)
             Y_block = torch.bmm(S_2d, q_2d).reshape(T, B, d * d)  # (T,B,d*d)
         else:
+            # if not using q projection, return flattened S_t
+            # else return spiked S
             Y_block = spk_S if self.output else S_flat  # (T,B,d*n)
 
         y = Y_block  # (T,B,N_spike)
