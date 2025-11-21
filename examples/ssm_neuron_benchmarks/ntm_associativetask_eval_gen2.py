@@ -119,7 +119,7 @@ def evaluate_gen2_assoc(
 def main():
     run_name = sys.argv[1] if len(sys.argv) > 1 else None
     # Hyperparameters
-    total_steps = 50000
+    total_steps = 50000000
     eval_every = 500
     log_every = 50
     batch_size = 32
