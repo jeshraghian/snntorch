@@ -83,7 +83,7 @@
     
 - This paper focuses on Gen1 and Gen2 implementations to capture the concrete value of extending snntorch.
 
-### 3. Gen1
+### 3. Gen1 Derivation and Implementation
 
 **3.1 Starting recurrence (Leaky/LIF)**
 
@@ -105,7 +105,7 @@
 
 - training uses parallel conv; inference can revert to iterative recurrence (neuromorphic-friendly). (Although we do not have the inference implementation).
 
-## 4.  Gen1 Benchmarks + snnTorch integration
+### 4.  Gen1 Benchmarks + snnTorch integration
 
 {FIGURE: 6 panel memory / inference-time utilization}
 
