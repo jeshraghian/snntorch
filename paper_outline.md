@@ -38,7 +38,7 @@
     
 - **Benchmarks:** show speed/memory scaling vs Leaky; show batch-chunking recovers memory with negligible runtime impact.
     
-- **Gen2 extension (~⅓):** implement PyTorch-parallel spiking Gen2 SSM (matrix state / associative memory). Show feasibility + advantages on associative-memory tasks; set roadmap to sparse/event-driven Gen2.
+- **Gen2 extension:** implement PyTorch-parallel spiking Gen2 SSM (matrix state / associative memory). Show feasibility + advantages on associative-memory tasks; set roadmap to sparse/event-driven Gen2.
     
 
 **1.4 Paper roadmap**
