@@ -127,6 +127,10 @@
     
 **4.3 Application stress test (TinyStories)**
 
+{FIGURE: SSM NN architecture}
+
+- introduce stacked StateLeaky SSM NN arch used for benchmark
+
 - frame as sequence-modeling sanity check, not “we trained an LLM.”
     
 - plot perplexity vs steps and vs wall-clock; StateLeaky advantage over time.
