@@ -118,3 +118,5 @@ snnenv-home/
 
 # wandb
 wandb/
+
+third_party/

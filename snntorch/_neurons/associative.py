@@ -7,7 +7,7 @@ from torch.autograd import Function
 from snntorch._neurons.neurons import SpikingNeuron
 
 
-def __validate_inputs(
+def _validate_inputs(
     d_value,
     d_key,
     num_spiking_neurons,
@@ -15,6 +15,7 @@ def __validate_inputs(
     key_topk,
     input_topk_tau,
     key_topk_tau,
+    in_dim,
 ):
     # dims are positive integers
     if d_value <= 0 or d_key <= 0:
@@ -89,7 +90,7 @@ class AssociativeMemorySSM(SpikingNeuron):
         """
         super().__init__(output=True)
 
-        __validate_inputs(
+        _validate_inputs(
             d_value,
             d_key,
             num_spiking_neurons,
@@ -97,6 +98,7 @@ class AssociativeMemorySSM(SpikingNeuron):
             key_topk,
             input_topk_tau,
             key_topk_tau,
+            in_dim,
         )
 
         self.d_value = d_value  # d
