@@ -127,7 +127,7 @@ def main():
     num_pairs_min = 2
     num_pairs_max = 6
     hidden_dim = 256
-    lr = 1e-3
+    lr = 5e-4
     ckpt_dir = os.path.join(
         os.path.dirname(__file__), "checkpoints_assoc_gen2"
     )
