@@ -12,6 +12,12 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+# Double all fonts globally
+try:
+    plt.rcParams["font.size"] = plt.rcParams["font.size"] * 1.5
+except Exception:
+    pass
+
 from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
 
@@ -23,8 +29,8 @@ SWEEP_CONFIGS = [
 N_RUNS = 10
 
 # Same timestep schedule as baseline
-TIMESTEPS = np.logspace(1, 4.5, num=10, dtype=int)
-BATCHWISE_CHUNK_SIZE = 32
+TIMESTEPS = np.logspace(1, 4, num=10, dtype=int)
+BATCHWISE_CHUNK_SIZE = 64
 
 
 device = "cuda:1"

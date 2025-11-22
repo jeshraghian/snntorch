@@ -12,6 +12,12 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+# Double all fonts globally
+try:
+    plt.rcParams["font.size"] = plt.rcParams["font.size"] * 1.5
+except Exception:
+    pass
+
 from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
 
