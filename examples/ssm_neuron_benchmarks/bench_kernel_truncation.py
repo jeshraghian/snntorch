@@ -12,6 +12,12 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+# Double all fonts globally
+try:
+    plt.rcParams["font.size"] = plt.rcParams["font.size"] * 1.5
+except Exception:
+    pass
+
 from snntorch._neurons.stateleaky import StateLeaky
 
 # Sweep configurations: (batch_size, channels)
@@ -21,8 +27,8 @@ SWEEP_CONFIGS = [
 N_RUNS = 10
 
 # Same timestep schedule as other benches
-TIMESTEPS = np.logspace(1, 4.5, num=10, dtype=int)
-BATCHWISE_CHUNK_SIZE = 32
+TIMESTEPS = np.logspace(1, 4, num=10, dtype=int)
+BATCHWISE_CHUNK_SIZE = 64
 
 # Truncation sweep: None = full kernel, others are window sizes.
 # For small T, values greater than T effectively become full.
@@ -415,6 +421,10 @@ if __name__ == "__main__":
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.grid(True, which="both", ls="-", alpha=0.2)
+
+    # Limit y-axis top for time plots (left column)
+    ax_time_inf.set_ylim(top=1e1)
+    ax_time_trn.set_ylim(top=1e1)
 
     ax_time_inf.set_title("Kernel Truncation Sweep (Time) - Inference")
     ax_time_inf.set_xlabel("Timesteps")

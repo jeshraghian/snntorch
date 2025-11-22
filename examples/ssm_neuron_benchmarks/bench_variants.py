@@ -12,6 +12,12 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+# Double all fonts globally
+try:
+    plt.rcParams["font.size"] = plt.rcParams["font.size"] * 1.5
+except Exception:
+    pass
+
 from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
 
@@ -23,8 +29,8 @@ SWEEP_CONFIGS = [
 N_RUNS = 10
 
 # Same timestep schedule as baseline
-TIMESTEPS = np.logspace(1, 4.5, num=10, dtype=int)
-BATCHWISE_CHUNK_SIZE = 32
+TIMESTEPS = np.logspace(1, 4, num=10, dtype=int)
+BATCHWISE_CHUNK_SIZE = 64
 
 
 device = "cuda:1"
@@ -502,12 +508,14 @@ if __name__ == "__main__":
     ax_time_trn, ax_mem_trn = axes[1]
 
     cmap = plt.get_cmap("tab10")
-    # Use distinct colors per variant across all configs/plots
-    variant_colors = {
-        "leaky_single": cmap(0),
-        "leaky_multi": cmap(1),
-        "state_single": cmap(2),
-        "state_multi": cmap(3),
+    # Colors by model; styles by variant (single vs multi)
+    model_colors = {
+        "leaky": cmap(0),
+        "state": cmap(1),
+    }
+    variant_styles = {
+        "single": "-",
+        "multi": "--",
     }
     for idx, res in enumerate(results_infer):
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
@@ -516,8 +524,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["times_leaky_single"],
             yerr=res.get("std_times_leaky_single", None),
-            fmt="-",
-            color=variant_colors["leaky_single"],
+            fmt=variant_styles["single"],
+            color=model_colors["leaky"],
             label=f"Leaky single {label_suffix}",
             capsize=3,
         )
@@ -525,8 +533,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["times_leaky_multi"],
             yerr=res.get("std_times_leaky_multi", None),
-            fmt="-",
-            color=variant_colors["leaky_multi"],
+            fmt=variant_styles["multi"],
+            color=model_colors["leaky"],
             label=f"Leaky multi {label_suffix}",
             capsize=3,
         )
@@ -534,8 +542,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["times_state_single"],
             yerr=res.get("std_times_state_single", None),
-            fmt="-",
-            color=variant_colors["state_single"],
+            fmt=variant_styles["single"],
+            color=model_colors["state"],
             label=f"StateLeaky single {label_suffix}",
             capsize=3,
         )
@@ -543,8 +551,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["times_state_multi"],
             yerr=res.get("std_times_state_multi", None),
-            fmt="-",
-            color=variant_colors["state_multi"],
+            fmt=variant_styles["multi"],
+            color=model_colors["state"],
             label=f"StateLeaky multi {label_suffix}",
             capsize=3,
         )
@@ -554,8 +562,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["mems_leaky_single"],
             yerr=res.get("std_mems_leaky_single", None),
-            fmt="-",
-            color=variant_colors["leaky_single"],
+            fmt=variant_styles["single"],
+            color=model_colors["leaky"],
             label=f"Leaky single {label_suffix}",
             capsize=3,
         )
@@ -563,8 +571,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["mems_leaky_multi"],
             yerr=res.get("std_mems_leaky_multi", None),
-            fmt="-",
-            color=variant_colors["leaky_multi"],
+            fmt=variant_styles["multi"],
+            color=model_colors["leaky"],
             label=f"Leaky multi {label_suffix}",
             capsize=3,
         )
@@ -572,8 +580,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["mems_state_single"],
             yerr=res.get("std_mems_state_single", None),
-            fmt="-",
-            color=variant_colors["state_single"],
+            fmt=variant_styles["single"],
+            color=model_colors["state"],
             label=f"StateLeaky single {label_suffix}",
             capsize=3,
         )
@@ -581,8 +589,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["mems_state_multi"],
             yerr=res.get("std_mems_state_multi", None),
-            fmt="-",
-            color=variant_colors["state_multi"],
+            fmt=variant_styles["multi"],
+            color=model_colors["state"],
             label=f"StateLeaky multi {label_suffix}",
             capsize=3,
         )
@@ -594,8 +602,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["times_leaky_single"],
             yerr=res.get("std_times_leaky_single", None),
-            fmt="-",
-            color=variant_colors["leaky_single"],
+            fmt=variant_styles["single"],
+            color=model_colors["leaky"],
             label=f"Leaky single (train) {label_suffix}",
             capsize=3,
         )
@@ -603,8 +611,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["times_leaky_multi"],
             yerr=res.get("std_times_leaky_multi", None),
-            fmt="-",
-            color=variant_colors["leaky_multi"],
+            fmt=variant_styles["multi"],
+            color=model_colors["leaky"],
             label=f"Leaky multi (train) {label_suffix}",
             capsize=3,
         )
@@ -612,8 +620,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["times_state_single"],
             yerr=res.get("std_times_state_single", None),
-            fmt="-",
-            color=variant_colors["state_single"],
+            fmt=variant_styles["single"],
+            color=model_colors["state"],
             label=f"StateLeaky single (train) {label_suffix}",
             capsize=3,
         )
@@ -621,8 +629,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["times_state_multi"],
             yerr=res.get("std_times_state_multi", None),
-            fmt="-",
-            color=variant_colors["state_multi"],
+            fmt=variant_styles["multi"],
+            color=model_colors["state"],
             label=f"StateLeaky multi (train) {label_suffix}",
             capsize=3,
         )
@@ -632,8 +640,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["mems_leaky_single"],
             yerr=res.get("std_mems_leaky_single", None),
-            fmt="-",
-            color=variant_colors["leaky_single"],
+            fmt=variant_styles["single"],
+            color=model_colors["leaky"],
             label=f"Leaky single (train) {label_suffix}",
             capsize=3,
         )
@@ -641,8 +649,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["mems_leaky_multi"],
             yerr=res.get("std_mems_leaky_multi", None),
-            fmt="-",
-            color=variant_colors["leaky_multi"],
+            fmt=variant_styles["multi"],
+            color=model_colors["leaky"],
             label=f"Leaky multi (train) {label_suffix}",
             capsize=3,
         )
@@ -650,8 +658,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["mems_state_single"],
             yerr=res.get("std_mems_state_single", None),
-            fmt="-",
-            color=variant_colors["state_single"],
+            fmt=variant_styles["single"],
+            color=model_colors["state"],
             label=f"StateLeaky single (train) {label_suffix}",
             capsize=3,
         )
@@ -659,8 +667,8 @@ if __name__ == "__main__":
             TIMESTEPS,
             res["mems_state_multi"],
             yerr=res.get("std_mems_state_multi", None),
-            fmt="-",
-            color=variant_colors["state_multi"],
+            fmt=variant_styles["multi"],
+            color=model_colors["state"],
             label=f"StateLeaky multi (train) {label_suffix}",
             capsize=3,
         )
