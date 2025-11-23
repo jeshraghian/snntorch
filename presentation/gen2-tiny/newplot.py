@@ -67,7 +67,7 @@ ax.plot(
 ax.plot(
     gen2_df["_step"],
     gen2_df["ppl"],
-    color="tab:red",
+    color="#2ca02c",
     alpha=0.85,
     linewidth=1.5,
     label="AssociativeLeaky",

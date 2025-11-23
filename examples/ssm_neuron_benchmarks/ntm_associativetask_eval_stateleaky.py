@@ -106,7 +106,7 @@ def evaluate_stateleaky_assoc(
 def main():
     run_name = sys.argv[1] if len(sys.argv) > 1 else None
     # Hyperparameters
-    total_steps = 50000
+    total_steps = 500000
     eval_every = 500
     log_every = 50
     batch_size = 32
@@ -114,7 +114,7 @@ def main():
     num_pairs_min = 2
     num_pairs_max = 6
     hidden_dim = 256
-    lr = 3e-4
+    lr = 1e-4
     ckpt_dir = os.path.join(
         os.path.dirname(__file__), "checkpoints_assoc_stateleaky"
     )
