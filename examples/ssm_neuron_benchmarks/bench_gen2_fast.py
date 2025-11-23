@@ -12,6 +12,12 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+# Double all fonts globally
+try:
+    plt.rcParams["font.size"] = plt.rcParams["font.size"] * 1.5
+except Exception:
+    pass
+
 from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
 
@@ -27,14 +33,13 @@ SWEEP_CONFIGS = [
 # SWEEP_CONFIGS = [
 #     (64, 8),
 # ]
-N_RUNS = 1
+N_RUNS = 10
 
 # Same timestep schedule as baseline
 # TIMESTEPS = np.logspace(1, 4.25, num=10, dtype=int)[::3]
-TIMESTEPS = np.logspace(1, 4.25, num=10, dtype=int)[::2]
+TIMESTEPS = np.logspace(1, 4, num=10, dtype=int)
 BATCHWISE_CHUNK_SIZE = 64
 # TIME_CHUNK_SIZE = 512
-TIME_CHUNK_SIZE = 1024 * 7000000000
 
 
 # Quick toggles (set to False to disable specific parts of the benchmark)
@@ -249,7 +254,6 @@ def bench_gen2(
     model = AssociativeMemorySSM.from_num_spiking_neurons(
         in_dim=channels,
         num_spiking_neurons=channels,
-        time_chunk_size=TIME_CHUNK_SIZE,
         use_q_projection=False,
     ).to(device)
 
@@ -946,6 +950,13 @@ if __name__ == "__main__":
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.grid(True, which="both", ls="-", alpha=0.2)
+
+    # Lock y-axis ranges
+    ax_time_inf.set_ylim(1e-4, 1e1)
+    ax_mem_inf.set_ylim(1e-2, 1e4)
+    if ENABLE_TRAINING:
+        ax_time_trn.set_ylim(1e-4, 1e1)
+        ax_mem_trn.set_ylim(1e-2, 1e4)
 
     ax_time_inf.set_title("SNN Performance (Time) - Inference")
     ax_time_inf.set_xlabel("Timesteps")
