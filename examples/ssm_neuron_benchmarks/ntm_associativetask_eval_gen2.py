@@ -217,6 +217,7 @@ def main():
             bce_sum = 0.0
             total_bits = 0
             total_correct = 0
+            accs = []
             with torch.no_grad():
                 for _, inp_e, target_e in eval_batches:
                     inp_e = inp_e.to(DEVICE)
@@ -228,14 +229,25 @@ def main():
                     )
                     bce_sum += float(l.item())
                     pred_e = (out_last >= 0.5).float()
+                    correct_bits = (pred_e == target_e).sum().item()
+                    batch_acc = correct_bits / target_e.numel()
+                    accs.append(batch_acc)
                     total_bits += int(target_e.numel())
                     total_correct += int((pred_e == target_e).sum().item())
             avg_loss = bce_sum / max(1, len(eval_batches) * batch_size)
             bit_accuracy = total_correct / max(1, total_bits)
+            import numpy as np
+
+            mean_acc = float(np.mean(accs))
+            std_acc = float(np.std(accs))
+            min_acc = float(np.min(accs))
+            max_acc = float(np.max(accs))
             wandb.log(
                 {
-                    "eval_loss": avg_loss,
-                    "eval_bit_acc": bit_accuracy,
+                    "eval_bit_acc": mean_acc,
+                    "eval_bit_acc_std": std_acc,
+                    "eval_bit_acc_min": min_acc,
+                    "eval_bit_acc_max": max_acc,
                     "step": step,
                 }
             )
