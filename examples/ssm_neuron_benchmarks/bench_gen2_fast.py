@@ -28,7 +28,7 @@ from snntorch._neurons.associative import AssociativeMemorySSM
 
 # Sweep configurations: (batch_size, channels)
 SWEEP_CONFIGS = [
-    (16, 121),
+    (64, 256),
     # (64, 8),
 ]
 # SWEEP_CONFIGS = [
