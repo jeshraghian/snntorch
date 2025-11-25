@@ -14,6 +14,6 @@ git add --all
 git commit -m "$RUN_NAME" || true
 
 # Run the TinyStories Gen2 benchmark and stream logs to stdout
-python -u examples/ssm_neuron_benchmarks/tinystories_gen2.py "$RUN_NAME" "$@"
+python -u examples/ssm_neuron_benchmarks/tinystories/tinystories_gen2.py "$RUN_NAME" "$@"
 
 
