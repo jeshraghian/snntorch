@@ -28,8 +28,8 @@ from snntorch._neurons.associative import AssociativeMemorySSM
 
 # Sweep configurations: (batch_size, channels)
 SWEEP_CONFIGS = [
-    (16, 121),
-    # (64, 8),
+    (64, 256),
+    # (32, 16),
 ]
 # SWEEP_CONFIGS = [
 #     (64, 8),
@@ -38,7 +38,7 @@ N_RUNS = 10
 
 # Same timestep schedule as baseline
 # TIMESTEPS = np.logspace(1, 4.25, num=10, dtype=int)[::3]
-TIMESTEPS = np.logspace(1, 5, num=10, dtype=int)
+TIMESTEPS = np.logspace(1, 4, num=10, dtype=int)[::3]
 BATCHWISE_CHUNK_SIZE = 64
 # TIME_CHUNK_SIZE = 512
 
@@ -710,7 +710,7 @@ if __name__ == "__main__":
     style_multi = "--"
     style_extra = "-."
 
-    def lighten_color(color, amount=0.5):
+    def lighten_color(color, amount=0.6):
         # amount=0 -> original color, amount=1 -> white
         try:
             r, g, b = mcolors.to_rgb(color)
@@ -718,132 +718,135 @@ if __name__ == "__main__":
             return color
         return tuple(1 - amount * (1 - c) for c in (r, g, b))
 
+    def shaded_error(ax, x, y, yerr, fmt, color, label):
+        ax.plot(x, y, fmt, color=color, label=label)
+        if yerr is None:
+            return
+        y_arr = np.array(y, dtype=float)
+        err_arr = np.array(yerr, dtype=float)
+        # ensure strictly positive on log scale
+        eps = 1e-12
+        lower = np.maximum(y_arr - err_arr, eps)
+        upper = np.maximum(y_arr + err_arr, eps)
+        shade_col = color if fmt == style_single else lighten_color(color, 0.6)
+        ax.fill_between(
+            x, lower, upper, color=shade_col, alpha=0.2, linewidth=0
+        )
+
     for idx, res in enumerate(results_infer):
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
         # Inference Time
         if ENABLE_LEAKY:
-            ax_time_inf.errorbar(
+            shaded_error(
+                ax_time_inf,
                 TIMESTEPS,
                 res["times_leaky_single"],
-                yerr=res.get("std_times_leaky_single", None),
-                fmt=style_single,
-                color=color_leaky,
-                ecolor=color_leaky,
-                label=f"Leaky single {label_suffix}",
-                capsize=3,
+                res.get("std_times_leaky_single", None),
+                style_single,
+                color_leaky,
+                f"Leaky single {label_suffix}",
             )
-            ax_time_inf.errorbar(
+            shaded_error(
+                ax_time_inf,
                 TIMESTEPS,
                 res["times_leaky_multi"],
-                yerr=res.get("std_times_leaky_multi", None),
-                fmt=style_multi,
-                color=color_leaky,
-                ecolor=lighten_color(color_leaky, 0.5),
-                label=f"Leaky multi {label_suffix}",
-                capsize=3,
+                res.get("std_times_leaky_multi", None),
+                style_multi,
+                color_leaky,
+                f"Leaky multi {label_suffix}",
             )
-        ax_time_inf.errorbar(
+        shaded_error(
+            ax_time_inf,
             TIMESTEPS,
             res["times_state_single"],
-            yerr=res.get("std_times_state_single", None),
-            fmt=style_single,
-            color=color_state,
-            ecolor=color_state,
-            label=f"StateLeaky single {label_suffix}",
-            capsize=3,
+            res.get("std_times_state_single", None),
+            style_single,
+            color_state,
+            f"StateLeaky single {label_suffix}",
         )
-        ax_time_inf.errorbar(
+        shaded_error(
+            ax_time_inf,
             TIMESTEPS,
             res["times_state_multi"],
-            yerr=res.get("std_times_state_multi", None),
-            fmt=style_multi,
-            color=color_state,
-            ecolor=lighten_color(color_state, 0.5),
-            label=f"StateLeaky multi {label_suffix}",
-            capsize=3,
+            res.get("std_times_state_multi", None),
+            style_multi,
+            color_state,
+            f"StateLeaky multi {label_suffix}",
         )
-        ax_time_inf.errorbar(
+        shaded_error(
+            ax_time_inf,
             TIMESTEPS,
             res["times_gen2_single"],
-            yerr=res.get("std_times_gen2_single", None),
-            fmt=style_single,
-            color=color_gen2,
-            ecolor=color_gen2,
-            label=f"Gen2 single {label_suffix}",
-            capsize=3,
+            res.get("std_times_gen2_single", None),
+            style_single,
+            color_gen2,
+            f"Gen2 single {label_suffix}",
         )
-        ax_time_inf.errorbar(
+        shaded_error(
+            ax_time_inf,
             TIMESTEPS,
             res["times_gen2_multi"],
-            yerr=res.get("std_times_gen2_multi", None),
-            fmt=style_multi,
-            color=color_gen2,
-            ecolor=lighten_color(color_gen2, 0.5),
-            label=f"Gen2 multi {label_suffix}",
-            capsize=3,
+            res.get("std_times_gen2_multi", None),
+            style_multi,
+            color_gen2,
+            f"Gen2 multi {label_suffix}",
         )
 
         # Inference Memory
         if ENABLE_LEAKY:
-            ax_mem_inf.errorbar(
+            shaded_error(
+                ax_mem_inf,
                 TIMESTEPS,
                 res["mems_leaky_single"],
-                yerr=res.get("std_mems_leaky_single", None),
-                fmt=style_single,
-                color=color_leaky,
-                ecolor=color_leaky,
-                label=f"Leaky single {label_suffix}",
-                capsize=3,
+                res.get("std_mems_leaky_single", None),
+                style_single,
+                color_leaky,
+                f"Leaky single {label_suffix}",
             )
-            ax_mem_inf.errorbar(
+            shaded_error(
+                ax_mem_inf,
                 TIMESTEPS,
                 res["mems_leaky_multi"],
-                yerr=res.get("std_mems_leaky_multi", None),
-                fmt=style_multi,
-                color=color_leaky,
-                ecolor=lighten_color(color_leaky, 0.5),
-                label=f"Leaky multi {label_suffix}",
-                capsize=3,
+                res.get("std_mems_leaky_multi", None),
+                style_multi,
+                color_leaky,
+                f"Leaky multi {label_suffix}",
             )
-        ax_mem_inf.errorbar(
+        shaded_error(
+            ax_mem_inf,
             TIMESTEPS,
             res["mems_state_single"],
-            yerr=res.get("std_mems_state_single", None),
-            fmt=style_single,
-            color=color_state,
-            ecolor=color_state,
-            label=f"StateLeaky single {label_suffix}",
-            capsize=3,
+            res.get("std_mems_state_single", None),
+            style_single,
+            color_state,
+            f"StateLeaky single {label_suffix}",
         )
-        ax_mem_inf.errorbar(
+        shaded_error(
+            ax_mem_inf,
             TIMESTEPS,
             res["mems_state_multi"],
-            yerr=res.get("std_mems_state_multi", None),
-            fmt=style_multi,
-            color=color_state,
-            ecolor=lighten_color(color_state, 0.5),
-            label=f"StateLeaky multi {label_suffix}",
-            capsize=3,
+            res.get("std_mems_state_multi", None),
+            style_multi,
+            color_state,
+            f"StateLeaky multi {label_suffix}",
         )
-        ax_mem_inf.errorbar(
+        shaded_error(
+            ax_mem_inf,
             TIMESTEPS,
             res["mems_gen2_single"],
-            yerr=res.get("std_mems_gen2_single", None),
-            fmt=style_single,
-            color=color_gen2,
-            ecolor=color_gen2,
-            label=f"Gen2 single {label_suffix}",
-            capsize=3,
+            res.get("std_mems_gen2_single", None),
+            style_single,
+            color_gen2,
+            f"Gen2 single {label_suffix}",
         )
-        ax_mem_inf.errorbar(
+        shaded_error(
+            ax_mem_inf,
             TIMESTEPS,
             res["mems_gen2_multi"],
-            yerr=res.get("std_mems_gen2_multi", None),
-            fmt=style_multi,
-            color=color_gen2,
-            ecolor=lighten_color(color_gen2, 0.5),
-            label=f"Gen2 multi {label_suffix}",
-            capsize=3,
+            res.get("std_mems_gen2_multi", None),
+            style_multi,
+            color_gen2,
+            f"Gen2 multi {label_suffix}",
         )
 
     if ENABLE_TRAINING:
@@ -851,128 +854,116 @@ if __name__ == "__main__":
             label_suffix = f"B{res['batch_size']}-C{res['channels']}"
             # Training Time
             if ENABLE_LEAKY:
-                ax_time_trn.errorbar(
+                shaded_error(
+                    ax_time_trn,
                     TIMESTEPS,
                     res["times_leaky_single"],
-                    yerr=res.get("std_times_leaky_single", None),
-                    fmt=style_single,
-                    color=color_leaky,
-                    ecolor=color_leaky,
-                    label=f"Leaky single (train) {label_suffix}",
-                    capsize=3,
+                    res.get("std_times_leaky_single", None),
+                    style_single,
+                    color_leaky,
+                    f"Leaky single (train) {label_suffix}",
                 )
-                ax_time_trn.errorbar(
+                shaded_error(
+                    ax_time_trn,
                     TIMESTEPS,
                     res["times_leaky_multi"],
-                    yerr=res.get("std_times_leaky_multi", None),
-                    fmt=style_multi,
-                    color=color_leaky,
-                    ecolor=lighten_color(color_leaky, 0.5),
-                    label=f"Leaky multi (train) {label_suffix}",
-                    capsize=3,
+                    res.get("std_times_leaky_multi", None),
+                    style_multi,
+                    color_leaky,
+                    f"Leaky multi (train) {label_suffix}",
                 )
-            ax_time_trn.errorbar(
+            shaded_error(
+                ax_time_trn,
                 TIMESTEPS,
                 res["times_state_single"],
-                yerr=res.get("std_times_state_single", None),
-                fmt=style_single,
-                color=color_state,
-                ecolor=color_state,
-                label=f"StateLeaky single (train) {label_suffix}",
-                capsize=3,
+                res.get("std_times_state_single", None),
+                style_single,
+                color_state,
+                f"StateLeaky single (train) {label_suffix}",
             )
-            ax_time_trn.errorbar(
+            shaded_error(
+                ax_time_trn,
                 TIMESTEPS,
                 res["times_state_multi"],
-                yerr=res.get("std_times_state_multi", None),
-                fmt=style_multi,
-                color=color_state,
-                ecolor=lighten_color(color_state, 0.5),
-                label=f"StateLeaky multi (train) {label_suffix}",
-                capsize=3,
+                res.get("std_times_state_multi", None),
+                style_multi,
+                color_state,
+                f"StateLeaky multi (train) {label_suffix}",
             )
-            ax_time_trn.errorbar(
+            shaded_error(
+                ax_time_trn,
                 TIMESTEPS,
                 res["times_gen2_single"],
-                yerr=res.get("std_times_gen2_single", None),
-                fmt=style_single,
-                color=color_gen2,
-                ecolor=color_gen2,
-                label=f"Gen2 single (train) {label_suffix}",
-                capsize=3,
+                res.get("std_times_gen2_single", None),
+                style_single,
+                color_gen2,
+                f"Gen2 single (train) {label_suffix}",
             )
-            ax_time_trn.errorbar(
+            shaded_error(
+                ax_time_trn,
                 TIMESTEPS,
                 res["times_gen2_multi"],
-                yerr=res.get("std_times_gen2_multi", None),
-                fmt=style_multi,
-                color=color_gen2,
-                ecolor=lighten_color(color_gen2, 0.5),
-                label=f"Gen2 multi (train) {label_suffix}",
-                capsize=3,
+                res.get("std_times_gen2_multi", None),
+                style_multi,
+                color_gen2,
+                f"Gen2 multi (train) {label_suffix}",
             )
 
             # Training Memory
             if ENABLE_LEAKY:
-                ax_mem_trn.errorbar(
+                shaded_error(
+                    ax_mem_trn,
                     TIMESTEPS,
                     res["mems_leaky_single"],
-                    yerr=res.get("std_mems_leaky_single", None),
-                    fmt=style_single,
-                    color=color_leaky,
-                    ecolor=color_leaky,
-                    label=f"Leaky single (train) {label_suffix}",
-                    capsize=3,
+                    res.get("std_mems_leaky_single", None),
+                    style_single,
+                    color_leaky,
+                    f"Leaky single (train) {label_suffix}",
                 )
-                ax_mem_trn.errorbar(
+                shaded_error(
+                    ax_mem_trn,
                     TIMESTEPS,
                     res["mems_leaky_multi"],
-                    yerr=res.get("std_mems_leaky_multi", None),
-                    fmt=style_multi,
-                    color=color_leaky,
-                    ecolor=lighten_color(color_leaky, 0.5),
-                    label=f"Leaky multi (train) {label_suffix}",
-                    capsize=3,
+                    res.get("std_mems_leaky_multi", None),
+                    style_multi,
+                    color_leaky,
+                    f"Leaky multi (train) {label_suffix}",
                 )
-            ax_mem_trn.errorbar(
+            shaded_error(
+                ax_mem_trn,
                 TIMESTEPS,
                 res["mems_state_single"],
-                yerr=res.get("std_mems_state_single", None),
-                fmt=style_single,
-                color=color_state,
-                ecolor=color_state,
-                label=f"StateLeaky single (train) {label_suffix}",
-                capsize=3,
+                res.get("std_mems_state_single", None),
+                style_single,
+                color_state,
+                f"StateLeaky single (train) {label_suffix}",
             )
-            ax_mem_trn.errorbar(
+            shaded_error(
+                ax_mem_trn,
                 TIMESTEPS,
                 res["mems_state_multi"],
-                yerr=res.get("std_mems_state_multi", None),
-                fmt=style_multi,
-                color=color_state,
-                ecolor=lighten_color(color_state, 0.5),
-                label=f"StateLeaky multi (train) {label_suffix}",
-                capsize=3,
+                res.get("std_mems_state_multi", None),
+                style_multi,
+                color_state,
+                f"StateLeaky multi (train) {label_suffix}",
             )
-            ax_mem_trn.errorbar(
+            shaded_error(
+                ax_mem_trn,
                 TIMESTEPS,
                 res["mems_gen2_single"],
-                yerr=res.get("std_mems_gen2_single", None),
-                fmt=style_single,
-                color=color_gen2,
-                ecolor=color_gen2,
-                label=f"Gen2 single (train) {label_suffix}",
-                capsize=3,
+                res.get("std_mems_gen2_single", None),
+                style_single,
+                color_gen2,
+                f"Gen2 single (train) {label_suffix}",
             )
-            ax_mem_trn.errorbar(
+            shaded_error(
+                ax_mem_trn,
                 TIMESTEPS,
                 res["mems_gen2_multi"],
-                yerr=res.get("std_mems_gen2_multi", None),
-                fmt=style_multi,
-                color=color_gen2,
-                ecolor=lighten_color(color_gen2, 0.5),
-                label=f"Gen2 multi (train) {label_suffix}",
-                capsize=3,
+                res.get("std_mems_gen2_multi", None),
+                style_multi,
+                color_gen2,
+                f"Gen2 multi (train) {label_suffix}",
             )
 
     axes_to_format = (
