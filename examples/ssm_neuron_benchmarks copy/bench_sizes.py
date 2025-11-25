@@ -6,7 +6,6 @@ import subprocess
 import sys
 import os
 
-from profilehooks import profile
 from tqdm import tqdm
 import numpy as np
 import torch
