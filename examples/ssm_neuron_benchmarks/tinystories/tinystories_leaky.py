@@ -8,9 +8,11 @@ from datasets import load_dataset
 from transformers import AutoTokenizer
 from tqdm import tqdm
 import torch.nn.functional as F
+import math
 import wandb
 
-from snntorch._neurons.stateleaky import StateLeaky
+from snntorch._neurons.leaky import Leaky
+
 
 date_string = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 filename = f"output-{date_string}.txt"
@@ -26,9 +28,16 @@ EPOCHS = 10000
 BATCH_SIZE = 64
 CHUNKED_BATCH_SIZE = 8
 LEARN_BETA = True
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
 DECODE_EVERY_N_BATCHES = 50
 print("Device: ", DEVICE)
+
+# Model options
+
+# Reproducibility
+torch.manual_seed(1337)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(1337)
 
 
 def initialize_wandb():
@@ -41,6 +50,7 @@ def initialize_wandb():
             "epochs": EPOCHS,
             "batch_size": BATCH_SIZE,
             "learn_beta": LEARN_BETA,
+            "variant": "Leaky-stepwise",
         },
     )
 
@@ -80,61 +90,66 @@ print("tokenized dataset")
 dataloader = DataLoader(tokenized_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
 
-class SNNLanguageModel(nn.Module):
+class SNNLanguageModelLeaky(nn.Module):
     def __init__(self, vocab_size, hidden_dim):
-        super(SNNLanguageModel, self).__init__()
+        super(SNNLanguageModelLeaky, self).__init__()
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
-        self.lif1 = StateLeaky(
-            beta=torch.tensor([0.9]).to(DEVICE),
-            channels=hidden_dim,
+        self.pos_embedding = nn.Embedding(SEQ_LENGTH, hidden_dim)
+        self.lif1 = Leaky(
+            beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             learn_beta=LEARN_BETA,
         )
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.lif2 = StateLeaky(
-            beta=torch.tensor([0.9]).to(DEVICE),
-            channels=hidden_dim,
+        self.lif2 = Leaky(
+            beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             learn_beta=LEARN_BETA,
         )
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
-        self.lif3 = StateLeaky(
-            beta=torch.tensor([0.9]).to(DEVICE),
-            channels=hidden_dim,
+        self.lif3 = Leaky(
+            beta=torch.full((hidden_dim,), 0.9, device=DEVICE),
             learn_beta=LEARN_BETA,
         )
-        self.fc4 = nn.Linear(hidden_dim, vocab_size)
+        self.fc_out = nn.Linear(hidden_dim, vocab_size)
+        # untied output head
 
     def forward(self, x):
         # x: [SEQ_LENGTH-1, B] token IDs (torch.long)
-        hidden = self.embedding(x)  # [SEQ_LENGTH-1, B, hidden_dim]
-        hidden, _ = self.lif1(hidden)
-        hidden = hidden.reshape(-1, hidden.shape[-1])
+        T, B = x.shape
+        mem1 = torch.zeros(B, HIDDEN_DIM, device=x.device)
+        mem2 = torch.zeros(B, HIDDEN_DIM, device=x.device)
+        mem3 = torch.zeros(B, HIDDEN_DIM, device=x.device)
 
-        # nonlinear hidden
-        hidden = self.fc2(hidden)
-        hidden = torch.relu(hidden)
-        hidden = hidden.reshape(SEQ_LENGTH - 1, -1, hidden.shape[-1])
-        hidden, _ = self.lif2(hidden)
-        hidden = hidden.reshape(-1, hidden.shape[-1])
+        logits_list = []
+        pos = torch.arange(T, device=x.device)
+        pos_table = self.pos_embedding(pos)  # [T, HIDDEN_DIM]
+        for t in range(T):
+            hidden = self.embedding(x[t]) + pos_table[t]  # [B, hidden_dim]
 
-        # nonlinear hidden
-        hidden = self.fc3(hidden)
-        hidden = torch.relu(hidden)
-        hidden = hidden.reshape(SEQ_LENGTH - 1, -1, hidden.shape[-1])
-        hidden, _ = self.lif3(hidden)
-        hidden = hidden.reshape(-1, hidden.shape[-1])
+            spk1, mem1 = self.lif1(hidden, mem1)
 
-        # output transformation
-        output = self.fc4(hidden)
-        output = output.reshape(SEQ_LENGTH - 1, -1, output.shape[-1])
+            hidden = self.fc2(spk1)
+            hidden = torch.relu(hidden)
+            spk2, mem2 = self.lif2(hidden, mem2)
+
+            hidden = self.fc3(spk2)
+            hidden = torch.relu(hidden)
+            spk3, mem3 = self.lif3(hidden, mem3)
+            output_t = self.fc_out(spk3)  # [B, vocab_size]
+            logits_list.append(output_t)
+
+        output = torch.stack(logits_list, dim=0)  # [T, B, vocab_size]
         return output
 
 
 initialize_wandb()
 
 # Initialize model, loss, and optimizer
-model = SNNLanguageModel(VOCAB_SIZE, HIDDEN_DIM).to(DEVICE)
+model = SNNLanguageModelLeaky(VOCAB_SIZE, HIDDEN_DIM).to(DEVICE)
 criterion = nn.CrossEntropyLoss()
+
+
 optimizer = optim.AdamW(model.parameters(), lr=LR)
+
 
 # Training Loop
 for epoch in range(EPOCHS):
@@ -144,7 +159,6 @@ for epoch in range(EPOCHS):
     batch_num = 0
     for batch in tqdm(dataloader, desc=f"Training Epoch {epoch + 1}"):
         batch_num += 1
-        # print("batch num: ", batch_num)
         x_ids = batch["input_ids"].to(DEVICE)
 
         # build mask up to and including the first EOS in the targets (no attention needed)
@@ -192,11 +206,24 @@ for epoch in range(EPOCHS):
                 and not have_already_decoded_this_batch
                 and (b_end - b_start) > 0
             ):
-                # output_chunk: [SEQ_LENGTH-1, b_chunk, VOCAB_SIZE]
-                seq_translate = torch.argmax(output_chunk[:, 0, :], dim=-1)
-                assert seq_translate.shape[0] == SEQ_LENGTH - 1
+                # Autoregressive greedy decode using the first sample in the chunk
+                with torch.no_grad():
+                    eos_id = tokenizer.eos_token_id
+                    # seed with the first input token
+                    seq_ids = x_chunk[0:1, 0:1].clone()  # [1,1]
+                    gen_ids = []
+                    for _ in range(SEQ_LENGTH - 1):
+                        logits_all = model(seq_ids)
+                        next_token = torch.argmax(logits_all[-1, 0, :], dim=-1)
+                        gen_ids.append(int(next_token.item()))
+                        if int(next_token.item()) == eos_id:
+                            break
+                        next_token_long = next_token.view(1, 1).to(
+                            seq_ids.dtype
+                        )
+                        seq_ids = torch.cat([seq_ids, next_token_long], dim=0)
                 with open(filename, "a") as f:
-                    f.write(tokenizer.decode(seq_translate.tolist()))
+                    f.write(tokenizer.decode(gen_ids))
                     f.write("\n")
                 have_already_decoded_this_batch = True
 
@@ -218,7 +245,11 @@ for epoch in range(EPOCHS):
                 raise ValueError("No valid tokens in chunk")
 
         total_loss_mean = total_loss_sum / float(total_valid_tokens)
-        wandb.log({"loss": total_loss_mean})
+        ppl = (
+            math.exp(total_loss_mean) if total_loss_mean < 20 else float("inf")
+        )
+        wandb.log({"loss": total_loss_mean, "ppl": ppl})
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
 
         train_loss += total_loss_mean

@@ -1,5 +1,3 @@
-examples/data/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -14,7 +12,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-env/
+env*/
 build/
 develop-eggs/
 dist/
@@ -117,3 +115,7 @@ snnenv-home/
 
 # wandb
 wandb/
+
+# Performance plots
+third_party/
+snn_performance/
