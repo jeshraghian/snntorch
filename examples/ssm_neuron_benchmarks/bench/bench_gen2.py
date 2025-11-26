@@ -22,7 +22,7 @@ from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
 
 # from snntorch._neurons.gen2_unoptimized import Gen2SingleInputReadout
-from snntorch._neurons.associative import AssociativeMemorySSM
+from snntorch._neurons.associative import AssociativeLeaky
 
 
 # Sweep configurations: (batch_size, channels)
@@ -251,7 +251,7 @@ def bench_gen2(
     train: bool = False,
     multi_beta: bool = True,
 ) -> float:
-    model = AssociativeMemorySSM.from_num_spiking_neurons(
+    model = AssociativeLeaky.from_num_spiking_neurons(
         in_dim=channels,
         num_spiking_neurons=channels,
         use_q_projection=False,

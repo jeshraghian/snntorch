@@ -30,6 +30,7 @@ from .lapicque import Lapicque
 from .leaky import Leaky
 from .linearleaky import LinearLeaky
 from .stateleaky import StateLeaky
+from .associative import AssociativeLeaky
 from .synaptic import Synaptic
 
 from .rleaky import RLeaky
@@ -39,4 +40,3 @@ from .sconv2dlstm import SConv2dLSTM
 from .slstm import SLSTM
 
 from .leakyparallel import LeakyParallel
-from .associative import AssociativeMemorySSM

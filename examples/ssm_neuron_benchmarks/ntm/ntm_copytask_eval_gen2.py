@@ -10,7 +10,7 @@ import wandb
 from tqdm import tqdm
 
 from third_party.tasks.copytask import dataloader
-from snntorch._neurons.associative import AssociativeMemorySSM
+from snntorch._neurons.associative import AssociativeLeaky
 
 
 def get_least_busy_gpu() -> int:
@@ -44,7 +44,7 @@ class Gen2CopyModel(nn.Module):
             int(hidden_dim**0.5) ** 2 == hidden_dim
         ), "hidden_dim must be a perfect square for Gen2"
         self.in_proj = nn.Linear(seq_width + 1, hidden_dim)
-        self.gen2_1 = AssociativeMemorySSM.from_num_spiking_neurons(
+        self.gen2_1 = AssociativeLeaky.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
             use_q_projection=True,
@@ -55,7 +55,7 @@ class Gen2CopyModel(nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
         )
-        self.gen2_2 = AssociativeMemorySSM.from_num_spiking_neurons(
+        self.gen2_2 = AssociativeLeaky.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
             use_q_projection=True,
