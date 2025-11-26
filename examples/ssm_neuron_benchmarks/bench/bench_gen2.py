@@ -30,7 +30,7 @@ SWEEP_CONFIGS = [
 N_RUNS = 10
 
 # Same timestep schedule as baseline
-TIMESTEPS = np.logspace(1, 5, num=10, dtype=int)
+TIMESTEPS = np.logspace(1, 4, num=10, dtype=int)
 BATCHWISE_CHUNK_SIZE = 64
 
 
@@ -241,7 +241,6 @@ def bench_gen2(
     batch_size: int,
     channels: int,
     train: bool = False,
-    multi_beta: bool = True,
 ) -> float:
     model = AssociativeLeaky.from_num_spiking_neurons(
         in_dim=channels,
@@ -323,14 +322,12 @@ def run_all_configs_one_run(run_idx: int):
             times_leaky_multi=[],
             times_state_single=[],
             times_state_multi=[],
-            times_gen2_single=[],
-            times_gen2_multi=[],
+            times_gen2=[],
             mems_leaky_single=[],
             mems_leaky_multi=[],
             mems_state_single=[],
             mems_state_multi=[],
-            mems_gen2_single=[],
-            mems_gen2_multi=[],
+            mems_gen2=[],
         )
         results_train = dict(
             batch_size=batch_size,
@@ -339,14 +336,12 @@ def run_all_configs_one_run(run_idx: int):
             times_leaky_multi=[],
             times_state_single=[],
             times_state_multi=[],
-            times_gen2_single=[],
-            times_gen2_multi=[],
+            times_gen2=[],
             mems_leaky_single=[],
             mems_leaky_multi=[],
             mems_state_single=[],
             mems_state_multi=[],
-            mems_gen2_single=[],
-            mems_gen2_multi=[],
+            mems_gen2=[],
         )
 
         for steps in tqdm(
@@ -406,27 +401,16 @@ def run_all_configs_one_run(run_idx: int):
             results_infer["times_state_multi"].append(t)
             results_infer["mems_state_multi"].append(dmem)
 
-            # Gen2 single
+            # Gen2
             torch.cuda.synchronize()
             torch.cuda.reset_peak_memory_stats(device)
             baseline_mem, t = bench_gen2(
-                int(steps), batch_size, channels, train=False, multi_beta=False
+                int(steps), batch_size, channels, train=False
             )
             peak = get_peak_bytes(device)
             dmem = max(0, peak - baseline_mem) / 1024**2
-            results_infer["times_gen2_single"].append(t)
-            results_infer["mems_gen2_single"].append(dmem)
-
-            # Gen2 multi
-            torch.cuda.synchronize()
-            torch.cuda.reset_peak_memory_stats(device)
-            baseline_mem, t = bench_gen2(
-                int(steps), batch_size, channels, train=False, multi_beta=True
-            )
-            peak = get_peak_bytes(device)
-            dmem = max(0, peak - baseline_mem) / 1024**2
-            results_infer["times_gen2_multi"].append(t)
-            results_infer["mems_gen2_multi"].append(dmem)
+            results_infer["times_gen2"].append(t)
+            results_infer["mems_gen2"].append(dmem)
 
             # --- Training ---
             if ENABLE_TRAINING:
@@ -491,35 +475,16 @@ def run_all_configs_one_run(run_idx: int):
                 results_train["times_state_multi"].append(t)
                 results_train["mems_state_multi"].append(dmem)
 
-                # Gen2 single
+                # Gen2
                 torch.cuda.synchronize()
                 torch.cuda.reset_peak_memory_stats(device)
                 baseline_mem, t = bench_gen2(
-                    int(steps),
-                    batch_size,
-                    channels,
-                    train=True,
-                    multi_beta=False,
+                    int(steps), batch_size, channels, train=True
                 )
                 peak = get_peak_bytes(device)
                 dmem = max(0, peak - baseline_mem) / 1024**2
-                results_train["times_gen2_single"].append(t)
-                results_train["mems_gen2_single"].append(dmem)
-
-                # Gen2 multi
-                torch.cuda.synchronize()
-                torch.cuda.reset_peak_memory_stats(device)
-                baseline_mem, t = bench_gen2(
-                    int(steps),
-                    batch_size,
-                    channels,
-                    train=True,
-                    multi_beta=True,
-                )
-                peak = get_peak_bytes(device)
-                dmem = max(0, peak - baseline_mem) / 1024**2
-                results_train["times_gen2_multi"].append(t)
-                results_train["mems_gen2_multi"].append(dmem)
+                results_train["times_gen2"].append(t)
+                results_train["mems_gen2"].append(dmem)
 
         results_infer_all.append(results_infer)
         results_train_all.append(results_train)
@@ -553,14 +518,12 @@ if __name__ == "__main__":
         "times_leaky_multi",
         "times_state_single",
         "times_state_multi",
-        "times_gen2_single",
-        "times_gen2_multi",
+        "times_gen2",
         "mems_leaky_single",
         "mems_leaky_multi",
         "mems_state_single",
         "mems_state_multi",
-        "mems_gen2_single",
-        "mems_gen2_multi",
+        "mems_gen2",
     ]
 
     # Accumulators for mean/std across runs
@@ -755,22 +718,12 @@ if __name__ == "__main__":
         )
         ax_time_inf.errorbar(
             TIMESTEPS,
-            res["times_gen2_single"],
-            yerr=res.get("std_times_gen2_single", None),
+            res["times_gen2"],
+            yerr=res.get("std_times_gen2", None),
             fmt=style_single,
             color=color_gen2,
             ecolor=color_gen2,
-            label=f"Gen2 single {label_suffix}",
-            capsize=3,
-        )
-        ax_time_inf.errorbar(
-            TIMESTEPS,
-            res["times_gen2_multi"],
-            yerr=res.get("std_times_gen2_multi", None),
-            fmt=style_multi,
-            color=color_gen2,
-            ecolor=lighten_color(color_gen2, 0.5),
-            label=f"Gen2 multi {label_suffix}",
+            label=f"Gen2 {label_suffix}",
             capsize=3,
         )
 
@@ -818,22 +771,12 @@ if __name__ == "__main__":
         )
         ax_mem_inf.errorbar(
             TIMESTEPS,
-            res["mems_gen2_single"],
-            yerr=res.get("std_mems_gen2_single", None),
+            res["mems_gen2"],
+            yerr=res.get("std_mems_gen2", None),
             fmt=style_single,
             color=color_gen2,
             ecolor=color_gen2,
-            label=f"Gen2 single {label_suffix}",
-            capsize=3,
-        )
-        ax_mem_inf.errorbar(
-            TIMESTEPS,
-            res["mems_gen2_multi"],
-            yerr=res.get("std_mems_gen2_multi", None),
-            fmt=style_multi,
-            color=color_gen2,
-            ecolor=lighten_color(color_gen2, 0.5),
-            label=f"Gen2 multi {label_suffix}",
+            label=f"Gen2 {label_suffix}",
             capsize=3,
         )
 
@@ -884,22 +827,12 @@ if __name__ == "__main__":
             )
             ax_time_trn.errorbar(
                 TIMESTEPS,
-                res["times_gen2_single"],
-                yerr=res.get("std_times_gen2_single", None),
+                res["times_gen2"],
+                yerr=res.get("std_times_gen2", None),
                 fmt=style_single,
                 color=color_gen2,
                 ecolor=color_gen2,
-                label=f"Gen2 single (train) {label_suffix}",
-                capsize=3,
-            )
-            ax_time_trn.errorbar(
-                TIMESTEPS,
-                res["times_gen2_multi"],
-                yerr=res.get("std_times_gen2_multi", None),
-                fmt=style_multi,
-                color=color_gen2,
-                ecolor=lighten_color(color_gen2, 0.5),
-                label=f"Gen2 multi (train) {label_suffix}",
+                label=f"Gen2 (train) {label_suffix}",
                 capsize=3,
             )
 
@@ -947,22 +880,12 @@ if __name__ == "__main__":
             )
             ax_mem_trn.errorbar(
                 TIMESTEPS,
-                res["mems_gen2_single"],
-                yerr=res.get("std_mems_gen2_single", None),
+                res["mems_gen2"],
+                yerr=res.get("std_mems_gen2", None),
                 fmt=style_single,
                 color=color_gen2,
                 ecolor=color_gen2,
-                label=f"Gen2 single (train) {label_suffix}",
-                capsize=3,
-            )
-            ax_mem_trn.errorbar(
-                TIMESTEPS,
-                res["mems_gen2_multi"],
-                yerr=res.get("std_mems_gen2_multi", None),
-                fmt=style_multi,
-                color=color_gen2,
-                ecolor=lighten_color(color_gen2, 0.5),
-                label=f"Gen2 multi (train) {label_suffix}",
+                label=f"Gen2 (train) {label_suffix}",
                 capsize=3,
             )
 
