@@ -12,7 +12,6 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
-# Double all fonts globally
 try:
     plt.rcParams["font.size"] = plt.rcParams["font.size"] * 1.5
 except Exception:
@@ -21,25 +20,18 @@ except Exception:
 from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
 
-# from snntorch._neurons.gen2_unoptimized import Gen2SingleInputReadout
 from snntorch._neurons.associative import AssociativeLeaky
 
 
 # Sweep configurations: (batch_size, channels)
 SWEEP_CONFIGS = [
     (64, 256),
-    # (64, 8),
 ]
-# SWEEP_CONFIGS = [
-#     (64, 8),
-# ]
 N_RUNS = 10
 
 # Same timestep schedule as baseline
-# TIMESTEPS = np.logspace(1, 4.25, num=10, dtype=int)[::3]
 TIMESTEPS = np.logspace(1, 5, num=10, dtype=int)
 BATCHWISE_CHUNK_SIZE = 64
-# TIME_CHUNK_SIZE = 512
 
 
 # Quick toggles (set to False to disable specific parts of the benchmark)

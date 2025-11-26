@@ -6,10 +6,18 @@ import subprocess
 import sys
 import os
 
+from profilehooks import profile
 from tqdm import tqdm
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+# Double all fonts globally
+try:
+    plt.rcParams["font.size"] = plt.rcParams["font.size"] * 1.5
+except Exception:
+    pass
 
 from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
@@ -24,8 +32,8 @@ SWEEP_CONFIGS = [
 N_RUNS = 10
 
 # Same timestep schedule as baseline
-TIMESTEPS = np.logspace(1, 4.5, num=10, dtype=int)
-BATCHWISE_CHUNK_SIZE = 16
+TIMESTEPS = np.logspace(1, 4, num=10, dtype=int)
+BATCHWISE_CHUNK_SIZE = 64
 
 
 device = "cuda:1"
@@ -437,6 +445,14 @@ if __name__ == "__main__":
     ax_time_trn, ax_mem_trn = axes[1]
 
     cmap = plt.get_cmap("tab10")
+
+    def lighten_color(color, amount=0.5):
+        try:
+            r, g, b = mcolors.to_rgb(color)
+        except Exception:
+            return color
+        return tuple(1 - amount * (1 - c) for c in (r, g, b))
+
     for idx, res in enumerate(results_infer):
         color = cmap(idx % 10)
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
@@ -446,6 +462,7 @@ if __name__ == "__main__":
             yerr=res.get("std_times_leaky", None),
             fmt="-",
             color=color,
+            ecolor=color,
             label=f"Leaky {label_suffix}",
             capsize=3,
         )
@@ -455,6 +472,7 @@ if __name__ == "__main__":
             yerr=res.get("std_times_state", None),
             fmt="--",
             color=color,
+            ecolor=lighten_color(color, 0.5),
             label=f"StateLeaky {label_suffix}",
             capsize=3,
         )
@@ -464,6 +482,7 @@ if __name__ == "__main__":
             yerr=res.get("std_mems_leaky", None),
             fmt="-",
             color=color,
+            ecolor=color,
             label=f"Leaky {label_suffix}",
             capsize=3,
         )
@@ -473,6 +492,7 @@ if __name__ == "__main__":
             yerr=res.get("std_mems_state", None),
             fmt="--",
             color=color,
+            ecolor=lighten_color(color, 0.5),
             label=f"StateLeaky {label_suffix}",
             capsize=3,
         )
@@ -486,6 +506,7 @@ if __name__ == "__main__":
             yerr=res.get("std_times_leaky", None),
             fmt="-",
             color=color,
+            ecolor=color,
             label=f"Leaky (train) {label_suffix}",
             capsize=3,
         )
@@ -495,6 +516,7 @@ if __name__ == "__main__":
             yerr=res.get("std_times_state", None),
             fmt="--",
             color=color,
+            ecolor=lighten_color(color, 0.5),
             label=f"StateLeaky (train) {label_suffix}",
             capsize=3,
         )
@@ -504,6 +526,7 @@ if __name__ == "__main__":
             yerr=res.get("std_mems_leaky", None),
             fmt="-",
             color=color,
+            ecolor=color,
             label=f"Leaky (train) {label_suffix}",
             capsize=3,
         )
@@ -513,6 +536,7 @@ if __name__ == "__main__":
             yerr=res.get("std_mems_state", None),
             fmt="--",
             color=color,
+            ecolor=lighten_color(color, 0.5),
             label=f"StateLeaky (train) {label_suffix}",
             capsize=3,
         )
@@ -521,6 +545,12 @@ if __name__ == "__main__":
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.grid(True, which="both", ls="-", alpha=0.2)
+
+    # Lock y-axis ranges
+    ax_time_inf.set_ylim(1e-4, 1e1)
+    ax_time_trn.set_ylim(1e-4, 1e1)
+    ax_mem_inf.set_ylim(1e-2, 1e4)
+    ax_mem_trn.set_ylim(1e-2, 1e4)
 
     ax_time_inf.set_title("SNN Performance (Time) - Inference")
     ax_time_inf.set_xlabel("Timesteps")
