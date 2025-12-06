@@ -232,7 +232,7 @@ condensed into one line of code using snnTorch in a moment:
     
           @staticmethod
           def backward(ctx, grad_output):
-              (spk,) = ctx.saved_tensors  # retrieve the membrane potential 
+              (mem,) = ctx.saved_tensors  # retrieve the membrane potential 
               grad = 1 / (1 + (np.pi * mem).pow_(2)) * grad_output # Eqn 5
               return grad
 
