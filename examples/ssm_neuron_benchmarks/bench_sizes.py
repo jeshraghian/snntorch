@@ -529,6 +529,12 @@ if __name__ == "__main__":
         ax.set_yscale("log")
         ax.grid(True, which="both", ls="-", alpha=0.2)
 
+    # Lock y-axis ranges
+    ax_time_inf.set_ylim(1e-4, 1e1)
+    ax_time_trn.set_ylim(1e-4, 1e1)
+    ax_mem_inf.set_ylim(1e-2, 1e4)
+    ax_mem_trn.set_ylim(1e-2, 1e4)
+
     ax_time_inf.set_title("SNN Performance (Time) - Inference")
     ax_time_inf.set_xlabel("Timesteps")
     ax_time_inf.set_ylabel("Time (s)")
