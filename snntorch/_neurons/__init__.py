@@ -20,6 +20,7 @@ __neuron__ = [
     "synaptic",
     "sconv2dlstm",
     "slstm",
+    "gen2",
 ]
 
 from .neurons import SpikingNeuron
@@ -29,6 +30,7 @@ from .lapicque import Lapicque
 from .leaky import Leaky
 from .linearleaky import LinearLeaky
 from .stateleaky import StateLeaky
+from .associative import AssociativeLeaky
 from .synaptic import Synaptic
 
 from .rleaky import RLeaky

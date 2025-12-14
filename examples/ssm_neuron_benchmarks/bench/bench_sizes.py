@@ -11,6 +11,13 @@ from tqdm import tqdm
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+# Double all fonts globally
+try:
+    plt.rcParams["font.size"] = plt.rcParams["font.size"] * 1.5
+except Exception:
+    pass
 
 from snntorch._neurons.leaky import Leaky
 from snntorch._neurons.stateleaky import StateLeaky
@@ -18,17 +25,15 @@ from snntorch._neurons.stateleaky import StateLeaky
 
 # Sweep configurations: (batch_size, channels)
 SWEEP_CONFIGS = [
+    (16, 64),
+    (32, 128),
     (64, 256),
 ]
 N_RUNS = 10
 
 # Same timestep schedule as baseline
-TIMESTEPS = np.logspace(1, 4.5, num=10, dtype=int)
-# Default; will be overridden per-run by chunk sweep
-BATCHWISE_CHUNK_SIZE = 32
-
-# Chunk sizes to sweep for StateLeaky
-CHUNK_SIZES = [8, 16, 32]
+TIMESTEPS = np.logspace(1, 4, num=10, dtype=int)
+BATCHWISE_CHUNK_SIZE = 64
 
 
 device = "cuda:1"
@@ -112,11 +117,7 @@ def bench_leaky(
 
 # @profile(skip=True, stdout=False, filename="baseline.prof")
 def bench_stateleaky(
-    num_steps: int,
-    batch_size: int,
-    channels: int,
-    train: bool = False,
-    batchwise_chunk_size: int = BATCHWISE_CHUNK_SIZE,
+    num_steps: int, batch_size: int, channels: int, train: bool = False
 ) -> float:
     # define lif and input
     beta = torch.full((channels,), 0.9).to(device)
@@ -149,7 +150,7 @@ def bench_stateleaky(
 
     # conduct a warmup on the lif
     b_start = 0
-    b_end = min(b_start + batchwise_chunk_size, batch_size)
+    b_end = min(b_start + BATCHWISE_CHUNK_SIZE, batch_size)
     z_chunk = (
         linear(input_tensor[:, b_start:b_end, :].reshape(-1, channels)).view(
             num_steps,
@@ -177,12 +178,12 @@ def bench_stateleaky(
 
         chunks_processed = 0
         log = False
-        for b_start in range(0, batch_size, batchwise_chunk_size):
+        for b_start in range(0, batch_size, BATCHWISE_CHUNK_SIZE):
             chunks_processed += 1
 
             # chunked forward
             # will materialize in the output view
-            b_end = min(b_start + batchwise_chunk_size, batch_size)
+            b_end = min(b_start + BATCHWISE_CHUNK_SIZE, batch_size)
             z_chunk = linear(
                 input_tensor[:, b_start:b_end, :].reshape(-1, channels)
             ).view(num_steps, b_end - b_start, channels)
@@ -232,50 +233,66 @@ def run_all_configs_one_run(run_idx: int):
         results_infer = dict(
             batch_size=batch_size,
             channels=channels,
-            **{f"times_state_{cs}": [] for cs in CHUNK_SIZES},
-            **{f"mems_state_{cs}": [] for cs in CHUNK_SIZES},
+            times_leaky=[],
+            times_state=[],
+            mems_leaky=[],
+            mems_state=[],
         )
         results_train = dict(
             batch_size=batch_size,
             channels=channels,
-            **{f"times_state_{cs}": [] for cs in CHUNK_SIZES},
-            **{f"mems_state_{cs}": [] for cs in CHUNK_SIZES},
+            times_leaky=[],
+            times_state=[],
+            mems_leaky=[],
+            mems_state=[],
         )
 
         for steps in tqdm(
             TIMESTEPS, desc=f"RUN{run_idx} B{batch_size}-C{channels}"
         ):
-            # --- Inference ---
-            for cs in CHUNK_SIZES:
-                torch.cuda.synchronize()
-                torch.cuda.reset_peak_memory_stats(device)
-                baseline_mem, t = bench_stateleaky(
-                    int(steps),
-                    batch_size,
-                    channels,
-                    train=False,
-                    batchwise_chunk_size=cs,
-                )
-                peak = get_peak_bytes(device)
-                dmem = max(0, peak - baseline_mem) / 1024**2
-                results_infer[f"times_state_{cs}"].append(t)
-                results_infer[f"mems_state_{cs}"].append(dmem)
+            # # --- Inference ---
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats(device)
+            baseline_mem, t1 = bench_leaky(
+                int(steps), batch_size, channels, train=False
+            )
+            peak1 = get_peak_bytes(device)
+            d1 = max(0, peak1 - baseline_mem) / 1024**2
 
-            # --- Training ---
-            for cs in CHUNK_SIZES:
-                torch.cuda.synchronize()
-                torch.cuda.reset_peak_memory_stats(device)
-                baseline_mem, t = bench_stateleaky(
-                    int(steps),
-                    batch_size,
-                    channels,
-                    train=True,
-                    batchwise_chunk_size=cs,
-                )
-                peak = get_peak_bytes(device)
-                dmem = max(0, peak - baseline_mem) / 1024**2
-                results_train[f"times_state_{cs}"].append(t)
-                results_train[f"mems_state_{cs}"].append(dmem)
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats(device)
+            baseline_mem, t2 = bench_stateleaky(
+                int(steps), batch_size, channels, train=False
+            )
+            peak2 = get_peak_bytes(device)
+            d2 = max(0, peak2 - baseline_mem) / 1024**2
+
+            results_infer["times_leaky"].append(t1)
+            results_infer["times_state"].append(t2)
+            results_infer["mems_leaky"].append(d1)
+            results_infer["mems_state"].append(d2)
+
+            # # --- Training ---
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats(device)
+            baseline_mem_leaky, t1 = bench_leaky(
+                int(steps), batch_size, channels, train=True
+            )
+            peak1 = get_peak_bytes(device)
+            d1 = max(0, peak1 - baseline_mem_leaky) / 1024**2
+
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats(device)
+            baseline_mem, t2 = bench_stateleaky(
+                int(steps), batch_size, channels, train=True
+            )
+            peak2 = get_peak_bytes(device)
+            d2 = max(0, peak2 - baseline_mem) / 1024**2
+
+            results_train["times_leaky"].append(t1)
+            results_train["times_state"].append(t2)
+            results_train["mems_leaky"].append(d1)
+            results_train["mems_state"].append(d2)
 
         results_infer_all.append(results_infer)
         results_train_all.append(results_train)
@@ -305,8 +322,10 @@ if __name__ == "__main__":
 
     # Main mode: launch workers
     METRIC_KEYS = [
-        *[f"times_state_{cs}" for cs in CHUNK_SIZES],
-        *[f"mems_state_{cs}" for cs in CHUNK_SIZES],
+        "times_leaky",
+        "times_state",
+        "mems_leaky",
+        "mems_state",
     ]
 
     # Accumulators for mean/std across runs
@@ -425,65 +444,113 @@ if __name__ == "__main__":
     ax_time_inf, ax_mem_inf = axes[0]
     ax_time_trn, ax_mem_trn = axes[1]
 
-    # Use color-only separation for chunk sizes (uniform line style)
-    color_map = {
-        cs: plt.get_cmap("tab10")(i % 10) for i, cs in enumerate(CHUNK_SIZES)
-    }
+    cmap = plt.get_cmap("tab10")
 
-    for res in results_infer:
-        label_suffix = f"B{res['batch_size']}-C{res['channels']}"
-        for cs in CHUNK_SIZES:
-            ls, color = ("-", color_map[cs])
-            ax_time_inf.errorbar(
-                TIMESTEPS,
-                res[f"times_state_{cs}"],
-                yerr=res.get(f"std_times_state_{cs}", None),
-                fmt=ls,
-                color=color,
-                label=f"StateLeaky chunk {cs} {label_suffix}",
-                capsize=3,
-            )
-            ax_mem_inf.errorbar(
-                TIMESTEPS,
-                res[f"mems_state_{cs}"],
-                yerr=res.get(f"std_mems_state_{cs}", None),
-                fmt=ls,
-                color=color,
-                label=f"StateLeaky chunk {cs} {label_suffix}",
-                capsize=3,
-            )
+    def lighten_color(color, amount=0.5):
+        try:
+            r, g, b = mcolors.to_rgb(color)
+        except Exception:
+            return color
+        return tuple(1 - amount * (1 - c) for c in (r, g, b))
 
-    for res in results_train:
+    for idx, res in enumerate(results_infer):
+        color = cmap(idx % 10)
         label_suffix = f"B{res['batch_size']}-C{res['channels']}"
-        for cs in CHUNK_SIZES:
-            ls, color = ("-", color_map[cs])
-            ax_time_trn.errorbar(
-                TIMESTEPS,
-                res[f"times_state_{cs}"],
-                yerr=res.get(f"std_times_state_{cs}", None),
-                fmt=ls,
-                color=color,
-                label=f"StateLeaky chunk {cs} (train) {label_suffix}",
-                capsize=3,
-            )
-            ax_mem_trn.errorbar(
-                TIMESTEPS,
-                res[f"mems_state_{cs}"],
-                yerr=res.get(f"std_mems_state_{cs}", None),
-                fmt=ls,
-                color=color,
-                label=f"StateLeaky chunk {cs} (train) {label_suffix}",
-                capsize=3,
-            )
+        ax_time_inf.errorbar(
+            TIMESTEPS,
+            res["times_leaky"],
+            yerr=res.get("std_times_leaky", None),
+            fmt="-",
+            color=color,
+            ecolor=color,
+            label=f"Leaky {label_suffix}",
+            capsize=3,
+        )
+        ax_time_inf.errorbar(
+            TIMESTEPS,
+            res["times_state"],
+            yerr=res.get("std_times_state", None),
+            fmt="--",
+            color=color,
+            ecolor=lighten_color(color, 0.5),
+            label=f"StateLeaky {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_inf.errorbar(
+            TIMESTEPS,
+            res["mems_leaky"],
+            yerr=res.get("std_mems_leaky", None),
+            fmt="-",
+            color=color,
+            ecolor=color,
+            label=f"Leaky {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_inf.errorbar(
+            TIMESTEPS,
+            res["mems_state"],
+            yerr=res.get("std_mems_state", None),
+            fmt="--",
+            color=color,
+            ecolor=lighten_color(color, 0.5),
+            label=f"StateLeaky {label_suffix}",
+            capsize=3,
+        )
+
+    for idx, res in enumerate(results_train):
+        color = cmap(idx % 10)
+        label_suffix = f"B{res['batch_size']}-C{res['channels']}"
+        ax_time_trn.errorbar(
+            TIMESTEPS,
+            res["times_leaky"],
+            yerr=res.get("std_times_leaky", None),
+            fmt="-",
+            color=color,
+            ecolor=color,
+            label=f"Leaky (train) {label_suffix}",
+            capsize=3,
+        )
+        ax_time_trn.errorbar(
+            TIMESTEPS,
+            res["times_state"],
+            yerr=res.get("std_times_state", None),
+            fmt="--",
+            color=color,
+            ecolor=lighten_color(color, 0.5),
+            label=f"StateLeaky (train) {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_trn.errorbar(
+            TIMESTEPS,
+            res["mems_leaky"],
+            yerr=res.get("std_mems_leaky", None),
+            fmt="-",
+            color=color,
+            ecolor=color,
+            label=f"Leaky (train) {label_suffix}",
+            capsize=3,
+        )
+        ax_mem_trn.errorbar(
+            TIMESTEPS,
+            res["mems_state"],
+            yerr=res.get("std_mems_state", None),
+            fmt="--",
+            color=color,
+            ecolor=lighten_color(color, 0.5),
+            label=f"StateLeaky (train) {label_suffix}",
+            capsize=3,
+        )
 
     for ax in (ax_time_inf, ax_mem_inf, ax_time_trn, ax_mem_trn):
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.grid(True, which="both", ls="-", alpha=0.2)
 
-    # Limit y-axis top for time plots (left column)
-    ax_time_inf.set_ylim(top=1e1)
-    ax_time_trn.set_ylim(top=1e1)
+    # Lock y-axis ranges
+    ax_time_inf.set_ylim(1e-4, 1e1)
+    ax_time_trn.set_ylim(1e-4, 1e1)
+    ax_mem_inf.set_ylim(1e-2, 1e4)
+    ax_mem_trn.set_ylim(1e-2, 1e4)
 
     ax_time_inf.set_title("SNN Performance (Time) - Inference")
     ax_time_inf.set_xlabel("Timesteps")
@@ -506,7 +573,5 @@ if __name__ == "__main__":
     # mkdir if not exists
     os.makedirs("snn_performance", exist_ok=True)
     plt.tight_layout()
-    plt.savefig(
-        "snn_performance/snn_performance_stateleaky_chunk_sweep.png", dpi=150
-    )
-    plt.savefig("snn_performance/snn_performance_stateleaky_chunk_sweep.pdf")
+    plt.savefig("snn_performance/snn_performance_comparison.png", dpi=150)
+    plt.savefig("snn_performance/snn_performance_comparison.pdf")
