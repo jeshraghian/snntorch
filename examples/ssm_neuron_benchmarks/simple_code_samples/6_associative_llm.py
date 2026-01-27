@@ -5,13 +5,11 @@ from snntorch._neurons.associative import AssociativeLeaky
 SEQ_LENGTH = 512
 HIDDEN_DIM = 256
 
-
 class SpikingAssocBlock(nn.Module):
-    """AssociativeLeaky + Linear + ReLU, applied over (T, B, H)."""
+    """AssociativeLeaky + Linear + ReLU, applied over (T, B, C)."""
 
     def __init__(self, hidden_dim: int):
         super().__init__()
-        # Delegate validation to AssociativeLeaky; it enforces perfect-square when using this ctor
         self.assoc = AssociativeLeaky.from_num_spiking_neurons(
             in_dim=hidden_dim,
             num_spiking_neurons=hidden_dim,
@@ -21,12 +19,11 @@ class SpikingAssocBlock(nn.Module):
         self.act = nn.ReLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (T, B, H)
-        y = self.assoc(x)  # (T, B, H)
-        h = self.fc(y)  # (T, B, H)
+        # x: (T, B, C)
+        y = self.assoc(x)  # (T, B, C)
+        h = self.fc(y)  # (T, B, C)
         h = self.act(h)
         return h
-
 
 class SNNAssociativeLanguageModel(nn.Module):
     def __init__(
@@ -45,13 +42,12 @@ class SNNAssociativeLanguageModel(nn.Module):
         # tokens: (T, B)
         T, B = tokens.shape
         pos = torch.arange(T, device=tokens.device)
-        h = self.token_emb(tokens)  # (T, B, H)
-        h = h + self.pos_emb(pos).unsqueeze(1)  # (T, 1, H) broadcast over B
+        h = self.token_emb(tokens)  # (T, B, C)
+        h = h + self.pos_emb(pos).unsqueeze(1)  # (T, 1, C) broadcast over B
         for block in self.blocks:
-            h = block(h)  # (T, B, H)
+            h = block(h)  # (T, B, C)
         logits = self.out_proj(h)  # (T, B, vocab_size)
         return logits
-
 
 if __name__ == "__main__":
     vocab_size = 120

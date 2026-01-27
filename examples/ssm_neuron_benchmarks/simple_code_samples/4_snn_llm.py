@@ -8,7 +8,7 @@ LEARN_BETA = True
 
 
 class SpikingBlock(nn.Module):
-    """StateLeaky + Linear + ReLU, applied over (T, B, H)."""
+    """StateLeaky + Linear + ReLU, applied over (T, B, C)."""
 
     def __init__(self, hidden_dim):
         super().__init__()
@@ -22,9 +22,9 @@ class SpikingBlock(nn.Module):
         self.act = nn.ReLU()
 
     def forward(self, x):
-        # x: (T, B, H)
-        spk, v = self.ssm(x)  # (T, B, H)
-        h = self.fc(v)  # (T, B, H)
+        # x: (T, B, C)
+        spk, v = self.ssm(x)  # (T, B, C)
+        h = self.fc(v)  # (T, B, C)
         h = self.act(h)
         return h
 
@@ -45,11 +45,11 @@ class SNNLanguageModel(nn.Module):
     def forward(self, tokens):
         T, B = tokens.shape
         pos = torch.arange(T, device=tokens.device)
-        h = self.token_emb(tokens)  # (T, B, H)
-        h = h + self.pos_emb(pos).unsqueeze(1)  # (T, 1, H) broadcast over B
+        h = self.token_emb(tokens)  # (T, B, C)
+        h = h + self.pos_emb(pos).unsqueeze(1)  # (T, 1, C) broadcast over B
 
         for block in self.blocks:
-            h = block(h)  # (T, B, H)
+            h = block(h)  # (T, B, C)
 
         logits = self.out_proj(h)  # (T, B, vocab_size)
         return logits
