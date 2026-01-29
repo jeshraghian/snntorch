@@ -1,5 +1,6 @@
 # Note: need NumPy 1.17 or later for RNG functions
 import numpy as np
+
 import snntorch as snn
 
 
@@ -185,26 +186,26 @@ def _layer_check(net):
     global is_sconv2dlstm
     global is_slstm
 
-    for idx in range(len(list(net._modules.values()))):
-        if isinstance(list(net._modules.values())[idx], snn.Lapicque):
+    for module in net.modules():
+        if isinstance(module, snn.Lapicque):
             is_lapicque = True
-        if isinstance(list(net._modules.values())[idx], snn.Synaptic):
+        if isinstance(module, snn.Synaptic):
             is_synaptic = True
-        if isinstance(list(net._modules.values())[idx], snn.Leaky):
+        if isinstance(module, snn.Leaky):
             is_leaky = True
-        if isinstance(list(net._modules.values())[idx], snn.LinearLeaky):
+        if isinstance(module, snn.LinearLeaky):
             is_linearleaky = True
-        if isinstance(list(net._modules.values())[idx], snn.StateLeaky):
+        if isinstance(module, snn.StateLeaky):
             is_stateleaky = True
-        if isinstance(list(net._modules.values())[idx], snn.Alpha):
+        if isinstance(module, snn.Alpha):
             is_alpha = True
-        if isinstance(list(net._modules.values())[idx], snn.RLeaky):
+        if isinstance(module, snn.RLeaky):
             is_rleaky = True
-        if isinstance(list(net._modules.values())[idx], snn.RSynaptic):
+        if isinstance(module, snn.RSynaptic):
             is_rsynaptic = True
-        if isinstance(list(net._modules.values())[idx], snn.SConv2dLSTM):
+        if isinstance(module, snn.SConv2dLSTM):
             is_sconv2dlstm = True
-        if isinstance(list(net._modules.values())[idx], snn.SLSTM):
+        if isinstance(module, snn.SLSTM):
             is_slstm = True
 
 
