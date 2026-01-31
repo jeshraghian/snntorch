@@ -31,7 +31,7 @@ BATCHWISE_CHUNK_SIZE = 64
 CHUNK_SIZES = [8, 16, 32]
 
 
-device = "cuda:1"
+device = "cuda"
 torch.set_grad_enabled(True)
 
 
@@ -73,7 +73,7 @@ def bench_leaky(
     spk = torch.zeros(batch_size, channels, device=device)
 
     # warmup
-    lif.forward(linear(input_tensor[:2, :2, :]))
+    lif.forward(linear(input_tensor))
     time.sleep(2)
 
     baseline_mem = get_cur_bytes(device)

@@ -35,7 +35,7 @@ BATCHWISE_CHUNK_SIZE = 64
 TRUNCATION_STEPS = [None, 512, 4096]
 
 
-device = "cuda:1"
+device = "cuda"
 torch.set_grad_enabled(True)
 
 

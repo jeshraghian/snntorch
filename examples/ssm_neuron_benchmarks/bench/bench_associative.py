@@ -41,7 +41,7 @@ ENABLE_LEAKY = True
 GEN2_USE_COMPILE = False
 
 
-device = "cuda:1"
+device = "cuda"
 torch.set_grad_enabled(True)
 
 
