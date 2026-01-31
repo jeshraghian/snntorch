@@ -26,16 +26,16 @@ def test_stateleaky_zero_input():
     mod_path = os.path.abspath(os.path.join(this_dir, "..", "2_stateleaky.py"))
     mod = _load_module_from_path("stateleaky_module", mod_path)
 
-    B, T, C = 2, 3, 10
-    x = torch.zeros(B, T, C)
+    T, B, C = 3, 2, 10
+    x = torch.zeros(T, B, C)
 
     layer = StateLeaky(beta=0.9, channels=C, output=True)
     spk_seq, mem_seq = mod.run_stateleaky(layer, x)
 
     assert isinstance(spk_seq, torch.Tensor)
     assert isinstance(mem_seq, torch.Tensor)
-    assert spk_seq.shape == (B, T, C)
-    assert mem_seq.shape == (B, T, C)
+    assert spk_seq.shape == (T, B, C)
+    assert mem_seq.shape == (T, B, C)
     assert torch.all(spk_seq == 0), "Spikes should be zero for zero input"
     assert torch.allclose(
         mem_seq, torch.zeros_like(mem_seq)
@@ -47,21 +47,21 @@ def test_stateleaky_single_pulse_spikes_first_step():
     mod_path = os.path.abspath(os.path.join(this_dir, "..", "2_stateleaky.py"))
     mod = _load_module_from_path("stateleaky_module", mod_path)
 
-    B, T, C = 2, 4, 10
-    x = torch.zeros(B, T, C)
-    x[:, 0, :] = 2.0  # strong pulse at t=0
+    T, B, C = 4, 2, 10
+    x = torch.zeros(T, B, C)
+    x[0, :, :] = 2.0  # strong pulse at t=0
 
     layer = StateLeaky(beta=0.9, channels=C, output=True)
     spk_seq, mem_seq = mod.run_stateleaky(layer, x)
 
-    assert spk_seq.shape == (B, T, C)
-    assert mem_seq.shape == (B, T, C)
+    assert spk_seq.shape == (T, B, C)
+    assert mem_seq.shape == (T, B, C)
     assert torch.all(
-        spk_seq[:, 0, :] == 1
+        spk_seq[0, :, :] == 1
     ), "All units should spike at t=0 for strong pulse"
     if T > 1:
         assert torch.all(
-            spk_seq[:, 1:, :] == 0
+            spk_seq[1:, :, :] == 0
         ), "No spikes after t=0 without further input"
 
 
