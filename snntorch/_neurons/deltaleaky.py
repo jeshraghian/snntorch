@@ -12,8 +12,8 @@ class DeltaLeaky(Leaky):
     def __init__(self, delta_threshold=1.0, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.mem = None
         self.delta_threshold = delta_threshold
+        self.mem = None
         self.mem_prev = None
 
 
@@ -25,7 +25,13 @@ class DeltaLeaky(Leaky):
         else:
             if mem is None:
                 raise TypeError("`mem` must be provided when init_hidden=False")
+
             self.mem, self.mem_prev = mem
+
+            if self.mem is None:
+                self.mem = torch.zeros_like(input_)
+            if self.mem_prev is None:
+                self.mem_prev = torch.zeros_like(input_)
 
         # update membrane potential
         mem_next = self.beta * self.mem + input_
@@ -38,7 +44,9 @@ class DeltaLeaky(Leaky):
         self.mem_prev = self.mem
         self.mem = mem_next
 
-        if self.output:
-            return spk, self.mem
-        else:
-            return spk
+        return spk, (self.mem, self.mem_prev)
+
+    def reset_mem(self):
+        self.mem = None
+        self.mem_prev = None
+        return (self.mem, self.mem_prev)
