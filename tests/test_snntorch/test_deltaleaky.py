@@ -30,7 +30,7 @@ class TestDeltaLeakyCore:
         """Verify the neuron actually generates spikes"""
         delta = DeltaLeaky(beta=0.5, delta_threshold=0.2, init_hidden=True)
 
-        #reset internal states
+        # reset internal states
         delta.mem = torch.zeros_like(step_input[0])
         delta.mem_prev = torch.zeros_like(step_input[0])
 
@@ -39,7 +39,7 @@ class TestDeltaLeakyCore:
 
 
     def test_threshold_sensitivity(self, delta_low, delta_high, step_input):
-        """Prove that higher threshold = fewer spikes (core delta property)"""
+        """Prove that higher thresholds result in fewer spikes (core delta property)"""
         def count_spikes(neuron):
             neuron.mem = torch.zeros_like(step_input[0])
             neuron.mem_prev = torch.zeros_like(step_input[0])
