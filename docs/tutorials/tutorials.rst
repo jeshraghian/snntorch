@@ -89,6 +89,11 @@ The tutorial consists of a series of Google Colab notebooks. Static non-editable
         :alt: Open In Colab
         :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_forward_forward.ipynb
 
+   * - `Hyperparameter Optimization with Optuna <https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_optuna.html>`_
+     - .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :alt: Open In Colab
+        :target: https://colab.research.google.com/github/jeshraghian/snntorch/blob/master/examples/tutorial_optuna.ipynb
+
 
 .. list-table::
    :widths: 70 32
