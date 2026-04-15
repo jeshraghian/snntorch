@@ -225,7 +225,7 @@ class SpikingNeuron(nn.Module):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are global variables."""
         for state in args:
-            state = torch.zeros_like(state)
+            state.zero_()
 
     @staticmethod
     def _surrogate_bypass(input_):
