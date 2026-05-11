@@ -45,7 +45,7 @@ Coverage:
 
 @pytest.fixture(scope="module")
 def device():
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    return torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
 
 @pytest.fixture(scope="module")
@@ -220,7 +220,7 @@ def test_multi_beta_forward(
 
 
 def test_chunking_with_gd():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
     batch_size = 8
     chunk_size = 2

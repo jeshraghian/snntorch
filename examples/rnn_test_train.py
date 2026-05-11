@@ -6,14 +6,11 @@ import time
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-import torch.nn.functional as F
-
-
 batch_size = 128
 num_steps = 20
-# data_path='/tmp/data/mnist'
-data_path='C:\\Users\\jeshr\\Data\\mnist'
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+data_path='/tmp/data/mnist'
+# data_path='C:\\Users\\jeshr\\Data\\mnist'
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
 
 # Define a transform
@@ -44,8 +41,8 @@ class Net(nn.Module):
         beta2 = torch.rand((num_outputs), dtype = torch.float) # independent decay rate for each leaky neuron in layer 2: [0, 1)
 
         # Initialize layers
-        self.lif1 = snn.LeakyParallel(num_inputs, num_hidden, beta=beta1, learn_beta=True, threshold=1) # not a learnable decay rate
-        self.lif2 = snn.LeakyParallel(num_hidden, num_outputs, beta=beta1, learn_beta=False, threshold=1) # learnable decay rate
+        self.lif1 = snn.LeakyParallel(num_inputs, num_hidden, beta=beta1, learn_beta=False, threshold=1) # not a learnable decay rate
+        self.lif2 = snn.LeakyParallel(num_hidden, num_outputs, beta=beta2, learn_beta=True, threshold=1) # learnable decay rate
 
     def forward(self, x):
 

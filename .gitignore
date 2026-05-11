@@ -1,4 +1,7 @@
 examples/data/
+examples/tmp/data/
+tmp/data/
+examples/cache
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
