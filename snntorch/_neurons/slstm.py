@@ -157,6 +157,12 @@ class SLSTM(SpikingNeuron):
 
     """
 
+    reset_dict = {
+        "subtract": 0,
+        "zero": 1,
+        "none": 2,
+    }
+
     def __init__(
         self,
         input_size,
@@ -186,13 +192,6 @@ class SLSTM(SpikingNeuron):
         )
 
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
 
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -279,6 +278,14 @@ class SLSTM(SpikingNeuron):
 
     def _base_int(self, input_):
         return self._base_state_function(input_)
+    
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            self.state_function = self._base_sub
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            self.state_function = self._base_zero
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            self.state_function = self._base_int
 
     @classmethod
     def detach_hidden(cls):

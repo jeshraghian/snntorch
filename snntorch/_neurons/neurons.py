@@ -22,11 +22,10 @@ class SpikingNeuron(nn.Module):
     The list is used to initialize and clear neuron states when the
     argument `init_hidden=True`."""
 
-    reset_dict = {
-        "subtract": 0,
-        "zero": 1,
-        "none": 2,
-    }
+    reset_dict = {'none': 0}
+    """Each :mod:`snntorch.SpikingNeuron` neuron 
+    (e.g., :mod:`snntorch.Leaky`) defines its own mapping of reset mechanisms
+    to its corresponding reset function in the class variable `reset_dict`."""
 
     def __init__(
         self,
@@ -36,7 +35,7 @@ class SpikingNeuron(nn.Module):
         init_hidden=False,
         inhibition=False,
         learn_threshold=False,
-        reset_mechanism="subtract",
+        reset_mechanism="none",
         state_quant=False,
         output=False,
         graded_spikes_factor=1.0,
@@ -178,6 +177,7 @@ class SpikingNeuron(nn.Module):
             type(self).reset_dict[reset_mechanism]
         )
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
+        self.reset_mechanism = reset_mechanism
 
     def _V_register_buffer(self, V, learn_V):
         if not isinstance(V, torch.Tensor):
@@ -200,6 +200,10 @@ class SpikingNeuron(nn.Module):
             type(self).reset_dict[new_reset_mechanism]
         )
         self._reset_mechanism = new_reset_mechanism
+        self._set_reset_function()
+
+    def _set_reset_function(self):
+        pass # to be implemented in child classes
 
     @classmethod
     def init(cls):
@@ -229,6 +233,13 @@ class SpikingNeuron(nn.Module):
 
 class LIF(SpikingNeuron):
     """Parent class for leaky integrate and fire neuron models."""
+
+    reset_dict = {
+        "subtract": 0,
+        "zero": 1,
+        "none": 2,
+        "subtract_beta": 3,
+    }
 
     def __init__(
         self,

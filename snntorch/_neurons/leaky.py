@@ -137,13 +137,6 @@ class Leaky(LIF):
 
     """
 
-    reset_dict = {
-        "subtract": 0,
-        "zero": 1,
-        "none": 2,
-        "subtract_beta": 3,
-    }
-
     def __init__(
         self,
         beta,
@@ -178,17 +171,6 @@ class Leaky(LIF):
         )
 
         self._init_mem()
-
-        match self.reset_mechanism_val:
-            case 0:
-                self._apply_reset = self._reset_sub_beta  # softer reset
-            case 1:
-                self._apply_reset = self._reset_sub  # soft reset
-            case 2:
-                self._apply_reset = self._reset_zero  # hard reset
-            case 3:
-                self._apply_reset = lambda reset: self.mem  # no reset
-
         self.reset_delay = reset_delay
 
     def _init_mem(self):
@@ -218,7 +200,7 @@ class Leaky(LIF):
 
         reset = self.mem_reset(self.mem)  # S[t]
         self.mem = self._base_state_function(input_)  # U[t+1] before reset
-        self.mem = self._apply_reset(reset)  # U[t+1] after reset
+        self.mem = self._reset_function(reset)  # U[t+1] after reset
 
         if self.state_quant:
             self.mem = self.state_quant(self.mem)
@@ -234,7 +216,7 @@ class Leaky(LIF):
             do_reset = (
                 spk / self.graded_spikes_factor - reset
             )  # avoid double reset
-            self.mem = self._apply_reset(do_reset)
+            self.mem = self._reset_function(do_reset)
 
         if self.init_hidden and not self.output:
             return spk
@@ -252,6 +234,16 @@ class Leaky(LIF):
 
     def _reset_zero(self, reset):  # reset to zero, hard reset
         return self.mem - reset * self.mem
+    
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:   # soft reset
+            self._reset_function = self._reset_sub
+        elif self.reset_mechanism_val == 1: # hard reset
+            self._reset_function = self._reset_zero
+        elif self.reset_mechanism_val == 2: # no reset
+            self._reset_function = lambda reset: self.mem
+        elif self.reset_mechanism_val == 3: # softer reset
+            self._reset_function = self._reset_sub_beta
 
     @classmethod
     def detach_hidden(cls):

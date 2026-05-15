@@ -207,6 +207,12 @@ class SConv2dLSTM(SpikingNeuron):
 
     """
 
+    reset_dict = {
+        "subtract": 0,
+        "zero": 1,
+        "none": 2,
+    }
+
     def __init__(
         self,
         in_channels,
@@ -239,13 +245,6 @@ class SConv2dLSTM(SpikingNeuron):
         )
 
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -388,6 +387,14 @@ class SConv2dLSTM(SpikingNeuron):
                 "Only one of either `max_pool` or `avg_pool` may be "
                 "specified, not both."
             )
+
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            self.state_function = self._base_sub
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            self.state_function = self._base_zero
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            self.state_function = self._base_int
 
     @classmethod
     def detach_hidden(cls):
