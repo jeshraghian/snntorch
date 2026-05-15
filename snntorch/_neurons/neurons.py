@@ -118,14 +118,10 @@ class SpikingNeuron(nn.Module):
             )
 
     def _reset_cases(self, reset_mechanism):
-        if (
-            reset_mechanism != "subtract"
-            and reset_mechanism != "zero"
-            and reset_mechanism != "none"
-        ):
+        if reset_mechanism not in type(self).reset_dict:
             raise ValueError(
-                "reset_mechanism must be set to either 'subtract', "
-                "'zero', or 'none'."
+                "reset_mechanism must be set to one of "
+                ", ".join(f"`{k}`" for k in type(self).reset_dict) + "."
             )
 
     def _snn_register_buffer(
@@ -149,7 +145,7 @@ class SpikingNeuron(nn.Module):
             # if reset_mechanism_val is loaded from .pt, override
             # reset_mechanism
             if torch.is_tensor(self.reset_mechanism_val):
-                self.reset_mechanism = list(SpikingNeuron.reset_dict)[
+                self.reset_mechanism = list(type(self).reset_dict)[
                     self.reset_mechanism_val
                 ]
         except AttributeError:
@@ -179,7 +175,7 @@ class SpikingNeuron(nn.Module):
         Must be of type tensor to store in register buffer. See reset_dict
         for mapping."""
         reset_mechanism_val = torch.as_tensor(
-            SpikingNeuron.reset_dict[reset_mechanism]
+            type(self).reset_dict[reset_mechanism]
         )
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
 
@@ -194,15 +190,14 @@ class SpikingNeuron(nn.Module):
     @property
     def reset_mechanism(self):
         """If reset_mechanism is modified, reset_mechanism_val is triggered
-        to update.
-        0: subtract, 1: zero, 2: none."""
+        to update."""
         return self._reset_mechanism
 
     @reset_mechanism.setter
     def reset_mechanism(self, new_reset_mechanism):
         self._reset_cases(new_reset_mechanism)
         self.reset_mechanism_val = torch.as_tensor(
-            SpikingNeuron.reset_dict[new_reset_mechanism]
+            type(self).reset_dict[new_reset_mechanism]
         )
         self._reset_mechanism = new_reset_mechanism
 

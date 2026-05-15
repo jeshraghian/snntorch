@@ -172,8 +172,9 @@ class RLeaky(LIF):
 
     :param reset_mechanism: Defines the reset mechanism applied to
         :math:`mem` each time the threshold is met.
-        Reset-by-subtraction: "subtract", reset-to-zero: "zero",
-        none: "none". Defaults to "subtract"
+        Reset-by-subtraction: "subtract", 
+        Reset-by-subtraction-beta: "subtract_beta", 
+        reset-to-zero: "zero",none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden state :math:`mem` is
@@ -221,6 +222,13 @@ class RLeaky(LIF):
             (input_size).
 
     """
+
+    reset_dict = {
+        "subtract": 0,
+        "zero": 1,
+        "none": 2,
+        "subtract_beta": 3,
+    }
 
     def __init__(
         self,
@@ -282,12 +290,15 @@ class RLeaky(LIF):
 
         self._init_mem()
 
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
+        match self.reset_mechanism_val:
+            case 0:
+                self._apply_reset = self._reset_sub_beta  # softer reset
+            case 1:
+                self._apply_reset = self._reset_sub  # soft reset
+            case 2:
+                self._apply_reset = self._reset_zero  # hard reset
+            case 3:
+                self._apply_reset = lambda reset: self.mem  # no reset
 
         self.reset_delay = reset_delay
 
@@ -330,8 +341,9 @@ class RLeaky(LIF):
         # self.beta.clamp_min(0)), giving actual time constants instead of
         # values in [0, 1] as initial beta beta = self.beta.clamp(0, 1)
 
-        self.reset = self.mem_reset(self.mem)
-        self.mem = self.state_function(input_)
+        reset = self.mem_reset(self.mem)  # S[t]
+        self.mem = self._base_state_function(input_)  # U[t+1] before reset
+        self.mem = self._apply_reset(reset)  # U[t+1] after reset
 
         if self.state_quant:
             self.mem = self.state_quant(self.mem)
@@ -343,12 +355,9 @@ class RLeaky(LIF):
 
         if not self.reset_delay:
             do_reset = (
-                self.spk / self.graded_spikes_factor - self.reset
+                self.spk / self.graded_spikes_factor - reset
             )  # avoid double reset
-            if self.reset_mechanism_val == 0:  # reset by subtraction
-                self.mem = self.mem - do_reset * self.threshold
-            elif self.reset_mechanism_val == 1:  # reset to zero
-                self.mem = self.mem - do_reset * self.mem
+            self.mem = self._apply_reset(do_reset)
 
         if self.output:
             return self.spk, self.mem
@@ -399,16 +408,16 @@ class RLeaky(LIF):
         )
         return base_fn
 
-    def _base_sub(self, input_):
-        return self._base_state_function(input_) - self.reset * self.threshold
+    def _reset_sub_beta(
+        self, reset
+    ):  # reset by subtraction * beta, softer reset
+        return self.mem - reset * self.threshold * self.beta.clamp(0, 1)
 
-    def _base_zero(self, input_):
-        return self._base_state_function(
-            input_
-        ) - self.reset * self._base_state_function(input_)
+    def _reset_sub(self, reset):  # reset by subtraction, soft reset
+        return self.mem - reset * self.threshold
 
-    def _base_int(self, input_):
-        return self._base_state_function(input_)
+    def _reset_zero(self, reset):  # reset to zero, hard reset
+        return self.mem - reset * self.mem
 
     def _rleaky_init_cases(self):
         all_to_all_bool = bool(self.all_to_all)
