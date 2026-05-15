@@ -244,9 +244,7 @@ class Leaky(LIF):
     def _base_state_function(self, input_):
         return self.beta.clamp(0, 1) * self.mem + input_
 
-    def _reset_sub_beta(
-        self, reset
-    ):  # reset by subtraction * beta, softer reset
+    def _reset_sub_beta(self, reset):  # reset by sub. * beta, softer reset
         return self.mem - reset * self.threshold * self.beta.clamp(0, 1)
 
     def _reset_sub(self, reset):  # reset by subtraction, soft reset
