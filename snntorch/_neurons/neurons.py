@@ -22,11 +22,10 @@ class SpikingNeuron(nn.Module):
     The list is used to initialize and clear neuron states when the
     argument `init_hidden=True`."""
 
-    reset_dict = {
-        "subtract": 0,
-        "zero": 1,
-        "none": 2,
-    }
+    reset_dict = {'none': 0}
+    """Each :mod:`snntorch.SpikingNeuron` neuron 
+    (e.g., :mod:`snntorch.Leaky`) defines its own mapping of reset mechanisms
+    to its corresponding reset function in the class variable `reset_dict`."""
 
     def __init__(
         self,
@@ -36,7 +35,7 @@ class SpikingNeuron(nn.Module):
         init_hidden=False,
         inhibition=False,
         learn_threshold=False,
-        reset_mechanism="subtract",
+        reset_mechanism="none",
         state_quant=False,
         output=False,
         graded_spikes_factor=1.0,
@@ -118,14 +117,10 @@ class SpikingNeuron(nn.Module):
             )
 
     def _reset_cases(self, reset_mechanism):
-        if (
-            reset_mechanism != "subtract"
-            and reset_mechanism != "zero"
-            and reset_mechanism != "none"
-        ):
+        if reset_mechanism not in type(self).reset_dict:
             raise ValueError(
-                "reset_mechanism must be set to either 'subtract', "
-                "'zero', or 'none'."
+                "reset_mechanism must be set to one of "
+                ", ".join(f"`{k}`" for k in type(self).reset_dict) + "."
             )
 
     def _snn_register_buffer(
@@ -149,7 +144,7 @@ class SpikingNeuron(nn.Module):
             # if reset_mechanism_val is loaded from .pt, override
             # reset_mechanism
             if torch.is_tensor(self.reset_mechanism_val):
-                self.reset_mechanism = list(SpikingNeuron.reset_dict)[
+                self.reset_mechanism = list(type(self).reset_dict)[
                     self.reset_mechanism_val
                 ]
         except AttributeError:
@@ -179,9 +174,10 @@ class SpikingNeuron(nn.Module):
         Must be of type tensor to store in register buffer. See reset_dict
         for mapping."""
         reset_mechanism_val = torch.as_tensor(
-            SpikingNeuron.reset_dict[reset_mechanism]
+            type(self).reset_dict[reset_mechanism]
         )
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
+        self.reset_mechanism = reset_mechanism
 
     def _V_register_buffer(self, V, learn_V):
         if not isinstance(V, torch.Tensor):
@@ -194,17 +190,20 @@ class SpikingNeuron(nn.Module):
     @property
     def reset_mechanism(self):
         """If reset_mechanism is modified, reset_mechanism_val is triggered
-        to update.
-        0: subtract, 1: zero, 2: none."""
+        to update."""
         return self._reset_mechanism
 
     @reset_mechanism.setter
     def reset_mechanism(self, new_reset_mechanism):
         self._reset_cases(new_reset_mechanism)
         self.reset_mechanism_val = torch.as_tensor(
-            SpikingNeuron.reset_dict[new_reset_mechanism]
+            type(self).reset_dict[new_reset_mechanism]
         )
         self._reset_mechanism = new_reset_mechanism
+        self._set_reset_function()
+
+    def _set_reset_function(self):
+        pass # to be implemented in child classes
 
     @classmethod
     def init(cls):
@@ -234,6 +233,13 @@ class SpikingNeuron(nn.Module):
 
 class LIF(SpikingNeuron):
     """Parent class for leaky integrate and fire neuron models."""
+
+    reset_dict = {
+        "subtract": 0,
+        "zero": 1,
+        "none": 2,
+        "subtract_beta": 3,
+    }
 
     def __init__(
         self,
