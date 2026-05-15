@@ -142,7 +142,7 @@ the gradient of the fast sigmoid function can override the Dirac-Delta function 
       # the forward function is called each time we call Leaky
       def forward(self, input_, mem):
         spk = self.surrogate_func((mem-self.threshold))  # call the Heaviside function
-        reset = (spk - self.threshold).detach()
+        reset = (spk * self.threshold).detach()
         mem = self.beta * mem + input_ - reset
         return spk, mem
     
