@@ -1,2 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snntorch"
+version = "0.9.4"
+description = "Deep learning with spiking neural networks."
+readme = "README.rst"
+license = {text = "MIT License"}
+authors = [
+    {name = "Jason K. Eshraghian", email = "jeshragh@ucsc.edu"}
+]
+requires-python = ">=3.9"
+keywords = ["snntorch"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "torch"
+]
+
+[project.optional-dependencies]
+full = ["matplotlib", "nir", "nirtorch"]
+test = ["pytest>=6"]
+
+[project.urls]
+Homepage = "https://github.com/jeshraghian/snntorch"
+
+[tool.setuptools.packages.find]
+include = ["snntorch", "snntorch.*"]
+
 [tool.black]
 line-length = 79
