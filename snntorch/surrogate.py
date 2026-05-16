@@ -358,6 +358,7 @@ class SpikeRateEscape(torch.autograd.Function):
         out = (input_ > 0).float()
         return out
 
+    @staticmethod
     def backward(ctx, grad_output):
         (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
@@ -512,7 +513,7 @@ def LSO(slope=0.1):
     slope = slope
 
     def inner(x):
-        return StochasticSpikeOperator.apply(x, slope)
+        return LeakySpikeOperator.apply(x, slope)
 
     return inner
 

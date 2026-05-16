@@ -1,4 +1,4 @@
-__layer__ = ["BatchNormTT1d", "BatchNormTT2d" "GradedSpikes"]
+__layer__ = ["BatchNormTT1d", "BatchNormTT2d", "GradedSpikes"]
 
 from .bntt import *
 from .graded_spikes import *
