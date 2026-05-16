@@ -512,7 +512,7 @@ def LSO(slope=0.1):
     slope = slope
 
     def inner(x):
-        return StochasticSpikeOperator.apply(x, slope)
+        return LeakySpikeOperator.apply(x, slope)
 
     return inner
 
