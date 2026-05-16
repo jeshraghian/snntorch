@@ -83,7 +83,7 @@ class LeakyParallel(nn.Module):
         generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
-    :param dropout: If non-zero, introduces a Dropout layer on the RNN output with dropout probability equal to dropout. Defaults to 0
+    :param dropout: If non-zero, introduces a Dropout layer on the RNN output with dropout probability equal to dropout. Note: Since LeakyParallel uses a single RNN layer, dropout is manually applied to the output (PyTorch's nn.RNN dropout only applies to intermediate layers). Defaults to 0
     :type dropout: float, optional
 
     :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to
@@ -164,6 +164,9 @@ class LeakyParallel(nn.Module):
     ):
         super().__init__()
 
+        # Note: nn.RNN dropout only applies to intermediate layers, not the last layer.
+        # Since we use num_layers=1, we need to manually apply dropout to the output.
+        # We don't pass dropout to nn.RNN since it would have no effect with num_layers=1.
         self.rnn = nn.RNN(
             input_size,
             hidden_size,
@@ -171,10 +174,16 @@ class LeakyParallel(nn.Module):
             nonlinearity="relu",
             bias=bias,
             batch_first=False,
-            dropout=dropout,
             device=device,
             dtype=dtype,
         )
+
+        # Store dropout value and create dropout layer if needed
+        self.dropout = dropout
+        if dropout > 0.0:
+            self.dropout_layer = nn.Dropout(dropout)
+        else:
+            self.dropout_layer = None
 
         self._beta_buffer(beta, learn_beta)
         self.hidden_size = hidden_size
@@ -211,7 +220,12 @@ class LeakyParallel(nn.Module):
     def forward(self, input_):
         mem = self.rnn(input_)
         # mem[0] contains relu'd outputs, mem[1] contains final hidden state
-        mem_shift = mem[0] - self.threshold  # self.rnn.weight_hh_l0
+        # Apply dropout to RNN output if dropout > 0
+        if self.dropout_layer is not None:
+            mem_output = self.dropout_layer(mem[0])
+        else:
+            mem_output = mem[0]
+        mem_shift = mem_output - self.threshold  # self.rnn.weight_hh_l0
         spk = self.spike_grad(mem_shift)
         spk = spk * self.graded_spikes_factor
         return spk
