@@ -7,6 +7,7 @@ import math
 # """``snntorch.surrogate.slope``
 # parameterizes the transition rate of the surrogate gradients."""
 
+
 class ATanSurrogate:
     def __init__(self, alpha=2.0):
         self.alpha = alpha
@@ -17,6 +18,7 @@ class ATanSurrogate:
 
 def atan(alpha=2.0):
     return ATanSurrogate(alpha)
+
 
 class StraightThroughEstimator(torch.autograd.Function):
     """
@@ -213,9 +215,6 @@ class ATan(torch.autograd.Function):
         return grad, None
 
 
-
-
-
 # @staticmethod
 class Heaviside(torch.autograd.Function):
     """Default spiking function for neuron.
@@ -385,7 +384,6 @@ def spike_rate_escape(beta=1, slope=25):
 
 
 class StochasticSpikeOperator(torch.autograd.Function):
-
     """
     Surrogate gradient of the Heaviside step function.
 
@@ -441,7 +439,7 @@ class StochasticSpikeOperator(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        (input_, out) = ctx.saved_tensors
+        input_, out = ctx.saved_tensors
         grad_input = grad_output.clone()
         grad = grad_input * out + (grad_input * (~out.bool()).float()) * (
             (torch.rand_like(input_) - 0.5 + ctx.mean) * ctx.variance
@@ -462,7 +460,6 @@ def SSO(mean=0, variance=0.2):
 
 
 class LeakySpikeOperator(torch.autograd.Function):
-
     """
     Surrogate gradient of the Heaviside step function.
 

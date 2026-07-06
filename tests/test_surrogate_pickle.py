@@ -8,4 +8,3 @@ def test_leaky_torch_save_roundtrip(tmp_path):
     torch.save(net, path)
     net2 = torch.load(path, weights_only=False)
     assert isinstance(net2, snn.Leaky)
-    
