@@ -7,6 +7,16 @@ import math
 # """``snntorch.surrogate.slope``
 # parameterizes the transition rate of the surrogate gradients."""
 
+class ATanSurrogate:
+    def __init__(self, alpha=2.0):
+        self.alpha = alpha
+
+    def __call__(self, x):
+        return ATan.apply(x, self.alpha)
+
+
+def atan(alpha=2.0):
+    return ATanSurrogate(alpha)
 
 class StraightThroughEstimator(torch.autograd.Function):
     """
@@ -203,14 +213,7 @@ class ATan(torch.autograd.Function):
         return grad, None
 
 
-def atan(alpha=2.0):
-    """ArcTan surrogate gradient enclosed with a parameterized slope."""
-    alpha = alpha
 
-    def inner(x):
-        return ATan.apply(x, alpha)
-
-    return inner
 
 
 # @staticmethod
