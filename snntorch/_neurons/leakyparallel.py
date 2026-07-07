@@ -218,7 +218,7 @@ class LeakyParallel(nn.Module):
 
     @staticmethod
     def _surrogate_bypass(input_):
-        return (input_ > 0).float()
+        return (input_ > 0).to(input_.dtype)
 
     @staticmethod
     class ATan(torch.autograd.Function):
@@ -256,7 +256,7 @@ class LeakyParallel(nn.Module):
         def forward(ctx, input_, alpha=2.0):
             ctx.save_for_backward(input_)
             ctx.alpha = alpha
-            out = (input_ > 0).float()
+            out = (input_ > 0).to(input_.dtype)
             return out
 
         @staticmethod

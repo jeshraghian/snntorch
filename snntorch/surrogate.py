@@ -31,7 +31,7 @@ class StraightThroughEstimator(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input_):
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         return out
 
     @staticmethod
@@ -78,7 +78,7 @@ class Triangular(torch.autograd.Function):
     def forward(ctx, input_, threshold):
         ctx.save_for_backward(input_)
         ctx.threshold = threshold
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         return out
 
     @staticmethod
@@ -132,7 +132,7 @@ class FastSigmoid(torch.autograd.Function):
     def forward(ctx, input_, slope):
         ctx.save_for_backward(input_)
         ctx.slope = slope
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         return out
 
     @staticmethod
@@ -187,7 +187,7 @@ class ATan(torch.autograd.Function):
     def forward(ctx, input_, alpha):
         ctx.save_for_backward(input_)
         ctx.alpha = alpha
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         return out
 
     @staticmethod
@@ -240,7 +240,7 @@ class Heaviside(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input_):
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         ctx.save_for_backward(out)
         return out
 
@@ -294,7 +294,7 @@ class Sigmoid(torch.autograd.Function):
     def forward(ctx, input_, slope):
         ctx.save_for_backward(input_)
         ctx.slope = slope
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         return out
 
     @staticmethod
@@ -355,7 +355,7 @@ class SpikeRateEscape(torch.autograd.Function):
         ctx.save_for_backward(input_)
         ctx.beta = beta
         ctx.slope = slope
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         return out
 
     def backward(ctx, grad_output):
@@ -430,7 +430,7 @@ class StochasticSpikeOperator(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input_, mean, variance):
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         ctx.save_for_backward(input_, out)
         ctx.mean = mean
         ctx.variance = variance
@@ -492,7 +492,7 @@ class LeakySpikeOperator(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input_, slope):
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         ctx.save_for_backward(out)
         ctx.slope = slope
         return out
@@ -554,7 +554,7 @@ class SparseFastSigmoid(torch.autograd.Function):
         ctx.save_for_backward(input_)
         ctx.slope = slope
         ctx.B = B
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         return out
 
     @staticmethod
@@ -644,7 +644,7 @@ class CustomSurrogate(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input_, custom_surrogate_function):
-        out = (input_ > 0).float()
+        out = (input_ > 0).to(input_.dtype)
         ctx.save_for_backward(input_, out)
         ctx.custom_surrogate_function = custom_surrogate_function
         return out

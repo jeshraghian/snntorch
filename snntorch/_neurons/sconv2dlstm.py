@@ -303,10 +303,14 @@ class SConv2dLSTM(SpikingNeuron):
         size = input_.size()
         correct_shape = (size[0], self.out_channels, size[2], size[3])
         if not self.syn.shape == correct_shape:
-            self.syn = torch.zeros(correct_shape, device=self.syn.device)
+            self.syn = torch.zeros(
+                correct_shape, device=self.syn.device, dtype=input_.dtype
+            )
 
         if not self.mem.shape == correct_shape:
-            self.mem = torch.zeros(correct_shape, device=self.mem.device)
+            self.mem = torch.zeros(
+                correct_shape, device=self.mem.device, dtype=input_.dtype
+            )
 
         self.reset = self.mem_reset(self.mem)
         self.syn, self.mem = self.state_function(input_)
