@@ -128,7 +128,7 @@ snnTorch 教程系列基于以下论文。如果您发现这些资源或代码�
       # forward 函数在每次调用 Leaky 时被调用
       def forward(self, input_, mem):
         spk = self.surrogate_func((mem-self.threshold))  # 调用 Heaviside 函数
-        reset = (spk - self.threshold).detach()
+        reset = (spk * self.threshold).detach()
         mem = self.beta * mem + input_ - reset
         return spk, mem
     
