@@ -18,7 +18,7 @@ class RLeaky(LIF):
 
     .. math::
 
-            U[t+1] = βU[t] + I_{\\rm in}[t+1] + V(S_{\\rm out}[t]) -
+            U[t+1] = βU[t] + I_{\\rm in}[t+1] + VS_{\\rm out}[t] -
             RU_{\\rm thr}
 
     Where :math:`V(\\cdot)` acts either as a linear layer, a convolutional
