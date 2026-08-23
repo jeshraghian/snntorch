@@ -326,7 +326,7 @@ class STDPLearner(nn.Module):
 
     def enable(self):
         """
-        Enable the recording of the data in the monitors.
+        Enable the recording of data in the monitors.
         
         """
 
