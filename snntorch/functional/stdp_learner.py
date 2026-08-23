@@ -20,6 +20,10 @@ def stdp_linear_single_step(
     f_pre: Callable = lambda x: x,
     f_post: Callable = lambda x: x,
 ):
+    """
+    Single step of the STDP learning rule for the Linear layer.
+    """
+
     if trace_pre is None:
         trace_pre = 0.0
 
@@ -55,6 +59,10 @@ def mstdp_linear_single_step(
     f_pre: Callable = lambda x: x,
     f_post: Callable = lambda x: x,
 ):
+    """
+    Single step of the mSTDP learning rule for the Linear layer.
+    """
+
     if trace_pre is None:
         trace_pre = 0.0
 
@@ -88,6 +96,10 @@ def mstdpet_linear_single_step(
     f_pre: Callable = lambda x: x,
     f_post: Callable = lambda x: x,
 ):
+    """
+    Single step of the mSTDP learning rule with eligibility trace for the Linear layer.
+    """
+
     if trace_pre is None:
         trace_pre = 0.0
 
@@ -115,6 +127,10 @@ def stdp_conv2d_single_step(
     f_pre: Callable = lambda x: x,
     f_post: Callable = lambda x: x,
 ):
+    """
+    Single step of the STDP learning rule for Conv2d layer.
+    """
+
     if conv.dilation != (1, 1):
         raise NotImplementedError(
             "STDP with dilation != 1 for Conv2d has not been implemented!"
@@ -198,6 +214,10 @@ def stdp_conv1d_single_step(
     f_pre: Callable = lambda x: x,
     f_post: Callable = lambda x: x,
 ):
+    """
+    Single step of the STDP learning rule for Conv1d layer.
+    """
+
     if conv.dilation != (1,):
         raise NotImplementedError(
             "STDP with dilation != 1 for Conv1d has not been implemented!"
@@ -285,19 +305,45 @@ class STDPLearner(nn.Module):
         self.trace_post = None
 
     def reset(self):
+        """
+        Reset the recorded data in the monitors.
+        """
+
         super(STDPLearner, self).reset()
         self.in_spike_monitor.clear_recorded_data()
         self.out_spike_monitor.clear_recorded_data()
 
     def disable(self):
+        """
+        Disable the recording of data in the monitors.
+        """
+
         self.in_spike_monitor.disable()
         self.out_spike_monitor.disable()
 
     def enable(self):
+        """
+        Enable the recording of data in the monitors.
+        """
+
         self.in_spike_monitor.enable()
         self.out_spike_monitor.enable()
 
     def step(self, on_grad: bool = True, scale: float = 1.0):
+        """
+        Perform a single step of the STDP learning rule.
+        
+        :param on_grad: If set to True, delta_w is added to the weight.grad of the synapse.
+                        If set to False, delta_w is returned.
+        :type on_grad: bool
+
+        :param scale: Scaling factor for delta_w.
+        :type scale: float
+
+        :return: delta_w if on_grad is False.
+        :rtype: torch.Tensor
+        """
+
         length = self.in_spike_monitor.records.__len__()
         delta_w = None
 
