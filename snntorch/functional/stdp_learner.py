@@ -21,8 +21,7 @@ def stdp_linear_single_step(
     f_post: Callable = lambda x: x,
 ):
     """
-    Single step of STDP learning rule for Linear layer.
-
+    Single step of the STDP learning rule for the Linear layer.
     """
 
     if trace_pre is None:
@@ -61,8 +60,7 @@ def mstdp_linear_single_step(
     f_post: Callable = lambda x: x,
 ):
     """
-    Single step of mSTDP learning rule for Linear layer.
-
+    Single step of the mSTDP learning rule for the Linear layer.
     """
 
     if trace_pre is None:
@@ -99,8 +97,7 @@ def mstdpet_linear_single_step(
     f_post: Callable = lambda x: x,
 ):
     """
-    Single step of mSTDP learning rule with Eligibility Trace for Linear layer.
-
+    Single step of the mSTDP learning rule with eligibility trace for the Linear layer.
     """
 
     if trace_pre is None:
@@ -131,8 +128,7 @@ def stdp_conv2d_single_step(
     f_post: Callable = lambda x: x,
 ):
     """
-    Single step of STDP learning rule for Conv2d layer.
-
+    Single step of the STDP learning rule for Conv2d layer.
     """
 
     if conv.dilation != (1, 1):
@@ -219,7 +215,7 @@ def stdp_conv1d_single_step(
     f_post: Callable = lambda x: x,
 ):
     """
-    Single step of STDP learning rule for Conv1d layer.
+    Single step of the STDP learning rule for Conv1d layer.
 
     """
 
@@ -321,7 +317,7 @@ class STDPLearner(nn.Module):
 
     def disable(self):
         """
-        Disable the recording of the data in the monitors.
+        Disable the recording of data in the monitors.
         
         """
 
@@ -339,13 +335,13 @@ class STDPLearner(nn.Module):
 
     def step(self, on_grad: bool = True, scale: float = 1.0):
         """
-        Perform a single step of STDP learning rule.
+        Perform a single step of the STDP learning rule.
         
-        :param on_grad: If True, the delta_w is added to the weight.grad of the synapse.
-                        If False, the delta_w is returned.
+        :param on_grad: If set to True, delta_w is added to the weight.grad of the synapse.
+                        If set to False, delta_w is returned.
         :type on_grad: bool
 
-        :param scale: Scaling factor for the delta_w.
+        :param scale: Scaling factor for delta_w.
         :type scale: float
 
         :return: delta_w if on_grad is False.
