@@ -216,7 +216,6 @@ def stdp_conv1d_single_step(
 ):
     """
     Single step of the STDP learning rule for Conv1d layer.
-
     """
 
     if conv.dilation != (1,):
@@ -308,7 +307,6 @@ class STDPLearner(nn.Module):
     def reset(self):
         """
         Reset the recorded data in the monitors.
-
         """
 
         super(STDPLearner, self).reset()
@@ -318,7 +316,6 @@ class STDPLearner(nn.Module):
     def disable(self):
         """
         Disable the recording of data in the monitors.
-        
         """
 
         self.in_spike_monitor.disable()
@@ -327,7 +324,6 @@ class STDPLearner(nn.Module):
     def enable(self):
         """
         Enable the recording of data in the monitors.
-        
         """
 
         self.in_spike_monitor.enable()
@@ -346,7 +342,6 @@ class STDPLearner(nn.Module):
 
         :return: delta_w if on_grad is False.
         :rtype: torch.Tensor
-        
         """
 
         length = self.in_spike_monitor.records.__len__()
