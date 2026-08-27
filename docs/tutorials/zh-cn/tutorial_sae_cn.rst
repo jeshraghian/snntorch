@@ -560,7 +560,7 @@
 
       # 设置 GPU
       dtype = torch.float
-      device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+      device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
       # 神经元和模拟参数
       spike_grad = surrogate.atan(alpha=2.0)# 替代梯度 fast_sigmoid(slope=25) 

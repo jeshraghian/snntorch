@@ -49,7 +49,11 @@ Coverage:
 
 @pytest.fixture(scope="module")
 def device():
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
 
 
 # Modules under test
@@ -313,7 +317,7 @@ def test_equivalence_vs_external_linear_and_stateleaky(device):
 
 
 def test_chunking_with_gd_internal_linear():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
     batch_size = 8
     chunk_size = 2

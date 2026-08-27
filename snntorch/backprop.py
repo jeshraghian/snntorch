@@ -50,8 +50,7 @@ def TBPTT(
                             nn.Linear(500, 10),
                             lif2).to(device)
 
-        device = torch.device("cuda") if torch.cuda.is_available() else
-        torch.device("cpu")
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
         num_steps = 100
 
         optimizer = torch.optim.Adam(net.parameters(), lr=5e-4,
@@ -147,7 +146,6 @@ def TBPTT(
         utils.is_lapicque: snn.Lapicque,
         utils.is_leaky: snn.Leaky,
         utils.is_linearleaky: snn.LinearLeaky,
-        utils.is_stateleaky: snn.StateLeaky,
         utils.is_synaptic: snn.Synaptic,
         utils.is_alpha: snn.Alpha,
         utils.is_rleaky: snn.RLeaky,
@@ -412,8 +410,7 @@ def BPTT(
                             nn.Linear(500, 10),
                             lif2).to(device)
 
-        device = torch.device("cuda") if torch.cuda.is_available() else
-        torch.device("cpu")
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
         num_steps = 100
 
         optimizer = torch.optim.Adam(net.parameters(), lr=5e-4,
@@ -524,8 +521,7 @@ def RTRL(
                             nn.Linear(500, 10),
                             lif2).to(device)
 
-        device = torch.device("cuda") if torch.cuda.is_available() else
-        torch.device("cpu")
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
         num_steps = 100
 
         optimizer = torch.optim.Adam(net.parameters(), lr=5e-4,

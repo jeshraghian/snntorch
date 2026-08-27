@@ -404,7 +404,7 @@ architecture: ``10×10-32c4-64c3-MaxPool2d(2)-10o``.
 
 ::
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
     
     # neuron and simulation parameters
     beta = 0.95

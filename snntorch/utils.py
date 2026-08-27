@@ -148,7 +148,6 @@ def reset(net):
     global is_alpha
     global is_leaky
     global is_linearleaky
-    global is_stateleaky
     global is_lapicque
     global is_rleaky
     global is_synaptic
@@ -159,7 +158,6 @@ def reset(net):
     is_alpha = False
     is_leaky = False
     is_linearleaky = False
-    is_stateleaky = False
     is_rleaky = False
     is_synaptic = False
     is_rsynaptic = False
@@ -177,7 +175,6 @@ def _layer_check(net):
 
     global is_leaky
     global is_linearleaky
-    global is_stateleaky
     global is_lapicque
     global is_synaptic
     global is_alpha

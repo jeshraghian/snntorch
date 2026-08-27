@@ -105,18 +105,18 @@ class ce_rate_loss(LossFunctions):
         log_softmax_fn = nn.LogSoftmax(dim=-1)
 
         if self.population_code:
+            pop_code = torch.zeros((num_steps, spk_out.size(1), self.num_classes)).to(device)
             for idx in range(self.num_classes):
-                spk_out[
-                        :,
-                        :,
-                        int(num_outputs * idx / self.num_classes) : int(
-                            num_outputs * (idx + 1) / self.num_classes
-                        ),
-                    ]
-            weights = torch.Tensor([self.weight[0] if i < int(num_outputs/self.num_classes) else self.weight[1] for i in range(num_outputs) ]).to(device)
-            loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=weights)
-        else:
-            loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=self.weight)
+                pop_code[:, :, idx] = spk_out[
+                    :,
+                    :,
+                    int(num_outputs * idx / self.num_classes) : int(
+                        num_outputs * (idx + 1) / self.num_classes
+                    )
+                # ].sum(-1)
+                ].mean(-1) # mean instead of sum for less extreme log-probs, smoother training
+            spk_out = pop_code    
+        loss_fn = nn.NLLLoss(reduction=self._intermediate_reduction(), weight=self.weight)
             
         log_p_y = log_softmax_fn(spk_out)
         loss_shape = (spk_out.size(1)) if self._intermediate_reduction() == 'none' else (1)

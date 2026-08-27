@@ -671,8 +671,8 @@
 
       #setup GPU
       dtype = torch.float
-      device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
+      device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+      
       # neuron and simulation parameters
       spike_grad = surrogate.atan(alpha=2.0)# alternate surrogate gradient fast_sigmoid(slope=25) 
       beta = 0.5 #decay rate of neurons 
