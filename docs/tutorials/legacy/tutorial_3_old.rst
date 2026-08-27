@@ -169,7 +169,7 @@ Much of the following code has already been explained in the first two tutorials
   beta = 0.8
 
   dtype = torch.float
-  device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+  device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
 2.2 Download MNIST Dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

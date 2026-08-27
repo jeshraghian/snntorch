@@ -119,3 +119,9 @@ wandb/
 # Performance plots
 third_party/
 snn_performance/
+
+# Ignore all files in the cache directories
+examples/data/
+examples/tmp/data/
+tmp/data/
+examples/cache

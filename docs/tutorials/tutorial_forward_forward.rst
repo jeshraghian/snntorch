@@ -42,7 +42,7 @@ following cell and pressing ``Shift+Enter``.
 
     import torch, torch.nn as nn
     import snntorch as snn
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
 1. The MNIST Dataset
 --------------------
