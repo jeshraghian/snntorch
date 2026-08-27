@@ -1,8 +1,3 @@
-examples/data/
-examples/tmp/data/
-tmp/data/
-examples/cache
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -17,7 +12,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-env/
+env*/
 build/
 develop-eggs/
 dist/
@@ -120,3 +115,13 @@ snnenv-home/
 
 # wandb
 wandb/
+
+# Performance plots
+third_party/
+snn_performance/
+
+# Ignore all files in the cache directories
+examples/data/
+examples/tmp/data/
+tmp/data/
+examples/cache
