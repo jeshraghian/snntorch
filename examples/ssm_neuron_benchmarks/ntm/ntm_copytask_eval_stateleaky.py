@@ -33,7 +33,7 @@ def get_least_busy_gpu() -> int:
         return 0
 
 
-DEVICE = f"cuda:{get_least_busy_gpu()}" if torch.cuda.is_available() else "cpu"
+DEVICE = f"cuda:{get_least_busy_gpu()}" else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
 
 class StateLeakyCopyModel(nn.Module):
