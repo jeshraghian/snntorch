@@ -57,6 +57,14 @@ State Quantization
    :members:
    :undoc-members:
    :show-inheritance:
+
+STDP Learner
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: snntorch.functional.stdp_learner
+   :members:
+   :undoc-members:
+   :show-inheritance:
    
 Probe
 ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -210,7 +210,7 @@ snnTorch 的默认方法（截至 v0.6.0）是用反正切函数平滑 Heaviside
     
           @staticmethod
           def backward(ctx, grad_output):
-              (spk,) = ctx.saved_tensors  # retrieve the membrane potential 
+              (mem,) = ctx.saved_tensors  # retrieve the membrane potential 
               grad = 1 / (1 + (np.pi * mem).pow_(2)) * grad_output # Eqn 5
               return grad
 
