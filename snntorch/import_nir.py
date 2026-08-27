@@ -232,9 +232,9 @@ def _nir_to_snntorch_module(
         r = np.unique(node.r)[0]
         assert r == 1, "r != 1 not supported"
         mod = snn.Leaky(
-            beta=0.9,
+            beta=0,
             threshold=vthr * r,
-            init_hidden=False,
+            init_hidden=init_hidden,
             reset_delay=False,
         )
         return mod
