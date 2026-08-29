@@ -308,7 +308,7 @@ seperating the data we will transform them using ``.ToFrame()`` as well.
     frame_transform = transforms.Compose([transforms.ToFrame(sensor_size=sensor_size, time_window=20000)])
 
 The following code reads out the a portion of the dataset, transforms
-the events using ``frame_transform`` defined above, and then seperates
+the events using ``frame_transform`` defined above, and then separates
 the data into a trainset and a testset. On top of that, ``.ToFrame()``
 is applied each time. Thus, this code snippet might take a few minutes.
 
