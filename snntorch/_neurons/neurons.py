@@ -229,7 +229,7 @@ class SpikingNeuron(nn.Module):
 
     @staticmethod
     def _surrogate_bypass(input_):
-        return (input_ > 0).float()
+        return (input_ > 0).to(input_.dtype)
 
 
 class LIF(SpikingNeuron):
