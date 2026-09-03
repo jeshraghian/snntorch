@@ -9,7 +9,7 @@ class StateQuant(torch.autograd.Function):
     def forward(ctx, input_, levels):
 
         device = input_.device
-        levels = levels.to(device)
+        levels = levels.to(device=device, dtype=input_.dtype)
         size = input_.size()
         input_ = input_.flatten()
 
