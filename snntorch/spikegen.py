@@ -300,7 +300,7 @@ def latency(
 
         spike_data = torch.zeros(
             (tuple([num_steps] + list(spike_time.size()))),
-            dtype=dtype,
+            dtype=data.dtype,
             device=device,
         )
 
@@ -1357,10 +1357,8 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
 
     device = spike_time.device
 
-    spike_time = torch.round(
-        spike_time
-    ).float()  # Needs to be float as 0s and out-of-bounds spikes
-    # are set to 0.5
+    # Needs to be rounded, as 0s and out-of-bounds spikes are set to 0.5
+    spike_time = torch.round(spike_time).to(spike_time.dtype)
 
     spike_time[
         spike_time > num_steps
@@ -1369,7 +1367,7 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
 
     interpolated_targets = torch.ones(
         (tuple([num_steps] + list(spike_time.size()))),
-        dtype=dtype,
+        dtype=spike_time.dtype,
         device=device,
     )
 
