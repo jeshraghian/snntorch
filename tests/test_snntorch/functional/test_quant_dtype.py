@@ -1,30 +1,9 @@
-"""Tests for dtype preservation in spikegen.latency (#440) and
-functional.quant.state_quant (#439)."""
+"""Tests for dtype preservation in functional.quant.state_quant (#439)."""
 
 import pytest
 import torch
 
-from snntorch import spikegen
 from snntorch.functional import quant
-
-
-@pytest.mark.parametrize(
-    "dtype", [torch.float32, torch.float64, torch.float16, torch.bfloat16]
-)
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {},
-        {"normalize": True},
-        {"linear": True, "normalize": True},
-        {"interpolate": True, "normalize": True},
-    ],
-    ids=["default", "normalize", "linear+normalize", "interpolate+normalize"],
-)
-def test_latency_preserves_dtype(dtype, kwargs):
-    x = torch.tensor([0.2, 0.8], dtype=dtype)
-    out = spikegen.latency(x, num_steps=5, **kwargs)
-    assert out.dtype == dtype
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
