@@ -10,19 +10,19 @@ class Leaky(LIF):
     Membrane potential decays exponentially with rate beta.
     For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
 
-    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
-    `threshold` subtracted from it whenever the neuron emits a spike:
+    If `reset_mechanism = "subtract"` or `"subtract_beta"`, then :math:`U[t+1]` will have
+    `threshold` or `threshold * beta` subtracted from it whenever the neuron emits a spike:
 
     .. math::
 
-            U[t+1] = βU[t] + I_{\\rm in}[t+1] - RU_{\\rm thr}
+            U[t+1] = βU[t] + I_{\\rm in}[t+1] - [RU_{\\rm thr} \\text{ or } βRU_{\\rm thr}]
 
     If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
     whenever the neuron emits a spike:
 
     .. math::
 
-            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - R(βU[t] + I_{\\rm in}[t+1])
+            U[t+1] = βU[t] + I_{\\rm in}[t+1] - R(βU[t] + I_{\\rm in}[t+1])
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
@@ -96,7 +96,7 @@ class Leaky(LIF):
 
     :param reset_mechanism: Defines the reset mechanism applied to \
     :math:`mem` each time the threshold is met. Reset-by-subtraction: \
-        "subtract", reset-to-zero: "zero", none: "none". Defaults to "subtract"
+        "subtract" or "subtract_beta", reset-to-zero: "zero", none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden state :math:`mem` is quantized
@@ -171,14 +171,6 @@ class Leaky(LIF):
         )
 
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
-
         self.reset_delay = reset_delay
 
     def _init_mem(self):
@@ -206,8 +198,9 @@ class Leaky(LIF):
         if not self.mem.shape == input_.shape:
             self.mem = torch.zeros_like(input_, device=self.mem.device)
 
-        self.reset = self.mem_reset(self.mem)
-        self.mem = self.state_function(input_)
+        reset = self.mem_reset(self.mem)  # S[t]
+        self.mem = self._base_state_function(input_)  # U[t+1] before reset
+        self.mem = self._reset_function(reset)  # U[t+1] after reset
 
         if self.state_quant:
             self.mem = self.state_quant(self.mem)
@@ -217,37 +210,40 @@ class Leaky(LIF):
                 self.mem.size(0), self.mem
             )  # batch_size
         else:
-            spk = self.fire(self.mem)
+            spk = self.fire(self.mem)  # S[t+1]
 
         if not self.reset_delay:
             do_reset = (
-                spk / self.graded_spikes_factor - self.reset
+                spk / self.graded_spikes_factor - reset
             )  # avoid double reset
-            if self.reset_mechanism_val == 0:  # reset by subtraction
-                self.mem = self.mem - do_reset * self.threshold
-            elif self.reset_mechanism_val == 1:  # reset to zero
-                self.mem = self.mem - do_reset * self.mem
+            self.mem = self._reset_function(do_reset)
 
-        if self.output:
-            return spk, self.mem
-        elif self.init_hidden:
+        if self.init_hidden and not self.output:
             return spk
         else:
             return spk, self.mem
 
     def _base_state_function(self, input_):
-        base_fn = self.beta.clamp(0, 1) * self.mem + input_
-        return base_fn
+        return self.beta.clamp(0, 1) * self.mem + input_
 
-    def _base_sub(self, input_):
-        return self._base_state_function(input_) - self.reset * self.threshold
+    def _reset_sub_beta(self, reset):  # reset by sub. * beta, softer reset
+        return self.mem - reset * self.threshold * self.beta.clamp(0, 1)
 
-    def _base_zero(self, input_):
-        self.mem = (1 - self.reset) * self.mem
-        return self._base_state_function(input_)
+    def _reset_sub(self, reset):  # reset by subtraction, soft reset
+        return self.mem - reset * self.threshold
 
-    def _base_int(self, input_):
-        return self._base_state_function(input_)
+    def _reset_zero(self, reset):  # reset to zero, hard reset
+        return self.mem - reset * self.mem
+    
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:   # soft reset
+            self._reset_function = self._reset_sub
+        elif self.reset_mechanism_val == 1: # hard reset
+            self._reset_function = self._reset_zero
+        elif self.reset_mechanism_val == 2: # no reset
+            self._reset_function = lambda reset: self.mem
+        elif self.reset_mechanism_val == 3: # softer reset
+            self._reset_function = self._reset_sub_beta
 
     @classmethod
     def detach_hidden(cls):
