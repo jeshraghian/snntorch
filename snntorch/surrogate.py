@@ -301,10 +301,11 @@ class Sigmoid(torch.autograd.Function):
     def backward(ctx, grad_output):
         (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
-        # equivalent to slope * exp(-slope * input_) /
-        # (exp(-slope * input_) + 1) ** 2, but numerically stable:
-        # the exponential form overflows to inf / inf = nan once
-        # -slope * input_ exceeds ~88
+        # equivalent to
+        #   slope * exp(-slope * input_) / (exp(-slope * input_) + 1) ** 2
+        # but numerically stable:
+        # the exponential form overflows to inf / inf = nan once the absolute
+        # value of -slope * input_ exceeds ~88
         sig = torch.sigmoid(ctx.slope * input_)
         grad = grad_input * ctx.slope * sig * (1.0 - sig)
         return grad, None

@@ -10,7 +10,7 @@ from snntorch import surrogate
 class TestSigmoidSurrogate:
     def test_sigmoid_backward_no_nan(self):
         # issue #427: exp(-slope * input_) overflows to inf for
-        # slope * input_ < ~-88, giving inf / inf = nan gradients
+        # slope * input_ < ~-88 and gives inf / inf = nan gradients
         x = torch.tensor([-5.0], requires_grad=True)
         spk = surrogate.sigmoid()(x)
         spk.backward()
@@ -24,9 +24,8 @@ class TestSigmoidSurrogate:
         assert torch.isfinite(x.grad).all()
 
     def test_sigmoid_backward_matches_analytical(self):
-        # where the exponential form is stable, the rewritten gradient
-        # must agree with slope * exp(-slope*u) / (exp(-slope*u) + 1)**2.
-        # compared in float64 to keep the reference itself precise
+        # where the exponential form is stable, the rewritten gradient must
+        # agree with slope * exp(-slope * u) / (exp(-slope * u) + 1) ** 2
         slope = 25
         x = torch.linspace(
             -0.5, 0.5, 101, dtype=torch.float64, requires_grad=True
@@ -36,6 +35,7 @@ class TestSigmoidSurrogate:
 
         exp_term = torch.exp(-slope * x.detach())
         expected = slope * exp_term / (exp_term + 1) ** 2
+        # comparison uses float64 to keep the reference itself precise
         assert torch.allclose(x.grad, expected, rtol=1e-9, atol=1e-12)
 
     def test_sigmoid_backward_saturates_to_zero(self):
