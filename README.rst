@@ -53,11 +53,11 @@ snnTorch contains the following components:
    * - `snntorch <https://snntorch.readthedocs.io/en/latest/snntorch.html>`_
      - a spiking neuron library like torch.nn, deeply integrated with autograd
    * - `snntorch.export_nir <https://snntorch.readthedocs.io/en/latest/snntorch.export_nir.html>`_
-     - enables exporting to other SNN libraries via `NIR <https://nnir.readthedocs.io/en/latest/>`_
+     - enables exporting to other SNN libraries via `NIR <https://neuroir.org>`_
    * - `snntorch.functional <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html>`_
      - common arithmetic operations on spikes, e.g., loss, regularization etc.
    * - `snntorch.import_nir <https://snntorch.readthedocs.io/en/latest/snntorch.import_nir.html>`_
-     - enables importing from other SNN libraries via `NIR <https://nnir.readthedocs.io/en/latest/>`_
+     - enables importing from other SNN libraries via `NIR <https://neuroir.org>`_
    * - `snntorch.spikegen <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`_
      - a library for spike generation and data conversion
    * - `snntorch.spikeplot <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`_
