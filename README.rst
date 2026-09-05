@@ -38,7 +38,7 @@ computation and applying it to networks of spiking neurons. Pre-designed spiking
 
 If you like this project, please consider starring ⭐ this repo as it is the easiest and best way to support it.
 
-If you have issues, comments, or are looking for advice on training spiking neural networks, you can open an issue, a discussion, or chat in our `discord <https://discord.gg/cdZb5brajb>`_ channel.
+If you have issues or comments, or are looking for advice on training spiking neural networks, you can open an issue or a discussion, or chat in our `Discord <https://discord.gg/cdZb5brajb>`_ server.
 
 snnTorch Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^
