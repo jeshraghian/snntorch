@@ -38,7 +38,7 @@ computation and applying it to networks of spiking neurons. Pre-designed spiking
 
 If you like this project, please consider starring ⭐ this repo as it is the easiest and best way to support it.
 
-If you have issues, comments, or are looking for advice on training spiking neural networks, you can open an issue, a discussion, or chat in our `discord <https://discord.gg/cdZb5brajb>`_ channel.
+If you have issues or comments, or are looking for advice on training spiking neural networks, you can open an issue or a discussion, or chat in our `Discord <https://discord.gg/cdZb5brajb>`_ server.
 
 snnTorch Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -53,11 +53,11 @@ snnTorch contains the following components:
    * - `snntorch <https://snntorch.readthedocs.io/en/latest/snntorch.html>`_
      - a spiking neuron library like torch.nn, deeply integrated with autograd
    * - `snntorch.export_nir <https://snntorch.readthedocs.io/en/latest/snntorch.export_nir.html>`_
-     - enables exporting to other SNN libraries via `NIR <https://nnir.readthedocs.io/en/latest/>`_
+     - enables exporting to other SNN libraries via `NIR <https://neuroir.org>`_
    * - `snntorch.functional <https://snntorch.readthedocs.io/en/latest/snntorch.functional.html>`_
      - common arithmetic operations on spikes, e.g., loss, regularization etc.
    * - `snntorch.import_nir <https://snntorch.readthedocs.io/en/latest/snntorch.import_nir.html>`_
-     - enables importing from other SNN libraries via `NIR <https://nnir.readthedocs.io/en/latest/>`_
+     - enables importing from other SNN libraries via `NIR <https://neuroir.org>`_
    * - `snntorch.spikegen <https://snntorch.readthedocs.io/en/latest/snntorch.spikegen.html>`_
      - a library for spike generation and data conversion
    * - `snntorch.spikeplot <https://snntorch.readthedocs.io/en/latest/snntorch.spikeplot.html>`_
