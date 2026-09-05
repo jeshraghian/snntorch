@@ -225,7 +225,15 @@ class SpikingNeuron(nn.Module):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are global variables."""
         for state in args:
-            state = torch.zeros_like(state)
+            # `state = torch.zeros_like(state)` only rebinds the local
+            # loop name, leaving the caller's tensor untouched. Zero the
+            # storage in place instead. `.detach()` (a storage-sharing
+            # view) is used rather than a bare `state.zero_()` so this
+            # also works on a grad-requiring leaf -- e.g. an
+            # `init_leaky()` hidden state reset before the first forward
+            # pass, where `state.zero_()` would raise "a leaf Variable
+            # that requires grad is being used in an in-place operation".
+            state.detach().zero_()
 
     @staticmethod
     def _surrogate_bypass(input_):
