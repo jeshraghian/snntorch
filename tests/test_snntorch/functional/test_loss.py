@@ -90,6 +90,20 @@ class TestLoss:
             unreduced_loss.mean().item(), reduced_loss.item()
         )
 
+    def test_ce_count_loss_population_code_dtype(self):
+        # population code should preserve the input dtype (float64)
+        loss_fn = sf.ce_count_loss(
+            population_code=True,
+            num_classes=2,
+            weight=torch.tensor([1.0, 2.0], dtype=torch.float64),
+        )
+        spike_predicted = torch.randn(4, 1, 4, dtype=torch.float64)
+        targets = torch.tensor([1])
+
+        loss = loss_fn(spike_predicted, targets)
+
+        assert loss.dtype == torch.float64
+
     def test_ce_count_loss_weighted(
         self, spike_predicted_, targets_labels_, class_weights_
     ):
