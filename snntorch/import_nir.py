@@ -1,8 +1,11 @@
+from copy import deepcopy
+from functools import partial
 import numpy as np
 import nir
 import nirtorch
 import torch
 import snntorch as snn
+
 
 def _create_rnn_subgraph(
     graph: nir.NIRGraph, lif_nk: str, w_nk: str
@@ -162,7 +165,7 @@ def _parse_rnn_subgraph(graph: nir.NIRGraph) -> (nir.NIRNode, nir.NIRNode, int):
 
 
 def _nir_to_snntorch_module(
-    node: nir.NIRNode, hack_w_scale=True, init_hidden=False
+    node: nir.NIRNode, dt, hack_w_scale=True, init_hidden=False
 ) -> torch.nn.Module:
     """Convert a NIR node to a snnTorch module. This function is used by the import_from_nir function.
 
@@ -220,7 +223,7 @@ def _nir_to_snntorch_module(
             kernel_size=tuple(node.kernel_size),
             stride=tuple(node.stride),
             padding=tuple(node.padding),
-           # divisor_override=1,
+            # divisor_override=1,
         )
 
     elif isinstance(node, nir.IF):
@@ -240,8 +243,6 @@ def _nir_to_snntorch_module(
         return mod
 
     elif isinstance(node, nir.LIF):
-        dt = 1e-4
-
         assert np.allclose(node.v_leak, 0.0), "v_leak not supported"
         assert (
             np.unique(node.v_threshold).size == 1
@@ -276,28 +277,26 @@ def _nir_to_snntorch_module(
         )
 
     elif isinstance(node, nir.CubaLIF):
-        dt = 1e-4
-
         assert np.allclose(node.v_leak, 0), "v_leak not supported"
         assert np.allclose(
             node.r, node.tau_mem / dt
         ), "r not supported in CubaLIF"
+        assert np.allclose(
+            node.w_in, node.w_in
+        ), "CubaLIF w_in must be the same for all neurons"
 
         alpha = 1 - (dt / node.tau_syn)
         beta = 1 - (dt / node.tau_mem)
         vthr = node.v_threshold
-        w_scale = node.w_in * (dt / node.tau_syn)
 
-        if not np.allclose(w_scale, 1.0):
+        if not np.allclose(node.w_in, 1.0):
             if hack_w_scale:
-                vthr = vthr / w_scale
+                vthr = vthr / node.w_in[0]
                 print("[warning] scaling weights to avoid scaling inputs")
-                print(
-                    f"w_scale: {w_scale}, w_in: {node.w_in}, dt: {dt}, tau_syn: {node.tau_syn}"
-                )
+                print(f"w_in: {node.w_in[0]}")
             else:
                 raise NotImplementedError(
-                    "w_scale must be 1, or the same for all neurons"
+                    "w_in must be 1, or the same for all neurons"
                 )
 
         assert (
@@ -322,10 +321,10 @@ def _nir_to_snntorch_module(
         lif_node, wrec_node, lif_size = _parse_rnn_subgraph(node)
 
         if isinstance(lif_node, nir.LIF):
-            dt = 1e-4
-
             assert np.allclose(lif_node.v_leak, 0), "v_leak not supported"
-            assert np.allclose(lif_node.r, lif_node.tau / dt), "r not supported in LIF"
+            assert np.allclose(
+                lif_node.r, lif_node.tau / dt
+            ), "r not supported in LIF"
 
             beta = 1 - (dt / lif_node.tau)
             vthr = lif_node.v_threshold
@@ -342,7 +341,9 @@ def _nir_to_snntorch_module(
                         "w_scale must be 1, or the same for all neurons"
                     )
 
-            assert np.unique(vthr).size == 1, "LIF v_thr must be same for all neurons"
+            assert (
+                np.unique(vthr).size == 1
+            ), "LIF v_thr must be same for all neurons"
 
             diagonal = np.array_equal(
                 wrec_node.weight, np.diag(np.diag(wrec_node.weight))
@@ -352,7 +353,9 @@ def _nir_to_snntorch_module(
                 beta = float(np.unique(beta)[0])
 
             if diagonal:
-                V = torch.from_numpy(np.diag(wrec_node.weight)).to(dtype=torch.float32)
+                V = torch.from_numpy(np.diag(wrec_node.weight)).to(
+                    dtype=torch.float32
+                )
             else:
                 V = None
 
@@ -376,35 +379,36 @@ def _nir_to_snntorch_module(
                         rleaky.recurrent.bias
                     )
             else:
-                rleaky.recurrent.V.data = torch.diagonal(torch.Tensor(wrec_node.weight))
+                rleaky.recurrent.V.data = torch.diagonal(
+                    torch.Tensor(wrec_node.weight)
+                )
 
             return rleaky
 
         elif isinstance(lif_node, nir.CubaLIF):
-            dt = 1e-4
-
             assert np.allclose(lif_node.v_leak, 0), "v_leak not supported"
             assert np.allclose(
                 lif_node.r, lif_node.tau_mem / dt
             ), "r not supported in CubaLIF"
+            assert np.allclose(
+                lif_node.w_in, lif_node.w_in
+            ), "CubaLIF w_in must be the same for all neurons"
 
             alpha = 1 - (dt / lif_node.tau_syn)
             beta = 1 - (dt / lif_node.tau_mem)
             vthr = lif_node.v_threshold
-            w_scale = lif_node.w_in * (dt / lif_node.tau_syn)
 
-            if not np.allclose(w_scale, 1.0):
+            if not np.allclose(lif_node.w_in, 1.0):
                 if hack_w_scale:
-                    vthr = vthr / w_scale
+                    vthr = vthr / lif_node.w_in[0]
                     print(
-                        f"[warning] scaling weights to avoid scaling inputs. w_scale: {w_scale}"
+                        "[warning] scaling threshold voltage to avoid scaling "
+                        f"inputs. w_in: {lif_node.w_in[0]}"
                     )
-                    print(
-                        f"w_in: {lif_node.w_in}, dt: {dt}, tau_syn: {lif_node.tau_syn}"
-                    )
+                    print(f"w_in: {lif_node.w_in}")
                 else:
                     raise NotImplementedError(
-                        "w_scale must be 1, or the same for all neurons"
+                        "w_in must be 1, or the same for all neurons"
                     )
 
             assert (
@@ -468,7 +472,7 @@ def _nir_to_snntorch_module(
         return None
 
 
-def import_from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
+def import_from_nir(graph: nir.NIRGraph, dt: float = 1e-4) -> torch.nn.Module:
     """Convert a NIRGraph to a snnTorch module. This function is the inverse of export_to_nir.
     It proceeds by wrapping any recurrent connections into NIR sub-graphs, then converts each
     NIR module into the equivalent snnTorch module, and wraps them into a torch.nn.Module
@@ -504,17 +508,21 @@ def import_from_nir(graph: nir.NIRGraph) -> torch.nn.Module:
     :rtype: torch.nn.Module
     """
     # find valid RNN subgraphs, and replace them with a single NIRGraph node
+    graph = deepcopy(graph)
     graph = _replace_rnn_subgraph_with_nirgraph(graph)
     # convert the NIR graph into a torch.fx.GraphModule using the newer
     # nirtorch.nir_to_torch API to avoid issues with strict type checking
+
+    _convert = partial(_nir_to_snntorch_module, dt=dt, init_hidden=True)
     node_map = {
-        nir.Affine: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
-        nir.Linear: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
-        nir.Conv2d: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
-        nir.Flatten: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
-        nir.AvgPool2d: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
-        nir.IF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
-        nir.LIF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
-        nir.CubaLIF: lambda n: _nir_to_snntorch_module(n, init_hidden=True),
+        nir.Affine: _convert,
+        nir.Linear: _convert,
+        nir.Conv2d: _convert,
+        nir.Flatten: _convert,
+        nir.AvgPool2d: _convert,
+        nir.IF: _convert,
+        nir.LIF: _convert,
+        nir.CubaLIF: _convert,
+        nir.NIRGraph: _convert,
     }
     return nirtorch.nir_to_torch(graph, node_map)
