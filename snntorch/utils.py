@@ -141,9 +141,16 @@ def valid_split(ds_train, ds_val, split, seed=0):
 
 
 def reset(net):
-    """Check for the types of LIF neurons contained in net.
-    Reset their hidden parameters to zero and detach them
-    from the current computation graph."""
+    """Reset the hidden states (and detach them from the computation graph)
+    of every snnTorch neuron contained in ``net``.
+
+    Only the neurons that actually belong to ``net`` are touched, so calling
+    :func:`reset` on one network never clears the hidden states of a separate
+    network that happens to use the same neuron class.
+
+    :param net: Network (or module) containing snnTorch neuron layers.
+    :type net: torch.nn.Module
+    """
 
     global is_alpha
     global is_leaky
@@ -167,7 +174,14 @@ def reset(net):
 
     _layer_check(net=net)
 
-    _layer_reset()
+    # Reset hidden states by iterating over the modules in *net* directly,
+    # rather than via the class-level reset_hidden (which iterates over
+    # cls.instances — i.e. ALL instances of that class across all networks).
+    for module in net.modules():
+        if isinstance(module, (snn.Lapicque, snn.Synaptic, snn.Leaky,
+                               snn.Alpha, snn.RLeaky, snn.RSynaptic,
+                               snn.SConv2dLSTM, snn.SLSTM)):
+            module.reset_mem()
 
 
 def _layer_check(net):
