@@ -94,7 +94,11 @@ def _population_code(spk_out, num_classes, num_outputs):
     # if spk_out.is_cuda:
     #     device = "cuda"
     device = spk_out.device
-    pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(device)
+    pop_code = torch.zeros(
+        tuple([spk_out.size(1)] + [num_classes]),
+        dtype=spk_out.dtype,
+        device=device,
+    )
     for idx in range(num_classes):
         pop_code[:, idx] = (
             spk_out[
