@@ -42,7 +42,7 @@ class LossFunctions:
                 f"of num_classes {num_classes}."
             )
         device = spk_out.device
-        pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(
+        pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes]), dtype=spk_out.dtype).to(
             device
         )
         for idx in range(num_classes):
@@ -105,7 +105,7 @@ class ce_rate_loss(LossFunctions):
         log_softmax_fn = nn.LogSoftmax(dim=-1)
 
         if self.population_code:
-            pop_code = torch.zeros((num_steps, spk_out.size(1), self.num_classes)).to(device)
+            pop_code = torch.zeros((num_steps, spk_out.size(1), self.num_classes), dtype=spk_out.dtype).to(device)
             for idx in range(self.num_classes):
                 pop_code[:, :, idx] = spk_out[
                     :,
@@ -120,7 +120,7 @@ class ce_rate_loss(LossFunctions):
             
         log_p_y = log_softmax_fn(spk_out)
         loss_shape = (spk_out.size(1)) if self._intermediate_reduction() == 'none' else (1)
-        loss = torch.zeros(loss_shape, dtype=dtype, device=device)
+        loss = torch.zeros(loss_shape, dtype=spk_out.dtype, device=device)
 
         for step in range(num_steps):
             loss += loss_fn(log_p_y[step], targets)
