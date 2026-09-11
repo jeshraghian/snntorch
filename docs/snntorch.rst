@@ -28,6 +28,10 @@ At present, the neurons available in :mod:`snntorch` are variants of the Leaky I
 Neuron models that accelerate training require passing data in parallel. Available neurons include:
 * **LeakyParallel** - 1st Order Leaky Integrate-and-Fire Neuron
 
+Connection primitives:
+
+* **SynapticDelay** - per-channel axonal / synaptic transmission delay with an optionally learnable delay time. Drop it between a connection and a neuron (``fc -> SynapticDelay -> Leaky``) to give a pathway a lag. Works step-by-step or on a whole ``(time, batch, channels)`` sequence, and the fractional delay is realised by interpolation so it can be trained by backprop.
+
 Additional models include spiking-LSTMs and spiking-ConvLSTMs:
 
 * **SLSTM** - Spiking long short-term memory cell with state-thresholding 
