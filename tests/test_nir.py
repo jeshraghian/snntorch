@@ -3,6 +3,7 @@
 """Tests for NIR import and export."""
 
 import nir
+import numpy as np
 import pytest
 import snntorch as snn
 from snntorch.export_nir import export_to_nir
@@ -217,6 +218,50 @@ class TestNIR:
         if isinstance(out, tuple):
             out = out[0]
         assert out.shape == (1, 1), out.shape
+
+    def test_import_if_node_is_ideal_integrator(self):
+        """Regression test for issue #416.
+
+        NIR defines the IF primitive as an ideal integrate-and-fire
+        neuron, v[t+1] = v[t] + r * i[t], so it must be imported as a
+        leak-free ``snn.Leaky`` with ``beta = 1``. Previously the import
+        hardcoded a leak (``beta=0.9``, later ``beta=0``), which silently
+        changed the neuron dynamics of imported models.
+        """
+        n = 3
+        graph = nir.NIRGraph(
+            nodes={
+                "input": nir.Input(input_type=np.array([n])),
+                "if": nir.IF(r=np.ones(n), v_threshold=np.ones(n)),
+                "output": nir.Output(output_type=np.array([n])),
+            },
+            edges=[("input", "if"), ("if", "output")],
+        )
+        net = import_from_nir(graph)
+
+        leaky_mods = [m for m in net.modules() if isinstance(m, snn.Leaky)]
+        assert len(leaky_mods) == 1, "expected exactly one imported neuron"
+        lif = leaky_mods[0]
+
+        # An ideal integrator has no leak.
+        assert torch.all(lif.beta == 1.0), lif.beta
+
+        # Sub-threshold, the membrane must accumulate linearly:
+        # v[t] = t * i for constant input i (no decay between steps).
+        x = 0.0625 * torch.ones(1, n)
+        lif.reset_mem()
+        for step in range(1, 5):
+            lif(x)
+            assert torch.allclose(lif.mem, step * x), (step, lif.mem)
+
+        # A constant sub-threshold input must eventually accumulate up to
+        # the threshold and emit a spike. With a leak (beta < 1), the
+        # membrane would plateau below threshold and never fire.
+        lif.reset_mem()
+        spk_count = torch.zeros(1, n)
+        for _ in range(20):
+            spk_count += lif(x)
+        assert torch.all(spk_count >= 1), spk_count
 
     def test_import_conv_nir(self):
         pytest.xfail("conv2d import unsupported")
