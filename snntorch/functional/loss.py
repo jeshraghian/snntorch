@@ -42,8 +42,10 @@ class LossFunctions:
                 f"of num_classes {num_classes}."
             )
         device = spk_out.device
-        pop_code = torch.zeros(tuple([spk_out.size(1)] + [num_classes])).to(
-            device
+        pop_code = torch.zeros(
+            tuple([spk_out.size(1)] + [num_classes]),
+            dtype=spk_out.dtype,
+            device=device,
         )
         for idx in range(num_classes):
             pop_code[:, idx] = (
