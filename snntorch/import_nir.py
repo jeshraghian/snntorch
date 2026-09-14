@@ -234,8 +234,14 @@ def _nir_to_snntorch_module(
         vthr = np.unique(node.v_threshold)[0]
         r = np.unique(node.r)[0]
         assert r == 1, "r != 1 not supported"
+        # NIR defines IF as an ideal integrate-and-fire neuron:
+        # v[t+1] = v[t] + r * i[t], i.e. an integrator with no leak.
+        # snn.Leaky computes mem[t+1] = beta * mem[t] + input[t], so the
+        # equivalent module is a Leaky neuron with beta = 1 (leak-free).
+        # This also matches the LIF branch below, where
+        # beta = 1 - dt / tau -> 1 as the leak vanishes (tau -> inf).
         mod = snn.Leaky(
-            beta=0,
+            beta=1.0,
             threshold=vthr * r,
             init_hidden=init_hidden,
             reset_delay=False,
