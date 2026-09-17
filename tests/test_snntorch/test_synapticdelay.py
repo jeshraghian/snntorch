@@ -24,7 +24,7 @@ class TestSynapticDelay:
         d.reset_delay()
         out = torch.stack([d(impulse[t]) for t in range(impulse.shape[0])])
         nz = (out.abs() > 1e-6).nonzero()[:, 0].tolist()
-        assert nz == [5]                      # impulse at 2, delayed by 3
+        assert nz == [5]  # impulse at 2, delayed by 3
         assert out[5, 0, 0] == pytest.approx(1.0)
 
     def test_integer_delay_sequence_mode(self, impulse):
@@ -60,7 +60,8 @@ class TestSynapticDelay:
             max_delay=6, delay=2.25, step_mode=False, kernel="linear"
         )
         out = d(x).squeeze()
-        # impulse at t=1, delay 2.25 -> mass split across t=3 (0.75) and t=4 (0.25)
+        # impulse at t=1, delay 2.25 -> mass split across t=3 (0.75)
+        # and t=4 (0.25)
         assert out[3] == pytest.approx(0.75, abs=1e-5)
         assert out[4] == pytest.approx(0.25, abs=1e-5)
         assert out.sum() == pytest.approx(1.0, abs=1e-5)
@@ -117,15 +118,17 @@ class TestSynapticDelay:
     # ---------------------------------------------------------------- #
     def test_per_channel_delay_vector(self):
         d = snn.SynapticDelay(
-            max_delay=8, delay=torch.tensor([1.0, 4.0]), channels=2,
+            max_delay=8,
+            delay=torch.tensor([1.0, 4.0]),
+            channels=2,
             step_mode=False,
         )
         x = torch.zeros(12, 1, 2)
         x[0, 0, 0] = 1.0
         x[0, 0, 1] = 1.0
         out = d(x).squeeze(1)
-        assert out[1, 0] == pytest.approx(1.0)     # ch0 delayed 1
-        assert out[4, 1] == pytest.approx(1.0)     # ch1 delayed 4
+        assert out[1, 0] == pytest.approx(1.0)  # ch0 delayed 1
+        assert out[4, 1] == pytest.approx(1.0)  # ch1 delayed 4
 
     def test_rejects_delay_out_of_range(self):
         with pytest.raises(ValueError):
@@ -144,7 +147,7 @@ class TestSynapticDelay:
     def test_step_mode_shape_guard(self):
         d = snn.SynapticDelay(max_delay=4, delay=1.0, step_mode=True)
         with pytest.raises(ValueError):
-            d(torch.randn(5, 2, 3))          # 3-D into step mode
+            d(torch.randn(5, 2, 3))  # 3-D into step mode
 
     def test_reset_delay_clears_buffer(self, impulse):
         d = snn.SynapticDelay(max_delay=8, delay=3)
@@ -153,7 +156,7 @@ class TestSynapticDelay:
             d(impulse[t])
         d.reset_delay()
         out = torch.stack([d(torch.zeros(1, 1)) for _ in range(6)])
-        assert out.abs().max() == pytest.approx(0.0)   # no leftover state
+        assert out.abs().max() == pytest.approx(0.0)  # no leftover state
 
     # ---------------------------------------------------------------- #
     #  composition with neurons  (Bar 5)
@@ -180,7 +183,10 @@ class TestSynapticDelay:
         torch.manual_seed(0)
         fc = torch.nn.Linear(3, 5)
         delay = snn.SynapticDelay(
-            max_delay=6, delay=2.0, channels=5, learn_delay=True,
+            max_delay=6,
+            delay=2.0,
+            channels=5,
+            learn_delay=True,
             step_mode=False,
         )
         lif = snn.LeakyParallel(input_size=5, hidden_size=5, beta=0.9)
