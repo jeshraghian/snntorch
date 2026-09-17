@@ -170,7 +170,11 @@ class CustomNeuron(SpikingNeuron):
 
 
 def neuron_from_equations(
-    name, state_names, update_fn, spike_state=None, reset_fn=None,
+    name,
+    state_names,
+    update_fn,
+    spike_state=None,
+    reset_fn=None,
     init_values=None,
 ):
     """

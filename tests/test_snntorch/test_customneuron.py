@@ -8,8 +8,8 @@ import snntorch as snn
 import torch
 
 
-def _leaky_update(states, I):
-    return {"mem": 0.9 * states["mem"] + I}
+def _leaky_update(states, inp):
+    return {"mem": 0.9 * states["mem"] + inp}
 
 
 class TestCustomNeuronGenerator:
@@ -17,7 +17,7 @@ class TestCustomNeuronGenerator:
     #  correctness of the generated update / reset math
     # ---------------------------------------------------------------- #
     def test_matches_leaky_with_immediate_reset(self):
-        """A 1-state generated neuron running Leaky's own beta*mem+I update
+        """A 1-state generated neuron running Leaky's own beta*mem+inp update
         must match snn.Leaky(reset_delay=False) bit-for-bit -- CustomNeuron
         always resets in the same step as the firing decision (see the
         class docstring's note on reset timing)."""
@@ -66,9 +66,9 @@ class TestCustomNeuronGenerator:
         Izhikevich, expressed purely through the generator, no bespoke
         subclass. Must show burst-capable dynamics an LIF cannot."""
 
-        def izh_update(states, I):
+        def izh_update(states, inp):
             v, u = states["v"], states["u"]
-            dv = 0.04 * v ** 2 + 5 * v + 140 - u + I
+            dv = 0.04 * v**2 + 5 * v + 140 - u + inp
             du = 0.02 * (0.2 * v - u)
             return {"v": v + dv, "u": u + du}
 
@@ -133,11 +133,13 @@ class TestCustomNeuronGenerator:
         assert neuron.threshold.grad is not None
 
     def test_reset_state_zeros_everything(self):
-        def two_state_update(states, I):
-            return {"v": states["v"] + I, "u": states["u"] + I}
+        def two_state_update(states, inp):
+            return {"v": states["v"] + inp, "u": states["u"] + inp}
 
         Izh = snn.neuron_from_equations(
-            "Izh", state_names=("v", "u"), update_fn=two_state_update,
+            "Izh",
+            state_names=("v", "u"),
+            update_fn=two_state_update,
             init_values={"v": -65.0, "u": -13.0},
         )
         neuron = Izh(threshold=30.0)
@@ -153,7 +155,9 @@ class TestCustomNeuronGenerator:
     def test_rejects_bad_spike_state(self):
         with pytest.raises(ValueError):
             snn.neuron_from_equations(
-                "Bad", state_names=("mem",), update_fn=_leaky_update,
+                "Bad",
+                state_names=("mem",),
+                update_fn=_leaky_update,
                 spike_state="not_a_state",
             )()
 
@@ -166,7 +170,7 @@ class TestCustomNeuronGenerator:
             neuron(torch.rand(2, 3), torch.zeros(2, 3), torch.zeros(2, 3))
 
     def test_update_fn_must_return_every_state(self):
-        def broken_update(states, I):
+        def broken_update(states, inp):
             return {}  # missing 'mem'
 
         Bad = snn.neuron_from_equations(
