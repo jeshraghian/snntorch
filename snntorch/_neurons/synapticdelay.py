@@ -175,17 +175,19 @@ class SynapticDelay(nn.Module):
 
         lags = torch.arange(
             self.max_delay + 1, device=device, dtype=dtype
-        ).unsqueeze(0)                                   # (1, K+1)
-        diff = lags - d.unsqueeze(1)                     # (C, K+1)
+        ).unsqueeze(
+            0
+        )  # (1, K+1)
+        diff = lags - d.unsqueeze(1)  # (C, K+1)
 
         if self.kernel == "linear":
             w = (1.0 - diff.abs()).clamp(min=0.0)
             # exact 2-tap; renormalise only the boundary case d==max_delay
             w = w / w.sum(dim=1, keepdim=True).clamp(min=1e-12)
         else:  # gaussian
-            w = torch.exp(-(diff ** 2) / (2.0 * self.sigma ** 2))
+            w = torch.exp(-(diff**2) / (2.0 * self.sigma**2))
             w = w / w.sum(dim=1, keepdim=True).clamp(min=1e-12)
-        return w                                         # (C, K+1)
+        return w  # (C, K+1)
 
     # ------------------------------------------------------------------ #
     #  state (step mode)
@@ -220,36 +222,33 @@ class SynapticDelay(nn.Module):
         b, c = x.shape
         k = self.max_delay + 1
         if self._buffer.shape != (k, b, c):
-            self._buffer = torch.zeros(
-                k, b, c, device=x.device, dtype=x.dtype
-            )
+            self._buffer = torch.zeros(k, b, c, device=x.device, dtype=x.dtype)
         # push current input at lag 0, drop the oldest
         self._buffer = torch.cat(
             (x.unsqueeze(0), self._buffer[:-1]), dim=0
-        )                                                # (K+1, B, C)
-        w = self._lag_weights(c, x.device, x.dtype)      # (C, K+1)
-        w = w.transpose(0, 1).unsqueeze(1)               # (K+1, 1, C)
-        return (self._buffer * w).sum(dim=0)             # (B, C)
+        )  # (K+1, B, C)
+        w = self._lag_weights(c, x.device, x.dtype)  # (C, K+1)
+        w = w.transpose(0, 1).unsqueeze(1)  # (K+1, 1, C)
+        return (self._buffer * w).sum(dim=0)  # (B, C)
 
     def _forward_sequence(self, x):
         squeeze_batch = x.dim() == 2
         if squeeze_batch:
-            x = x.unsqueeze(1)                           # (T, 1, C)
+            x = x.unsqueeze(1)  # (T, 1, C)
         t, b, c = x.shape
-        w = self._lag_weights(c, x.device, x.dtype)      # (C, K+1)
+        w = self._lag_weights(c, x.device, x.dtype)  # (C, K+1)
         # causal cross-correlation: out[t] = sum_l x[t-l] * w[:, l]
-        weight = w.flip(-1).unsqueeze(1)                 # (C, 1, K+1)
-        xin = x.permute(1, 2, 0)                         # (B, C, T)
-        xin = F.pad(xin, (self.max_delay, 0))            # left-pad K
-        out = F.conv1d(xin, weight, groups=c)            # (B, C, T)
-        out = out.permute(2, 0, 1)                       # (T, B, C)
+        weight = w.flip(-1).unsqueeze(1)  # (C, 1, K+1)
+        xin = x.permute(1, 2, 0)  # (B, C, T)
+        xin = F.pad(xin, (self.max_delay, 0))  # left-pad K
+        out = F.conv1d(xin, weight, groups=c)  # (B, C, T)
+        out = out.permute(2, 0, 1)  # (T, B, C)
         return out.squeeze(1) if squeeze_batch else out
 
     def extra_repr(self):
         d = self.delay.detach()
         dstr = (
-            f"{float(d):.3g}" if d.ndim == 0
-            else f"tensor[{tuple(d.shape)}]"
+            f"{float(d):.3g}" if d.ndim == 0 else f"tensor[{tuple(d.shape)}]"
         )
         return (
             f"max_delay={self.max_delay}, delay={dstr}, "
