@@ -17,12 +17,13 @@ class Leaky(LIF):
 
             U[t+1] = βU[t] + I_{\\rm in}[t+1] - RU_{\\rm thr}
 
-    If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0`
-    whenever the neuron emits a spike:
+    If `reset_mechanism = "zero"`, then :math:`U[t]` is set to `0` whenever
+    the neuron emitted a spike on the previous step, before the new input
+    is integrated:
 
     .. math::
 
-            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - R(βU[t] + I_{\\rm in}[t+1])
+            U[t+1] = β(1-R)U[t] + I_{\\rm in}[t+1]
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential

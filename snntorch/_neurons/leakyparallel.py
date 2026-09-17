@@ -291,15 +291,29 @@ class LeakyParallel(nn.Module):
                 elif isinstance(self.beta, torch.Tensor) or isinstance(
                     self.beta, torch.FloatTensor
                 ):
+                    # `_beta_buffer` always stores beta as a tensor, so the
+                    # length checks must be nested inside this branch --
+                    # they were previously siblings of this `elif`, which
+                    # made the per-neuron (`len == hidden_size`) path and
+                    # the `ValueError` unreachable, so a per-neuron beta
+                    # was dropped silently and `weight_hh_l0` kept its
+                    # random RNN initialization.
                     if len(self.beta) == 1:
                         self.rnn.weight_hh_l0.fill_(self.beta[0])
-                elif len(self.beta) == self.hidden_size:
-                    # Replace each value with the corresponding value in self.beta
-                    for i in range(self.hidden_size):
-                        self.rnn.weight_hh_l0.data[i].fill_(self.beta[i])
+                    elif len(self.beta) == self.hidden_size:
+                        # Replace each value with the corresponding value
+                        # in self.beta
+                        for i in range(self.hidden_size):
+                            self.rnn.weight_hh_l0.data[i].fill_(self.beta[i])
+                    else:
+                        raise ValueError(
+                            "Beta must be either a single value or of "
+                            "length 'hidden_size'."
+                        )
                 else:
-                    raise ValueError(
-                        "Beta must be either a single value or of length 'hidden_size'."
+                    raise TypeError(
+                        "Beta must be a float, int, or torch.Tensor; "
+                        f"got {type(self.beta)}."
                     )
 
     def _beta_buffer(self, beta, learn_beta):
