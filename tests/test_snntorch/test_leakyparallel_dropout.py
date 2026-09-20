@@ -49,6 +49,7 @@ def leakyparallel_dropout_instance():
     """LeakyParallel instance with dropout."""
     return snn.LeakyParallel(input_size=4, hidden_size=8, beta=0.5, dropout=0.5)
 
+
 @pytest.fixture(autouse=True)
 def setup():
     """Set a seed to ensure tests are as deterministic as possible, to avoid
@@ -60,11 +61,12 @@ def setup():
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    # If you are using GPU training (CUDA)
+    # do the same for CUDA
     if torch.cuda.is_available():
         torch.cuda.manual_seed(SEED)
         torch.cuda.manual_seed_all(SEED)
-        # Ensure deterministic behavior in PyTorch operations
+
+        # ensure deterministic behavior in PyTorch operations
         torch.backends.cudnn.deterministic = True
 
 
