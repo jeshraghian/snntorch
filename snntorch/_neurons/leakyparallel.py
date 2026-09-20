@@ -83,7 +83,7 @@ class LeakyParallel(nn.Module):
         generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
-    :param dropout: If non-zero, introduces a Dropout layer on the RNN output with dropout probability equal to dropout. Note: Since LeakyParallel uses a single RNN layer, dropout is manually applied to the output (PyTorch's nn.RNN dropout only applies to intermediate layers). Defaults to 0
+    :param dropout: If non-zero, introduces a Dropout layer on the RNN output with dropout probability equal to dropout. Note: LeakyParallel uses a single RNN layer, so dropout is manually applied to the output as PyTorch's nn.RNN dropout only applies to intermediate layers. Defaults to 0
     :type dropout: float, optional
 
     :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to
@@ -165,8 +165,8 @@ class LeakyParallel(nn.Module):
         super().__init__()
 
         # Note: nn.RNN dropout only applies to intermediate layers, not the last layer.
-        # Since we use num_layers=1, we need to manually apply dropout to the output.
-        # We don't pass dropout to nn.RNN since it would have no effect with num_layers=1.
+        # We need to manually apply dropout to the output because we use num_layers=1.
+        # Dropout is not passed to nn.RNN as it would have no effect in this case.
         self.rnn = nn.RNN(
             input_size,
             hidden_size,
@@ -175,7 +175,7 @@ class LeakyParallel(nn.Module):
             bias=bias,
             batch_first=False,
             device=device,
-            dtype=dtype,
+            dtype=dtype
         )
 
         # Store dropout value and create dropout layer if needed

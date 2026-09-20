@@ -1,26 +1,26 @@
 #!/usr/bin/env python
 
-"""Tests for LeakyParallel neuron.
+"""Dropout tests for LeakyParallel neuron.
 
-Test Structure:
+Test structure:
 --------------
-1. Basic Functionality Tests:
+1. Basic functionality tests:
     - Basic forward pass
     - Output shape validation
 
-2. Dropout Tests:
+2. Dropout tests:
     - Dropout=0 produces deterministic outputs
     - Dropout=1.0 zeros outputs in training mode
     - Dropout produces deterministic outputs in eval mode
     - Dropout produces variable outputs in training mode
     - Dropout affects gradients during training
-    - Dropout layer creation/absence validation
+    - Validation of dropout layer creation and absence
 
 Coverage:
 --------
-- Input/output shape consistency
 - Dropout functionality (the main fix for the GitHub issue)
-- Training vs eval mode behavior
+- Shape consistency between input and output
+- Behavior during training and evaluation
 - Gradient computation with dropout
 """
 
@@ -54,7 +54,7 @@ def leakyparallel_dropout_one_instance():
     return snn.LeakyParallel(input_size=4, hidden_size=8, beta=0.5, dropout=1.0)
 
 
-class TestLeakyParallel:
+class TestLeakyParallelDropouts:
     def test_leakyparallel_basic(self, leakyparallel_instance, input_parallel):
         """Test basic forward pass of LeakyParallel."""
         output = leakyparallel_instance(input_parallel)
@@ -129,7 +129,7 @@ class TestLeakyParallel:
     def test_leakyparallel_dropout_affects_gradients(
         self, leakyparallel_instance, leakyparallel_dropout_instance, input_parallel
     ):
-        """Test that dropout affects gradients during training."""
+        """Test that dropout affects gradients in training mode."""
         # Create identical models
         leakyparallel_dropout_instance.load_state_dict(
             leakyparallel_instance.state_dict()
