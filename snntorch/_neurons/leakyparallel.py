@@ -83,7 +83,7 @@ class LeakyParallel(nn.Module):
         generate a spike `S=1`. Defaults to 1
     :type threshold: float, optional
 
-    :param dropout: If non-zero, introduces a Dropout layer on the RNN output with dropout probability equal to dropout. Defaults to 0
+    :param dropout: If non-zero, introduces a Dropout layer on the RNN output with dropout probability equal to dropout. Note: LeakyParallel uses a single RNN layer, so dropout is manually applied to the output as PyTorch's nn.RNN dropout only applies to intermediate layers. Defaults to 0
     :type dropout: float, optional
 
     :param spike_grad: Surrogate gradient for the term dS/dU. Defaults to
@@ -164,6 +164,9 @@ class LeakyParallel(nn.Module):
     ):
         super().__init__()
 
+        # Note: nn.RNN dropout only applies to intermediate layers, not the last layer.
+        # We need to manually apply dropout to the output because we use num_layers=1.
+        # Dropout is not passed to nn.RNN as it would have no effect in this case.
         self.rnn = nn.RNN(
             input_size,
             hidden_size,
@@ -171,10 +174,16 @@ class LeakyParallel(nn.Module):
             nonlinearity="relu",
             bias=bias,
             batch_first=False,
-            dropout=dropout,
             device=device,
-            dtype=dtype,
+            dtype=dtype
         )
+
+        # Store dropout value and create dropout layer if needed
+        self.dropout = dropout
+        if dropout > 0.0:
+            self.dropout_layer = nn.Dropout(dropout)
+        else:
+            self.dropout_layer = None
 
         self._beta_buffer(beta, learn_beta)
         self.hidden_size = hidden_size
@@ -211,7 +220,12 @@ class LeakyParallel(nn.Module):
     def forward(self, input_):
         mem = self.rnn(input_)
         # mem[0] contains relu'd outputs, mem[1] contains final hidden state
-        mem_shift = mem[0] - self.threshold  # self.rnn.weight_hh_l0
+        # Apply dropout to RNN output if dropout > 0
+        if self.dropout_layer is not None:
+            mem_output = self.dropout_layer(mem[0])
+        else:
+            mem_output = mem[0]
+        mem_shift = mem_output - self.threshold  # self.rnn.weight_hh_l0
         spk = self.spike_grad(mem_shift)
         spk = spk * self.graded_spikes_factor
         return spk
@@ -291,15 +305,29 @@ class LeakyParallel(nn.Module):
                 elif isinstance(self.beta, torch.Tensor) or isinstance(
                     self.beta, torch.FloatTensor
                 ):
+                    # `_beta_buffer` always stores beta as a tensor, so the
+                    # length checks must be nested inside this branch --
+                    # they were previously siblings of this `elif`, which
+                    # made the per-neuron (`len == hidden_size`) path and
+                    # the `ValueError` unreachable, so a per-neuron beta
+                    # was dropped silently and `weight_hh_l0` kept its
+                    # random RNN initialization.
                     if len(self.beta) == 1:
                         self.rnn.weight_hh_l0.fill_(self.beta[0])
-                elif len(self.beta) == self.hidden_size:
-                    # Replace each value with the corresponding value in self.beta
-                    for i in range(self.hidden_size):
-                        self.rnn.weight_hh_l0.data[i].fill_(self.beta[i])
+                    elif len(self.beta) == self.hidden_size:
+                        # Replace each value with the corresponding value
+                        # in self.beta
+                        for i in range(self.hidden_size):
+                            self.rnn.weight_hh_l0.data[i].fill_(self.beta[i])
+                    else:
+                        raise ValueError(
+                            "Beta must be either a single value or of "
+                            "length 'hidden_size'."
+                        )
                 else:
-                    raise ValueError(
-                        "Beta must be either a single value or of length 'hidden_size'."
+                    raise TypeError(
+                        "Beta must be a float, int, or torch.Tensor; "
+                        f"got {type(self.beta)}."
                     )
 
     def _beta_buffer(self, beta, learn_beta):

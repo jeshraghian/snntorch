@@ -67,8 +67,8 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
     elif isinstance(module, snn.Leaky):
         dt = 1e-4
 
-        beta = module.beta.detach().numpy()
-        vthr = module.threshold.detach().numpy()
+        beta = module.beta.detach().cpu().numpy()
+        vthr = module.threshold.detach().cpu().numpy()
         vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
         tau_mem = dt / (1 - beta)
         r = tau_mem / dt
@@ -84,20 +84,20 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
     elif isinstance(module, torch.nn.Linear):
         if module.bias is None:
-            return nir.Linear(weight=module.weight.data.detach().numpy())
+            return nir.Linear(weight=module.weight.data.detach().cpu().numpy())
         else:
             return nir.Affine(
-                weight=module.weight.data.detach().numpy(),
-                bias=module.bias.data.detach().numpy(),
+                weight=module.weight.data.detach().cpu().numpy(),
+                bias=module.bias.data.detach().cpu().numpy(),
             )
 
     elif isinstance(module, snn.Synaptic):
         dt = 1e-4
 
         # TODO: assert that size of the current layer is correct
-        alpha = module.alpha.detach().numpy()
-        beta = module.beta.detach().numpy()
-        vthr = module.threshold.detach().numpy()
+        alpha = module.alpha.detach().cpu().numpy()
+        beta = module.beta.detach().cpu().numpy()
+        vthr = module.threshold.detach().cpu().numpy()
         vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
 
         tau_syn = dt / (1 - alpha)
@@ -130,13 +130,13 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
                     "V must be a vector, cannot infer layer size for scalar V"
                 )
             n_neurons = module.recurrent.V.shape[0]
-            w = np.diag(module.recurrent.V.data.detach().numpy())
+            w = np.diag(module.recurrent.V.data.detach().cpu().numpy())
             w_rec = nir.Linear(weight=w)
 
         dt = 1e-4
 
-        beta = module.beta.detach().numpy()
-        vthr = module.threshold.detach().numpy()
+        beta = module.beta.detach().cpu().numpy()
+        vthr = module.threshold.detach().cpu().numpy()
         beta = np.ones(n_neurons) * beta
         vthr = np.ones(n_neurons) * vthr
 
@@ -176,14 +176,14 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
                     "V must be a vector, cannot infer layer size for scalar V"
                 )
             n_neurons = module.recurrent.V.shape[0]
-            w = np.diag(module.recurrent.V.data.detach().numpy())
+            w = np.diag(module.recurrent.V.data.detach().cpu().numpy())
             w_rec = nir.Linear(weight=w)
 
         dt = 1e-4
 
-        alpha = module.alpha.detach().numpy()
-        beta = module.beta.detach().numpy()
-        vthr = module.threshold.detach().numpy()
+        alpha = module.alpha.detach().cpu().numpy()
+        beta = module.beta.detach().cpu().numpy()
+        vthr = module.threshold.detach().cpu().numpy()
         alpha = np.ones(n_neurons) * alpha
         beta = np.ones(n_neurons) * beta
         vthr = np.ones(n_neurons) * vthr
