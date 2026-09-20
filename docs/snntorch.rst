@@ -34,9 +34,35 @@ Connection primitives:
 
 Additional models include spiking-LSTMs and spiking-ConvLSTMs:
 
-* **SLSTM** - Spiking long short-term memory cell with state-thresholding 
+* **SLSTM** - Spiking long short-term memory cell with state-thresholding
 * **SConv2dLSTM** - Spiking 2d convolutional short-term memory cell with state thresholding
 
+Need a neuron model that isn't listed above? :func:`snntorch.neuron_from_equations` generates a new neuron **class** from your own state equations -- specify the state variable(s) and how they update, and the result behaves like any other neuron here (``init_hidden``, ``output``, ``threshold``, ``spike_grad``, ``reset_mechanism`` all work)::
+
+      import snntorch as snn
+
+      def izh_update(states, I):
+          v, u = states["v"], states["u"]
+          dv = 0.04 * v ** 2 + 5 * v + 140 - u + I
+          du = 0.02 * (0.2 * v - u)
+          return {"v": v + dv, "u": u + du}
+
+      def izh_reset(states, spk, threshold):
+          v, u = states["v"], states["u"]
+          fired = spk.detach().bool()
+          v = torch.where(fired, torch.full_like(v, -65.0), v)
+          u = torch.where(fired, u + 8.0, u)
+          return {"v": v, "u": u}
+
+      Izhikevich = snn.neuron_from_equations(
+          "Izhikevich", state_names=("v", "u"), update_fn=izh_update,
+          spike_state="v", reset_fn=izh_reset, init_values={"v": -65.0, "u": -13.0},
+      )
+
+      lif1 = Izhikevich(threshold=30.0)
+      spk, v, u = lif1(I)
+
+See :mod:`snntorch._neurons.customneuron` for the full reference.
 
 
 How to use snnTorch's neuron models

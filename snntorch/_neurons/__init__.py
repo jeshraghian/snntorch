@@ -19,6 +19,7 @@ __neuron__ = [
     "rleaky",
     "rsynaptic",
     "synaptic",
+    "customneuron",
     "synapticdelay",
     "sconv2dlstm",
     "slstm",
@@ -44,4 +45,6 @@ from .slstm import SLSTM
 
 from .leakyparallel import LeakyParallel
 
+from .customneuron import CustomNeuron
+from .customneuron import neuron_from_equations
 from .synapticdelay import SynapticDelay
