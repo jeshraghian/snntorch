@@ -207,6 +207,15 @@ Neuron List
 
     snn.neurons_*
 
+Weight Initialization
+---------------------
+
+.. toctree::
+    :maxdepth: 2
+    :titlesonly:
+
+    snntorch.weight_init
+
 snnTorch Layers
 ---------------------
 
