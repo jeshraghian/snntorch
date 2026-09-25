@@ -77,7 +77,16 @@ The following arguments are common across most neuron models:
 * **learn_beta** - setting to ``True`` enables the decay rate to be a learnable parameter
 * **learn_threshold** - setting to ``True`` enables the threshold to be a learnable parameter 
 * **reset_mechanism** - options include ``subtract`` (reset-by-subtraction), ``zero`` (reset-to-zero), and ``none`` (no reset mechanism: i.e., leaky integrator neuron)
-* **output** - if ``init_hidden=True``, the spiking neuron will only return the output spikes. Setting ``output=True`` enables the hidden state(s) to be returned as well. Useful when using ``torch.nn.sequential``. 
+* **output** - if ``init_hidden=True``, the spiking neuron will only return the output spikes. Setting ``output=True`` enables the hidden state(s) to be returned as well. Useful when using ``torch.nn.sequential``.
+
+**Homeostasis (adaptive, time-varying threshold).** Every neuron built on :mod:`snntorch.SpikingNeuron` -- i.e. all of them -- can turn on spike-frequency adaptation by calling ``lif.enable_homeostasis(increment=0.5, tau=20.0, max_adapt=None)``. A per-neuron component is added on top of the static ``threshold``: it decays back toward 0 with time-constant ``tau`` every time step, and jumps up by ``increment`` for every neuron that fires. A neuron that has been firing raises its own effective threshold, so it fires progressively less until the adaptive component relaxes away -- classic intrinsic homeostatic plasticity, off by default and detached from the autograd graph (it is not learned by backprop, only the usual weights/``beta``/``threshold`` are). ``max_adapt`` optionally caps it. Use ``lif.reset_homeostasis()`` to clear the accumulated component, and ``lif.disable_homeostasis()`` to turn the mechanism off again (keeping the accumulated value)::
+
+      lif1 = snn.Leaky(beta=0.9)
+      lif1.enable_homeostasis(increment=0.5, tau=20.0)
+
+      mem1 = lif1.init_leaky()
+      for step in range(num_steps):
+          spk1, mem1 = lif1(cur1, mem1)   # firing rate self-limits under sustained drive
 
 Leaky integrate-and-fire neuron models also include:
 
