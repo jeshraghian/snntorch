@@ -560,6 +560,10 @@ class SpikeTime(nn.Module):
         def forward(ctx, spk_rec, spk_count, device="cpu"):
             spk_rec_tmp = spk_rec.clone()
             spk_time_rec = []
+            batch_idx = torch.arange(
+                spk_rec.size(1), device=spk_rec.device
+            ).unsqueeze(1)
+            output_idx = torch.arange(spk_rec.size(2), device=spk_rec.device)
 
             for step in range(spk_count):
                 """Convert spk_rec of 1/0s [TxBxN] --> spk_time [TxBxN].
@@ -594,7 +598,7 @@ class SpikeTime(nn.Module):
 
                 """before looping, eliminate n-th spike. this avoids double
                 counting spikes."""
-                spk_rec_tmp[nth_spike_time.long()] = 0
+                spk_rec_tmp[nth_spike_time.long(), batch_idx, output_idx] = 0
 
             """Pass this into loss function."""
             spk_time_rec = torch.stack(spk_time_rec)
