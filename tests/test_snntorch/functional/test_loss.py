@@ -396,6 +396,45 @@ class TestClassWeightAxis:
         swapped_loss = loss_fn(spikes[:, [1, 0]], targets[[1, 0]])
         assert_approximate_equality(swapped_loss.item(), expected.item())
 
+    def test_multi_spike_loss_is_independent_of_other_samples(self):
+        spikes = torch.zeros((4, 2, 1))
+        spikes[[0, 1], 0, 0] = 1
+        spikes[[1, 2], 1, 0] = 1
+        targets = torch.zeros(2, dtype=torch.long)
+        settings = dict(
+            multi_spike=True,
+            on_target=[0, 1],
+            off_target=[3, 3],
+            tolerance=0,
+        )
+
+        times, _ = sf.SpikeTime(**settings)(spikes, targets)
+        assert torch.equal(times[:, :, 0], torch.tensor([[0, 1], [1, 2]]))
+
+        loss_fn = sf.mse_temporal_loss(**settings)
+        batched_loss = loss_fn(spikes, targets)
+        separate_loss = torch.stack(
+            [
+                loss_fn(spikes[:, b : b + 1], targets[b : b + 1])
+                for b in range(2)
+            ]
+        ).mean()
+        assert_approximate_equality(batched_loss.item(), 0.03125)
+        assert_approximate_equality(batched_loss.item(), separate_loss.item())
+
+    def test_multi_spike_keeps_events_in_other_outputs(self):
+        spikes = torch.zeros((4, 2, 2))
+        spikes[[0, 1], 0, 0] = 1
+        spikes[[1, 3], 0, 1] = 1
+        spikes[[1, 2], 1, 0] = 1
+        spikes[[0, 2], 1, 1] = 1
+
+        times = sf.SpikeTime.MultiSpike.apply(spikes, 2, spikes.device)
+        expected = torch.tensor(
+            [[[0, 1], [1, 0]], [[1, 3], [2, 2]]]
+        )
+        assert torch.equal(times, expected)
+
     def test_weighted_mse_losses_accept_non_square_shapes(self):
         # B=2 and C=3: the old broadcast raised a size mismatch here
         spikes = torch.zeros((2, 2, 3))
