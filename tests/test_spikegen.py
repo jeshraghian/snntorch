@@ -114,6 +114,33 @@ def test_latency_interpolate(test_input, expected):
     )
 
 
+@pytest.mark.parametrize(
+    "on_target, off_target",
+    [(1, 0), (0, -1), (-1, -2), (-2, -1), (1, -1), (0.5, -0.5)],
+)
+@pytest.mark.parametrize("first_spike_time", [0, 2])
+def test_targets_rate_preserves_custom_target_values(
+    on_target, off_target, first_spike_time
+):
+    targets = torch.tensor([2, 1, 0, 2])
+    expected = torch.full((4, 3), float(off_target))
+    expected[torch.arange(4), targets] = on_target
+    if first_spike_time:
+        expected = expected.repeat(5, 1, 1)
+        expected[:first_spike_time] = off_target
+
+    actual = spikegen.targets_convert(
+        targets,
+        num_classes=3,
+        num_steps=5,
+        first_spike_time=first_spike_time,
+        on_target=on_target,
+        off_target=off_target,
+    )
+
+    torch.testing.assert_close(actual, expected)
+
+
 # note: .squeeze(0) just makes it easier to parametrize from input_
 @pytest.mark.parametrize(
     "test_input, expected",
