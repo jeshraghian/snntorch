@@ -7,13 +7,29 @@ on:
   push:
     branches: [ master ]
     paths-ignore:
+      - '**/*.html'
       - '**/*.rst'
+      - '**/*.gif'
+      - '**/*.png'
+      - '**/*.ipynb'
+      - 'pyproject.toml'
       - 'LICENSE'
+      - '.editorconfig'
+      - '.flake8'
+      - '.gitignore'
   pull_request:
     branches: [ master ]
     paths-ignore:
+      - '**/*.html'
       - '**/*.rst'
+      - '**/*.gif'
+      - '**/*.png'
+      - '**/*.ipynb'
+      - 'pyproject.toml'
       - 'LICENSE'
+      - '.editorconfig'
+      - '.flake8'
+      - '.gitignore'
 
 jobs:
   build:

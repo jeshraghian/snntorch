@@ -6,7 +6,7 @@ name: Upload Python package to TestPyPI
 # uncomment the following to upload to TestPyPI
 # on:
 #   workflow_run: 
-#     workflows: ["snnTorch CI - create tag"]
+#     workflows: ["snnTorch CD"]
 #     # branches: [main] 
 #     types:
 #       - completed
