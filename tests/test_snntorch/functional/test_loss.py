@@ -38,6 +38,17 @@ def assert_approximate_equality(actual, expected):
 
 
 class TestLoss:
+    def test_mse_membrane_loss_with_negative_target_values(self):
+        targets = torch.tensor([2, 1, 0])
+        expected_membrane = torch.tensor(
+            [[-1.0, -1.0, 0.0], [-1.0, 0.0, -1.0], [0.0, -1.0, -1.0]]
+        ).repeat(4, 1, 1)
+        loss_fn = sf.mse_membrane_loss(on_target=0, off_target=-1)
+
+        loss = loss_fn(expected_membrane, targets)
+
+        assert loss.item() == pytest.approx(0.0)
+
     def test_ce_rate_loss_base(self, spike_predicted_, targets_labels_):
         loss_fn = sf.ce_rate_loss()
 
