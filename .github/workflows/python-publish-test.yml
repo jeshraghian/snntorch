@@ -1,9 +1,9 @@
-# This workflow will upload a Python Package using Twine when a the test-pypi branch is modified
+# This workflow will upload a Python package using Twine when the test-pypi branch is modified
 # For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
 
-name: Upload Python Package to Test PyPi
+name: Upload Python package to TestPyPI
 
-# uncomment the following to upload to Test PyPi
+# uncomment the following to upload to TestPyPI
 # on:
 #   workflow_run: 
 #     workflows: ["build tag"]
@@ -16,26 +16,26 @@ on:
   pull_request:
     branches: [ test-pypi ]
 
-
 jobs:
 
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout repo
+      uses: actions/checkout@v7
+
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v7
       with:
         python-version: '3.x'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install setuptools wheel twine
-
-
     
     # Upload to TestPyPI
-    - name: Build and Upload to TestPyPI
+    - name: Build and upload to TestPyPI
       run: |
         python3 setup.py sdist bdist_wheel
         python3 -m twine upload dist/*
