@@ -1,9 +1,9 @@
-# This workflow will upload a Python Package using Twine when a the test-pypi branch is modified
+# This workflow will upload a Python package using Twine when the test-pypi branch is modified
 # For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
 
-name: Upload Python Package to Test PyPi
+name: Upload Python package to TestPyPI
 
-# uncomment the following to upload to Test PyPi
+# uncomment the following to upload to TestPyPI
 # on:
 #   workflow_run: 
 #     workflows: ["build tag"]
