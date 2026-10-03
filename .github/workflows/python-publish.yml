@@ -5,7 +5,7 @@ name: Upload Python package
 
 on:
   workflow_run: 
-    workflows: ["build tag"]
+    workflows: ["snnTorch CI - create tag"]
     # branches: [main] 
     types:
       - completed
