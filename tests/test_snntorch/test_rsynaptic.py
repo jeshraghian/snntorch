@@ -159,3 +159,61 @@ class TestRSynaptic:
         explanation = dynamo.explain(rsynaptic_instance_surrogate)(input_[0])
 
         assert explanation.graph_break_count == 0
+
+
+class TestRSynapticHiddenState:
+    """Regression tests for issue #323.
+
+    RSynaptic.detach_hidden / reset_hidden must treat ``spk`` the same
+    way RLeaky does (PR #108): detach it from the graph and zero it on
+    reset. ``spk`` is registered hidden state via ``register_buffer``.
+    """
+
+    def setup_method(self):
+        snn.SpikingNeuron.init()
+
+    def teardown_method(self):
+        snn.SpikingNeuron.init()
+
+    @staticmethod
+    def _make_layer():
+        return snn.RSynaptic(
+            alpha=0.5,
+            beta=0.5,
+            V=0.5,
+            all_to_all=False,
+            init_hidden=True,
+        )
+
+    def test_reset_hidden_clears_spk_syn_mem(self):
+        lif = self._make_layer()
+        _ = lif(torch.ones(1, 4) * 5.0)
+        lif.spk = torch.ones_like(lif.spk)
+        assert bool(lif.spk.any())
+
+        snn.RSynaptic.reset_hidden()
+
+        assert not bool(lif.spk.any())
+        assert not bool(lif.syn.any())
+        assert not bool(lif.mem.any())
+
+    def test_detach_hidden_detaches_spk_syn_mem(self):
+        lif = self._make_layer()
+        _ = lif(torch.ones(1, 4) * 5.0)
+        assert lif.spk.grad_fn is not None
+        assert lif.syn.grad_fn is not None
+        assert lif.mem.grad_fn is not None
+
+        snn.RSynaptic.detach_hidden()
+
+        assert lif.spk.grad_fn is None
+        assert lif.syn.grad_fn is None
+        assert lif.mem.grad_fn is None
+
+    def test_hidden_reset_and_detach_before_first_forward(self):
+        lif = self._make_layer()
+        snn.RSynaptic.reset_hidden()
+        snn.RSynaptic.detach_hidden()
+        assert not bool(lif.spk.any())
+        assert not bool(lif.syn.any())
+        assert not bool(lif.mem.any())
