@@ -512,6 +512,7 @@ class RSynaptic(LIF):
             if isinstance(cls.instances[layer], RSynaptic):
                 cls.instances[layer].syn.detach_()
                 cls.instances[layer].mem.detach_()
+                cls.instances[layer].spk.detach_()
 
     @classmethod
     def reset_hidden(cls):
@@ -521,6 +522,10 @@ class RSynaptic(LIF):
 
         for layer in range(len(cls.instances)):
             if isinstance(cls.instances[layer], RSynaptic):
+                cls.instances[layer].spk = torch.zeros_like(
+                    cls.instances[layer].spk,
+                    device=cls.instances[layer].spk.device,
+                )
                 cls.instances[layer].syn = torch.zeros_like(
                     cls.instances[layer].syn,
                     device=cls.instances[layer].syn.device,
