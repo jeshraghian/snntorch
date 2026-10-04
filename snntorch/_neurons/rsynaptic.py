@@ -60,7 +60,8 @@ class RSynaptic(LIF):
         import torch.nn as nn
         import snntorch as snn
 
-        beta = 0.5 # decay rate
+        alpha = 0.5 # synaptic current decay rate
+        beta = 0.5 # membrane potential decay rate
         V1 = 0.5 # shared recurrent connection
         V2 = torch.rand(num_outputs) # unshared recurrent connections
 
@@ -72,25 +73,26 @@ class RSynaptic(LIF):
                 # initialize layers
                 self.fc1 = nn.Linear(num_inputs, num_hidden)
 
-                # Default RLeaky Layer where recurrent connections
+                # Default RSynaptic layer where recurrent connections
                 # are initialized using PyTorch defaults in nn.Linear.
-                self.lif1 = snn.RLeaky(beta=beta,
+                self.lif1 = snn.RSynaptic(alpha=alpha, beta=beta,
                             linear_features=num_hidden)
 
                 self.fc2 = nn.Linear(num_hidden, num_outputs)
 
                 # each neuron has a single connection back to itself
                 # where the output spike is scaled by V.
-                # For `all_to_all = True`, V can be shared between
+                # For `all_to_all = False`, V can be shared between
                 # neurons (e.g., V1) or unique / unshared between
                 # neurons (e.g., V2).
                 # V is learnable by default.
-                self.lif2 = snn.RLeaky(beta=beta, all_to_all=False, V=V1)
+                self.lif2 = snn.RSynaptic(alpha=alpha, beta=beta,
+                            all_to_all=False, V=V1)
 
             def forward(self, x):
                 # Initialize hidden states at t=0
-                spk1, syn1, mem1 = self.lif1.init_rsynaptic()
-                spk2, syn2, mem2 = self.lif2.init_rsynaptic()
+                spk1, syn1, mem1 = self.lif1.reset_mem()
+                spk2, syn2, mem2 = self.lif2.reset_mem()
 
                 # Record output layer spikes and membrane
                 spk2_rec = []

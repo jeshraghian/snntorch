@@ -5,6 +5,9 @@ History
 Unreleased
 ^^^^^^^^^^
 
+* Fix the RSynaptic network example to use recurrent synaptic neurons and
+  the current hidden-state initialization API.
+
 * Preserve custom negative on/off target values in rate encoding, including
   delayed targets used for membrane-potential training.
 
