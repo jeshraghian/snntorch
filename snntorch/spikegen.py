@@ -1077,11 +1077,8 @@ def targets_rate(
             rate=incorrect_rate,
             firing_pattern=firing_pattern,
         )
-        incorrect_spikes_one_hot = (
-            (one_hot_inverse * incorrect_spike_targets)
-            .to(device)
-            .unsqueeze(-1)
-            .unsqueeze(-1)
+        incorrect_spikes_one_hot = one_hot_inverse * (
+            incorrect_spike_targets.to(device).unsqueeze(-1).unsqueeze(-1)
         )  # the two unsquezes make the dims of correct_spikes
         # num_steps x 1 x 1, s.t. time is broadcasted in every other direction
 
