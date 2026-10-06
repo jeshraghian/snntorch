@@ -5,6 +5,9 @@ History
 Unreleased
 ^^^^^^^^^^
 
+* Broadcast incorrect-class rate targets along the time axis without adding
+  extra output dimensions.
+
 * Fix the RSynaptic network example to use recurrent synaptic neurons and
   the current hidden-state initialization API.
 
