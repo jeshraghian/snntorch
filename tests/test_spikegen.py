@@ -141,6 +141,31 @@ def test_targets_rate_preserves_custom_target_values(
     torch.testing.assert_close(actual, expected)
 
 
+@pytest.mark.parametrize("num_classes", [3, 6])
+@pytest.mark.parametrize("interpolate", [False, True])
+def test_targets_rate_incorrect_schedule_is_temporal(
+    num_classes, interpolate
+):
+    targets = torch.tensor([0, 2])
+    actual = spikegen.targets_rate(
+        targets,
+        num_classes=num_classes,
+        num_steps=6,
+        correct_rate=0.5,
+        incorrect_rate=0.25,
+        interpolate=interpolate,
+    )
+
+    assert actual.shape == (6, 2, num_classes)
+    if not interpolate:
+        correct = torch.tensor([1.0, 0, 1, 0, 1, 0])
+        incorrect = torch.tensor([1.0, 0, 0, 0, 1, 0])
+        for b, target in enumerate(targets):
+            for c in range(num_classes):
+                expected = correct if c == target else incorrect
+                torch.testing.assert_close(actual[:, b, c], expected)
+
+
 # note: .squeeze(0) just makes it easier to parametrize from input_
 @pytest.mark.parametrize(
     "test_input, expected",
