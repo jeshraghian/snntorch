@@ -5,6 +5,9 @@ History
 Unreleased
 ^^^^^^^^^^
 
+* Forward custom target values, interpolation, and epsilon to latency target
+  conversion.
+
 * Broadcast incorrect-class rate targets along the time axis without adding
   extra output dimensions.
 
