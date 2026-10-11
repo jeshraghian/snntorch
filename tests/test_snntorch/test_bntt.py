@@ -89,3 +89,29 @@ class TestBatchNormTT2d:
             out = batchnormtt2d_module(input4d_[step])
 
             assert out.shape == input4d_[step].shape
+
+
+@pytest.mark.parametrize(
+    "make, shape",
+    ([snn.BatchNormTT1d, (3, 4)], [snn.BatchNormTT2d, (3, 4, 5, 5)]),
+)
+class TestBatchNormTTCall:
+    def test_call_with_step_matches_indexing(self, make, shape):
+        torch.manual_seed(0)
+        bntt = make(4, 2)
+        x = torch.rand(*shape)
+        for step in range(2):
+            expected = bntt[step](x)
+            torch.testing.assert_close(bntt(x, step), expected)
+
+    def test_call_without_step_explains_usage(self, make, shape):
+        bntt = make(4, 2)
+        with pytest.raises(TypeError, match="step"):
+            bntt(torch.rand(*shape))
+
+    def test_still_a_modulelist_with_same_state_dict(self, make, shape):
+        bntt = make(4, 2)
+        assert isinstance(bntt, torch.nn.ModuleList)
+        assert "0.weight" in bntt.state_dict()
+        assert "1.running_mean" in bntt.state_dict()
+        assert "0.bias" not in bntt.state_dict()
