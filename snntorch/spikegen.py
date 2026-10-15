@@ -119,7 +119,7 @@ def rate(
                     torch.zeros(
                         tuple([first_spike_time] + list(spike_data[0].size())),
                         device=device,
-                        dtype=dtype,
+                        dtype=data.dtype,
                     ),
                     spike_data,
                 )
