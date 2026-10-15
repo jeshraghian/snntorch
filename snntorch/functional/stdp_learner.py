@@ -306,10 +306,12 @@ class STDPLearner(nn.Module):
 
     def reset(self):
         """
-        Reset the recorded data in the monitors.
+        Reset the pre- and post-synaptic traces and the recorded data in
+        the monitors.
         """
 
-        super(STDPLearner, self).reset()
+        self.trace_pre = None
+        self.trace_post = None
         self.in_spike_monitor.clear_recorded_data()
         self.out_spike_monitor.clear_recorded_data()
 
