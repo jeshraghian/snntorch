@@ -1,8 +1,6 @@
+from .neurons import LIF
 import torch
 import torch.nn as nn
-
-# from torch import functional as F
-from .neurons import LIF
 
 
 class RLeaky(LIF):
@@ -11,15 +9,15 @@ class RLeaky(LIF):
     Input is assumed to be a current injection appended to the voltage
     spike output.
     Membrane potential decays exponentially with rate beta.
-    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+    For :math:`U[t+1] > U_{\\rm thr} ⇒ S[t+1] = 1`.
 
     If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
-    `threshold` subtracted from it whenever the neuron emits a spike:
+    `threshold` subtracted from it following a spike, with the remainder
+    decaying as usual:
 
     .. math::
 
-            U[t+1] = βU[t] + I_{\\rm in}[t+1] + VS_{\\rm out}[t] -
-            RU_{\\rm thr}
+            U[t+1] = β(U[t] - RU_{\\rm thr}) + I_{\\rm in}[t+1] + VS_{\\rm out}[t]
 
     Where :math:`V(\\cdot)` acts either as a linear layer, a convolutional
     operator, or elementwise product on :math:`S_{\\rm out}`.
@@ -34,12 +32,11 @@ class RLeaky(LIF):
     * If `all_to_all = "False"`, then :math:`V(\\cdot)` acts as an \
         elementwise multiplier with :math:`V`.
 
-    * If `reset_mechanism = "zero"`, then :math:`U[t+1]` will be set to `0` \
+    * If `reset_mechanism = "zero"`, then :math:`U[t]` will be set to `0` \
         whenever the neuron emits a spike:
 
     .. math::
-            U[t+1] = βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t]) -
-            R(βU[t] + I_{\\rm in}[t+1] +  V(S_{\\rm out}[t]))
+            U[t+1] = β(1 - R)U[t] + I_{\\rm in}[t+1] + V(S_{\\rm out}[t])
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
@@ -170,10 +167,9 @@ class RLeaky(LIF):
         Defaults to False
     :type learn_threshold: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to
-        :math:`mem` each time the threshold is met.
-        Reset-by-subtraction: "subtract", reset-to-zero: "zero",
-        none: "none". Defaults to "subtract"
+    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` 
+    each time the threshold is met. Reset-by-subtraction: "subtract", 
+    reset-to-zero: "zero",none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden state :math:`mem` is
@@ -281,14 +277,6 @@ class RLeaky(LIF):
             self._disable_recurrent_grad()
 
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
-
         self.reset_delay = reset_delay
 
     def _init_mem(self):
@@ -330,8 +318,9 @@ class RLeaky(LIF):
         # self.beta.clamp_min(0)), giving actual time constants instead of
         # values in [0, 1] as initial beta beta = self.beta.clamp(0, 1)
 
-        self.reset = self.mem_reset(self.mem)
-        self.mem = self.state_function(input_)
+        reset = self.mem_reset(self.mem)  # S[t]
+        self.mem = self.reset_function(reset)  # U[t] after reset
+        self.mem = self.base_state_function(input_)  # U[t+1]
 
         if self.state_quant:
             self.mem = self.state_quant(self.mem)
@@ -343,12 +332,9 @@ class RLeaky(LIF):
 
         if not self.reset_delay:
             do_reset = (
-                self.spk / self.graded_spikes_factor - self.reset
+                self.spk / self.graded_spikes_factor - reset
             )  # avoid double reset
-            if self.reset_mechanism_val == 0:  # reset by subtraction
-                self.mem = self.mem - do_reset * self.threshold
-            elif self.reset_mechanism_val == 1:  # reset to zero
-                self.mem = self.mem - do_reset * self.mem
+            self.mem = self.reset_function(do_reset)  # U[t+1] after reset
 
         if self.output:
             return self.spk, self.mem
@@ -391,24 +377,13 @@ class RLeaky(LIF):
         for param in self.recurrent.parameters():
             param.requires_grad = False
 
-    def _base_state_function(self, input_):
+    def base_state_function(self, input_):
         base_fn = (
             self.beta.clamp(0, 1) * self.mem
             + input_
             + self.recurrent(self.spk)
         )
         return base_fn
-
-    def _base_sub(self, input_):
-        return self._base_state_function(input_) - self.reset * self.threshold
-
-    def _base_zero(self, input_):
-        return self._base_state_function(
-            input_
-        ) - self.reset * self._base_state_function(input_)
-
-    def _base_int(self, input_):
-        return self._base_state_function(input_)
 
     def _rleaky_init_cases(self):
         all_to_all_bool = bool(self.all_to_all)

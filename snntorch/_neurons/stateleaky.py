@@ -196,6 +196,9 @@ class StateLeaky(LIF):
             "StateLeaky does not maintain stepwise resets; mem_reset is not applicable."
         )
 
+    def _set_reset_function(self):
+        self.reset_function = self._reset_not_implemented
+
     def _tau_buffer(self, beta, learn_beta, channels):
         if not isinstance(beta, torch.Tensor):
             beta = torch.as_tensor(beta)

@@ -10,7 +10,7 @@ class Lapicque(LIF):
     circuit parameters.
     Input stimulus is integrated by membrane potential which decays
     exponentially with a rate of beta.
-    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+    For :math:`U[t] > U_{\\rm thr} ⇒ S[t+1] = 1`.
 
     If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
     `threshold` subtracted from it whenever the neuron emits a spike:
@@ -215,15 +215,7 @@ class Lapicque(LIF):
         )
 
         self._lapicque_cases(time_step, beta, R, C)
-
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
 
     def _init_mem(self):
         mem = torch.zeros(0)
@@ -281,12 +273,19 @@ class Lapicque(LIF):
         return self._base_state_function(input_) - self.reset * self.threshold
 
     def _base_zero(self, input_):
-        return self._base_state_function(
-            input_
-        ) - self.reset * self._base_state_function(input_)
+        base_fn = self._base_state_function(input_)
+        return base_fn - self.reset * base_fn
 
     def _base_int(self, input_):
         return self._base_state_function(input_)
+
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            self.state_function = self._base_sub
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            self.state_function = self._base_zero
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            self.state_function = self._base_int
 
     def _lapicque_cases(self, time_step, beta, R, C):
         if not isinstance(time_step, torch.Tensor):

@@ -207,6 +207,12 @@ class SConv2dLSTM(SpikingNeuron):
 
     """
 
+    reset_dict = {
+        "subtract": 0,
+        "zero": 1,
+        "none": 2,
+    }
+
     def __init__(
         self,
         in_channels,
@@ -239,13 +245,6 @@ class SConv2dLSTM(SpikingNeuron):
         )
 
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -312,8 +311,9 @@ class SConv2dLSTM(SpikingNeuron):
                 correct_shape, device=self.mem.device, dtype=input_.dtype
             )
 
-        self.reset = self.mem_reset(self.mem)
-        self.syn, self.mem = self.state_function(input_)
+        reset = self.mem_reset(self.mem)
+        self.mem = self.reset_function(reset)
+        self.syn, self.mem = self.base_state_function(input_)
 
         if self.state_quant:
             self.syn = self.state_quant(self.syn)
@@ -333,7 +333,7 @@ class SConv2dLSTM(SpikingNeuron):
         else:
             return self.spk, self.syn, self.mem
 
-    def _base_state_function(self, input_):
+    def base_state_function(self, input_):
         combined = torch.cat(
             [input_, self.mem], dim=1
         )  # concatenate along channel axis
@@ -351,40 +351,19 @@ class SConv2dLSTM(SpikingNeuron):
 
         return base_fn_syn, base_fn_mem
 
-    def _base_state_reset_zero(self, input_):
-        combined = torch.cat(
-            [input_, self.mem], dim=1
-        )  # concatenate along channel axis
-        combined_conv = self.conv(combined)
-        cc_i, cc_f, cc_o, cc_g = torch.split(
-            combined_conv, self.out_channels, dim=1
-        )
-        i = torch.sigmoid(cc_i)
-        f = torch.sigmoid(cc_f)
-        o = torch.sigmoid(cc_o)
-        g = torch.tanh(cc_g)
+    def _reset_sub(self, reset):
+        return self.mem - reset * self.threshold
 
-        base_fn_syn = f * self.syn + i * g
-        base_fn_mem = o * torch.tanh(base_fn_syn)
+    def _reset_zero(self, reset):
+        return self.mem - reset * self.mem
 
-        return 0, base_fn_mem
-
-    def _base_sub(self, input_):
-        syn, mem = self._base_state_function(input_)
-        mem -= self.reset * self.threshold
-        return syn, mem
-
-    def _base_zero(self, input_):
-        syn, mem = self._base_state_function(input_)
-        syn2, mem2 = self._base_state_reset_zero(input_)
-        syn2 *= self.reset
-        mem2 *= self.reset
-        syn -= syn2
-        mem -= mem2
-        return syn, mem
-
-    def _base_int(self, input_):
-        return self._base_state_function(input_)
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:  # soft reset
+            self.reset_function = self._reset_sub
+        elif self.reset_mechanism_val == 1:  # hard reset
+            self.reset_function = self._reset_zero
+        elif self.reset_mechanism_val == 2:  # no reset
+            self.reset_function = lambda reset: self.mem
 
     def _sconv2dlstm_cases(self):
         if self.max_pool and self.avg_pool:

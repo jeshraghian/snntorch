@@ -118,15 +118,7 @@ class Alpha(LIF):
 
         self._alpha_register_buffer(alpha, learn_alpha)
         self._alpha_cases()
-
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
 
     def _init_mem(self):
         syn_exc = torch.zeros(0)
@@ -241,6 +233,14 @@ class Alpha(LIF):
 
     def _base_int(self, input_):
         return self._base_state_function(input_)
+
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:  # reset by subtraction
+            self.state_function = self._base_sub
+        elif self.reset_mechanism_val == 1:  # reset to zero
+            self.state_function = self._base_zero
+        elif self.reset_mechanism_val == 2:  # no reset, pure integration
+            self.state_function = self._base_int
 
     def _alpha_register_buffer(self, alpha, learn_alpha):
         if not isinstance(alpha, torch.Tensor):
