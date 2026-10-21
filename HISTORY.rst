@@ -5,6 +5,8 @@ History
 Unreleased
 ^^^^^^^^^^
 
+* Preserve custom on/off target levels for time-varying rate encoding.
+
 * Forward custom target values, interpolation, and epsilon to latency target
   conversion.
 
