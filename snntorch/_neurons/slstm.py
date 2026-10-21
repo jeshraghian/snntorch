@@ -237,14 +237,8 @@ class SLSTM(SpikingNeuron):
             self.syn = torch.zeros(
                 correct_shape, device=self.syn.device, dtype=input_.dtype
             )
-            self.syn = torch.zeros(
-                correct_shape, device=self.syn.device, dtype=input_.dtype
-            )
 
         if not self.mem.shape == input_.shape:
-            self.mem = torch.zeros(
-                correct_shape, device=self.mem.device, dtype=input_.dtype
-            )
             self.mem = torch.zeros(
                 correct_shape, device=self.mem.device, dtype=input_.dtype
             )
