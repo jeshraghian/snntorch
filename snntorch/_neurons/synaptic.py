@@ -11,7 +11,7 @@ class Synaptic(LIF):
     membrane potential.
     Synaptic current and membrane potential decay exponentially with rates
     of alpha and beta, respectively.
-    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+    For :math:`U[t] > U_{\\rm thr} ⇒ S[t+1] = 1`.
 
     If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
     `threshold` subtracted from it whenever the neuron emits a spike:

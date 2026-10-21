@@ -262,7 +262,7 @@ class SLSTM(SpikingNeuron):
     def base_state_function(self, input_):
         base_fn_mem, base_fn_syn = self.lstm_cell(input_, (self.mem, self.syn))
         return base_fn_syn, base_fn_mem
-    
+
     def _reset_sub(self, reset):
         return self.mem - reset * self.threshold
 

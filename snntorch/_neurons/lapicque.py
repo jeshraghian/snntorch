@@ -10,7 +10,7 @@ class Lapicque(LIF):
     circuit parameters.
     Input stimulus is integrated by membrane potential which decays
     exponentially with a rate of beta.
-    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+    For :math:`U[t] > U_{\\rm thr} ⇒ S[t+1] = 1`.
 
     If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
     `threshold` subtracted from it whenever the neuron emits a spike:

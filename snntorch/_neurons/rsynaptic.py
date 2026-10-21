@@ -11,7 +11,7 @@ class RSynaptic(LIF):
     membrane potential.
     Synaptic current and membrane potential decay exponentially with rates
     of alpha and beta, respectively.
-    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+    For :math:`U[t] > U_{\\rm thr} ⇒ S[t+1] = 1`.
 
     If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
     `threshold` subtracted from it whenever the neuron emits a spike:
@@ -20,7 +20,7 @@ class RSynaptic(LIF):
 
             I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + VS_{\\rm out}[t]
             + I_{\\rm in}[t+1] \\\\
-            U[t+1] = β(U[t] - RU_{\\rm thr} + I_{\\rm syn}[t+1]
+            U[t+1] = β(U[t] - RU_{\\rm thr}) + I_{\\rm syn}[t+1]
 
     Where :math:`V(\\cdot)` acts either as a linear layer, a convolutional
     operator, or elementwise product on :math:`S_{\\rm out}`.

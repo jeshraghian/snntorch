@@ -1,6 +1,5 @@
 from .neurons import LIF
 import torch
-from torch import nn
 
 
 class Leaky(LIF):
@@ -95,9 +94,9 @@ class Leaky(LIF):
         to False
     :type learn_threshold: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to \
-    :math:`mem` each time the threshold is met. Reset-by-subtraction: \
-        "subtract" or "subtract_beta", reset-to-zero: "zero", none: "none". Defaults to "subtract"
+    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` 
+    each time the threshold is met. Reset-by-subtraction: "subtract", 
+    reset-to-zero: "zero", none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden state :math:`mem` is quantized
