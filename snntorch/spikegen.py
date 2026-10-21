@@ -1091,13 +1091,12 @@ def targets_rate(
 
         # merge the incorrect and correct tensors
         if not interpolate:
-            return torch.clamp(
-                (
-                    incorrect_spikes_one_hot.to(device)
-                    + correct_spikes_one_hot.to(device)
-                )
-                * on_target,
-                off_target,
+            spike_targets = (
+                incorrect_spikes_one_hot + correct_spikes_one_hot
+            )
+            return (
+                spike_targets * on_target
+                + ~spike_targets.bool() * off_target
             )
 
         # interpolate values between spikes
