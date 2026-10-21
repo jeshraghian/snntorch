@@ -38,6 +38,17 @@ def assert_approximate_equality(actual, expected):
 
 
 class TestLoss:
+    def test_mse_membrane_loss_with_negative_target_values(self):
+        targets = torch.tensor([2, 1, 0])
+        expected_membrane = torch.tensor(
+            [[-1.0, -1.0, 0.0], [-1.0, 0.0, -1.0], [0.0, -1.0, -1.0]]
+        ).repeat(4, 1, 1)
+        loss_fn = sf.mse_membrane_loss(on_target=0, off_target=-1)
+
+        loss = loss_fn(expected_membrane, targets)
+
+        assert loss.item() == pytest.approx(0.0)
+
     def test_ce_rate_loss_base(self, spike_predicted_, targets_labels_):
         loss_fn = sf.ce_rate_loss()
 
@@ -175,8 +186,8 @@ class TestLoss:
         # unreduced, unweighted loss
         vanilla_loss_fn = sf.mse_count_loss(reduction="none")
         vanilla_loss = vanilla_loss_fn(spike_predicted_, targets_labels_)
-        # weight multiplier
-        weight_multiplier = class_weights_[targets_labels_]
+        # weight multiplier (applied per sample, i.e., along dim 0)
+        weight_multiplier = class_weights_[targets_labels_].unsqueeze(-1)
         # expectation
         expected_weighted_loss = (vanilla_loss * weight_multiplier).mean()
 
@@ -216,8 +227,8 @@ class TestLoss:
         # unreduced, unweighted loss
         vanilla_loss_fn = sf.mse_membrane_loss(reduction="none")
         vanilla_loss = vanilla_loss_fn(spike_predicted_, targets_labels_)
-        # weight multiplier
-        weight_multiplier = class_weights_[targets_labels_]
+        # weight multiplier (applied per sample, i.e., along dim 0)
+        weight_multiplier = class_weights_[targets_labels_].unsqueeze(-1)
         # expectation
         expected_weighted_loss = (vanilla_loss * weight_multiplier).mean()
 
@@ -253,8 +264,8 @@ class TestLoss:
         # unreduced, unweighted loss
         vanilla_loss_fn = sf.mse_temporal_loss(reduction="none")
         vanilla_loss = vanilla_loss_fn(spike_predicted_, targets_labels_)
-        # weight multiplier
-        weight_multiplier = class_weights_[targets_labels_]
+        # weight multiplier (applied per sample, i.e., along dim 0)
+        weight_multiplier = class_weights_[targets_labels_].unsqueeze(-1)
         # expectation
         expected_weighted_loss = (vanilla_loss * weight_multiplier).mean()
 
@@ -300,3 +311,138 @@ class TestLoss:
         assert_approximate_equality(
             weighted_loss.item(), expected_weighted_loss.item()
         )
+
+
+
+class TestClassWeightAxis:
+    """Class weights scale every output of their own sample.
+
+    Regression tests for #460, #461 and #462: the weighted MSE losses
+    multiply a ``[batch, outputs]`` error tensor by ``weight[targets]``,
+    so the weight was broadcast over the output axis whenever
+    ``batch == outputs``, and raised a size mismatch otherwise.
+    """
+
+    def test_mse_count_loss_weight_is_per_sample(self):
+        # T x B x C, with B == C so a transposed broadcast stays silent
+        spikes = torch.tensor(
+            [
+                [[1.0, 1.0], [0.0, 0.0]],
+                [[1.0, 0.0], [0.0, 0.0]],
+            ]
+        )
+        targets = torch.tensor([0, 1])
+        weights = torch.tensor([1.0, 3.0])
+        loss_fn = sf.mse_count_loss(
+            correct_rate=1, incorrect_rate=0, weight=weights
+        )
+
+        desired_counts = torch.tensor([[2.0, 0.0], [0.0, 2.0]])
+        per_output_error = (spikes.sum(0) - desired_counts).square()
+        expected = (per_output_error * weights[targets, None]).mean() / 2
+
+        assert_approximate_equality(
+            loss_fn(spikes, targets).item(), expected.item()
+        )
+        # independent samples must not interact through the weights
+        swapped_loss = loss_fn(spikes[:, [1, 0]], targets[[1, 0]])
+        assert_approximate_equality(swapped_loss.item(), expected.item())
+
+    def test_mse_membrane_loss_weight_is_per_sample(self):
+        membrane = torch.tensor([[[1.0, 1.0], [0.0, 0.0]]])  # T x B x C
+        targets = torch.tensor([0, 1])
+        weights = torch.tensor([1.0, 3.0])
+        loss_fn = sf.mse_membrane_loss(weight=weights)
+
+        desired = torch.eye(2)[targets]
+        expected = (
+            (membrane[0] - desired).square() * weights[targets, None]
+        ).mean()
+
+        assert_approximate_equality(
+            loss_fn(membrane, targets).item(), expected.item()
+        )
+        swapped_loss = loss_fn(membrane[:, [1, 0]], targets[[1, 0]])
+        assert_approximate_equality(swapped_loss.item(), expected.item())
+
+    def test_mse_temporal_loss_weight_is_per_sample(self):
+        spikes = torch.zeros((4, 2, 2))
+        spikes[0, 0, 0] = 1
+        spikes[1, 0, 1] = 1
+        spikes[2, 1, 0] = 1
+        spikes[0, 1, 1] = 1
+        targets = torch.tensor([0, 1])
+        weights = torch.tensor([1.0, 3.0])
+        loss_fn = sf.mse_temporal_loss(
+            on_target=0,
+            off_target=3,
+            tolerance=0,
+            multi_spike=False,
+            weight=weights,
+        )
+
+        observed = torch.tensor([[0.0, 1.0], [2.0, 0.0]])
+        desired = torch.tensor([[0.0, 3.0], [3.0, 0.0]])
+        expected = (
+            ((observed - desired) / 4).square() * weights[targets, None]
+        ).mean()
+
+        assert_approximate_equality(
+            loss_fn(spikes, targets).item(), expected.item()
+        )
+        swapped_loss = loss_fn(spikes[:, [1, 0]], targets[[1, 0]])
+        assert_approximate_equality(swapped_loss.item(), expected.item())
+
+    def test_multi_spike_loss_is_independent_of_other_samples(self):
+        spikes = torch.zeros((4, 2, 1))
+        spikes[[0, 1], 0, 0] = 1
+        spikes[[1, 2], 1, 0] = 1
+        targets = torch.zeros(2, dtype=torch.long)
+        settings = dict(
+            multi_spike=True,
+            on_target=[0, 1],
+            off_target=[3, 3],
+            tolerance=0,
+        )
+
+        times, _ = sf.SpikeTime(**settings)(spikes, targets)
+        assert torch.equal(times[:, :, 0], torch.tensor([[0, 1], [1, 2]]))
+
+        loss_fn = sf.mse_temporal_loss(**settings)
+        batched_loss = loss_fn(spikes, targets)
+        separate_loss = torch.stack(
+            [
+                loss_fn(spikes[:, b : b + 1], targets[b : b + 1])
+                for b in range(2)
+            ]
+        ).mean()
+        assert_approximate_equality(batched_loss.item(), 0.03125)
+        assert_approximate_equality(batched_loss.item(), separate_loss.item())
+
+    def test_multi_spike_keeps_events_in_other_outputs(self):
+        spikes = torch.zeros((4, 2, 2))
+        spikes[[0, 1], 0, 0] = 1
+        spikes[[1, 3], 0, 1] = 1
+        spikes[[1, 2], 1, 0] = 1
+        spikes[[0, 2], 1, 1] = 1
+
+        times = sf.SpikeTime.MultiSpike.apply(spikes, 2, spikes.device)
+        expected = torch.tensor(
+            [[[0, 1], [1, 0]], [[1, 3], [2, 2]]]
+        )
+        assert torch.equal(times, expected)
+
+    def test_weighted_mse_losses_accept_non_square_shapes(self):
+        # B=2 and C=3: the old broadcast raised a size mismatch here
+        spikes = torch.zeros((2, 2, 3))
+        spikes[0, 0, 0] = 1
+        spikes[0, 1, 2] = 1
+        targets = torch.tensor([0, 1])
+        weights = torch.tensor([1.0, 3.0, 2.0])
+
+        for loss_fn in (
+            sf.mse_count_loss(weight=weights),
+            sf.mse_membrane_loss(weight=weights),
+            sf.mse_temporal_loss(weight=weights),
+        ):
+            assert torch.isfinite(loss_fn(spikes, targets))

@@ -66,6 +66,8 @@ snnTorch contains the following components:
      - optional surrogate gradient functions
    * - `snntorch.utils <https://snntorch.readthedocs.io/en/latest/snntorch.utils.html>`_
      - dataset utility functions
+   * - `snntorch.weight_init <https://snntorch.readthedocs.io/en/latest/snntorch.weight_init.html>`_
+     - spiking-aware weight initialization functions
 
 snnTorch is designed to be intuitively used with PyTorch, as though each spiking neuron were simply another activation in a sequence of layers. 
 It is therefore agnostic to fully-connected layers, convolutional layers, residual connections, etc. 

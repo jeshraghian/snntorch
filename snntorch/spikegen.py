@@ -862,6 +862,10 @@ def targets_convert(
             threshold=threshold,
             tau=tau,
             first_spike_time=first_spike_time,
+            on_target=on_target,
+            off_target=off_target,
+            interpolate=interpolate,
+            epsilon=epsilon,
             clip=clip,
             normalize=normalize,
             linear=linear,
@@ -1018,23 +1022,16 @@ def targets_rate(
 
     # return a non time-varying tensor
     if correct_rate == 1 and incorrect_rate == 0:
+        one_hot_targets = to_one_hot(targets, num_classes)
+        spike_targets = (
+            one_hot_targets * on_target + ~one_hot_targets.bool() * off_target
+        )
         if first_spike_time == 0:
-            if on_target > off_target:
-                return torch.clamp(
-                    to_one_hot(targets, num_classes) * on_target, off_target
-                )
-            else:
-                return (
-                    to_one_hot(targets, num_classes) * on_target
-                    + ~(to_one_hot(targets, num_classes)).bool() * off_target
-                )
+            return spike_targets
 
         # return time-varying tensor: off up to first_spike_time,
         # then correct classes are on after
         if first_spike_time > 0:
-            spike_targets = torch.clamp(
-                to_one_hot(targets, num_classes) * on_target, off_target
-            )
             spike_targets = spike_targets.repeat(
                 tuple(
                     [num_steps]
@@ -1085,8 +1082,8 @@ def targets_rate(
             firing_pattern=firing_pattern,
         )
         incorrect_spikes_one_hot = (
-            (one_hot_inverse * incorrect_spike_targets)
-            .to(device)
+            one_hot_inverse
+            * incorrect_spike_targets.to(device)
             .unsqueeze(-1)
             .unsqueeze(-1)
         )  # the two unsquezes make the dims of correct_spikes

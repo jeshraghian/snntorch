@@ -2,6 +2,21 @@
 History
 =======
 
+Unreleased
+^^^^^^^^^^
+
+* Forward custom target values, interpolation, and epsilon to latency target
+  conversion.
+
+* Broadcast incorrect-class rate targets along the time axis without adding
+  extra output dimensions.
+
+* Fix the RSynaptic network example to use recurrent synaptic neurons and
+  the current hidden-state initialization API.
+
+* Preserve custom negative on/off target values in rate encoding, including
+  delayed targets used for membrane-potential training.
+
 0.1.2 (2021-02-11)
 ^^^^^^^^^^^^^^^^^^^
 
