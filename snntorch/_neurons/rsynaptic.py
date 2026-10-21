@@ -18,9 +18,9 @@ class RSynaptic(LIF):
 
     .. math::
 
-            I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + V(S_{\\rm out}[t]
+            I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + VS_{\\rm out}[t]
             + I_{\\rm in}[t+1] \\\\
-            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - RU_{\\rm thr}
+            U[t+1] = β(U[t] - RU_{\\rm thr} + I_{\\rm syn}[t+1]
 
     Where :math:`V(\\cdot)` acts either as a linear layer, a convolutional
     operator, or elementwise product on :math:`S_{\\rm out}`.
@@ -41,7 +41,7 @@ class RSynaptic(LIF):
 
             I_{\\rm syn}[t+1] = αI_{\\rm syn}[t] + VS_{\\rm out}[t]
             + I_{\\rm in}[t+1] \\\\
-            U[t+1] = βU[t] + I_{\\rm syn}[t+1] - R(βU[t] + I_{\\rm syn}[t+1])
+            U[t+1] = β(1 - R)U[t] + I_{\\rm syn}[t+1]
 
     * :math:`I_{\\rm syn}` - Synaptic current
     * :math:`I_{\\rm in}` - Input current
@@ -294,16 +294,7 @@ class RSynaptic(LIF):
             self._disable_recurrent_grad()
 
         self._alpha_register_buffer(alpha, learn_alpha)
-
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
-
         self.reset_delay = reset_delay
 
     def _init_mem(self):
@@ -351,8 +342,11 @@ class RSynaptic(LIF):
         if not self.mem.shape == input_.shape:
             self.mem = torch.zeros_like(input_, device=self.mem.device)
 
-        self.reset = self.mem_reset(self.mem)
-        self.syn, self.mem = self.state_function(input_)
+        reset = self.mem_reset(self.mem)  # S[t]
+        self.mem = self.reset_function(reset)  # U[t] after reset
+        self.syn, self.mem = self.base_state_function(
+            input_
+        )  # syn[t+1], U[t+1]
 
         if self.state_quant:
             self.syn = self.state_quant(self.syn)
@@ -366,13 +360,9 @@ class RSynaptic(LIF):
         if not self.reset_delay:
             # reset membrane potential _right_ after spike
             do_reset = (
-                spk / self.graded_spikes_factor - self.reset
+                self.spk / self.graded_spikes_factor - reset
             )  # avoid double reset
-            if self.reset_mechanism_val == 0:  # reset by subtraction
-                mem = mem - do_reset * self.threshold
-            elif self.reset_mechanism_val == 1:  # reset to zero
-                # mem -= do_reset * mem
-                mem = mem - do_reset * mem
+            self.mem = self.reset_function(do_reset)  # U[t+1] after reset
 
         if self.output:
             return self.spk, self.syn, self.mem
@@ -415,7 +405,7 @@ class RSynaptic(LIF):
         for param in self.recurrent.parameters():
             param.requires_grad = False
 
-    def _base_state_function(self, input_):
+    def base_state_function(self, input_):
         base_fn_syn = (
             self.alpha.clamp(0, 1) * self.syn
             + input_
@@ -423,32 +413,6 @@ class RSynaptic(LIF):
         )
         base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
         return base_fn_syn, base_fn_mem
-
-    def _base_state_reset_zero(self, input_):
-        base_fn_syn = (
-            self.alpha.clamp(0, 1) * self.syn
-            + input_
-            + self.recurrent(self.spk)
-        )
-        base_fn_mem = self.beta.clamp(0, 1) * self.mem + base_fn_syn
-        return 0, base_fn_mem
-
-    def _base_sub(self, input_):
-        syn, mem = self._base_state_function(input_)
-        mem -= self.reset * self.threshold
-        return syn, mem
-
-    def _base_zero(self, input_):
-        syn, mem = self._base_state_function(input_)
-        syn2, mem2 = self._base_state_reset_zero(input_)
-        syn2 *= self.reset
-        mem2 *= self.reset
-        syn -= syn2
-        mem -= mem2
-        return syn, mem
-
-    def _base_int(self, input_):
-        return self._base_state_function(input_)
 
     def _alpha_register_buffer(self, alpha, learn_alpha):
         if not isinstance(alpha, torch.Tensor):

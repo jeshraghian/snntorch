@@ -233,13 +233,18 @@ class SLSTM(SpikingNeuron):
         correct_shape = (size[0], self.hidden_size)
 
         if not self.syn.shape == input_.shape:
-            self.syn = torch.zeros(correct_shape, device=self.syn.device)
+            self.syn = torch.zeros(
+                correct_shape, device=self.syn.device, dtype=input_.dtype
+            )
 
         if not self.mem.shape == input_.shape:
-            self.mem = torch.zeros(correct_shape, device=self.mem.device)
+            self.mem = torch.zeros(
+                correct_shape, device=self.mem.device, dtype=input_.dtype
+            )
 
-        self.reset = self.mem_reset(self.mem)
-        self.syn, self.mem = self.state_function(input_)
+        reset = self.mem_reset(self.mem)
+        self.mem = self.reset_function(reset)
+        self.syn, self.mem = self.base_state_function(input_)
 
         if self.state_quant:
             self.syn = self.state_quant(self.syn)
@@ -254,38 +259,23 @@ class SLSTM(SpikingNeuron):
         else:
             return self.spk, self.syn, self.mem
 
-    def _base_state_function(self, input_):
+    def base_state_function(self, input_):
         base_fn_mem, base_fn_syn = self.lstm_cell(input_, (self.mem, self.syn))
         return base_fn_syn, base_fn_mem
-
-    def _base_state_reset_zero(self, input_):
-        base_fn_mem, _ = self.lstm_cell(input_, (self.mem, self.syn))
-        return 0, base_fn_mem
-
-    def _base_sub(self, input_):
-        syn, mem = self._base_state_function(input_)
-        mem -= self.reset * self.threshold
-        return syn, mem
-
-    def _base_zero(self, input_):
-        syn, mem = self._base_state_function(input_)
-        syn2, mem2 = self._base_state_reset_zero(input_)
-        syn2 *= self.reset
-        mem2 *= self.reset
-        syn -= syn2
-        mem -= mem2
-        return syn, mem
-
-    def _base_int(self, input_):
-        return self._base_state_function(input_)
     
+    def _reset_sub(self, reset):
+        return self.mem - reset * self.threshold
+
+    def _reset_zero(self, reset):
+        return self.mem - reset * self.mem
+
     def _set_reset_function(self):
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
+        if self.reset_mechanism_val == 0:  # soft reset
+            self.reset_function = self._reset_sub
+        elif self.reset_mechanism_val == 1:  # hard reset
+            self.reset_function = self._reset_zero
+        elif self.reset_mechanism_val == 2:  # no reset
+            self.reset_function = lambda reset: self.mem
 
     @classmethod
     def detach_hidden(cls):

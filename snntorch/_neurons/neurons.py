@@ -1,3 +1,4 @@
+import math
 from warnings import warn
 from snntorch.surrogate import atan
 import torch
@@ -22,7 +23,7 @@ class SpikingNeuron(nn.Module):
     The list is used to initialize and clear neuron states when the
     argument `init_hidden=True`."""
 
-    reset_dict = {'none': 0}
+    reset_dict = {"none": 0}
     """Each :mod:`snntorch.SpikingNeuron` neuron 
     (e.g., :mod:`snntorch.Leaky`) defines its own mapping of reset mechanisms
     to its corresponding reset function in the class variable `reset_dict`."""
@@ -65,9 +66,99 @@ class SpikingNeuron(nn.Module):
             graded_spikes_factor=graded_spikes_factor,
             learn_graded_spikes_factor=learn_graded_spikes_factor,
         )
-        self._reset_mechanism = reset_mechanism
 
         self.state_quant = state_quant
+
+        # Homeostatic (adaptive, time-varying) threshold -- opt-in, off by
+        # default. See enable_homeostasis(). Disabled, `fire()` /
+        # `fire_inhibition()` are byte-identical to before this was added.
+        self.register_buffer(
+            "_threshold_adapt", torch.zeros(0), persistent=False
+        )
+        self._homeostasis_enabled = False
+        self._adapt_increment = 0.0
+        self._adapt_decay = 0.0
+        self._adapt_max = None
+
+    def enable_homeostasis(self, increment=0.5, tau=20.0, max_adapt=None):
+        """Turn on an adaptive, time-varying component added to
+        :attr:`threshold`. Every call to :meth:`fire` (i.e. every time
+        step), the adaptive component decays toward 0 with time-constant
+        ``tau``, then -- after the firing decision -- jumps up by
+        ``increment`` for every neuron that just spiked. The net effect is
+        spike-frequency adaptation / intrinsic homeostatic plasticity: a
+        neuron that has been firing raises its own effective threshold,
+        making it progressively harder to fire, and that extra threshold
+        relaxes back to the static :attr:`threshold` once firing stops.
+
+        This mechanism is available on every neuron model built on
+        :class:`SpikingNeuron` (i.e. all of them) without any change to the
+        individual neuron classes, since they all call :meth:`fire` /
+        :meth:`fire_inhibition`.
+
+        The adaptive component is intentionally **not** learned by
+        backprop -- it is homeostatic bookkeeping updated from the
+        detached spike output, the same way :meth:`mem_reset` is detached.
+        Use ``learn_threshold`` for a backprop-trained *static* threshold.
+
+        :param increment: how much the effective threshold rises for each
+            spike emitted. Defaults to 0.5
+        :type increment: float, optional
+
+        :param tau: time-constant (in time steps) over which the adaptive
+            component decays back toward 0. Defaults to 20.0
+        :type tau: float, optional
+
+        :param max_adapt: if given, the adaptive component is clamped to
+            this value so a neuron under sustained strong drive does not
+            have its firing suppressed indefinitely. Defaults to None (no
+            cap).
+        :type max_adapt: float, optional
+        """
+        self._adapt_increment = float(increment)
+        self._adapt_decay = math.exp(-1.0 / float(tau))
+        self._adapt_max = None if max_adapt is None else float(max_adapt)
+        self._homeostasis_enabled = True
+
+    def disable_homeostasis(self):
+        """Turn off the adaptive threshold. The static :attr:`threshold`
+        is used as-is, exactly as if :meth:`enable_homeostasis` had never
+        been called. The accumulated adaptive component is kept (not
+        zeroed) so re-enabling resumes where it left off; call
+        :meth:`reset_homeostasis` to clear it."""
+        self._homeostasis_enabled = False
+
+    def reset_homeostasis(self):
+        """Clear the accumulated adaptive threshold component back to 0."""
+        self._threshold_adapt = torch.zeros_like(self._threshold_adapt)
+        return self._threshold_adapt
+
+    def _homeostasis_pre(self, mem):
+        """Decay the adaptive component and return this step's effective
+        threshold. A no-op (returns the static threshold) unless
+        :meth:`enable_homeostasis` has been called."""
+        if not self._homeostasis_enabled:
+            return self.threshold
+        if self._threshold_adapt.shape != mem.shape:
+            self._threshold_adapt = torch.zeros_like(mem)
+        self._threshold_adapt = self._threshold_adapt * self._adapt_decay
+        return self.threshold + self._threshold_adapt
+
+    def _homeostasis_post(self, spk):
+        """After the firing decision: bump the adaptive component for
+        every neuron that just spiked. Detached -- homeostasis is
+        bookkeeping driven by the (already detached-in-effect) spike
+        count, not a backprop-trained quantity."""
+        if not self._homeostasis_enabled:
+            return
+        self._threshold_adapt = (
+            self._threshold_adapt + self._adapt_increment * spk.detach()
+        )
+        if self._adapt_max is not None:
+            self._threshold_adapt = self._threshold_adapt.clamp(
+                max=self._adapt_max
+            )
+        self._threshold_adapt = self._threshold_adapt.detach()
 
     def fire(self, mem):
         """Generates spike if mem > threshold.
@@ -76,8 +167,10 @@ class SpikingNeuron(nn.Module):
         if self.state_quant:
             mem = self.state_quant(mem)
 
-        mem_shift = mem - self.threshold
+        threshold_eff = self._homeostasis_pre(mem)
+        mem_shift = mem - threshold_eff
         spk = self.spike_grad(mem_shift)
+        self._homeostasis_post(spk)
 
         spk = spk * self.graded_spikes_factor
 
@@ -87,13 +180,15 @@ class SpikingNeuron(nn.Module):
         """Generates spike if mem > threshold, only for the largest membrane.
         All others neurons will be inhibited for that time step.
         Returns spk."""
-        mem_shift = mem - self.threshold
+        threshold_eff = self._homeostasis_pre(mem)
+        mem_shift = mem - threshold_eff
         index = torch.argmax(mem_shift, dim=1)
         spk_tmp = self.spike_grad(mem_shift)
 
         mask_spk1 = torch.zeros_like(spk_tmp)
         mask_spk1[torch.arange(batch_size), index] = 1
         spk = spk_tmp * mask_spk1
+        self._homeostasis_post(spk)
         # reset = spk.clone().detach()
 
         return spk
@@ -118,9 +213,16 @@ class SpikingNeuron(nn.Module):
 
     def _reset_cases(self, reset_mechanism):
         if reset_mechanism not in type(self).reset_dict:
+            keys = [f"`{k}`" for k in type(self).reset_dict]
+            options = (
+                f"{keys[0]}."
+                if len(keys) == 1
+                else ", ".join(keys[:-1]) + f", or {keys[-1]}."
+            )
             raise ValueError(
-                "reset_mechanism must be set to one of "
-                ", ".join(f"`{k}`" for k in type(self).reset_dict) + "."
+                f"Unknown reset_mechanism `{reset_mechanism}`, "
+                + f"available option{'s are ' if len(keys) > 1 else ' is '}"
+                + options
             )
 
     def _snn_register_buffer(
@@ -203,7 +305,15 @@ class SpikingNeuron(nn.Module):
         self._set_reset_function()
 
     def _set_reset_function(self):
-        pass # to be implemented in child classes
+        """Assigns `reset_function` according to `reset_mechanism_val`.
+        To be overwritten if resets are implemented."""
+        self.reset_function = self._reset_not_implemented
+
+    def _reset_not_implemented(self, reset):
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement reset_function; "
+            "override _set_reset_function() to provide reset behavior."
+        )
 
     @classmethod
     def init(cls):
@@ -228,7 +338,7 @@ class SpikingNeuron(nn.Module):
 
     @staticmethod
     def _surrogate_bypass(input_):
-        return (input_ > 0).float()
+        return (input_ > 0).to(input_.dtype)
 
 
 class LIF(SpikingNeuron):
@@ -238,7 +348,6 @@ class LIF(SpikingNeuron):
         "subtract": 0,
         "zero": 1,
         "none": 2,
-        "subtract_beta": 3,
     }
 
     def __init__(
@@ -275,7 +384,6 @@ class LIF(SpikingNeuron):
             beta,
             learn_beta,
         )
-        self._reset_mechanism = reset_mechanism
 
     def _lif_register_buffer(
         self,
@@ -302,3 +410,17 @@ class LIF(SpikingNeuron):
             self.V = nn.Parameter(V)
         else:
             self.register_buffer("V", V)
+
+    def _reset_sub(self, reset):
+        return self.mem - reset * self.threshold
+
+    def _reset_zero(self, reset):
+        return self.mem - reset * self.mem
+
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:  # soft reset
+            self.reset_function = self._reset_sub
+        elif self.reset_mechanism_val == 1:  # hard reset
+            self.reset_function = self._reset_zero
+        elif self.reset_mechanism_val == 2:  # no reset
+            self.reset_function = lambda reset: self.mem

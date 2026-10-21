@@ -7,10 +7,17 @@ import snntorch as snn
 import torch
 import torch._dynamo as dynamo
 
+RESET_MECHANISMS = ["subtract", "zero", "none"]
+
 
 @pytest.fixture(scope="module")
 def input_():
     return torch.Tensor([0.25, 0]).unsqueeze(-1)
+
+
+@pytest.fixture(scope="module")
+def spiking_input_():
+    return torch.Tensor([1.2, 0]).unsqueeze(-1)
 
 
 @pytest.fixture(scope="module")
@@ -31,47 +38,9 @@ def rsynaptic_instance_surrogate():
 
 
 @pytest.fixture(scope="module")
-def rsynaptic_reset_zero_instance():
-    return snn.RSynaptic(
-        alpha=0.5, beta=0.5, V=0.5, all_to_all=False, reset_mechanism="zero"
-    )
-
-
-@pytest.fixture(scope="module")
-def rsynaptic_reset_none_instance():
-    return snn.RSynaptic(
-        alpha=0.5, beta=0.5, V=0.5, all_to_all=False, reset_mechanism="none"
-    )
-
-
-@pytest.fixture(scope="module")
 def rsynaptic_hidden_instance():
     return snn.RSynaptic(
         alpha=0.5, beta=0.5, V=0.5, all_to_all=False, init_hidden=True
-    )
-
-
-@pytest.fixture(scope="module")
-def rsynaptic_hidden_reset_zero_instance():
-    return snn.RSynaptic(
-        alpha=0.5,
-        beta=0.5,
-        V=0.5,
-        init_hidden=True,
-        all_to_all=False,
-        reset_mechanism="zero",
-    )
-
-
-@pytest.fixture(scope="module")
-def rsynaptic_hidden_reset_none_instance():
-    return snn.RSynaptic(
-        alpha=0.5,
-        beta=0.5,
-        V=0.5,
-        init_hidden=True,
-        all_to_all=False,
-        reset_mechanism="none",
     )
 
 
@@ -93,61 +62,60 @@ class TestRSynaptic:
         assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1] + spk_rec[0]
         assert spk_rec[0] == spk_rec[1]
 
+    @pytest.mark.parametrize(
+        ("mechanism", "reset_delay", "expected_mem"),
+        [
+            ("subtract", True, [1.2, 0.72]),
+            ("zero", True, [1.2, 0.7]),
+            ("none", True, [1.2, 0.82]),
+            ("subtract", False, [0.2, 0.72]),
+            ("zero", False, [0.0, 0.7]),
+            ("none", False, [1.2, 0.82]),
+        ],
+    )
     def test_rsynaptic_reset(
-        self,
-        rsynaptic_instance,
-        rsynaptic_reset_zero_instance,
-        rsynaptic_reset_none_instance,
+        self, mechanism, reset_delay, expected_mem, spiking_input_
     ):
-        lif1 = rsynaptic_instance
-        lif2 = rsynaptic_reset_zero_instance
-        lif3 = rsynaptic_reset_none_instance
+        neuron = snn.RSynaptic(
+            alpha=0.5,
+            beta=0.1,
+            V=0.1,
+            all_to_all=False,
+            reset_mechanism=mechanism,
+            reset_delay=reset_delay,
+        )
+        spk = torch.zeros(1)
+        syn = torch.zeros(1)
+        mem = torch.zeros(1)
 
-        assert lif1.reset_mechanism_val == 0
-        assert lif2.reset_mechanism_val == 1
-        assert lif3.reset_mechanism_val == 2
+        for i, expected in enumerate(expected_mem):
+            spk, syn, mem = neuron(spiking_input_[i], spk, syn, mem)
 
-        lif1.reset_mechanism = "zero"
-        lif2.reset_mechanism = "none"
-        lif3.reset_mechanism = "subtract"
+            assert spk.item() == pytest.approx(1 if i == 0 else 0)
+            assert mem.item() == pytest.approx(expected)
 
-        assert lif1.reset_mechanism_val == 1
-        assert lif2.reset_mechanism_val == 2
-        assert lif3.reset_mechanism_val == 0
+    def test_rsynaptic_reset_setter(self, rsynaptic_instance):
+        for val, mechanism in enumerate(RESET_MECHANISMS):
+            rsynaptic_instance.reset_mechanism = mechanism
+            assert rsynaptic_instance.reset_mechanism_val == val
 
-    def test_rsynaptic_init_hidden(self, rsynaptic_hidden_instance, input_):
-
+    @pytest.mark.parametrize("mechanism", RESET_MECHANISMS)
+    def test_rsynaptic_init_hidden(self, mechanism, spiking_input_):
+        hidden_instance = snn.RSynaptic(
+            alpha=0.5,
+            beta=0.1,
+            V=0.1,
+            all_to_all=False,
+            init_hidden=True,
+            reset_mechanism=mechanism,
+        )
         spk_rec = []
 
         for i in range(2):
-            spk = rsynaptic_hidden_instance(input_[i])
-            spk_rec.append(spk)
+            spk_rec.append(hidden_instance(spiking_input_[i]))
 
-        assert spk_rec[0] == spk_rec[1]
-
-    def test_rsynaptic_init_hidden_reset_zero(
-        self, rsynaptic_hidden_reset_zero_instance, input_
-    ):
-
-        spk_rec = []
-
-        for i in range(2):
-            spk = rsynaptic_hidden_reset_zero_instance(input_[i])
-            spk_rec.append(spk)
-
-        assert spk_rec[0] == spk_rec[1]
-
-    def test_rsynaptic_init_hidden_reset_none(
-        self, rsynaptic_hidden_reset_none_instance, input_
-    ):
-
-        spk_rec = []
-
-        for i in range(2):
-            spk = rsynaptic_hidden_reset_none_instance(input_[i])
-            spk_rec.append(spk)
-
-        assert spk_rec[0] == spk_rec[1]
+        assert spk_rec[0].item() == pytest.approx(1)
+        assert spk_rec[1].item() == pytest.approx(0)
 
     def test_rsynaptic_cases(self, rsynaptic_hidden_instance, input_):
         with pytest.raises(TypeError):
