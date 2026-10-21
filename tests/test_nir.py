@@ -291,3 +291,181 @@ class TestNIR:
         y_nir, state = net(x)
         assert y_nir.shape == (4, 10), y_nir.shape
         assert torch.allclose(y_snn, y_nir)
+
+
+def _roundtrip(graph, path):
+    nir.write(str(path), graph)
+    return nir.read(str(path))
+
+
+def _scalar_synaptic_net(in_features, width):
+    return torch.nn.Sequential(
+        torch.nn.Linear(in_features, width),
+        snn.Synaptic(
+            alpha=0.5,
+            beta=0.9,
+            threshold=1.0,
+            init_hidden=True,
+            output=True,
+        ),
+    )
+
+
+def _scalar_leaky_net(in_features, width):
+    return torch.nn.Sequential(
+        torch.nn.Linear(in_features, width),
+        snn.Leaky(beta=0.9, threshold=1.0, init_hidden=True, output=True),
+    )
+
+
+class TestScalarNeuronExport:
+    """Regression tests for issues #410 and #334."""
+
+    def test_issue_410_scalar_synaptic_roundtrip(self, tmp_path):
+        net = _scalar_synaptic_net(2450, 128)
+        graph = export_to_nir(net, torch.ones(1, 2450), ignore_dims=[0])
+
+        neuron = graph.nodes["1"]
+        assert isinstance(neuron, nir.CubaLIF)
+        assert np.asarray(neuron.v_threshold).shape == (128,)
+        assert np.asarray(neuron.tau_syn).shape == (128,)
+        assert np.asarray(neuron.tau_mem).shape == (128,)
+        assert np.asarray(neuron.r).shape == (128,)
+        assert np.asarray(neuron.v_leak).shape == (128,)
+        assert np.asarray(neuron.v_reset).shape == (128,)
+        assert np.asarray(neuron.w_in).shape == (128,)
+        assert list(np.asarray(neuron.input_type["input"])) == [128]
+        assert list(np.asarray(neuron.output_type["output"])) == [128]
+
+        reloaded = _roundtrip(graph, tmp_path / "issue410.nir")
+        reloaded_neuron = reloaded.nodes["1"]
+        assert np.allclose(
+            np.asarray(reloaded_neuron.v_threshold),
+            np.asarray(neuron.v_threshold),
+        )
+        assert np.allclose(
+            np.asarray(reloaded_neuron.tau_mem),
+            np.asarray(neuron.tau_mem),
+        )
+        assert np.allclose(
+            np.asarray(reloaded_neuron.tau_syn),
+            np.asarray(neuron.tau_syn),
+        )
+        assert np.asarray(reloaded_neuron.v_threshold).shape == (128,)
+
+    def test_scalar_synaptic_width_4(self, tmp_path):
+        net = _scalar_synaptic_net(16, 4)
+        graph = export_to_nir(net, torch.ones(1, 16), ignore_dims=[0])
+        neuron = graph.nodes["1"]
+        assert isinstance(neuron, nir.CubaLIF)
+        assert np.asarray(neuron.v_threshold).shape == (4,)
+        reloaded = _roundtrip(graph, tmp_path / "width4.nir")
+        assert np.asarray(reloaded.nodes["1"].v_threshold).shape == (4,)
+
+    def test_scalar_leaky_roundtrip(self, tmp_path):
+        net = _scalar_leaky_net(2450, 128)
+        graph = export_to_nir(net, torch.ones(1, 2450), ignore_dims=[0])
+
+        neuron = graph.nodes["1"]
+        assert isinstance(neuron, nir.LIF)
+        assert np.asarray(neuron.v_threshold).shape == (128,)
+        assert np.asarray(neuron.tau).shape == (128,)
+        assert np.asarray(neuron.r).shape == (128,)
+        assert np.asarray(neuron.v_leak).shape == (128,)
+        assert np.asarray(neuron.v_reset).shape == (128,)
+        assert list(np.asarray(neuron.input_type["input"])) == [128]
+        assert list(np.asarray(neuron.output_type["output"])) == [128]
+
+        reloaded = _roundtrip(graph, tmp_path / "scalar_leaky.nir")
+        assert np.asarray(reloaded.nodes["1"].v_threshold).shape == (128,)
+        assert np.allclose(
+            np.asarray(reloaded.nodes["1"].v_threshold),
+            np.asarray(neuron.v_threshold),
+        )
+
+    def test_vector_params_unchanged(self, tmp_path):
+        n = 16
+        beta = 0.9 * torch.ones(n)
+        thr = torch.ones(n)
+        alpha = 0.5 * torch.ones(n)
+        net = torch.nn.Sequential(
+            torch.nn.Linear(32, n),
+            snn.Synaptic(
+                alpha=alpha,
+                beta=beta,
+                threshold=thr,
+                init_hidden=True,
+                output=True,
+            ),
+        )
+        graph = export_to_nir(net, torch.ones(1, 32), ignore_dims=[0])
+        neuron = graph.nodes["1"]
+        assert np.asarray(neuron.v_threshold).shape == (n,)
+        assert np.allclose(np.asarray(neuron.v_threshold), 1.0)
+        reloaded = _roundtrip(graph, tmp_path / "vector.nir")
+        assert np.asarray(reloaded.nodes["1"].v_threshold).shape == (n,)
+        assert np.allclose(np.asarray(reloaded.nodes["1"].v_threshold), 1.0)
+
+    def test_broadcast_helper_affine_predecessor(self):
+        from snntorch.export_nir import (
+            _broadcast_scalar_neuron_params_to_width,
+        )
+
+        width = 7
+        graph = nir.NIRGraph(
+            nodes={
+                "input": nir.Input(input_type=np.array([5])),
+                "affine": nir.Affine(
+                    weight=np.zeros((width, 5)),
+                    bias=np.zeros(width),
+                ),
+                "lif": nir.LIF(
+                    tau=np.array(2.0),
+                    r=np.array(1.0),
+                    v_leak=np.array(0.0),
+                    v_threshold=np.array(1.0),
+                    v_reset=np.array(0.0),
+                ),
+                "output": nir.Output(output_type=np.array([width])),
+            },
+            edges=[
+                ("input", "affine"),
+                ("affine", "lif"),
+                ("lif", "output"),
+            ],
+            type_check=False,
+        )
+        _broadcast_scalar_neuron_params_to_width(graph)
+        lif = graph.nodes["lif"]
+        assert np.asarray(lif.v_threshold).shape == (width,)
+        assert np.asarray(lif.tau).shape == (width,)
+        assert list(np.asarray(lif.input_type["input"])) == [width]
+        assert np.allclose(np.asarray(lif.v_threshold), 1.0)
+
+    def test_unresolved_width_raises(self):
+        from snntorch.export_nir import (
+            _broadcast_scalar_neuron_params_to_width,
+        )
+
+        graph = nir.NIRGraph(
+            nodes={
+                "input": nir.Input(input_type=np.array([1, 8, 8])),
+                "pool": nir.AvgPool2d(kernel_size=2, stride=2, padding=(0, 0)),
+                "lif": nir.LIF(
+                    tau=np.array(2.0),
+                    r=np.array(1.0),
+                    v_leak=np.array(0.0),
+                    v_threshold=np.array(1.0),
+                    v_reset=np.array(0.0),
+                ),
+                "output": nir.Output(output_type=np.array([4, 4])),
+            },
+            edges=[
+                ("input", "pool"),
+                ("pool", "lif"),
+                ("lif", "output"),
+            ],
+            type_check=False,
+        )
+        with pytest.raises(ValueError, match="Cannot infer neuron width"):
+            _broadcast_scalar_neuron_params_to_width(graph)

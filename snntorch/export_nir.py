@@ -69,7 +69,6 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
         beta = module.beta.detach().cpu().numpy()
         vthr = module.threshold.detach().cpu().numpy()
-        vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
         tau_mem = dt / (1 - beta)
         r = tau_mem / dt
         v_leak = np.zeros_like(beta)
@@ -98,7 +97,6 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
         alpha = module.alpha.detach().cpu().numpy()
         beta = module.beta.detach().cpu().numpy()
         vthr = module.threshold.detach().cpu().numpy()
-        vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
 
         tau_syn = dt / (1 - alpha)
         tau_mem = dt / (1 - beta)
@@ -233,6 +231,136 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
         return None
 
 
+_NEURON_PARAM_ATTRS = (
+    (
+        nir.CubaLIF,
+        (
+            "tau_syn",
+            "tau_mem",
+            "r",
+            "v_leak",
+            "v_reset",
+            "v_threshold",
+            "w_in",
+        ),
+    ),
+    (nir.LIF, ("tau", "r", "v_leak", "v_reset", "v_threshold")),
+)
+
+
+def _neuron_param_attrs(node):
+    for node_type, attrs in _NEURON_PARAM_ATTRS:
+        if isinstance(node, node_type):
+            return attrs
+    return None
+
+
+def _infer_neuron_width(predecessor):
+    """Return neuron population width from a predecessor NIR node, or None."""
+    if predecessor is None:
+        return None
+    # Affine/Linear weight is (out_features, in_features) [or batched ...,
+    # out, in]; population width is the neuron axis (out_features).
+    # Do not use weight.shape on Conv* — that would pick a kernel dim.
+    if isinstance(predecessor, (nir.Affine, nir.Linear)):
+        weight = np.asarray(predecessor.weight)
+        if weight.ndim >= 2:
+            return int(weight.shape[-2])
+        return None
+    out_type = getattr(predecessor, "output_type", None)
+    if isinstance(out_type, dict) and "output" in out_type:
+        arr = np.asarray(out_type["output"])
+        if arr.ndim == 1 and arr.size == 1:
+            return int(arr[0])
+    return None
+
+
+def _broadcast_scalar_neuron_params_to_width(nir_graph):
+    """Broadcast 0-d feedforward LIF/CubaLIF params to predecessor width.
+
+    Scalar snn.Synaptic/snn.Leaky parameters become 0-d arrays on export.
+    NIR derives input_type/output_type from those shapes, so infer_types()
+    fails with e.g. ``[[128]] -> []`` (issues #410, #334). Widen scalar
+    params to the neuron population width before type inference.
+    """
+    if nir_graph is None or not getattr(nir_graph, "nodes", None):
+        return
+
+    if isinstance(nir_graph, nir.NIRGraph):
+        preds_by_dest = {}
+        for src, dst in getattr(nir_graph, "edges", None) or []:
+            preds_by_dest.setdefault(dst, []).append(src)
+    else:
+        preds_by_dest = {}
+
+    for name, node in nir_graph.nodes.items():
+        if isinstance(node, nir.NIRGraph):
+            _broadcast_scalar_neuron_params_to_width(node)
+            continue
+
+        attrs = _neuron_param_attrs(node)
+        if attrs is None:
+            continue
+
+        needs_broadcast = False
+        vector_width = None
+        for attr in attrs:
+            if not hasattr(node, attr):
+                continue
+            value = getattr(node, attr)
+            if value is None:
+                continue
+            arr = np.asarray(value)
+            if arr.ndim == 0:
+                needs_broadcast = True
+            elif arr.ndim == 1 and vector_width is None:
+                vector_width = int(arr.shape[0])
+
+        if not needs_broadcast:
+            continue
+
+        width = vector_width
+        if width is None:
+            pred_keys = preds_by_dest.get(name, ())
+            if len(pred_keys) != 1:
+                raise ValueError(
+                    "Cannot infer neuron width for scalar-parameter node "
+                    f"'{name}' ({type(node).__name__}): expected exactly one "
+                    f"predecessor, found {len(pred_keys)}."
+                )
+            pred_key = pred_keys[0]
+            width = _infer_neuron_width(nir_graph.nodes[pred_key])
+            if width is None:
+                pred_type = type(nir_graph.nodes[pred_key]).__name__
+                raise ValueError(
+                    "Cannot infer neuron width for scalar-parameter node "
+                    f"'{name}' ({type(node).__name__}) from predecessor "
+                    f"'{pred_key}' ({pred_type}). "
+                    "Use vector-valued neuron parameters or an "
+                    "Affine/Linear predecessor."
+                )
+
+        for attr in attrs:
+            if not hasattr(node, attr):
+                continue
+            value = getattr(node, attr)
+            if value is None:
+                continue
+            arr = np.asarray(value)
+            if arr.ndim != 0:
+                continue
+            fill = arr.item() if arr.ndim == 0 else arr
+            setattr(
+                node,
+                attr,
+                np.ascontiguousarray(np.full((width,), fill, dtype=float)),
+            )
+
+        # __post_init__ already set types from the old 0-d shapes.
+        node.input_type = {"input": np.array([width])}
+        node.output_type = {"output": np.array([width])}
+
+
 def export_to_nir(
     module: torch.nn.Module,
     sample_data: torch.Tensor,
@@ -295,6 +423,8 @@ def export_to_nir(
         model_fwd_args=model_fwd_args,
         ignore_dims=ignore_dims,
     )
+    # scalar neuron params must match predecessor width before type checks
+    _broadcast_scalar_neuron_params_to_width(nir_graph)
     # ensure node input and output types are fully defined
     nir_graph.infer_types()
     return nir_graph
