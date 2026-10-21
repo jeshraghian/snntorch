@@ -506,7 +506,7 @@ class LeakySpikeOperator(torch.autograd.Function):
         grad = (
             grad_input * out + (~out.bool()).float() * ctx.slope * grad_input
         )
-        return grad
+        return grad, None
 
 
 def LSO(slope=0.1):
