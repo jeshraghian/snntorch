@@ -36,7 +36,7 @@ class SpikingNeuron(nn.Module):
         init_hidden=False,
         inhibition=False,
         learn_threshold=False,
-        reset_mechanism="subtract",
+        reset_mechanism="none",
         state_quant=False,
         output=False,
         graded_spikes_factor=1.0,
@@ -246,7 +246,7 @@ class SpikingNeuron(nn.Module):
             # if reset_mechanism_val is loaded from .pt, override
             # reset_mechanism
             if torch.is_tensor(self.reset_mechanism_val):
-                self.reset_mechanism = list(SpikingNeuron.reset_dict)[
+                self.reset_mechanism = list(type(self).reset_dict)[
                     self.reset_mechanism_val
                 ]
         except AttributeError:
@@ -276,9 +276,10 @@ class SpikingNeuron(nn.Module):
         Must be of type tensor to store in register buffer. See reset_dict
         for mapping."""
         reset_mechanism_val = torch.as_tensor(
-            SpikingNeuron.reset_dict[reset_mechanism]
+            type(self).reset_dict[reset_mechanism]
         )
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
+        self.reset_mechanism = reset_mechanism
 
     def _V_register_buffer(self, V, learn_V):
         if not isinstance(V, torch.Tensor):
@@ -291,15 +292,14 @@ class SpikingNeuron(nn.Module):
     @property
     def reset_mechanism(self):
         """If reset_mechanism is modified, reset_mechanism_val is triggered
-        to update.
-        0: subtract, 1: zero, 2: none."""
+        to update."""
         return self._reset_mechanism
 
     @reset_mechanism.setter
     def reset_mechanism(self, new_reset_mechanism):
         self._reset_cases(new_reset_mechanism)
         self.reset_mechanism_val = torch.as_tensor(
-            SpikingNeuron.reset_dict[new_reset_mechanism]
+            type(self).reset_dict[new_reset_mechanism]
         )
         self._reset_mechanism = new_reset_mechanism
         self._set_reset_function()

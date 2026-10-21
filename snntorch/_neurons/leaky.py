@@ -97,7 +97,7 @@ class Leaky(LIF):
 
     :param reset_mechanism: Defines the reset mechanism applied to \
     :math:`mem` each time the threshold is met. Reset-by-subtraction: \
-        "subtract", reset-to-zero: "zero", none: "none". Defaults to "subtract"
+        "subtract" or "subtract_beta", reset-to-zero: "zero", none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden state :math:`mem` is quantized
@@ -173,14 +173,6 @@ class Leaky(LIF):
         )
 
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
-
         self.reset_delay = reset_delay
 
     def _init_mem(self):
@@ -220,11 +212,11 @@ class Leaky(LIF):
                 self.mem.size(0), self.mem
             )  # batch_size
         else:
-            spk = self.fire(self.mem)
+            spk = self.fire(self.mem)  # S[t+1]
 
         if not self.reset_delay:
             do_reset = (
-                spk / self.graded_spikes_factor - self.reset
+                spk / self.graded_spikes_factor - reset
             )  # avoid double reset
             self.mem = self.reset_function(do_reset)  # U[t+1] after reset
 
