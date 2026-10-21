@@ -62,8 +62,12 @@ class LossFunctions:
 
     def _reduce(self, loss):
         # if reduction was delayed due to weight
-        requires_reduction = self.weight is not None and self.reduction == 'mean'
-        return loss.mean() if requires_reduction else loss
+        if self.weight is not None:
+            if self.reduction == "mean":
+                return loss.mean()
+            if self.reduction == "sum":
+                return loss.sum()
+        return loss
 
 
 class ce_rate_loss(LossFunctions):
@@ -822,6 +826,8 @@ class mse_temporal_loss:
             loss = loss * self.weight[targets].unsqueeze(-1)
             if self.reduction == 'mean':
                 loss = loss.mean()
+            elif self.reduction == "sum":
+                loss = loss.sum()
 
         return loss
 
