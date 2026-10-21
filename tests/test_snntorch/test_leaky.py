@@ -7,6 +7,7 @@ import snntorch as snn
 import torch
 import torch._dynamo as dynamo
 
+RESET_MECHANISMS = ["subtract", "zero", "none"]
 
 @pytest.fixture(scope="module")
 def input_():
@@ -14,6 +15,11 @@ def input_():
 
 
 @pytest.fixture(scope="module")
+def spiking_input_():
+    return torch.Tensor([1.2, 0]).unsqueeze(-1)
+
+
+@pytest.fixture(scope="function")
 def leaky_instance():
     return snn.Leaky(beta=0.5)
 
@@ -24,28 +30,8 @@ def leaky_instance_surrogate():
 
 
 @pytest.fixture(scope="module")
-def leaky_reset_zero_instance():
-    return snn.Leaky(beta=0.5, reset_mechanism="zero")
-
-
-@pytest.fixture(scope="module")
-def leaky_reset_none_instance():
-    return snn.Leaky(beta=0.5, reset_mechanism="none")
-
-
-@pytest.fixture(scope="module")
 def leaky_hidden_instance():
     return snn.Leaky(beta=0.5, init_hidden=True)
-
-
-@pytest.fixture(scope="module")
-def leaky_hidden_reset_zero_instance():
-    return snn.Leaky(beta=0.5, init_hidden=True, reset_mechanism="zero")
-
-
-@pytest.fixture(scope="module")
-def leaky_hidden_reset_none_instance():
-    return snn.Leaky(beta=0.5, init_hidden=True, reset_mechanism="none")
 
 
 @pytest.fixture(scope="module")
@@ -71,61 +57,54 @@ class TestLeaky:
         assert mem_rec[1] == mem_rec[0] * 0.5 + input_[1]
         assert spk_rec[0] == spk_rec[1]
 
+
+    @pytest.mark.parametrize(
+        ("mechanism", "reset_delay", "expected_mem"),
+        [
+            ("subtract", True, [1.2, 0.1]),
+            ("zero", True, [1.2, 0.0]),
+            ("none", True, [1.2, 0.6]),
+            ("subtract", False, [0.2, 0.1]),
+            ("zero", False, [0.0, 0.0]),
+            ("none", False, [1.2, 0.6]),
+        ],
+    )
     def test_leaky_reset(
-        self,
-        leaky_instance,
-        leaky_reset_zero_instance,
-        leaky_reset_none_instance,
+        self, mechanism, reset_delay, expected_mem, spiking_input_
     ):
-        lif1 = leaky_instance
-        lif2 = leaky_reset_zero_instance
-        lif3 = leaky_reset_none_instance
+        neuron = snn.Leaky(
+            beta=0.5,
+            reset_mechanism=mechanism,
+            reset_delay=reset_delay,
+        )
+        mem = torch.zeros(1)
 
-        assert lif1.reset_mechanism_val == 0
-        assert lif2.reset_mechanism_val == 1
-        assert lif3.reset_mechanism_val == 2
+        for i, expected in enumerate(expected_mem):
+            spk, mem = neuron(spiking_input_[i], mem)
 
-        lif1.reset_mechanism = "zero"
-        lif2.reset_mechanism = "none"
-        lif3.reset_mechanism = "subtract"
+            assert spk.item() == pytest.approx(1 if i == 0 else 0)
+            assert mem.item() == pytest.approx(expected)
 
-        assert lif1.reset_mechanism_val == 1
-        assert lif2.reset_mechanism_val == 2
-        assert lif3.reset_mechanism_val == 0
+    def test_leaky_reset_setter(self, leaky_instance):
+        for val, mechanism in enumerate(RESET_MECHANISMS):
+            leaky_instance.reset_mechanism = mechanism
+            assert leaky_instance.reset_mechanism_val == val
 
-    def test_leaky_init_hidden(self, leaky_hidden_instance, input_):
+    @pytest.mark.parametrize("mechanism", RESET_MECHANISMS)
+    def test_leaky_init_hidden(self, mechanism, spiking_input_):
+        hidden_instance = snn.Leaky(
+            beta=0.5, 
+            init_hidden=True, 
+            reset_mechanism=mechanism
+        )
 
         spk_rec = []
 
         for i in range(2):
-            spk = leaky_hidden_instance(input_[i])
+            spk = hidden_instance(spiking_input_[i])
             spk_rec.append(spk)
 
-        assert spk_rec[0] == spk_rec[1]
-
-    def test_leaky_init_hidden_reset_zero(
-        self, leaky_hidden_reset_zero_instance, input_
-    ):
-
-        spk_rec = []
-
-        for i in range(2):
-            spk = leaky_hidden_reset_zero_instance(input_[i])
-            spk_rec.append(spk)
-
-        assert spk_rec[0] == spk_rec[1]
-
-    def test_leaky_init_hidden_reset_none(
-        self, leaky_hidden_reset_none_instance, input_
-    ):
-
-        spk_rec = []
-
-        for i in range(2):
-            spk = leaky_hidden_reset_none_instance(input_[i])
-            spk_rec.append(spk)
-
-        assert spk_rec[0] == spk_rec[1]
+        assert spk_rec[0] != spk_rec[1]
 
     def test_leaky_cases(self, leaky_hidden_instance, input_):
         with pytest.raises(TypeError):
