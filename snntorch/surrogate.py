@@ -815,3 +815,97 @@ def custom_surrogate(custom_surrogate_function):
 
 # piecewise linear func
 # tanh surrogate func
+
+
+class Gaussian(torch.autograd.Function):
+    """
+    Surrogate gradient of the Heaviside step function using a Gaussian distribution derivative.
+
+    **Forward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Gradient of Gaussian distribution.
+
+        .. math::
+
+                \\frac{∂S}{∂U}=\\frac{σ}{\\sqrt{2π}}\\exp\\left(-\\frac{σ^2 U^2}{2}\\right)
+
+    :math:`σ` defaults to 1.0, and can be modified by calling ``surrogate.gaussian(sigma=1.0)``.
+    """
+
+    @staticmethod
+    def forward(ctx, input_, sigma):
+        ctx.save_for_backward(input_)
+        ctx.sigma = sigma
+        out = (input_ > 0).to(input_.dtype)
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        (input_,) = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        norm_factor = ctx.sigma / math.sqrt(2 * math.pi)
+        grad = norm_factor * torch.exp(-0.5 * (ctx.sigma * input_).pow(2)) * grad_input
+        return grad, None
+
+
+def gaussian(sigma=1.0):
+    """Gaussian surrogate gradient enclosed with a parameterized sigma."""
+    sigma = sigma
+
+    def inner(x):
+        return Gaussian.apply(x, sigma)
+
+    return inner
+
+
+class SmoothedHeaviside(torch.autograd.Function):
+    """
+    Surrogate gradient of the Heaviside step function with a smooth rational derivative.
+
+    **Forward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Smooth derivative function.
+
+        .. math::
+
+                \\frac{∂S}{∂U}=\\frac{α}{2(1 + |α U|)^2}
+
+    :math:`α` defaults to 2.0, and can be modified by calling ``surrogate.smoothed_heaviside(alpha=2.0)``.
+    """
+
+    @staticmethod
+    def forward(ctx, input_, alpha):
+        ctx.save_for_backward(input_)
+        ctx.alpha = alpha
+        out = (input_ > 0).to(input_.dtype)
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        (input_,) = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        grad = (ctx.alpha / 2.0 / (1.0 + ctx.alpha * torch.abs(input_)).pow(2)) * grad_input
+        return grad, None
+
+
+def smoothed_heaviside(alpha=2.0):
+    """SmoothedHeaviside surrogate gradient enclosed with a parameterized alpha."""
+    alpha = alpha
+
+    def inner(x):
+        return SmoothedHeaviside.apply(x, alpha)
+
+    return inner
+
