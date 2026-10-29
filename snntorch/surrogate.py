@@ -78,11 +78,19 @@ class Triangular(torch.autograd.Function):
 
         .. math::
 
-                \\frac{∂S}{∂U}=\\begin{cases} U_{\\rm thr} &
-                \\text{if U < U$_{\\rm thr}$} \\\\
-                -U_{\\rm thr}  & \\text{if U ≥ U$_{\\rm thr}$}
-                \\end{cases}
+                \\frac{∂S}{∂U}={\\rm max}\\left(0, 1 -
+                \\frac{|U - U_{\\rm thr}|}{U_{\\rm thr}}\\right)
 
+    The gradient peaks at 1 when :math:`U = U_{\\rm thr}` and falls
+    linearly to 0 at :math:`U = 0` and :math:`U = 2U_{\\rm thr}`.
+    :math:`U_{\\rm thr}` defaults to 1, and can be modified by calling \\
+        ``surrogate.triangular(threshold=1)``.
+
+    Adapted from:
+
+    *G. Bellec, D. Salaj, A. Subramoney, R. Legenstein, W. Maass (2018)
+    Long short-term memory and learning-to-learn in networks of spiking
+    neurons. Advances in Neural Information Processing Systems 31.*
 
     """
 
@@ -96,9 +104,9 @@ class Triangular(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         (input_,) = ctx.saved_tensors
-        grad_input = grad_output.clone()
-        grad = grad_input * ctx.threshold
-        grad[input_ >= 0] = -grad[input_ >= 0]
+        grad = grad_output * torch.clamp(
+            1 - torch.abs(input_) / ctx.threshold, min=0
+        )
         return grad, None
 
 
@@ -339,7 +347,7 @@ class SpikeRateEscape(torch.autograd.Function):
 
         .. math::
 
-                \\frac{∂S}{∂U}=k{\\rm exp}(-β|U-1|)
+                \\frac{∂S}{∂U}=k{\\rm exp}(-β|U - U_{\\rm thr}|)
 
     :math:`β` defaults to 1, and can be modified by calling \
         ``surrogate.spike_rate_escape(beta=1)``.
@@ -366,9 +374,7 @@ class SpikeRateEscape(torch.autograd.Function):
         (input_,) = ctx.saved_tensors
         grad_input = grad_output.clone()
         grad = (
-            grad_input
-            * ctx.slope
-            * torch.exp(-ctx.beta * torch.abs(input_ - 1))
+            grad_input * ctx.slope * torch.exp(-ctx.beta * torch.abs(input_))
         )
         return grad, None, None
 
