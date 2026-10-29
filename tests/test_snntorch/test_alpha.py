@@ -149,3 +149,63 @@ class TestAlpha:
         explanation = dynamo.explain(alpha_instance_surrogate)(input_[0])
 
         assert explanation.graph_break_count == 0
+
+
+def _reference_alpha_step(input_, syn_exc, syn_inh, mem, alpha, beta, mech):
+    # Alpha update written out from its equations, one step at a time
+    threshold = 1.0
+    reset = (mem - threshold > 0).float()
+    alpha = alpha.clamp(0, 1)
+    beta = beta.clamp(0, 1)
+    tau_alpha = torch.log(alpha) / (torch.log(beta) - torch.log(alpha)) + 1
+    new_syn_exc = alpha * syn_exc + input_
+    new_syn_inh = beta * syn_inh - input_
+    new_mem = tau_alpha * (new_syn_exc + new_syn_inh)
+    if mech == "subtract":
+        new_syn_exc = new_syn_exc - threshold * reset
+        new_syn_inh = new_syn_inh - (beta * syn_inh - input_) * reset
+        new_mem = new_mem + syn_inh * reset
+    elif mech == "zero":
+        new_syn_exc = new_syn_exc - new_syn_exc * reset
+        new_syn_inh = new_syn_inh - new_syn_inh * reset
+        new_mem = new_mem - new_mem * reset
+    spk = (new_mem - threshold > 0).float()
+    return spk, new_syn_exc, new_syn_inh, new_mem
+
+
+@pytest.mark.parametrize("mech", ["subtract", "zero", "none"])
+def test_alpha_matches_reference(mech):
+    torch.manual_seed(0)
+    alpha = torch.tensor([0.95, 0.9, 0.8, 0.7, 0.6])
+    beta = alpha - 0.2
+    inputs = 2 * torch.rand(30, 4, 5)
+
+    lif = snn.Alpha(
+        alpha=alpha.clone(),
+        beta=beta.clone(),
+        learn_alpha=True,
+        learn_beta=True,
+        reset_mechanism=mech,
+    )
+    syn_exc, syn_inh, mem = lif.reset_mem()
+    ref_alpha = alpha.clone().requires_grad_(True)
+    ref_beta = beta.clone().requires_grad_(True)
+    ref_syn_exc = ref_syn_inh = ref_mem = torch.zeros(4, 5)
+
+    loss = ref_loss = 0
+    for x in inputs:
+        spk, syn_exc, syn_inh, mem = lif(x, syn_exc, syn_inh, mem)
+        ref_spk, ref_syn_exc, ref_syn_inh, ref_mem = _reference_alpha_step(
+            x, ref_syn_exc, ref_syn_inh, ref_mem, ref_alpha, ref_beta, mech
+        )
+        assert torch.equal(spk, ref_spk)
+        torch.testing.assert_close(mem, ref_mem)
+        torch.testing.assert_close(syn_exc, ref_syn_exc)
+        torch.testing.assert_close(syn_inh, ref_syn_inh)
+        loss = loss + mem.sum()
+        ref_loss = ref_loss + ref_mem.sum()
+
+    loss.backward()
+    ref_loss.backward()
+    torch.testing.assert_close(lif.alpha.grad, ref_alpha.grad)
+    torch.testing.assert_close(lif.beta.grad, ref_beta.grad)
