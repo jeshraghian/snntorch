@@ -545,9 +545,9 @@ class SpikeTime(nn.Module):
             non-differentiable.
             Apply sign estimator by substituting gradient for -1 ONLY at
             first spike time."""
-            for i in range(first_spike_time.size(0)):
-                for j in range(first_spike_time.size(1)):
-                    spk_time_grad[first_spike_time[i, j].long(), i, j] = 1.0
+            spk_time_grad.scatter_(
+                0, first_spike_time.long().unsqueeze(0), 1.0
+            )
             grad = -grad_output * spk_time_grad
             return grad, None
 
