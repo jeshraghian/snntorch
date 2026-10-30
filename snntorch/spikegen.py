@@ -1341,7 +1341,8 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
     :type off_target: float, optional
 
     :return: interpolated target of output neurons. Output tensor will use
-        time-first dimensions.
+        time-first dimensions. Floating-point inputs retain their dtype;
+        integer spike times use the default floating-point dtype.
     :rtype: torch.Tensor
 
     """
@@ -1353,6 +1354,9 @@ def latency_interpolate(spike_time, num_steps, on_target=1, off_target=0):
         )
 
     device = spike_time.device
+
+    if not spike_time.is_floating_point():
+        spike_time = spike_time.to(torch.get_default_dtype())
 
     # Needs to be rounded, as 0s and out-of-bounds spikes are set to 0.5
     spike_time = torch.round(spike_time).to(spike_time.dtype)

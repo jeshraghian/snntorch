@@ -5,6 +5,8 @@ History
 Unreleased
 ^^^^^^^^^^
 
+* Use floating-point interpolation for integer latency spike times.
+
 * Forward custom target values, interpolation, and epsilon to latency target
   conversion.
 
