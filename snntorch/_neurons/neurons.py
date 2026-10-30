@@ -23,11 +23,10 @@ class SpikingNeuron(nn.Module):
     The list is used to initialize and clear neuron states when the
     argument `init_hidden=True`."""
 
-    reset_dict = {
-        "subtract": 0,
-        "zero": 1,
-        "none": 2,
-    }
+    reset_dict = {"none": 0}
+    """Each :mod:`snntorch.SpikingNeuron` neuron 
+    (e.g., :mod:`snntorch.Leaky`) defines its own mapping of reset mechanisms
+    to its corresponding reset function in the class variable `reset_dict`."""
 
     def __init__(
         self,
@@ -37,7 +36,7 @@ class SpikingNeuron(nn.Module):
         init_hidden=False,
         inhibition=False,
         learn_threshold=False,
-        reset_mechanism="subtract",
+        reset_mechanism="none",
         state_quant=False,
         output=False,
         graded_spikes_factor=1.0,
@@ -67,7 +66,6 @@ class SpikingNeuron(nn.Module):
             graded_spikes_factor=graded_spikes_factor,
             learn_graded_spikes_factor=learn_graded_spikes_factor,
         )
-        self._reset_mechanism = reset_mechanism
 
         self.state_quant = state_quant
 
@@ -214,14 +212,17 @@ class SpikingNeuron(nn.Module):
             )
 
     def _reset_cases(self, reset_mechanism):
-        if (
-            reset_mechanism != "subtract"
-            and reset_mechanism != "zero"
-            and reset_mechanism != "none"
-        ):
+        if reset_mechanism not in type(self).reset_dict:
+            keys = [f"`{k}`" for k in type(self).reset_dict]
+            options = (
+                f"{keys[0]}."
+                if len(keys) == 1
+                else ", ".join(keys[:-1]) + f", or {keys[-1]}."
+            )
             raise ValueError(
-                "reset_mechanism must be set to either 'subtract', "
-                "'zero', or 'none'."
+                f"Unknown reset_mechanism `{reset_mechanism}`, "
+                + f"available option{'s are ' if len(keys) > 1 else ' is '}"
+                + options
             )
 
     def _snn_register_buffer(
@@ -245,7 +246,7 @@ class SpikingNeuron(nn.Module):
             # if reset_mechanism_val is loaded from .pt, override
             # reset_mechanism
             if torch.is_tensor(self.reset_mechanism_val):
-                self.reset_mechanism = list(SpikingNeuron.reset_dict)[
+                self.reset_mechanism = list(type(self).reset_dict)[
                     self.reset_mechanism_val
                 ]
         except AttributeError:
@@ -275,9 +276,10 @@ class SpikingNeuron(nn.Module):
         Must be of type tensor to store in register buffer. See reset_dict
         for mapping."""
         reset_mechanism_val = torch.as_tensor(
-            SpikingNeuron.reset_dict[reset_mechanism]
+            type(self).reset_dict[reset_mechanism]
         )
         self.register_buffer("reset_mechanism_val", reset_mechanism_val)
+        self.reset_mechanism = reset_mechanism
 
     def _V_register_buffer(self, V, learn_V):
         if not isinstance(V, torch.Tensor):
@@ -290,17 +292,28 @@ class SpikingNeuron(nn.Module):
     @property
     def reset_mechanism(self):
         """If reset_mechanism is modified, reset_mechanism_val is triggered
-        to update.
-        0: subtract, 1: zero, 2: none."""
+        to update."""
         return self._reset_mechanism
 
     @reset_mechanism.setter
     def reset_mechanism(self, new_reset_mechanism):
         self._reset_cases(new_reset_mechanism)
         self.reset_mechanism_val = torch.as_tensor(
-            SpikingNeuron.reset_dict[new_reset_mechanism]
+            type(self).reset_dict[new_reset_mechanism]
         )
         self._reset_mechanism = new_reset_mechanism
+        self._set_reset_function()
+
+    def _set_reset_function(self):
+        """Assigns `reset_function` according to `reset_mechanism_val`.
+        To be overwritten if resets are implemented."""
+        self.reset_function = self._reset_not_implemented
+
+    def _reset_not_implemented(self, reset):
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement reset_function; "
+            "override _set_reset_function() to provide reset behavior."
+        )
 
     @classmethod
     def init(cls):
@@ -330,6 +343,12 @@ class SpikingNeuron(nn.Module):
 
 class LIF(SpikingNeuron):
     """Parent class for leaky integrate and fire neuron models."""
+
+    reset_dict = {
+        "subtract": 0,
+        "zero": 1,
+        "none": 2,
+    }
 
     def __init__(
         self,
@@ -365,7 +384,6 @@ class LIF(SpikingNeuron):
             beta,
             learn_beta,
         )
-        self._reset_mechanism = reset_mechanism
 
     def _lif_register_buffer(
         self,
@@ -392,3 +410,17 @@ class LIF(SpikingNeuron):
             self.V = nn.Parameter(V)
         else:
             self.register_buffer("V", V)
+
+    def _reset_sub(self, reset):
+        return self.mem - reset * self.threshold
+
+    def _reset_zero(self, reset):
+        return self.mem - reset * self.mem
+
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:  # soft reset
+            self.reset_function = self._reset_sub
+        elif self.reset_mechanism_val == 1:  # hard reset
+            self.reset_function = self._reset_zero
+        elif self.reset_mechanism_val == 2:  # no reset
+            self.reset_function = lambda reset: self.mem

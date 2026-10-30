@@ -7,10 +7,17 @@ import snntorch as snn
 import torch
 import torch._dynamo as dynamo
 
+RESET_MECHANISMS = ["subtract", "zero", "none"]
+
 
 @pytest.fixture(scope="module")
 def input_():
     return torch.Tensor([0.25, 0]).unsqueeze(-1)
+
+
+@pytest.fixture(scope="module")
+def spiking_input_():
+    return torch.Tensor([1.2, 0]).unsqueeze(-1)
 
 
 @pytest.fixture(scope="module")
@@ -24,32 +31,8 @@ def synaptic_instance_surrogate():
 
 
 @pytest.fixture(scope="module")
-def synaptic_reset_zero_instance():
-    return snn.Synaptic(alpha=0.5, beta=0.5, reset_mechanism="zero")
-
-
-@pytest.fixture(scope="module")
-def synaptic_reset_none_instance():
-    return snn.Synaptic(alpha=0.5, beta=0.5, reset_mechanism="none")
-
-
-@pytest.fixture(scope="module")
 def synaptic_hidden_instance():
     return snn.Synaptic(alpha=0.5, beta=0.5, init_hidden=True)
-
-
-@pytest.fixture(scope="module")
-def synaptic_hidden_reset_zero_instance():
-    return snn.Synaptic(
-        alpha=0.5, beta=0.5, init_hidden=True, reset_mechanism="zero"
-    )
-
-
-@pytest.fixture(scope="module")
-def synaptic_hidden_reset_none_instance():
-    return snn.Synaptic(
-        alpha=0.5, beta=0.5, init_hidden=True, reset_mechanism="none"
-    )
 
 
 class TestSynaptic:
@@ -70,61 +53,55 @@ class TestSynaptic:
         assert mem_rec[1] == mem_rec[0] * 0.5 + syn_rec[1]
         assert spk_rec[0] == spk_rec[1]
 
+    @pytest.mark.parametrize(
+        ("mechanism", "reset_delay", "expected_mem"),
+        [
+            ("subtract", True, [1.2, 0.62]),
+            ("zero", True, [1.2, 0.6]),
+            ("none", True, [1.2, 0.72]),
+            ("subtract", False, [0.2, 0.62]),
+            ("zero", False, [0.0, 0.6]),
+            ("none", False, [1.2, 0.72]),
+        ],
+    )
     def test_synaptic_reset(
-        self,
-        synaptic_instance,
-        synaptic_reset_zero_instance,
-        synaptic_reset_none_instance,
+        self, mechanism, reset_delay, expected_mem, spiking_input_
     ):
-        lif1 = synaptic_instance
-        lif2 = synaptic_reset_zero_instance
-        lif3 = synaptic_reset_none_instance
+        neuron = snn.Synaptic(
+            alpha=0.5,
+            beta=0.1,
+            reset_mechanism=mechanism,
+            reset_delay=reset_delay,
+        )
+        syn = torch.zeros(1)
+        mem = torch.zeros(1)
 
-        assert lif1.reset_mechanism_val == 0
-        assert lif2.reset_mechanism_val == 1
-        assert lif3.reset_mechanism_val == 2
+        for i, expected in enumerate(expected_mem):
+            spk, syn, mem = neuron(spiking_input_[i], syn, mem)
 
-        lif1.reset_mechanism = "zero"
-        lif2.reset_mechanism = "none"
-        lif3.reset_mechanism = "subtract"
+            assert spk.item() == pytest.approx(1 if i == 0 else 0)
+            assert mem.item() == pytest.approx(expected)
 
-        assert lif1.reset_mechanism_val == 1
-        assert lif2.reset_mechanism_val == 2
-        assert lif3.reset_mechanism_val == 0
+    def test_synaptic_reset_setter(self, synaptic_instance):
+        for val, mechanism in enumerate(RESET_MECHANISMS):
+            synaptic_instance.reset_mechanism = mechanism
+            assert synaptic_instance.reset_mechanism_val == val
 
-    def test_synaptic_init_hidden(self, synaptic_hidden_instance, input_):
-
+    @pytest.mark.parametrize("mechanism", RESET_MECHANISMS)
+    def test_synaptic_init_hidden(self, mechanism, spiking_input_):
+        hidden_instance = snn.Synaptic(
+            alpha=0.5,
+            beta=0.1,
+            init_hidden=True,
+            reset_mechanism=mechanism,
+        )
         spk_rec = []
 
         for i in range(2):
-            spk = synaptic_hidden_instance(input_[i])
-            spk_rec.append(spk)
+            spk_rec.append(hidden_instance(spiking_input_[i]))
 
-        assert spk_rec[0] == spk_rec[1]
-
-    def test_synaptic_init_hidden_reset_zero(
-        self, synaptic_hidden_reset_zero_instance, input_
-    ):
-
-        spk_rec = []
-
-        for i in range(2):
-            spk = synaptic_hidden_reset_zero_instance(input_[i])
-            spk_rec.append(spk)
-
-        assert spk_rec[0] == spk_rec[1]
-
-    def test_synaptic_init_hidden_reset_none(
-        self, synaptic_hidden_reset_none_instance, input_
-    ):
-
-        spk_rec = []
-
-        for i in range(2):
-            spk = synaptic_hidden_reset_none_instance(input_[i])
-            spk_rec.append(spk)
-
-        assert spk_rec[0] == spk_rec[1]
+        assert spk_rec[0].item() == pytest.approx(1)
+        assert spk_rec[1].item() == pytest.approx(0)
 
     def test_synaptic_cases(self, synaptic_hidden_instance, input_):
         with pytest.raises(TypeError):

@@ -27,6 +27,11 @@ class CustomNeuron(SpikingNeuron):
     #: model's reset doesn't fit "subtract" / "zero" / "none" (e.g.
     #: Izhikevich's `v <- c, u <- u + d`).
     reset_fn = None
+    reset_dict = {  # default reset options
+        "subtract": 0,
+        "zero": 1,
+        "none": 2,
+    }
 
     # NOTE on reset timing: when reset_fn is None, `reset_mechanism` is
     # applied to spike_state in the SAME step as the firing decision that
@@ -149,13 +154,8 @@ class CustomNeuron(SpikingNeuron):
 
         if self.reset_fn is not None:
             nxt = dict(self.reset_fn(nxt, spk, self.threshold))
-        elif self.reset_mechanism_val == 0:  # subtract
-            nxt[self.spike_state] = (
-                nxt[self.spike_state] - spk.detach() * self.threshold
-            )
-        elif self.reset_mechanism_val == 1:  # zero
-            nxt[self.spike_state] = (1 - spk.detach()) * nxt[self.spike_state]
-        # == 2 ("none"): no reset
+        else:
+            nxt[self.spike_state] = self.reset_function(nxt, spk)
 
         for name in self.state_names:
             setattr(self, name, nxt[name])
@@ -167,6 +167,20 @@ class CustomNeuron(SpikingNeuron):
             return spk
         else:
             return (spk,) + out_states
+
+    def _reset_sub(self, nxt, spk):
+        return nxt[self.spike_state] - spk.detach() * self.threshold
+
+    def _reset_zero(self, nxt, spk):
+        return nxt[self.spike_state] * (1 - spk.detach())
+
+    def _set_reset_function(self):
+        if self.reset_mechanism_val == 0:  # soft reset
+            self.reset_function = self._reset_sub
+        elif self.reset_mechanism_val == 1:  # hard reset
+            self.reset_function = self._reset_zero
+        elif self.reset_mechanism_val == 2:  # no reset
+            self.reset_function = lambda nxt, spk: nxt[self.spike_state]
 
 
 def neuron_from_equations(

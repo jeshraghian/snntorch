@@ -1,6 +1,5 @@
 from .neurons import LIF
 import torch
-from torch import nn
 
 
 class Leaky(LIF):
@@ -8,22 +7,22 @@ class Leaky(LIF):
     First-order leaky integrate-and-fire neuron model.
     Input is assumed to be a current injection.
     Membrane potential decays exponentially with rate beta.
-    For :math:`U[T] > U_{\\rm thr} ⇒ S[T+1] = 1`.
+    For :math:`U[t+1] > U_{\\rm thr} ⇒ S[t+1] = 1`.
 
-    If `reset_mechanism = "subtract"`, then :math:`U[t+1]` will have
-    `threshold` subtracted from it whenever the neuron emits a spike:
-
-    .. math::
-
-            U[t+1] = βU[t] + I_{\\rm in}[t+1] - RU_{\\rm thr}
-
-    If `reset_mechanism = "zero"`, then :math:`U[t]` is set to `0` whenever
-    the neuron emitted a spike on the previous step, before the new input
-    is integrated:
+    If `reset_mechanism = "subtract"` then :math:`U[t+1]` will have
+    `threshold` subtracted from it following a spike, with the remainder
+    decaying as usual:
 
     .. math::
 
-            U[t+1] = β(1-R)U[t] + I_{\\rm in}[t+1]
+            U[t+1] = β(U[t] - RU_{\\rm thr}) + I_{\\rm in}[t+1]
+
+    If `reset_mechanism = "zero"`, then :math:`U[t]` is set to `0` 
+    following a spike, before the new input is integrated:
+
+    .. math::
+
+            U[t+1] = β(1 - R)U[t] + I_{\\rm in}[t+1]
 
     * :math:`I_{\\rm in}` - Input current
     * :math:`U` - Membrane potential
@@ -95,9 +94,9 @@ class Leaky(LIF):
         to False
     :type learn_threshold: bool, optional
 
-    :param reset_mechanism: Defines the reset mechanism applied to \
-    :math:`mem` each time the threshold is met. Reset-by-subtraction: \
-        "subtract", reset-to-zero: "zero", none: "none". Defaults to "subtract"
+    :param reset_mechanism: Defines the reset mechanism applied to :math:`mem` 
+    each time the threshold is met. Reset-by-subtraction: "subtract", 
+    reset-to-zero: "zero", none: "none". Defaults to "subtract"
     :type reset_mechanism: str, optional
 
     :param state_quant: If specified, hidden state :math:`mem` is quantized
@@ -114,7 +113,8 @@ class Leaky(LIF):
     :param learn_graded_spikes_factor: Option to enable learnable graded spikes. Defaults to False
     :type learn_graded_spikes_factor: bool, optional
 
-    :param reset_delay: If `True`, a spike is returned with a one-step delay after the threshold is reached.
+    :param reset_delay: If `True`, applies the reset at the start of the next step rather than at
+        at the end of the current one, so the returned :math:`U[t+1]` is the pre-reset value.
         Defaults to True
     :type reset_delay: bool, optional
 
@@ -172,14 +172,6 @@ class Leaky(LIF):
         )
 
         self._init_mem()
-
-        if self.reset_mechanism_val == 0:  # reset by subtraction
-            self.state_function = self._base_sub
-        elif self.reset_mechanism_val == 1:  # reset to zero
-            self.state_function = self._base_zero
-        elif self.reset_mechanism_val == 2:  # no reset, pure integration
-            self.state_function = self._base_int
-
         self.reset_delay = reset_delay
 
     def _init_mem(self):
@@ -207,8 +199,9 @@ class Leaky(LIF):
         if not self.mem.shape == input_.shape:
             self.mem = torch.zeros_like(input_, device=self.mem.device)
 
-        self.reset = self.mem_reset(self.mem)
-        self.mem = self.state_function(input_)
+        reset = self.mem_reset(self.mem)  # S[t]
+        self.mem = self.reset_function(reset)  # U[t] after reset
+        self.mem = self.base_state_function(input_)  # U[t+1]
 
         if self.state_quant:
             self.mem = self.state_quant(self.mem)
@@ -218,16 +211,13 @@ class Leaky(LIF):
                 self.mem.size(0), self.mem
             )  # batch_size
         else:
-            spk = self.fire(self.mem)
+            spk = self.fire(self.mem)  # S[t+1]
 
         if not self.reset_delay:
             do_reset = (
-                spk / self.graded_spikes_factor - self.reset
+                spk / self.graded_spikes_factor - reset
             )  # avoid double reset
-            if self.reset_mechanism_val == 0:  # reset by subtraction
-                self.mem = self.mem - do_reset * self.threshold
-            elif self.reset_mechanism_val == 1:  # reset to zero
-                self.mem = self.mem - do_reset * self.mem
+            self.mem = self.reset_function(do_reset)  # U[t+1] after reset
 
         if self.output:
             return spk, self.mem
@@ -236,19 +226,8 @@ class Leaky(LIF):
         else:
             return spk, self.mem
 
-    def _base_state_function(self, input_):
-        base_fn = self.beta.clamp(0, 1) * self.mem + input_
-        return base_fn
-
-    def _base_sub(self, input_):
-        return self._base_state_function(input_) - self.reset * self.threshold
-
-    def _base_zero(self, input_):
-        self.mem = (1 - self.reset) * self.mem
-        return self._base_state_function(input_)
-
-    def _base_int(self, input_):
-        return self._base_state_function(input_)
+    def base_state_function(self, input_):
+        return self.beta.clamp(0, 1) * self.mem + input_
 
     @classmethod
     def detach_hidden(cls):
