@@ -545,9 +545,9 @@ class SpikeTime(nn.Module):
             non-differentiable.
             Apply sign estimator by substituting gradient for -1 ONLY at
             first spike time."""
-            for i in range(first_spike_time.size(0)):
-                for j in range(first_spike_time.size(1)):
-                    spk_time_grad[first_spike_time[i, j].long(), i, j] = 1.0
+            spk_time_grad.scatter_(
+                0, first_spike_time.long().unsqueeze(0), 1.0
+            )
             grad = -grad_output * spk_time_grad
             return grad, None
 
@@ -616,12 +616,15 @@ class SpikeTime(nn.Module):
             non-differentiable.
             Apply sign estimator by substituting gradient for -1 ONLY at
             F-th spike time."""
+            # One scatter per spike index: each neuron gets one index per
+            # call, and later spikes overwrite earlier ones that land on the
+            # same step (e.g. missing spikes at the final step).
             for i in range(spk_time_final.size(0)):
-                for j in range(spk_time_final.size(1)):
-                    for k in range(spk_time_final.size(2)):
-                        spk_time_grad[
-                            spk_time_final[i, j, k].long(), j, k
-                        ] = -grad_output[i, j, k]
+                spk_time_grad.scatter_(
+                    0,
+                    spk_time_final[i].long().unsqueeze(0),
+                    -grad_output[i].unsqueeze(0),
+                )
             grad = spk_time_grad
             return grad, None, None
 
