@@ -34,7 +34,8 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    # Python 3.9 is not available on Ubuntu 26.04 runners
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11']
