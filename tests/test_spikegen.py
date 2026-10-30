@@ -37,6 +37,22 @@ def test_rate2(test_input, expected):
 
 
 @pytest.mark.parametrize(
+    "dtype", [torch.float32, torch.float16, torch.bfloat16]
+)
+def test_rate_preserves_input_dtype(dtype):
+    """Rate-encoded spikes must carry the dtype of the input data, including
+    when ``first_spike_time`` pads the front of a time-varying input."""
+    data = torch.rand(2, 3, 4).to(dtype)
+
+    assert spikegen.rate(data, num_steps=5).dtype == dtype
+    assert spikegen.rate(data, time_var_input=True).dtype == dtype
+    assert (
+        spikegen.rate(data, time_var_input=True, first_spike_time=2).dtype
+        == dtype
+    )
+
+
+@pytest.mark.parametrize(
     "test_input, expected", [(input_(0), 1), (input_(1), 1)]
 )
 def test_latency(test_input, expected):
