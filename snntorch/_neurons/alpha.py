@@ -200,16 +200,12 @@ class Alpha(LIF):
             return spk, self.syn_exc, self.syn_inh, self.mem
 
     def _base_state_function(self, input_):
-        base_fn_syn_exc = self.alpha.clamp(0, 1) * self.syn_exc + input_
-        base_fn_syn_inh = self.beta.clamp(0, 1) * self.syn_inh - input_
-        tau_alpha = (
-            torch.log(self.alpha.clamp(0, 1))
-            / (
-                torch.log(self.beta.clamp(0, 1))
-                - torch.log(self.alpha.clamp(0, 1))
-            )
-            + 1
-        )
+        alpha = self.alpha.clamp(0, 1)
+        beta = self.beta.clamp(0, 1)
+        base_fn_syn_exc = alpha * self.syn_exc + input_
+        base_fn_syn_inh = beta * self.syn_inh - input_
+        log_alpha = torch.log(alpha)
+        tau_alpha = log_alpha / (torch.log(beta) - log_alpha) + 1
         base_fn_mem = tau_alpha * (base_fn_syn_exc + base_fn_syn_inh)
         return base_fn_syn_exc, base_fn_syn_inh, base_fn_mem
 
@@ -231,13 +227,11 @@ class Alpha(LIF):
 
     def _base_zero(self, input_):
         syn_exec, syn_inh, mem = self._base_state_function(input_)
-        syn_exec2, syn_inh2, mem2 = self._base_state_function(input_)
+        # Zero the states of neurons that spiked, without computing the
+        # update a second time
+        keep = 1 - self.reset
 
-        syn_exec -= syn_exec2 * self.reset
-        syn_inh -= syn_inh2 * self.reset
-        mem -= mem2 * self.reset
-
-        return syn_exec, syn_inh, mem
+        return syn_exec * keep, syn_inh * keep, mem * keep
 
     def _base_int(self, input_):
         return self._base_state_function(input_)
