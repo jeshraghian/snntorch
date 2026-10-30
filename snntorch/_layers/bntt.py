@@ -1,6 +1,23 @@
 import torch.nn as nn
 
 
+class _BatchNormTTList(nn.ModuleList):
+    """ModuleList holding one batch-norm layer per time step.
+
+    Apply the layer for time step ``step`` with ``bntt(x, step)`` or,
+    equivalently, ``bntt[step](x)``. Indexing and state_dict keys are those
+    of a plain ``torch.nn.ModuleList``.
+    """
+
+    def forward(self, x, step=None):
+        if step is None:
+            raise TypeError(
+                "BatchNormTT holds one batch-norm layer per time step; "
+                "call it as bntt(x, step) or bntt[step](x)"
+            )
+        return self[step](x)
+
+
 def BatchNormTT1d(
     input_features, time_steps, eps=1e-5, momentum=0.1, affine=True
 ):
@@ -65,16 +82,22 @@ def BatchNormTT1d(
     layer will have learnable affine parameters
     :type affine: bool
 
+    Example::
+
+        bntt = snn.BatchNormTT1d(64, time_steps=25)
+        for step in range(25):
+            cur = bntt(fc(x[step]), step)  # same as bntt[step](fc(x[step]))
+
     Inputs: input_features, time_steps
         - **input_features**: same number of features as the input
         - **time_steps**: the number of time-steps to unroll in the SNN
 
     Outputs: bntt
-        -  **bntt** of shape `(time_steps)`: toch.nn.ModuleList of \
+        -  **bntt** of shape `(time_steps)`: torch.nn.ModuleList of \
         BatchNorm1d layers for the specified number of time-steps
 
     """
-    bntt = nn.ModuleList(
+    bntt = _BatchNormTTList(
         [
             nn.BatchNorm1d(
                 input_features, eps=eps, momentum=momentum, affine=affine
@@ -150,16 +173,22 @@ def BatchNormTT2d(
         layer will have learnable affine parameters
     :type affine: bool
 
+    Example::
+
+        bntt = snn.BatchNormTT2d(64, time_steps=25)
+        for step in range(25):
+            cur = bntt(conv(x[step]), step)  # same as bntt[step](conv(x[step]))
+
     Inputs: input_features, time_steps
         - **input_features**: same number of channels as the input
         - **time_steps**: the number of time-steps to unroll in the SNN
 
     Outputs: bntt
-        -  **bntt** of shape `(time_steps)`: toch.nn.ModuleList of \
-        BatchNorm1d layers for the specified number of time-steps
+        -  **bntt** of shape `(time_steps)`: torch.nn.ModuleList of \
+        BatchNorm2d layers for the specified number of time-steps
 
     """
-    bntt = nn.ModuleList(
+    bntt = _BatchNormTTList(
         [
             nn.BatchNorm2d(
                 input_features, eps=eps, momentum=momentum, affine=affine
