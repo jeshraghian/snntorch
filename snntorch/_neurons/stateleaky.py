@@ -268,7 +268,7 @@ class StateLeaky(LIF):
             mem = self.state_quant(mem)
 
         if self.output:
-            self.spk = self.fire(mem) * self.graded_spikes_factor
+            self.spk = self.fire(mem)
             return self.spk, mem
 
         else:
