@@ -10,7 +10,151 @@ import snntorch as snn
 
 
 
-def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
+def _broadcast_param(param, view):
+    """Broadcast a neuron parameter to the measured layer view.
+
+    Scalar parameters (e.g. ``beta=0.9``) carry no layer-width information:
+    exported as-is they produce zero-dimensional NIR parameter arrays, which
+    degenerate the node's port types to ``[]`` and fail strict type checking.
+    Broadcasting them to the layer's measured output view gives every NIR
+    parameter the same shape and a well-formed port type. Parameters that
+    already carry per-neuron values are reshaped to the view when the element
+    count matches.
+    """
+    arr = np.asarray(param)
+    view = tuple(int(d) for d in view)
+    if arr.shape == view:
+        return arr
+    if arr.size == int(np.prod(view)):
+        return arr.reshape(view)
+    try:
+        return np.broadcast_to(arr, view).copy()
+    except ValueError as exc:
+        raise ValueError(
+            f"neuron parameter of shape {arr.shape} cannot be broadcast to "
+            f"the measured layer output shape {view}"
+        ) from exc
+
+
+def _measure_output_views(module, sample_data, model_fwd_args, ignore_dims):
+    """Run one forward pass with hooks and record each submodule's output view.
+
+    The returned dict maps ``id(submodule)`` to its output shape with
+    ``ignore_dims`` removed — the broadcast target for scalar neuron
+    parameters. Interior NIR port types are batch-free (Linear/Affine derive
+    them from weights and Flatten drops the batch dim), so when ``ignore_dims``
+    is empty the leading dim of a multi-dim output is dropped the same way.
+    Modules that return tuples (``init_hidden=False``, or ``output=True``)
+    report the shape of their first element, which is the spike tensor that
+    flows to the next layer.
+    """
+    shapes = {}
+    tuple_modules = []
+    hooks = []
+
+    def make_hook(mod):
+        def hook(_m, _inputs, output):
+            out = output[0] if isinstance(output, tuple) else output
+            if isinstance(output, tuple):
+                tuple_modules.append(mod)
+            if isinstance(out, torch.Tensor):
+                shapes[id(mod)] = tuple(out.shape)
+
+        return hook
+
+    for _name, mod in module.named_modules():
+        hooks.append(mod.register_forward_hook(make_hook(mod)))
+
+    # The probe forward must be side-effect free: init_hidden neurons keep
+    # their membrane/spike/synaptic state between calls, so snapshot and
+    # restore it. snnTorch state updates rebind these attributes (never
+    # in-place), so saving the original objects is sufficient.
+    saved_state = []
+    for mod in module.modules():
+        for attr in ("mem", "spk", "syn", "_threshold_adapt"):
+            if hasattr(mod, attr):
+                saved_state.append((mod, attr, getattr(mod, attr)))
+
+    try:
+        with torch.no_grad():
+            module(sample_data, *model_fwd_args)
+    except TypeError as exc:
+        if tuple_modules:
+            raise TypeError(
+                "export_to_nir cannot trace the model: a module returned a "
+                "tuple that was fed into the next layer (init_hidden=False "
+                "or output=True on a non-final spiking module). Only the "
+                "final module may return a tuple; use init_hidden=True for "
+                "intermediate spiking layers."
+            ) from exc
+        raise
+    finally:
+        for handle in hooks:
+            handle.remove()
+        for mod, attr, value in saved_state:
+            setattr(mod, attr, value)
+
+    drop_dims = list(ignore_dims) if ignore_dims is not None else []
+    views = {}
+    for mod_id, shape in shapes.items():
+        dims = drop_dims if drop_dims else ([0] if len(shape) >= 2 else [])
+        views[mod_id] = tuple(np.delete(np.asarray(shape), dims))
+    return views
+
+
+def _declared_port_shape(port_type):
+    """Single-port declared shape, or None when undeclared or degenerate."""
+    if not port_type or len(port_type) != 1:
+        return None
+    value = next(iter(port_type.values()))
+    if value is None:
+        return None
+    arr = np.asarray(value)
+    if arr.size == 0 or arr.dtype == object:
+        return None
+    return arr
+
+
+def _align_endpoint_types(nir_graph):
+    """Re-derive Input/Output endpoint port types from their graph neighbours.
+
+    ``extract_nir_graph`` builds the endpoints from the raw sample and module
+    output shapes, which keep the batch dim while interior port types are
+    batch-free. Copying the neighbour's declared shape (under the endpoint's
+    own port names) keeps the endpoint edges consistent; endpoints with
+    undeclared or disagreeing neighbour types are left for ``infer_types``
+    to check.
+    """
+    nodes = nir_graph.nodes
+    for key, node in nodes.items():
+        if isinstance(node, nir.Input):
+            # input -> successor: the successor's input faces this edge
+            neighbours = [d for s, d in nir_graph.edges if s == key]
+            attr = "input_type"
+        elif isinstance(node, nir.Output):
+            # predecessor -> output: the predecessor's output faces this edge
+            neighbours = [s for s, d in nir_graph.edges if d == key]
+            attr = "output_type"
+        else:
+            continue
+        shapes = [
+            _declared_port_shape(getattr(nodes[n_key], attr, None))
+            for n_key in dict.fromkeys(neighbours)
+        ]
+        shapes = [s for s in shapes if s is not None]
+        if not shapes or not all(np.array_equal(s, shapes[0]) for s in shapes):
+            continue
+        for own_attr in ("input_type", "output_type"):
+            own = getattr(node, own_attr, None)
+            if own:
+                setattr(
+                    node, own_attr, {k: np.array(shapes[0]) for k in own}
+                )
+
+
+def _extract_snntorch_module(
+    module: torch.nn.Module, output_view: Optional[Tuple[int, ...]] = None
+) -> Optional[nir.NIRNode]:
     """Convert a single snnTorch module to the equivalent object in the Neuromorphic
     Intermediate Representation (NIR). This function is used internally by the export_to_nir
     function to convert each submodule/layer of the network to the NIR.
@@ -22,6 +166,10 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
     :param module: snnTorch module
     :type module: torch.nn.Module
+
+    :param output_view: measured output shape of the module (without
+        ``ignore_dims``); scalar neuron parameters are broadcast to it
+    :type output_view: Optional[Tuple[int, ...]]
 
     :return: return the NIR node
     :rtype: Optional[nir.NIRNode]
@@ -69,7 +217,11 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
 
         beta = module.beta.detach().cpu().numpy()
         vthr = module.threshold.detach().cpu().numpy()
-        vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
+        if output_view is not None:
+            beta = _broadcast_param(beta, output_view)
+            vthr = _broadcast_param(vthr, output_view)
+        else:
+            vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
         tau_mem = dt / (1 - beta)
         r = tau_mem / dt
         v_leak = np.zeros_like(beta)
@@ -98,7 +250,12 @@ def _extract_snntorch_module(module: torch.nn.Module) -> Optional[nir.NIRNode]:
         alpha = module.alpha.detach().cpu().numpy()
         beta = module.beta.detach().cpu().numpy()
         vthr = module.threshold.detach().cpu().numpy()
-        vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
+        if output_view is not None:
+            alpha = _broadcast_param(alpha, output_view)
+            beta = _broadcast_param(beta, output_view)
+            vthr = _broadcast_param(vthr, output_view)
+        else:
+            vthr = np.array([vthr]) if isinstance(vthr, (int, float)) else vthr
 
         tau_syn = dt / (1 - alpha)
         tau_mem = dt / (1 - beta)
@@ -286,15 +443,19 @@ def export_to_nir(
     :return: return the NIR graph
     :rtype: nir.NIRNode
     """
+    output_views = _measure_output_views(
+        module, sample_data, model_fwd_args, ignore_dims
+    )
     nir_graph = nirtorch.extract_nir_graph(
         module,
-        _extract_snntorch_module,
+        lambda mod: _extract_snntorch_module(mod, output_views.get(id(mod))),
         sample_data,
         model_name=model_name,
         ignore_submodules_of=[snn.RLeaky, snn.RSynaptic],
         model_fwd_args=model_fwd_args,
         ignore_dims=ignore_dims,
     )
+    _align_endpoint_types(nir_graph)
     # ensure node input and output types are fully defined
     nir_graph.infer_types()
     return nir_graph

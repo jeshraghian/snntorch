@@ -155,7 +155,118 @@ class TestNIR:
         assert isinstance(nir_graph.nodes["3"], nir.LIF)
 
     def test_export_NetWithAvgPool(self, net_with_avg_pool, sample_data2):
-        pytest.xfail("conv2d export currently unsupported")
+        nir_graph = export_to_nir(
+            net_with_avg_pool, sample_data2, ignore_dims=[0]
+        )
+        assert nir_graph is not None
+        assert set(nir_graph.nodes.keys()) == set(
+            [
+                "input",
+                "output",
+                "conv1",
+                "pool",
+                "flatten",
+                "lif1",
+                "fc1",
+                "lif2",
+            ]
+        ), nir_graph.nodes.keys()
+        assert isinstance(nir_graph.nodes["conv1"], nir.Conv2d)
+        assert isinstance(nir_graph.nodes["pool"], nir.AvgPool2d)
+        assert isinstance(nir_graph.nodes["flatten"], nir.Flatten)
+        assert isinstance(nir_graph.nodes["lif1"], nir.LIF)
+        assert isinstance(nir_graph.nodes["fc1"], nir.Affine)
+        assert isinstance(nir_graph.nodes["lif2"], nir.LIF)
+        # every edge must have consistent port types (export calls
+        # infer_types, so reaching this point already proves consistency)
+        assert set(nir_graph.edges) == set(
+            [
+                ("input", "conv1"),
+                ("conv1", "pool"),
+                ("pool", "flatten"),
+                ("flatten", "lif1"),
+                ("lif1", "fc1"),
+                ("fc1", "lif2"),
+                ("lif2", "output"),
+            ]
+        )
+
+    def test_export_scalar_neuron_params(self, sample_data):
+        """Regression test for issue #491.
+
+        Scalar ``beta``/``threshold`` are stored as 0-dim arrays; exported
+        as-is they degenerate the NIR node's port types to ``[]`` and
+        ``infer_types`` rejects the graph. They must be broadcast to the
+        measured layer width. Uses the exact docstring example.
+        """
+        lif1 = snn.Leaky(beta=0.9, init_hidden=True)
+        lif2 = snn.Leaky(beta=0.9, init_hidden=True, output=True)
+        net = torch.nn.Sequential(
+            torch.nn.Flatten(),
+            torch.nn.Linear(784, 500),
+            lif1,
+            torch.nn.Linear(500, 10),
+            lif2,
+        )
+        nir_graph = export_to_nir(net, sample_data, ignore_dims=[0])
+
+        lif1_node = nir_graph.nodes["2"]
+        assert isinstance(lif1_node, nir.LIF)
+        assert lif1_node.tau.shape == (500,)
+        assert lif1_node.v_threshold.shape == (500,)
+        assert lif1_node.input_type["input"].tolist() == [500]
+        assert lif1_node.output_type["output"].tolist() == [500]
+        assert np.allclose(lif1_node.v_threshold, 1.0)
+
+        lif2_node = nir_graph.nodes["4"]
+        assert isinstance(lif2_node, nir.LIF)
+        assert lif2_node.tau.shape == (10,)
+        assert lif2_node.input_type["input"].tolist() == [10]
+
+    def test_export_mixed_neuron_param_shapes(self, sample_data):
+        """Vector ``beta`` with scalar ``threshold`` must also broadcast.
+
+        Previously this hit nir's "All parameters must have the same shape"
+        assertion.
+        """
+        lif = snn.Leaky(
+            beta=0.9 * torch.ones(500), threshold=1.0, init_hidden=True
+        )
+        net = torch.nn.Sequential(torch.nn.Linear(784, 500), lif)
+        nir_graph = export_to_nir(net, sample_data, ignore_dims=[0])
+
+        lif_node = nir_graph.nodes["1"]
+        assert isinstance(lif_node, nir.LIF)
+        assert lif_node.tau.shape == (500,)
+        assert lif_node.v_threshold.shape == (500,)
+
+    def test_export_scalar_synaptic_params(self, sample_data):
+        """Scalar ``alpha``/``beta``/``threshold`` broadcast for CubaLIF."""
+        syn = snn.Synaptic(alpha=0.5, beta=0.9, init_hidden=True)
+        lif = snn.Leaky(beta=0.9, init_hidden=True, output=True)
+        net = torch.nn.Sequential(
+            torch.nn.Linear(784, 500), syn, torch.nn.Linear(500, 10), lif
+        )
+        nir_graph = export_to_nir(net, sample_data, ignore_dims=[0])
+
+        syn_node = nir_graph.nodes["1"]
+        assert isinstance(syn_node, nir.CubaLIF)
+        assert syn_node.tau_mem.shape == (500,)
+        assert syn_node.tau_syn.shape == (500,)
+        assert syn_node.v_threshold.shape == (500,)
+        assert syn_node.input_type["input"].tolist() == [500]
+
+    def test_export_tuple_output_midnet_rejected(self, sample_data):
+        """init_hidden=False makes Leaky return (spk, mem) tuples; feeding a
+        tuple into the next layer must raise a clear error, not a cryptic
+        TypeError from inside the tracer."""
+        net = torch.nn.Sequential(
+            torch.nn.Linear(784, 500),
+            snn.Leaky(beta=0.9),
+            torch.nn.Linear(500, 10),
+        )
+        with pytest.raises(TypeError, match="tuple"):
+            export_to_nir(net, sample_data, ignore_dims=[0])
 
     def test_export_recurrent(self, snntorch_recurrent, sample_data):
         nir_graph = export_to_nir(
