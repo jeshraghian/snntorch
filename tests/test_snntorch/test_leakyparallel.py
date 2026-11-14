@@ -8,6 +8,37 @@ import torch
 
 
 class TestLeakyParallel:
+    @pytest.mark.parametrize("learn_beta", [False, True])
+    @pytest.mark.parametrize("weight_hh_enable", [False, True])
+    @pytest.mark.parametrize("beta", [-0.2, 0.42, 1.2])
+    def test_leakyparallel_zero_dimensional_beta(
+        self, beta, learn_beta, weight_hh_enable
+    ):
+        kwargs = dict(
+            input_size=4,
+            hidden_size=6,
+            learn_beta=learn_beta,
+            weight_hh_enable=weight_hh_enable,
+        )
+        torch.manual_seed(0)
+        expected = snn.LeakyParallel(beta=beta, **kwargs)
+        torch.manual_seed(0)
+        actual = snn.LeakyParallel(beta=torch.tensor(beta), **kwargs)
+        assert torch.equal(actual.rnn.weight_hh_l0, expected.rnn.weight_hh_l0)
+
+        x = torch.randn(8, 2, 4, requires_grad=True)
+        x_ref = x.detach().clone().requires_grad_()
+        output = actual(x)
+        reference = expected(x_ref)
+        assert torch.equal(output, reference)
+        output.sum().backward()
+        reference.sum().backward()
+        assert torch.equal(x.grad, x_ref.grad)
+        if learn_beta:
+            assert torch.equal(
+                actual.rnn.weight_hh_l0.grad, expected.rnn.weight_hh_l0.grad
+            )
+
     def test_leakyparallel_scalar_beta_sets_diagonal(self):
         lp = snn.LeakyParallel(input_size=4, hidden_size=6, beta=0.42)
         diag = torch.diagonal(lp.rnn.weight_hh_l0.detach())

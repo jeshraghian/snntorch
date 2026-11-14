@@ -312,7 +312,9 @@ class LeakyParallel(nn.Module):
                     # the `ValueError` unreachable, so a per-neuron beta
                     # was dropped silently and `weight_hh_l0` kept its
                     # random RNN initialization.
-                    if len(self.beta) == 1:
+                    if self.beta.ndim == 0:
+                        self.rnn.weight_hh_l0.fill_(self.beta)
+                    elif len(self.beta) == 1:
                         self.rnn.weight_hh_l0.fill_(self.beta[0])
                     elif len(self.beta) == self.hidden_size:
                         # Replace each value with the corresponding value
