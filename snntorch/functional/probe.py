@@ -316,13 +316,15 @@ class AttributeMonitor(BaseMonitor):
                     )
 
     def create_hook(self, name):
-        def hook(m, x, y):
+        # forward pre-hooks are called as hook(module, input) and forward
+        # hooks as hook(module, input, output), so ``y`` must be optional.
+        def hook(m, x, y=None):
             if self.is_enable():
                 self.name_records_index[name].append(self.records.__len__())
+                # getattr (not nn.Module.__getattr__) also finds attributes
+                # that are not parameters, buffers or submodules
                 self.records.append(
-                    self.function_on_attribute(
-                        m.__getattr__(self.attribute_name)
-                    )
+                    self.function_on_attribute(getattr(m, self.attribute_name))
                 )
 
         return hook
