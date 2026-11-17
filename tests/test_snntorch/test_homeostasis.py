@@ -112,6 +112,44 @@ class TestHomeostasis:
         assert lif._threshold_adapt.item() > 3.0
 
     # ---------------------------------------------------------------- #
+    #  the reset must follow the adaptive threshold, not the static one
+    # ---------------------------------------------------------------- #
+    @pytest.mark.parametrize("reset_mechanism", ["subtract", "zero"])
+    def test_no_reset_without_a_spike(self, reset_mechanism):
+        # beta=1 and a non-decaying bump of 5: after the first spike the
+        # effective threshold is ~6, so a membrane of 2.5 is above the
+        # static threshold (1) but must neither fire nor be reset.
+        lif = snn.Leaky(
+            beta=1.0, threshold=1.0, reset_mechanism=reset_mechanism
+        )
+        lif.enable_homeostasis(increment=5.0, tau=1e9)
+        mem = lif.init_leaky()
+
+        spk, mem = lif(torch.tensor([[1.5]]), mem)
+        assert spk.item() == 1.0
+
+        # the one legitimate reset is applied on this step
+        after_reset = 0.5 if reset_mechanism == "subtract" else 0.0
+        spk, mem = lif(torch.tensor([[2.0]]), mem)
+        assert spk.item() == 0.0
+        assert mem.item() == pytest.approx(after_reset + 2.0)
+
+        # no spike was emitted, so the membrane must be left alone
+        held = mem.item()
+        for _ in range(3):
+            spk, mem = lif(torch.tensor([[0.0]]), mem)
+            assert spk.item() == 0.0
+            assert mem.item() == pytest.approx(held)
+
+    def test_reset_follows_spikes_with_init_hidden(self):
+        lif = snn.Leaky(beta=1.0, threshold=1.0, init_hidden=True)
+        lif.enable_homeostasis(increment=5.0, tau=1e9)
+        assert lif(torch.tensor([[1.5]])).item() == 1.0
+        assert lif(torch.tensor([[2.0]])).item() == 0.0
+        assert lif(torch.tensor([[0.0]])).item() == 0.0
+        assert lif.mem.item() == pytest.approx(2.5)
+
+    # ---------------------------------------------------------------- #
     #  reset / disable
     # ---------------------------------------------------------------- #
     def test_reset_homeostasis_clears_state(self):

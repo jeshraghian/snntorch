@@ -81,6 +81,10 @@ class SpikingNeuron(nn.Module):
         self._adapt_increment = 0.0
         self._adapt_decay = 0.0
         self._adapt_max = None
+        # effective threshold used by the most recent firing decision;
+        # the reset signal of the next step must be derived from the same
+        # value, otherwise the membrane is reset without having spiked
+        self._threshold_fired = None
 
     def enable_homeostasis(self, increment=0.5, tau=20.0, max_adapt=None):
         """Turn on an adaptive, time-varying component added to
@@ -133,6 +137,7 @@ class SpikingNeuron(nn.Module):
     def reset_homeostasis(self):
         """Clear the accumulated adaptive threshold component back to 0."""
         self._threshold_adapt = torch.zeros_like(self._threshold_adapt)
+        self._threshold_fired = None
         return self._threshold_adapt
 
     def _homeostasis_pre(self, mem):
@@ -144,7 +149,25 @@ class SpikingNeuron(nn.Module):
         if self._threshold_adapt.shape != mem.shape:
             self._threshold_adapt = torch.zeros_like(mem)
         self._threshold_adapt = self._threshold_adapt * self._adapt_decay
-        return self.threshold + self._threshold_adapt
+        threshold_eff = self.threshold + self._threshold_adapt
+        self._threshold_fired = threshold_eff.detach()
+        return threshold_eff
+
+    def _reset_threshold(self, mem):
+        """Threshold that the reset signal is compared against.
+
+        With homeostasis enabled this is the effective (static + adaptive)
+        threshold that the previous firing decision used, so that a reset
+        is only generated for neurons that actually emitted a spike."""
+        fired = self._threshold_fired
+        if (
+            self._homeostasis_enabled
+            and fired is not None
+            and fired.shape == mem.shape
+            and fired.device == mem.device
+        ):
+            return fired
+        return self.threshold
 
     def _homeostasis_post(self, spk):
         """After the firing decision: bump the adaptive component for
@@ -198,7 +221,7 @@ class SpikingNeuron(nn.Module):
     def mem_reset(self, mem):
         """Generates detached reset signal if mem > threshold.
         Returns reset."""
-        mem_shift = mem - self.threshold
+        mem_shift = mem - self._reset_threshold(mem)
         reset = self.spike_grad(mem_shift).clone().detach()
 
         return reset
