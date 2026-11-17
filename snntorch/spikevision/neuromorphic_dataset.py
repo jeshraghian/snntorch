@@ -74,8 +74,8 @@ def download_url(url, root, filename=None, md5=None, total_size=None):
                     and progress_bar.n != total_size_in_bytes
                 ):
                     print(
-                        "Warning: Downloaded size {progress_bar.n} "
-                        "does not match {total_size_in_bytes}."
+                        f"Warning: Downloaded size {progress_bar.n} "
+                        f"does not match {total_size_in_bytes}."
                     )
 
             elif "Manual" in url:

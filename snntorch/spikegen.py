@@ -699,11 +699,11 @@ def _latency_errors(
 
     if first_spike_time < 0:
         raise Exception(
-            "``first_spike_time`` [{first_spike_time}] cannot be negative."
+            f"``first_spike_time`` [{first_spike_time}] cannot be negative."
         )
 
     if num_steps < 0:
-        raise Exception("``num_steps`` [{num_steps}] cannot be negative.")
+        raise Exception(f"``num_steps`` [{num_steps}] cannot be negative.")
 
     if normalize and not num_steps:
         raise Exception(
