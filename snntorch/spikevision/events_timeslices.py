@@ -37,9 +37,9 @@ def cast_evs(evs):
 def get_subsampled_coordinates(evs, ds_h, ds_w):
     x_coords = evs[:, 1] // ds_w
     y_coords = evs[:, 2] // ds_h
-    if x_coords.dtype != np.int:
+    if x_coords.dtype != int:
         x_coords = x_coords.astype(int)
-    if y_coords.dtype != np.int:
+    if y_coords.dtype != int:
         y_coords = y_coords.astype(int)
     return x_coords, y_coords
 
@@ -135,8 +135,7 @@ def frame_evs(
         if idx_end > idx_start:
             ee = addrs[idx_start:idx_end]
             ev = [
-                (ee[:, i] // d).astype(np.int)
-                for i, d in enumerate(downsample)
+                (ee[:, i] // d).astype(int) for i, d in enumerate(downsample)
             ]
             np.add.at(chunks, tuple([i] + ev), 1)
         idx_start = idx_end
@@ -163,8 +162,8 @@ def chunk_evs_pol_dvs(
             ee = addrs[idx_start:idx_end]
             pol, x, y = (
                 ee[:, 2],
-                (ee[:, 0] // ds_w).astype(np.int),
-                (ee[:, 1] // ds_h).astype(np.int),
+                (ee[:, 0] // ds_w).astype(int),
+                (ee[:, 1] // ds_h).astype(int),
             )
             np.add.at(chunks, (i, pol, x, y), 1)
         idx_start = idx_end
