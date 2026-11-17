@@ -508,11 +508,11 @@ class RSynaptic(LIF):
         Intended for use in truncated backpropagation through time where
         hidden state variables are instance variables."""
 
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], RSynaptic):
-                cls.instances[layer].syn.detach_()
-                cls.instances[layer].mem.detach_()
-                cls.instances[layer].spk.detach_()
+        for instance in cls.instances:
+            if isinstance(instance, RSynaptic):
+                instance.syn.detach_()
+                instance.mem.detach_()
+                instance.spk.detach_()
 
     @classmethod
     def reset_hidden(cls):
@@ -520,19 +520,19 @@ class RSynaptic(LIF):
         Intended for use where hidden state variables are instance
         variables."""
 
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], RSynaptic):
-                cls.instances[layer].spk = torch.zeros_like(
-                    cls.instances[layer].spk,
-                    device=cls.instances[layer].spk.device,
+        for instance in cls.instances:
+            if isinstance(instance, RSynaptic):
+                instance.spk = torch.zeros_like(
+                    instance.spk,
+                    device=instance.spk.device,
                 )
-                cls.instances[layer].syn = torch.zeros_like(
-                    cls.instances[layer].syn,
-                    device=cls.instances[layer].syn.device,
+                instance.syn = torch.zeros_like(
+                    instance.syn,
+                    device=instance.syn.device,
                 )
-                cls.instances[layer].mem = torch.zeros_like(
-                    cls.instances[layer].mem,
-                    device=cls.instances[layer].mem.device,
+                instance.mem = torch.zeros_like(
+                    instance.mem,
+                    device=instance.mem.device,
                 )
 
 

@@ -256,18 +256,18 @@ class Leaky(LIF):
         Intended for use in truncated backpropagation through time where
         hidden state variables are instance variables."""
 
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], Leaky):
-                cls.instances[layer].mem.detach_()
+        for instance in cls.instances:
+            if isinstance(instance, Leaky):
+                instance.mem.detach_()
 
     @classmethod
     def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables.
         Assumes hidden states have a batch dimension already."""
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], Leaky):
-                cls.instances[layer].mem = torch.zeros_like(
-                    cls.instances[layer].mem,
-                    device=cls.instances[layer].mem.device,
+        for instance in cls.instances:
+            if isinstance(instance, Leaky):
+                instance.mem = torch.zeros_like(
+                    instance.mem,
+                    device=instance.mem.device,
                 )

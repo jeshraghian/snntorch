@@ -1,4 +1,5 @@
 import math
+import weakref
 from warnings import warn
 from snntorch.surrogate import atan
 import torch
@@ -13,15 +14,51 @@ __all__ = [
 dtype = torch.float
 
 
+class _WeakInstanceList:
+    """List-like registry of neurons that does not keep them alive.
+
+    Holding the neurons themselves (a plain list) would prevent every neuron
+    ever created -- and the tensors it owns -- from being garbage collected.
+    Only weak references are stored; neurons that no longer exist are dropped
+    lazily. Iterating yields the neurons that are still alive, in the order
+    they were created."""
+
+    def __init__(self):
+        self._refs = []
+
+    def append(self, instance):
+        self._refs.append(weakref.ref(instance))
+
+    def _alive(self):
+        alive = [ref() for ref in self._refs]
+        if any(instance is None for instance in alive):
+            alive = [instance for instance in alive if instance is not None]
+            self._refs = [weakref.ref(instance) for instance in alive]
+        return alive
+
+    def __iter__(self):
+        return iter(self._alive())
+
+    def __len__(self):
+        return len(self._alive())
+
+    def __getitem__(self, index):
+        return self._alive()[index]
+
+    def clear(self):
+        self._refs = []
+
+
 class SpikingNeuron(nn.Module):
     """Parent class for spiking neuron models."""
 
-    instances = []
+    instances = _WeakInstanceList()
     """Each :mod:`snntorch.SpikingNeuron` neuron
     (e.g., :mod:`snntorch.Synaptic`) will populate the
     :mod:`snntorch.SpikingNeuron.instances` list with a new entry.
     The list is used to initialize and clear neuron states when the
-    argument `init_hidden=True`."""
+    argument `init_hidden=True`. It only holds weak references, so a neuron
+    is released as soon as nothing else refers to it."""
 
     reset_dict = {
         "subtract": 0,
@@ -305,8 +342,14 @@ class SpikingNeuron(nn.Module):
     @classmethod
     def init(cls):
         """Removes all items from :mod:`snntorch.SpikingNeuron.instances`
-        when called."""
-        cls.instances = []
+        when called.
+
+        The list is always cleared on :class:`SpikingNeuron` itself, even
+        when called from a subclass (e.g., ``snn.Leaky.init()``). Assigning
+        to ``cls.instances`` would instead create a second, empty list on the
+        subclass that shadows the shared one, and ``reset_hidden`` /
+        ``detach_hidden`` of that subclass would silently stop working."""
+        SpikingNeuron.instances = _WeakInstanceList()
 
     @staticmethod
     def detach(*args):
