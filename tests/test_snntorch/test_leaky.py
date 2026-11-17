@@ -138,6 +138,26 @@ class TestLeaky:
 
         assert factor.requires_grad
 
+    @pytest.mark.parametrize("reset_delay", [True, False])
+    def test_leaky_inhibition_graded_spikes(self, reset_delay):
+        # inhibition must scale the winning spike by graded_spikes_factor,
+        # exactly like the non-inhibited path does
+        x = torch.tensor([[2.0, 0.5]])
+        kwargs = dict(
+            beta=0.5, graded_spikes_factor=3.0, reset_delay=reset_delay
+        )
+        plain = snn.Leaky(**kwargs)
+        with pytest.warns(UserWarning):
+            inhibited = snn.Leaky(inhibition=True, **kwargs)
+
+        spk_plain, mem_plain = plain(x, torch.zeros_like(x))
+        spk_inh, mem_inh = inhibited(x, torch.zeros_like(x))
+
+        assert torch.equal(spk_inh, torch.tensor([[3.0, 0.0]]))
+        # only one neuron crosses threshold here, so both paths must agree
+        assert torch.equal(spk_inh, spk_plain)
+        assert torch.equal(mem_inh, mem_plain)
+
     def test_leaky_compile_fullgraph(self, leaky_instance_surrogate, input_):
         explanation = dynamo.explain(leaky_instance_surrogate)(input_[0])
 
