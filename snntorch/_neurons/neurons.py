@@ -191,6 +191,10 @@ class SpikingNeuron(nn.Module):
         mask_spk1[torch.arange(batch_size), index] = 1
         spk = spk_tmp * mask_spk1
         self._homeostasis_post(spk)
+
+        # match fire(): callers divide by graded_spikes_factor to recover
+        # the binary spike when ``reset_delay=False``
+        spk = spk * self.graded_spikes_factor
         # reset = spk.clone().detach()
 
         return spk
