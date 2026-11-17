@@ -260,3 +260,16 @@ def test_latency_code_log(test_input, expected):
             expected,
         )
     )
+
+
+@pytest.mark.parametrize(
+    "kwargs, value",
+    [
+        ({"first_spike_time": -2, "num_steps": 5}, r"\[-2\]"),
+        ({"num_steps": -3}, r"\[-3\]"),
+    ],
+)
+def test_latency_error_messages_report_the_value(kwargs, value):
+    # the offending value used to be printed as a literal "{name}" placeholder
+    with pytest.raises(Exception, match=value + " cannot be negative"):
+        spikegen.latency(torch.rand(2, 3), **kwargs)
