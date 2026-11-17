@@ -231,6 +231,18 @@ def test_target_rate_code(expected_1, expected_2):
 
 
 @pytest.mark.parametrize(
+    "data",
+    [[0.0, 1.0, 3.0], [-1.0, 0.5, 1.0], [-1.0, 0.5, 3.0]],
+)
+def test_latency_first_spike_time_requires_unit_range(data):
+    # data outside [0, 1] would give spike times before first_spike_time
+    with pytest.raises(Exception, match="only be applied to data between"):
+        spikegen.latency_code(
+            torch.tensor([data]), num_steps=10, linear=True, first_spike_time=2
+        )
+
+
+@pytest.mark.parametrize(
     "test_input, expected",
     [(input_([0, 1]), input_([2.99, 2.00]))],
 )

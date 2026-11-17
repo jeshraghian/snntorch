@@ -691,7 +691,7 @@ def _latency_errors(
 
     # this condition is more broadly caught in latency code by ensuring 0
     # < data < 1
-    if first_spike_time and torch.max(data) > 1 and torch.min(data) < 0:
+    if first_spike_time and (torch.max(data) > 1 or torch.min(data) < 0):
         raise Exception(
             "`first_spike_time` can only be applied to data between "
             "`0` and `1`."
