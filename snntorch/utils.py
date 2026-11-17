@@ -178,10 +178,24 @@ def reset(net):
     # rather than via the class-level reset_hidden (which iterates over
     # cls.instances — i.e. ALL instances of that class across all networks).
     for module in net.modules():
-        if isinstance(module, (snn.Lapicque, snn.Synaptic, snn.Leaky,
-                               snn.Alpha, snn.RLeaky, snn.RSynaptic,
-                               snn.SConv2dLSTM, snn.SLSTM)):
+        if isinstance(
+            module,
+            (
+                snn.Lapicque,
+                snn.Synaptic,
+                snn.Leaky,
+                snn.Alpha,
+                snn.RLeaky,
+                snn.RSynaptic,
+                snn.SConv2dLSTM,
+                snn.SLSTM,
+            ),
+        ):
             module.reset_mem()
+        elif isinstance(module, snn.CustomNeuron):
+            module.reset_state()
+        elif isinstance(module, snn.SynapticDelay):
+            module.reset_delay()
 
 
 def _layer_check(net):

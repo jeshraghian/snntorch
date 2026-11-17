@@ -105,3 +105,22 @@ class TestResetMechanism(unittest.TestCase):
 
     def test_nested_multi_neuron_model(self):
         self._check_reset(NestedMultiNeuronModel)
+
+    def test_custom_neuron_and_synaptic_delay(self):
+        # states that are not cleared through ``reset_mem``
+        MyLIF = snn.neuron_from_equations(
+            "MyLIF", ["mem"], lambda s, x: {"mem": 0.9 * s["mem"] + x}
+        )
+        delay = snn.SynapticDelay(max_delay=3, delay=2.0, step_mode=True)
+        neuron = MyLIF(init_hidden=True)
+        model = nn.Sequential(delay, neuron)
+        for _ in range(4):
+            model(torch.ones(1, 10))
+
+        self.assertNotEqual(delay._buffer.abs().sum().item(), 0)
+        self.assertNotEqual(neuron.mem.abs().sum().item(), 0)
+
+        utils.reset(model)
+
+        self.assertEqual(delay._buffer.abs().sum().item(), 0)
+        self.assertEqual(neuron.mem.abs().sum().item(), 0)
