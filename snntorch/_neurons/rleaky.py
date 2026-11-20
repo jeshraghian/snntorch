@@ -463,22 +463,22 @@ class RLeaky(LIF):
         variables
         are instance variables."""
 
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], RLeaky):
-                cls.instances[layer].mem.detach_()
-                cls.instances[layer].spk.detach_()
+        for instance in cls.instances:
+            if isinstance(instance, RLeaky):
+                instance.mem.detach_()
+                instance.spk.detach_()
 
     @classmethod
     def reset_hidden(cls):
         """Used to clear hidden state variables to zero.
         Intended for use where hidden state variables are instance variables.
         Assumes hidden states have a batch dimension already."""
-        for layer in range(len(cls.instances)):
-            if isinstance(cls.instances[layer], RLeaky):
+        for instance in cls.instances:
+            if isinstance(instance, RLeaky):
                 (
-                    cls.instances[layer].spk,
-                    cls.instances[layer].mem,
-                ) = cls.instances[layer].init_rleaky()
+                    instance.spk,
+                    instance.mem,
+                ) = instance.init_rleaky()
 
 
 class RecurrentOneToOne(nn.Module):
